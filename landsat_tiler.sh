@@ -1,8 +1,8 @@
 #!/bin/bash
 #PBS -P v10
 #PBS -q normal
-#PBS -l walltime=48:00:00,mem=4096MB,ncpus=1
-#PBS -l wd
+#PBS -l walltime=48:00:00,vmem=4096MB,ncpus=1
+#PBS -wd
 #@#PBS -m e
 #PBS -M alex.ip@ga.gov.au
 
