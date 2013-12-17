@@ -91,6 +91,12 @@ class Stacker(DataCube):
         _arg_parser.add_argument('--refresh', dest='refresh',
            default=False, action='store_const', const=True,
            help='Refresh mode flag to force updating of existing files')
+        _arg_parser.add_argument('-of', '--out_format', dest='out_format',
+            required=False, default=None,
+            help='Specify a GDAL complient output format for the file to be physically generated. If unset, then only the VRT will be generated. Example use -of ENVI')
+        _arg_parser.add_argument('-sfx', '--suffix', dest='suffix',
+            required=False, default=None,
+            help='Specify an output suffix for the physically generated file. Is only applied when -of <FORMAT> is set.')
     
         return _arg_parser.parse_args()
         
@@ -144,7 +150,7 @@ class Stacker(DataCube):
             self.y_index = int(self.y_index) 
         except:
             self.y_index = None
-        
+
         # Path/Row values to permit single-scene stacking
         try:
             self.path = int(self.path) 
@@ -259,8 +265,8 @@ class Stacker(DataCube):
                 band.SetNoDataValue(nodata_value)
             
         temporal_stack_dataset.FlushCache()
-        
-        
+
+ 
     def stack_tile(self, x_index, y_index, stack_output_dir=None, 
                    start_datetime=None, end_datetime=None, 
                    satellite=None, sensor=None, 
@@ -587,8 +593,36 @@ order by
         
                     self.stack_files(timeslice_info_list, stack_filename, band1_stack_filename, overwrite=True)
                     
-                    if timeslice_info_list[0]['tile_layer'] == 1:
-                        band1_stack_filename = stack_filename
+                    # Convert the virtual file to a physical file, ie VRT to ENVI
+                    if self.out_format:
+                        #if (len(self.suffix) > 0):
+                        if self.suffix:
+                            outfname = re.sub('.vrt', '.%s'%self.suffix, stack_filename)
+                        else:
+                            # Strip the suffix of the existing file name and output to disk
+                            outfname = os.path.splitext(stack_filename)[0]
+
+                        # Base commandline string
+                        command_string = 'gdal_translate -of %s %s %s' %(self.out_format, stack_filename, outfname)
+                    
+                        logger.debug('command_string = %s', command_string)
+
+                        print 'Creating Physical File'
+                        print 'File Format: %s' %self.out_format
+                        print 'Filename: %s' %outfname
+
+                        result = execute(command_string=command_string)
+
+                        if result['stdout']:
+                            log_multiline(logger.info, result['stdout'], 'stdout from ' + command_string, '\t')
+
+                        if result['stderr']:
+                            log_multiline(logger.debug, result['stderr'], 'stderr from ' + command_string, '\t')
+
+                        if result['returncode']:
+                            raise Exception('%s failed', command_string)
+                        if timeslice_info_list[0]['tile_layer'] == 1:
+                            band1_stack_filename = stack_filename
                     
         #            log_multiline(logger.info, timeslice_info_list, 'stack_info_dict[%s]' % stack_filename, '\t')
                     stack_info_dict[stack_filename] = timeslice_info_list
