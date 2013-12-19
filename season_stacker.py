@@ -655,6 +655,8 @@ if __name__ == '__main__':
     update_stats_metadata(season_stacker, stack_info_dict, stats_dataset_path_dict)
     ndvi_envi_dataset_path = translate_ndvi_to_envi(season_stacker, stack_info_dict)
 
+# Do NOT delete intermediate files because MDBA seasons overlap and concurrent jobs may fail
+# Need to do a manual "find <output_root> -name '*.tif' -delete" and "find <output_root> -name '*.vrt' -delete" when all jobs are finished
 #    if not season_stacker.debug:
 #        remove_intermediate_files(season_stacker, stack_info_dict)
     
