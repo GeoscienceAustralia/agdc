@@ -26,6 +26,7 @@ from datacube import DataCube
 
 PQA_NO_DATA_VALUE = 16127 # All ones except for contiguity (bit 8)
             
+STACKER_DEFAULT_SRID = 4326 # EPSG:4326
 
 # Set top level standard output 
 console_handler = logging.StreamHandler(sys.stdout)
@@ -64,6 +65,12 @@ class Stacker(DataCube):
         _arg_parser.add_argument('-y', '--y_index', dest='y_index',
             required=False, default=None,
             help='y-index of tile to be stacked')
+        _arg_parser.add_argument('-g', '--geometry_wkt', dest='geometry_wkt',
+            required=False, default=None,
+            help='Well Known Text describing a geometry which will select intersecting tiles')
+        _arg_parser.add_argument('-c', '--geometry_srid', dest='geometry_srid',
+            required=False, default=None,
+            help='Spatial Reference System ID as an integer that --geometry_wkt conforms to. Defaults to 4326')
         _arg_parser.add_argument('-o', '--output', dest='output_dir',
             required=False, default=1,
             help='Output directory path')
@@ -91,12 +98,6 @@ class Stacker(DataCube):
         _arg_parser.add_argument('--refresh', dest='refresh',
            default=False, action='store_const', const=True,
            help='Refresh mode flag to force updating of existing files')
-        _arg_parser.add_argument('-of', '--out_format', dest='out_format',
-            required=False, default=None,
-            help='Specify a GDAL complient output format for the file to be physically generated. If unset, then only the VRT will be generated. Example use -of ENVI')
-        _arg_parser.add_argument('-sfx', '--suffix', dest='suffix',
-            required=False, default=None,
-            help='Specify an output suffix for the physically generated file. Is only applied when -of <FORMAT> is set.')
     
         return _arg_parser.parse_args()
         
@@ -150,7 +151,11 @@ class Stacker(DataCube):
             self.y_index = int(self.y_index) 
         except:
             self.y_index = None
-
+        try:
+            self.geometry_srid = int(self.geometry_srid) 
+        except:
+            self.geometry_srid = None
+        
         # Path/Row values to permit single-scene stacking
         try:
             self.path = int(self.path) 
@@ -265,9 +270,12 @@ class Stacker(DataCube):
                 band.SetNoDataValue(nodata_value)
             
         temporal_stack_dataset.FlushCache()
-
- 
-    def stack_tile(self, x_index, y_index, stack_output_dir=None, 
+        
+        
+    def stack_tile(self, x_index=None, y_index=None, 
+                   geometry_wkt=None,
+                   geometry_srid=STACKER_DEFAULT_SRID,
+                   stack_output_dir=None, 
                    start_datetime=None, end_datetime=None, 
                    satellite=None, sensor=None, 
                    tile_type_id=None, 
@@ -279,7 +287,10 @@ class Stacker(DataCube):
         Function which returns a data structure and optionally creates band-wise VRT dataset stacks
         
         Arguments:
-            x_index, y_index: Integer indices of tile to stack
+            x_index, y_index: long/lat integer index which will select a single tile to stack
+            geometry_wkt, geometry_srid: A Well Known Text (WKT) string and integer SRID 
+                describing a geometry. All tiles intersecting this geometry will be selected.
+                (not used if x_index/y_index is specified)
             stack_output_dir: String defining output directory for band stacks 
                 (not used if create_band_stacks == False)
             start_datetime, end_datetime: Optional datetime objects delineating temporal range
@@ -293,6 +304,7 @@ class Stacker(DataCube):
                 introduces a hard-coded constraint around processing levels.
         """
         
+        assert (x_index is not None and y_index is not None) or geometry_wkt is not None, 'Either geometry or x/y index values must be supplied'
         assert stack_output_dir or not create_band_stacks, 'Output directory must be supplied for temporal stack generation'
         tile_type_id = tile_type_id or self.default_tile_type_id
         
@@ -411,7 +423,9 @@ select distinct
   level_name,
   nodata_value,
   gcp_count,
-  cloud_cover
+  cloud_cover,
+  x_index,
+  y_index
 from tile_footprint tf
 inner join tile t using (x_index, y_index, tile_type_id)
 inner join dataset using(dataset_id)
@@ -442,9 +456,16 @@ where tile_type_id = %(tile_type_id)s
   and pqa_tile.dataset_id = pqa_dataset.dataset_id"""
         sql += """
   and (band.satellite_id is null or band.satellite_id = sensor.satellite_id)
-  and (band.sensor_id is null or band.sensor_id = sensor.sensor_id)
-  and x_index = %(x_index)s
-  and y_index = %(y_index)s
+  and (band.sensor_id is null or band.sensor_id = sensor.sensor_id)"""
+        if x_index is not None and y_index is not None:
+            # Legacy style x/y index needs to be supported
+            sql += """
+  and (x_index = 148 and y_index = -35)"""
+        else:
+            # Newer method involves using a proper WKT POINT/POLYGON to test intersection
+            sql += """
+  and bbox && ST_GeomFromText(%(geometry_wkt)s, %(geometry_srid)s)"""
+        sql += """
   and (%(start_datetime)s is null or start_datetime >= %(start_datetime)s)
   and (%(end_datetime)s is null or end_datetime < %(end_datetime)s)
   and (%(satellite)s is null or satellite_tag = %(satellite)s)
@@ -452,6 +473,8 @@ where tile_type_id = %(tile_type_id)s
   and (%(x_ref)s is null or x_ref = %(x_ref)s)
   and (%(y_ref)s is null or y_ref = %(y_ref)s)
 order by
+  x_index,
+  y_index,
   band_tag, 
   start_datetime, 
   end_datetime, 
@@ -460,6 +483,8 @@ order by
 """
         params = {'x_index': x_index,
               'y_index': y_index,
+              'geometry_wkt' : geometry_wkt,
+              'geometry_srid' : geometry_srid,
               'tile_type_id': tile_type_id,
               'start_datetime': start_datetime,
               'end_datetime': end_datetime,
@@ -468,7 +493,7 @@ order by
               'x_ref': path,
               'y_ref': row
               }
-                      
+        
         log_multiline(logger.debug, db_cursor2.mogrify(sql, params), 'SQL', '\t')
         db_cursor2.execute(sql, params)
         
@@ -480,11 +505,9 @@ order by
         start_datetime = None
         end_datetime = None
         
-        for record in db_cursor2:   
+        for record in db_cursor2:
             assert record, 'No data found for this tile and temporal range'      
-            band_tile_info = {'x_index': x_index,
-                'y_index': y_index,            
-                'band_tag': record[0], 
+            band_tile_info = { 'band_tag': record[0], 
                 'band_name': record[1], 
                 'start_datetime': record[2], 
                 'end_datetime': record[3], 
@@ -498,7 +521,9 @@ order by
                 'level_name': record[10],
                 'nodata_value': record[11],
                 'gcp_count': record[12],
-                'cloud_cover': record[13] 
+                'cloud_cover': record[13],
+                'x_index': record[14],
+                'y_index': record[15]
                 }
 #            log_multiline(logger.debug, band_tile_info, 'band_tile_info', '\t')
             
@@ -510,6 +535,8 @@ order by
                 or (band_tile_info['satellite_tag'] != last_band_tile_info['satellite_tag'])
                 or (band_tile_info['sensor_name'] != last_band_tile_info['sensor_name'])
                 or (band_tile_info['path'] != last_band_tile_info['path'])
+                or (band_tile_info['x_index'] != last_band_tile_info['x_index'])
+                or (band_tile_info['y_index'] != last_band_tile_info['y_index'])
                 or ((band_tile_info['start_datetime'] - last_band_tile_info['end_datetime']) > timedelta(0, 3600)) # time difference > 1hr
                 ):
                 # Record timeslice information if it exists
@@ -767,7 +794,8 @@ order by
         return static_info_dict   
         
         
-    def stack_derived(self, x_index, y_index, stack_output_dir,
+    def stack_derived(self, stack_output_dir, x_index=None, y_index=None,
+                      geometry_wkt=None, geometry_srid=STACKER_DEFAULT_SRID,
                       start_datetime=None, end_datetime=None, 
                       satellite=None, sensor=None,
                       tile_type_id=None,
@@ -787,6 +815,8 @@ order by
         # Create intermediate mosaics and return dict with stack info
         stack_info_dict = self.stack_tile(x_index=x_index, 
                                          y_index=y_index, 
+                                         geometry_wkt=geometry_wkt,
+                                         geometry_srid=geometry_srid,
                                          stack_output_dir=stack_output_dir, 
                                          start_datetime=start_datetime, 
                                          end_datetime=end_datetime, 
@@ -797,8 +827,9 @@ order by
                                          disregard_incomplete_data=True)
         
         # Create intermediate mosaics and return dict with stack info
-        logger.debug('self.stack_tile(x_index=%s, y_index=%s, stack_output_dir=%s, start_datetime=%s, end_datetime=%s, satellite=%s, sensor=%s, tile_type_id=%s, create_band_stacks=%s, disregard_incomplete_data=%s) called', 
+        logger.debug('self.stack_tile(x_index=%s, y_index=%s, geometry_wkt=%s, geometry_srid=%s, stack_output_dir=%s, start_datetime=%s, end_datetime=%s, satellite=%s, sensor=%s, tile_type_id=%s, create_band_stacks=%s, disregard_incomplete_data=%s) called', 
                                          x_index, y_index, 
+                                         geometry_wkt, geometry_srid,
                                          stack_output_dir, 
                                          start_datetime, 
                                          end_datetime, 
