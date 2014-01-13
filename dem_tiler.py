@@ -653,7 +653,8 @@ where dataset_path = %(dataset_path)s
       x_min, 
       y_min, 
       x_max, 
-      y_max
+      y_max,
+      bbox
       )
     select
       %(x_index)s, 
@@ -662,7 +663,8 @@ where dataset_path = %(dataset_path)s
       %(x_min)s, 
       %(y_min)s, 
       %(x_max)s, 
-      %(y_max)s
+      %(y_max)s,
+      ST_GeomFromText('POLYGON(%(x_min)s %(y_min)s,%(x_max)s %(y_min)s,%(x_max)s %(y_max)s,%(x_min)s %(y_max)s,%(x_min)s %(y_min)s)', 4326)
     where not exists
       (select 
         x_index, 

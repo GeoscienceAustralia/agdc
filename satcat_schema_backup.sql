@@ -29,6 +29,10 @@ SET default_tablespace = '';
 
 SET default_with_oids = false;
 
+-- Enable PostGIS
+CREATE EXTENSION postgis;
+CREATE EXTENSION postgis_topology;
+
 --
 -- TOC entry 159 (class 1259 OID 4541949)
 -- Name: acquisition; Type: TABLE; Schema: public; Owner: satcat_v10; Tablespace: 
@@ -476,9 +480,9 @@ CREATE TABLE tile_footprint (
     x_min double precision,
     y_min double precision,
     x_max double precision,
-    y_max double precision
+    y_max double precision,
+    bbox geometry
 );
-
 
 ALTER TABLE public.tile_footprint OWNER TO satcat_v10;
 
@@ -910,6 +914,7 @@ CREATE INDEX fki_tile_footprint_idx ON tile USING btree (x_index, y_index, tile_
 
 CREATE INDEX fki_tile_footprint_tile_type_id_fkey ON tile_footprint USING btree (tile_type_id);
 
+CREATE INDEX tile_footprint_bbox_gist_idx ON tile_footprint USING GIST (bbox);
 
 --
 -- TOC entry 1885 (class 1259 OID 4542901)
