@@ -248,9 +248,9 @@ if __name__ == '__main__':
         if not input_date:
             return None
         return datetime.combine(input_date, time_offset)
-    
     # Stacker class takes care of command line parameters
     ndvi_stacker = NDVIStacker()
+    
     
     if ndvi_stacker.debug:
         console_handler.setLevel(logging.DEBUG)

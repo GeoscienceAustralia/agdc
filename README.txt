@@ -38,7 +38,9 @@ thredds_checker.py - Script to list all NBAR datasets in DB which are not loaded
 update_dataset_record.py - Sub-module to catalogue NBAR dataset
 update_fc_dataset_record.py - Sub-module to catalogue un-packaged FC dataset
 update_pqa_dataset_record.py - Sub-module to catalogue un-packaged PQ dataset
-vidstack.sh - Bash script to generate cumulative stack of images for video
+vidconvert.sh - Bash script to generate timeslice images for video. Works on outputs from rgb_stacker.py
+vidgen.sh - Bash script to run rgb_stacker.py on several tiles
+vidstack.sh - Bash script to generate cumulative stack of images for video. Works on outputs from rgb_stacker.py
 vrt2bin.py - Sub-module to convert VRT file to binary (ENVI) file
 water_rgb.py - Stacker subclass implementation to create PQ-masked RGB files showing water extents in blue. NB: Cannot temporally stack multi-band files
 water_rgb.sh

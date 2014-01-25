@@ -200,6 +200,11 @@ stack_output_info = {'x_index': 144,
         nbar_dataset_info = input_dataset_dict['NBAR'] # Only need NBAR data for NDVI
         #thermal_dataset_info = input_dataset_dict['ORTHO'] # Could have one or two thermal bands
 
+        # Need to skip tiles which don't have an NBAR tile (i.e. for non-mosaiced FC tiles at W & E sides of test area)
+        if nbar_dataset_info is None:
+            logger.warning('NBAR tile does not exist')
+            return None
+
         nbar_dataset_path = nbar_dataset_info['tile_pathname']
 
         # Get a boolean mask from the PQA dataset (use default parameters for mask and dilation)
