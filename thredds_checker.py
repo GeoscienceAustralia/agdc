@@ -121,7 +121,7 @@ class ThreddsChecker(DataCube):
         except:
             self.max_row = None
             
-        self.thredds_root = '/projects/v27/EOS_delivery/LANDSAT'
+        self.thredds_root = '/g/data1/v27/projects/EOS_delivery/LANDSAT/'
     
     def check(self, kml_filename=None, wrs_shapefile='WRS-2_bound_world.kml'):
         '''
