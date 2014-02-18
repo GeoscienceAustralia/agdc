@@ -4,7 +4,7 @@
 #PBS -l walltime=08:00:00,mem=12GB,ncpus=1
 #PBS -l wd
 #@#PBS -m e
-#PBS -M alex.ip@ga.gov.au
+##PBS -M alex.ip@ga.gov.au
 
 MODULEPATH=/projects/u46/opt/modules/modulefiles:$MODULEPATH
 

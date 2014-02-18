@@ -101,6 +101,10 @@ class LandsatTiler(DataCube):
         if self.debug:
             console_handler.setLevel(logging.DEBUG)
 
+        # Turn autocommit OFF so that transaction can cover all queries for each dataset
+        self.db_connection.autocommit = False
+        self.db_connection.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_READ_COMMITTED)
+
         # Attempt to parse dates from command line arguments or config file
         try:
             self.default_tile_type_id = int(self.default_tile_type_id) 

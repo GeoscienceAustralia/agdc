@@ -71,12 +71,17 @@ class DataCube(object):
     
         return _arg_parser.parse_args()
     
-    def create_connection(self):
-        return psycopg2.connect(host=self.host, 
+    def create_connection(self, autocommit=True):
+        db_connection = psycopg2.connect(host=self.host, 
                                               port=self.port, 
                                               dbname=self.dbname, 
                                               user=self.user, 
                                               password=self.password)
+        if autocommit:
+            db_connection.autocommit = True
+            db_connection.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+
+        return db_connection
     
     def get_tile_ordinates(self, point_x, point_y, point_date, 
                       processing_level='NBAR', satellite=None, tile_type_id=1):
@@ -341,14 +346,11 @@ set lock_owner = %(lock_owner)s,
         # Need to specifically check object lock record for this process and specified status
         try:
             lock_cursor.execute(sql, params)
-            lock_connection.commit()
             result = self.check_object_locked(lock_object=lock_object, 
                                               lock_type_id=lock_type_id, 
                                               lock_status_id=lock_status_id, 
                                               lock_owner=self.process_id,
                                               lock_connection=lock_connection)
-        except:
-            lock_connection.rollback()
         finally:
             lock_connection.close() 
             
@@ -381,11 +383,8 @@ where lock_type_id = %(lock_type_id)s
         log_multiline(logger.debug, lock_cursor.mogrify(sql, params), 'SQL', '\t')
         try:
             lock_cursor.execute(sql, params)
-            lock_connection.commit()
             result = not self.check_object_locked(lock_object, 
                                                   lock_type_id)   
-        except:
-            lock_connection.rollback()
         finally:
             lock_connection.close()
             
@@ -425,7 +424,6 @@ select
         log_multiline(logger.debug, lock_cursor.mogrify(sql, params), 'SQL', '\t')
         try:
             lock_cursor.execute(sql, params)
-            lock_connection.commit()
             record = lock_cursor.fetchone()
             if record:
                 result = {'lock_type_id': lock_type_id,
@@ -434,8 +432,6 @@ select
                   'lock_status_id': record[2],
                   'lock_detail': record[3]
                   }       
-        except:
-            lock_connection.rollback()
         finally:
             # Only close connection if it was created in this function
             if create_connection:
@@ -465,9 +461,6 @@ where (%(lock_type_id)s is null or lock_type_id = %(lock_type_id)s)
         log_multiline(logger.debug, lock_cursor.mogrify(sql, params), 'SQL', '\t')
         try:
             lock_cursor.execute(sql, params)
-            lock_connection.commit()
-        except:
-            lock_connection.rollback()
         finally:
             lock_connection.close()
     
