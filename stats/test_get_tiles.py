@@ -152,12 +152,14 @@ def generate_test_array(samples, lines, tiles_list, tag_array):
         i += 1
     return test_array
 
+
 def the_suite():
     """Returns a test suite of all the tests in this module."""
 
     suite = unittest.defaultTestLoader.loadTestsFromTestCase(TestGetTile3)
 
     return suite
+
 
 def run_the_tests():
     """Runs the tests defined in this module"""
