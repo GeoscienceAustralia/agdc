@@ -296,6 +296,10 @@ class Stacker(DataCube):
         assert stack_output_dir or not create_band_stacks, 'Output directory must be supplied for temporal stack generation'
         tile_type_id = tile_type_id or self.default_tile_type_id
 
+        #
+        # stack_tile local functions
+        #
+
         def cache_mosaic_files(mosaic_file_list, mosaic_dataset_path, overwrite=False, pqa_data=False):
             logger.debug('cache_mosaic_files(mosaic_file_list=%s, mosaic_dataset_path=%s, overwrite=%s, pqa_data=%s) called', mosaic_file_list, mosaic_dataset_path, overwrite, pqa_data)
             
@@ -421,13 +425,16 @@ class Stacker(DataCube):
                     )
 
                 # N.B: cache_mosaic_files function may modify filename
-                timeslice_info['tile_pathname'] = cache_mosaic_files(mosaic_file_list, timeslice_info['tile_pathname'], overwrite=self.refresh, 
-                                   pqa_data=timeslice_info['level_name'] == 'PQA')
+                timeslice_info['tile_pathname'] = \
+                    cache_mosaic_files(mosaic_file_list, timeslice_info['tile_pathname'],
+                                       overwrite=self.refresh, pqa_data=(timeslice_info['level_name'] == 'PQA'))
 
             stack_dict[timeslice_info['start_datetime']] = timeslice_info
         
-        # stack_tile main body         
-        
+        #
+        # stack_tile method body         
+        #
+
         db_cursor2 = self.db_connection.cursor()
         
         sql = """-- Retrieve all tile and band details for specified tile range
@@ -546,7 +553,7 @@ order by
                 or (band_tile_info['path'] != last_band_tile_info['path'])
                 or ((band_tile_info['start_datetime'] - last_band_tile_info['end_datetime']) > timedelta(0, 3600)) # time difference > 1hr
                 ):
-                # Record timeslice information for previous timeslices if it exists
+                # Record timeslice information for previous timeslice if it exists
                 if timeslice_info:
                     record_timeslice_information(timeslice_info, mosaic_file_list, stack_dict)
                 
