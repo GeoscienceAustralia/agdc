@@ -392,25 +392,28 @@ class Stacker(DataCube):
               
             return mosaic_dataset_path # Return potentially modified filename 
         
+        def create_mosaic_dir(mosaic_dir):
+            command_string = 'mkdir -p %s' % mosaic_dir
+            command_string += '\nchmod 777 %s' % mosaic_dir
+
+            logger.debug('command_string = %s', command_string)
+
+            result = execute(command_string=command_string)
+
+            if result['stdout']:
+                log_multiline(logger.debug, result['stdout'], 'stdout from ' + command_string, '\t') 
+
+            if result['returncode']:
+                log_multiline(logger.error, result['stderr'], 'stderr from ' + command_string, '\t')
+                raise Exception('%s failed', command_string) 
+
         def record_timeslice_information(timeslice_info, mosaic_file_list, stack_dict):
 
             if len(mosaic_file_list) > 1: # Mosaic required - cache under tile directory
                 mosaic_dir = os.path.join(os.path.dirname(timeslice_info['tile_pathname']),
                                                           'mosaic_cache')
                 if not os.path.isdir(mosaic_dir):
-                    command_string = 'mkdir -p %s' % mosaic_dir
-                    command_string += '\nchmod 777 %s' % mosaic_dir
-
-                    logger.debug('command_string = %s', command_string)
-
-                    result = execute(command_string=command_string)
-
-                    if result['stdout']:
-                        log_multiline(logger.debug, result['stdout'], 'stdout from ' + command_string, '\t') 
-
-                    if result['returncode']:
-                        log_multiline(logger.error, result['stderr'], 'stderr from ' + command_string, '\t')
-                        raise Exception('%s failed', command_string) 
+                    create_mosaic_dir(mosaic_dir)
 
                 timeslice_info['tile_pathname'] = os.path.join(
                     mosaic_dir,
@@ -543,7 +546,7 @@ order by
                 or (band_tile_info['path'] != last_band_tile_info['path'])
                 or ((band_tile_info['start_datetime'] - last_band_tile_info['end_datetime']) > timedelta(0, 3600)) # time difference > 1hr
                 ):
-                # Record timeslice information if it exists
+                # Record timeslice information for previous timeslices if it exists
                 if timeslice_info:
                     record_timeslice_information(timeslice_info, mosaic_file_list, stack_dict)
                 
