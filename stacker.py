@@ -576,12 +576,12 @@ order by
                             
             last_band_tile_info = band_tile_info
             
-        # Check for no results
-        if not stack_dict and not timeslice_info:
+        # Check for no results, otherwise record the last timeslice
+        if not timeslice_info:
             return {}
+        else:
+            record_timeslice_information(timeslice_info, mosaic_file_list, stack_dict)
 
-        stack_dict[timeslice_info['start_datetime']] = timeslice_info # Write last timeslice record to dict
-         
         log_multiline(logger.debug, band_stack_dict, 'band_stack_dict', '\t')
         
         if (stack_output_dir):
