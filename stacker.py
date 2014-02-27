@@ -295,7 +295,11 @@ class Stacker(DataCube):
         
         assert stack_output_dir or not create_band_stacks, 'Output directory must be supplied for temporal stack generation'
         tile_type_id = tile_type_id or self.default_tile_type_id
-        
+
+        #
+        # stack_tile local functions
+        #
+
         def cache_mosaic_files(mosaic_file_list, mosaic_dataset_path, overwrite=False, pqa_data=False):
             logger.debug('cache_mosaic_files(mosaic_file_list=%s, mosaic_dataset_path=%s, overwrite=%s, pqa_data=%s) called', mosaic_file_list, mosaic_dataset_path, overwrite, pqa_data)
             
@@ -392,8 +396,45 @@ class Stacker(DataCube):
               
             return mosaic_dataset_path # Return potentially modified filename 
         
+        def create_mosaic_dir(mosaic_dir):
+            command_string = 'mkdir -p %s' % mosaic_dir
+            command_string += '\nchmod 777 %s' % mosaic_dir
+
+            logger.debug('command_string = %s', command_string)
+
+            result = execute(command_string=command_string)
+
+            if result['stdout']:
+                log_multiline(logger.debug, result['stdout'], 'stdout from ' + command_string, '\t') 
+
+            if result['returncode']:
+                log_multiline(logger.error, result['stderr'], 'stderr from ' + command_string, '\t')
+                raise Exception('%s failed', command_string) 
+
+        def record_timeslice_information(timeslice_info, mosaic_file_list, stack_dict):
+
+            if len(mosaic_file_list) > 1: # Mosaic required - cache under tile directory
+                mosaic_dir = os.path.join(os.path.dirname(timeslice_info['tile_pathname']),
+                                                          'mosaic_cache')
+                if not os.path.isdir(mosaic_dir):
+                    create_mosaic_dir(mosaic_dir)
+
+                timeslice_info['tile_pathname'] = os.path.join(
+                    mosaic_dir,
+                    re.sub(r'\.\w+$', '.vrt', os.path.basename(timeslice_info['tile_pathname']))
+                    )
+
+                # N.B: cache_mosaic_files function may modify filename
+                timeslice_info['tile_pathname'] = \
+                    cache_mosaic_files(mosaic_file_list, timeslice_info['tile_pathname'],
+                                       overwrite=self.refresh, pqa_data=(timeslice_info['level_name'] == 'PQA'))
+
+            stack_dict[timeslice_info['start_datetime']] = timeslice_info
         
-        
+        #
+        # stack_tile method body         
+        #
+
         db_cursor2 = self.db_connection.cursor()
         
         sql = """-- Retrieve all tile and band details for specified tile range
@@ -512,37 +553,9 @@ order by
                 or (band_tile_info['path'] != last_band_tile_info['path'])
                 or ((band_tile_info['start_datetime'] - last_band_tile_info['end_datetime']) > timedelta(0, 3600)) # time difference > 1hr
                 ):
-                # Record timeslice information if it exists
+                # Record timeslice information for previous timeslice if it exists
                 if timeslice_info:
-                    if len(mosaic_file_list) > 1: # Mosaic required - cache under tile directory
-                        mosaic_dir = os.path.join(os.path.dirname(timeslice_info['tile_pathname']),
-                                                                  'mosaic_cache')
-                        if not os.path.isdir(mosaic_dir):
-                            command_string = 'mkdir -p %s' % mosaic_dir
-                            command_string += '\nchmod 777 %s' % mosaic_dir
-                            
-                            logger.debug('command_string = %s', command_string)
-                        
-                            result = execute(command_string=command_string)
-                        
-                            if result['stdout']:
-                                log_multiline(logger.debug, result['stdout'], 'stdout from ' + command_string, '\t') 
-                    
-                            if result['returncode']:
-                                log_multiline(logger.error, result['stderr'], 'stderr from ' + command_string, '\t')
-                                raise Exception('%s failed', command_string) 
-                        
-                        timeslice_info['tile_pathname'] = os.path.join(mosaic_dir,
-                                                                       re.sub('\.\w+$', '.vrt', 
-                                                                              os.path.basename(timeslice_info['tile_pathname'])
-                                                                              )
-                                                                       )
-
-                        # N.B: cache_mosaic_files function may modify filename
-                        timeslice_info['tile_pathname'] = cache_mosaic_files(mosaic_file_list, timeslice_info['tile_pathname'], overwrite=self.refresh, 
-                                           pqa_data=timeslice_info['level_name'] == 'PQA')
-                        
-                    stack_dict[timeslice_info['start_datetime']] = timeslice_info
+                    record_timeslice_information(timeslice_info, mosaic_file_list, stack_dict)
                 
                 # Start recording a new band if necessary
                 if (not last_band_tile_info or (band_tile_info['band_tag'] != last_band_tile_info['band_tag'])):                    
@@ -563,12 +576,12 @@ order by
                             
             last_band_tile_info = band_tile_info
             
-        # Check for no results
-        if not stack_dict and not timeslice_info:
+        # Check for no results, otherwise record the last timeslice
+        if not timeslice_info:
             return {}
+        else:
+            record_timeslice_information(timeslice_info, mosaic_file_list, stack_dict)
 
-        stack_dict[timeslice_info['start_datetime']] = timeslice_info # Write last timeslice record to dict
-         
         log_multiline(logger.debug, band_stack_dict, 'band_stack_dict', '\t')
         
         if (stack_output_dir):
