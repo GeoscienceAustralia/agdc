@@ -258,6 +258,11 @@ def temporal_stats(array, no_data=None, as_bip=False):
 
     # assuming a 3D array, [bands,rows,cols]
     dims  = array.shape
+
+    if len(dims) != 3:
+        raise Exception('Error. Array dimensions must be 3D, not %i' %len(dims))
+
+    # define what each dimension represents
     bands = dims[0]
     cols  = dims[2]
     rows  = dims[1]
