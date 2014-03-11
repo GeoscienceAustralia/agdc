@@ -60,9 +60,9 @@ python ${python_script} -x ${x_index} -y ${y_index} -o ${tile_output_path} ${add
         qsub ${tile_script_path} # Write output to default PBS log fliles
     else
         # The following lines are for running background jobs on the training VM
-        echo Background executing ${script_path}
+        echo Background executing ${tile_script_path}
         chmod 755 ${tile_script_path}
-        ${script_path} >${tile_stdout_log} 2>${tile_stderr_log} &
+        ${tile_script_path} >${tile_stdout_log} 2>${tile_stderr_log} &
     fi
 
 done < $tile_list
