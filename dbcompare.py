@@ -69,7 +69,7 @@ class Reporter(object):
         PRE: new_table must have been called."""
 
         if self.verbosity > 2 or len(self.diff_list) < MAX_DIFFERENCES:
-            self.diff_list.append((db_no, row))
+            self.diff_list.append((db_no, map(str, row)))
 
     def stop_adding_differences(self):
         """True if there is no need to keep checking for differences."""
@@ -225,7 +225,6 @@ ORDER BY ordinal_position;
 """
     curs.execute(sql, (schema, table))
     return [tup[0] for tup in curs.fetchall()]
-
 
 def _get_table_list(db, schema):
     """Return a list of the tables in a database."""
