@@ -98,7 +98,8 @@ class Stacker(DataCube):
             required=False, default=None,
             help='Specify an output suffix for the physically generated file. Is only applied when -of <FORMAT> is set.')
     
-        return _arg_parser.parse_args()
+        args, unknown_args = _arg_parser.parse_known_args()
+        return args
         
     def __init__(self, source_datacube=None, default_tile_type_id=1):
         """Constructor
