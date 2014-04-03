@@ -3,11 +3,15 @@
 """dbutil.py - PostgreSQL database utilities for testing.
 
 This module provides easy access to the test database server, and
-provides an easy way to save, create, and drop databases from this server.
+provides a way to create, load, save and drop databases from this server.
+
+It also provides wrapper classes for psycopg2 database connections that
+implement utility queries as methods.
 """
 
+import os
+import subprocess
 import psycopg2
-import unittest
 
 #
 # Setup information for the test server. This might be better off loaded
@@ -17,182 +21,373 @@ import unittest
 # file.
 #
 
-TESTSERVER_NAME = 'test_server'
-TESTSERVER_HOST = '130.56.244.226'
-TESTSERVER_PORT = '6432'
-TESTSERVER_USER = 'cube_tester'
-TESTSERVER_SUPERUSER = 'cube_admin'
-TESTSERVER_SAVE_DIR = '/short/v10/mxh651/test_resources/databases'
+TESTSERVER_PARAMS = {
+    'name': 'test_server',
+    'host': '130.56.244.226',
+    'port': '6432',
+    'user': 'cube_tester',
+    'superuser': 'cube_admin',
+    'save_dir': '/g/data1/v10/test_resources/databases'}
 
 #
-# test_server instance
+# Database connection constants. These would be better off being defaults
+# for items that can be overridden by a configuration file.
 #
 
-def test_server():
-    """Return the test_server instance."""
+CONNECT_TIMEOUT = 60
+MAINTENANCE_DB = 'postgres'
+TEMPLATE_DB = 'template0'
+USE_PGBOUNCER = True
+PGBOUNCER_DB = 'pgbouncer'
 
-    # Using function attribute 'the_server' as persistent storage.
+#
+# Test server instance:
+#
 
-    if not hasattr(test_server, 'the_server'):
-        test_server.the_server = Server(name=TESTSERVER_NAME,
-                                        host=TESTSERVER_HOST,
-                                        port=TESTSERVER_PORT,
-                                        user=TESTSERVER_USER,
-                                        superuser=TESTSERVER_SUPERUSER,
-                                        save_dir=TESTSERVER_SAVE_DIR)
-    return test_server.the_server
+TESTSERVER = Server(TESTSERVER_PARAMS)
 
 #
 # Server class
 #
 
+
 class Server(object):
+    """Abstraction of a database server.
 
-    def __init__(self, name, host, port,
-                 user, superuser, save_dir, timeout=60):
-        self.name = name
-        self.host = host
-        self.port = port
-        self.user = user
-        self.superuser = superuser
-        self.save_dir = save_dir
-        self.timeout = timeout
+    Gathers all the parameters that describe a server or how to work
+    with it, and provides services that use this information."""
 
-    def raw_connect_to(self, dbname, user):
-        """create a pscopg2.connection to dbname and return it.
+    def __init__(self, params):
+        self.name = params['name']
+        self.host = params['host']
+        self.port = params['port']
+        self.user = params['user']
+        self.superuser = params['superuser']
+        self.save_dir = params['save_dir']
 
-        dbname: the database to connect to.
-        user: the user for the connection.
+    def connect(self, dbname, superuser=False, autocommit=True):
+        """create a pscopg2 connection to a database and return it.
 
-        Note that the autocommit attribute for the connection will
-        be set to True, turning on autocommit.
-        """
+        dbname: The database to connect to.
+        superuser: Set to True to connect as the superuser, otherwise
+            connect as the user.
+        autocommit: Set to False to turn off autocommit, otherwise
+            autocommit will be turned on."""
 
+        user = (self.superuser if superuser else self.user)
         dsn = ("dbname=%s host=%s port=%s user=%s connect_timeout=%s" %
-               (dbname, self.host, self.port, user, self.timeout))
+               (dbname, self.host, self.port, user, CONNECT_TIMEOUT))
         conn = psycopg2.connect(dsn)
-        conn.autocommit = True
+        conn.autocommit = autocommit
 
         return conn
 
-    def create_and_load(self, dbname, save_file):
-        pass
+    def load(self, dbname, save_file):
+        """Load the contents of a database from a file.
+
+        The database should be empty, and based off template0 or
+        equivalent. This method calls the psql command to do the load."""
+
+        save_path = os.path.join(self.save_dir, save_file)
+        load_cmd = ["psql",
+                    "--dbname=%s" % dbname,
+                    "--username=%s" % self.superuser,
+                    "--host=%s" % self.host,
+                    "--port=%s" % self.port,
+                    "--file=%s" % save_path]
+
+        try:
+            subprocess.check_output(load_cmd, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as err:
+            # Make sure error output is in the error message.
+            message = ("%s: problem calling %s:\n%s" %
+                       (__name__, err.cmd[0], err.output))
+            raise Exception(message)
 
     def save(self, dbname, save_file):
-        pass
+        """Save the contents of a database to a file.
+
+        This method calls the pg_dump command to do the save. This
+        dump is in sql script format so use psql to reload."""
+
+        save_path = os.path.join(self.save_dir, save_file)
+        save_cmd = ["pg_dump",
+                    "--dbname=%s" % dbname,
+                    "--username=%s" % self.superuser,
+                    "--host=%s" % self.host,
+                    "--port=%s" % self.port,
+                    "--file=%s" % save_path]
+
+        try:
+            subprocess.check_output(save_cmd, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as err:
+            #Make sure error output is in the error message.
+            message = ("%s: problem calling %s:\n%s" %
+                       (__name__, err.cmd[0], err.output))
+            raise Exception(message)
 
     def drop(self, dbname):
-        pass
+        """Drop the named database.
 
-    def connect_to(self, dbname, schema):
-        return None
+        Connections are closed explicitly with try/finally blocks,
+        since they do not seem to be closed automatically in the
+        case of exceptions and this causes problems.
 
-#
-# Unit tests for Server class
-#
+        If pgbouncer is in use a pgbouncer pause command needs to
+        be issued before dropping the database. This will wait
+        until active transactions are complete."""
 
-
-TEST_CONNECT_DBNAME = "postgres"
-
-class TestServerClass(unittest.TestCase):
-
-    def test_connect(self):
-        "Test pscopg2 connection to the server"
-
+        maint_conn = MaintenanceConnection(
+            self.connect(MAINTENANCE_DB, superuser=True))
         try:
-            test_server().raw_connect_to(TEST_CONNECT_DBNAME,
-                                         test_server().user)
-        except psycopg2.Error as err:
-            self.fail("Unable to connect as user '%s'" % test_server().user +
-                      ((":\n" + err.pgerr) if err.pgerr else ""))
+            if maint_conn.exists(dbname):
+                if USE_PGBOUNCER:
+                    bouncer_conn = BouncerConnection(
+                        self.connect(PGBOUNCER_DB, superuser=True))
+                    try:
+                        bouncer_conn.pause(dbname)
+                        maint_conn.drop(dbname)
+                    finally:
+                        bouncer_conn.close()
+                else:
+                    maint_conn.drop(dbname)
+        finally:
+            maint_conn.close()
 
+    def create(self, dbname, save_file):
+        """Creates and loads a database from a file.
+
+        This method does a clean create and load of the named database
+        from the file 'savefile'. It drops an old database of the same
+        name if neccessary.
+
+        Connections are closed explicitly with try/finally blocks,
+        since they do not seem to be closed automatically in the
+        case of exceptions and this causes problems.
+
+        If pgbouncer is in use a pgbouncer pause command needs to
+        be issued before dropping the database. This will wait
+        until active transactions are complete. The pgbouncer
+        resume command is issued once the database is (re)created.
+        This is needed to prevent connection attempts to the new database
+        from hanging or returning errors if pgbouncer had pools set
+        up on the old database."""
+
+        maint_conn = MaintenanceConnection(
+            self.connect(MAINTENANCE_DB, superuser=True))
         try:
-            test_server().raw_connect_to(TEST_CONNECT_DBNAME,
-                                       test_server().superuser)
-        except psycopg2.Error as err:
-            self.fail("Unable to connect as superuser '%s'" %
-                      test_server().superuser +
-                      ((":\n" + err.pgerr) if err.pgerr else ""))
+            # Create the database, dropping it first if needed.
+            if USE_PGBOUNCER:
+                bouncer_conn = BouncerConnection(
+                    self.connect(PGBOUNCER_DB, superuser=True))
+                try:
+                    if maint_conn.exists(dbname):
+                        bouncer_conn.pause(dbname)
+                        maint_conn.drop(dbname)
+                    maint_conn.create(dbname)
+                    bouncer_conn.resume(dbname)
+                finally:
+                    bouncer_conn.close()
+            else:
+                if maint_conn.exists(dbname):
+                    maint_conn.drop(dbname)
+                maint_conn.create(dbname)
 
+            # Load the new database from the save file
+            self.load(dbname, save_file)
+
+            # Run ANALYSE on the newly loaded database
+            db_conn = DatabaseConnection(self.connect(dbname, superuser=True))
+            try:
+                db_conn.analyse()
+            finally:
+                db_conn.close()
+
+            # All done
+        finally:
+            maint_conn.close()
 
 #
-# Database class
+# Connection wrappers.
 #
 
-class Database(object):
 
-    def __init__(self, name, server, schema, connection):
-        self.name = name
-        self.server = server
-        self.schema = schema
-        self.connection = connection
+class Connection(object):
+    """Generic connection wrapper, inherited by the specific wrappers.
 
-    def get_column_list(self, table):
-        """Return a list of the columns in a database table."""
+    This is a wrapper for a psycopg2 database connection. It
+    passes on unknown attribute references to the wrapped connection
+    using __get_attr__. The specific wrappers that inherit from this
+    implement queries and operations on the connection (self.conn)
+    as methods."""
 
-        curs = self.connection.cursor()
-        sql = """-- get_column_list query
-            SELECT column_name FROM information_schema.columns
-            WHERE table_schema = %s AND table_name = %s
-            ORDER BY ordinal_position;"""
-        curs.execute(sql, (self.schema, table))
-        return [tup[0] for tup in curs.fetchall()]
-
-    def get_table_list(self):
-        """Return a list of the tables in a database."""
-
-        curs = self.connection.cursor()
-        sql = """-- get_table_list query
-            SELECT table_name FROM information_schema.tables
-            WHERE table_schema = %s
-            ORDER BY table_name;"""
-        curs.execute(sql, (self.schema,))
-        return [tup[0] for tup in curs.fetchall()]
-
-    def table_exists(self, table):
-        """Returns True if the table exists in the database."""
-
-        return table in self.get_table_list()
-
-    def get_primary_key(self, table):
-        """Returns the primary key for a table as a list of columns."""
-
-        curs = self.connection.cursor()
-        sql = """-- get_primary_key query
-            SELECT column_name FROM information_schema.key_column_usage
-            WHERE constraint_schema = %(schema)s AND constraint_name IN
-                (SELECT constraint_name
-                 FROM information_schema.table_constraints
-                 WHERE table_schema = %(schema)s AND table_name = %(table)s AND
-                     constraint_type = 'PRIMARY KEY')
-            ORDER BY ordinal_position;"""
-        curs.execute(sql, {'schema': self.schema, 'table': table})
-        return [tup[0] for tup in curs.fetchall()]
+    def __init__(self, conn):
+        self.conn = conn
 
     def __getattr__(self, attrname):
-        """Delegate other attributes to the psycopg2 connection.
+        """Delegate unknown attributes to the psycopg2 connection."""
 
-        The cursor() method (to get a new cursor) is the call that is
-        needed to access the database, and is accessed through this delegation
-        method. The other attributes are also available , but are probably not
-        needed, as the connection should be set to autocommit. Use them at
-        your own risk.
+        return getattr(self.conn, attrname)
+
+
+class MaintenanceConnection(Connection):
+    """Wrapper for a connection intented for maintenance commands."""
+
+    def exists(self, dbname):
+        """Returns True if the named database exists."""
+
+        exists_sql = ("SELECT datname FROM pg_database\n" +
+                      "WHERE datname = %(dbname)s;")
+
+        with self.conn.cursor() as curs:
+            curs.execute(exists_sql, {'dbname': dbname})
+            db_found = bool(curs.fetchone())
+
+        return db_found
+
+    def drop(self, dbname):
+        """Drops the named database."""
+
+        assert dbname.isalnum(), "dbname expected to be alphanumeric."
+
+        drop_sql = "DROP DATABASE %s;" % dbname
+
+        with self.conn.cursor() as curs:
+            curs.execute(drop_sql)
+
+    def create(self, dbname):
+        """Creates the named database."""
+
+        assert dbname.isalnum(), "dbname expected to be alphanumeric."
+
+        create_sql = ("CREATE DATABASE %s\n" % dbname +
+                      "TEMPLATE %s;" % TEMPLATE_DB)
+
+        with self.conn.cursor() as curs:
+            curs.execute(create_sql)
+
+
+class BouncerConnection(Connection):
+    """Wrapper for a connection to the pgbouncer console pseudo-database.
+
+    Obviously these commands will not work if connected to an ordinary
+    database.
+
+    These commands will ignore errors since pgbouncer may
+    not know about the database the operations are being done on, but
+    the commands have to be run anyway in case it does."""
+
+    def pause(self, dbname):
+        """Tells pgbouncer to pause the named database.
+
+        This should cause pgbouncer to disconnect from dbname, first
+        waiting for any queries to complete.
         """
-        return getattr(self.connection, attrname)
 
-#
-# Define test suites
-#
+        assert dbname.isalnum(), "dbname expected to be alphanumeric."
 
-def the_suite():
-    """Returns a test suite of all the tests in this module."""
+        pause_sql = "PAUSE %s;" % dbname
 
-    suite = unittest.defaultTestLoader.loadTestsFromTestCase(TestServerClass)
-    return suite
+        with self.conn.cursor() as cur:
+            try:
+                cur.execute(pause_sql)
+            except psycopg2.DatabaseError:
+                pass
 
-#
-# Run unit tests if in __main__
-#
+    def resume(self, dbname):
+        """Tells pgbouncer to resume work on the named database.
 
-if __name__ == '__main__':
-    unittest.TextTestRunner(verbosity=2).run(the_suite())
+        If this is not called and the database was previously
+        paused then connection attempts will hang or give errors."""
+
+        assert dbname.isalnum(), "dbname expected to be alphanumeric."
+
+        resume_sql = "RESUME %s;" % dbname
+
+        with self.conn.cursor() as cur:
+            try:
+                cur.execute(resume_sql)
+            except psycopg2.DatabaseError:
+                pass
+
+
+class DatabaseConnection(Connection):
+    """Wrapper for a connection to a test database.
+
+    This implements utility queries, mostly used by dbcompare."""
+
+    def analyse(self):
+        """Runs the ANALYSE command on the connected database."""
+
+        with self.conn.cursor() as curs:
+            curs.execute("ANALYSE;")
+
+    def database_name(self):
+        """Returns the name of the connected database."""
+
+        sql = ("SELECT calalog_name\n" +
+               "FROM information_schema.information_schema_catalog_name;")
+
+        with self.conn.cursor() as curs:
+            curs.execute(sql)
+            dbname = curs.fetchone()[0]
+
+        return dbname
+
+    def column_list(self, table, schema='public'):
+        """Return a list of the columns in a database table."""
+
+        sql = ("SELECT column_name FROM information_schema.columns\n" +
+               "WHERE table_schema = %(schema)s AND table_name = %(table)s\n" +
+               "ORDER BY ordinal_position;")
+
+        with self.conn.cursor() as curs:
+            curs.execute(sql, {'table': table, 'schema': schema})
+            col_list = [tup[0] for tup in curs.fetchall()]
+
+        return col_list
+
+    def table_list(self, schema='public'):
+        """Return a list of the tables in a database."""
+
+        sql = ("SELECT table_name FROM information_schema.tables\n" +
+               "WHERE table_schema = %(schema)s\n" +
+               "ORDER BY table_name;")
+
+        with self.conn.cursor() as curs:
+            curs.execute(sql, {'schema': schema})
+            tab_list = [tup[0] for tup in curs.fetchall()]
+
+        return tab_list
+
+    def table_exists(self, table, schema='public'):
+        """Returns True if the table exists in the database."""
+
+        sql = ("SELECT table_name FROM information_schema.tables\n" +
+               "WHERE table_schema = %(schema)s AND table_name = %(table)s;")
+
+        with self.conn.cursor() as curs:
+            curs.execute(sql, {'table': table, 'schema': schema})
+            tab_found = bool(curs.fetchone())
+
+        return tab_found
+
+    def primary_key(self, table, schema='public'):
+        """Returns the primary key for a table as a list of columns."""
+
+        sql = ("SELECT column_name\n" +
+               "FROM information_schema.key_column_usage\n" +
+               "WHERE constraint_schema = %(schema)s AND\n" +
+               "   constraint_name IN\n" +
+               "      (SELECT constraint_name\n" +
+               "       FROM information_schema.table_constraints\n" +
+               "       WHERE table_schema = %(schema)s AND\n" +
+               "          table_name = %(table)s AND\n" +
+               "          constraint_type = 'PRIMARY KEY')\n" +
+               "ORDER BY ordinal_position;")
+
+        with self.conn.cursor() as curs:
+            curs.execute(sql, {'table': table, 'schema': schema})
+            pkey = [tup[0] for tup in curs.fetchall()]
+
+        return pkey

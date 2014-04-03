@@ -6,8 +6,7 @@ dbcompare.py - compare two databases.
 
 import sys
 import re
-#import argparse
-#import psycopg2
+import dbutil
 
 #
 # Constants
@@ -59,6 +58,7 @@ class Reporter(object):
 
     def new_table(self, table, columns):
         """Start comparing contents for a new table."""
+
         self.curr_table = table
         self.column_list = columns[:]
         self.diff_list = []
@@ -72,7 +72,9 @@ class Reporter(object):
             self.diff_list.append((db_no, map(str, row)))
 
     def stop_adding_differences(self):
-        """True if there is no need to keep checking for differences."""
+        """True if there is no need to keep checking for differences.
+
+        PRE: new_table must have been called."""
 
         diff_count = len(self.diff_list)
         if diff_count > 0:
@@ -214,66 +216,6 @@ def _compare_content(db1, db2, schema1, schema2, report,
     return not differences_found
 
 
-def _get_column_list(db, schema, table):
-    """Return a list of the columns in a database table."""
-
-    curs = db.cursor()
-    sql = """--
-SELECT column_name FROM information_schema.columns
-WHERE table_schema = %s AND table_name = %s
-ORDER BY ordinal_position;
-"""
-    curs.execute(sql, (schema, table))
-    return [tup[0] for tup in curs.fetchall()]
-
-def _get_table_list(db, schema):
-    """Return a list of the tables in a database."""
-
-    curs = db.cursor()
-    sql = """--
-SELECT table_name FROM information_schema.tables
-WHERE table_schema = %s
-ORDER BY table_name
-"""
-    curs.execute(sql, (schema))
-    return [tup[0] for tup in curs.fetchall()]
-
-
-def _table_exists(db, schema, table):
-    """Returns True if the table exists in the database."""
-
-    return table in _get_table_list(db, schema)
-
-
-def _get_primary_key(db, schema, table):
-    """Returns the primary key for a table as a list of columns."""
-
-    curs = db.cursor()
-    sql = """--
-SELECT column_name FROM information_schema.key_column_usage
-WHERE constraint_schema = %(schema)s AND constraint_name IN
-    (SELECT constraint_name FROM information_schema.table_constraints
-     WHERE table_schema = %(schema)s AND table_name = %(table)s AND
-     constraint_type = 'PRIMARY KEY')
-ORDER BY ordinal_position;
-"""
-    curs.execute(sql, {'schema': schema, 'table': table})
-    return [tup[0] for tup in curs.fetchall()]
-
-
-def _get_database_name(db1):
-    """Returns the name of a database."""
-
-    curs = db1.cursor()
-    sql = """--
-SELECT calalog_name
-FROM information_schema.information_schema_catalog_name;
-"""
-    curs.execute(sql)
-    tup = curs.fetchone()
-    return tup[0]
-
-
 def _filter_list(the_list, filter_set):
     """Returns a list filtered by a set of items.
 
@@ -308,8 +250,8 @@ def _compare_tables(db1, db2, schema1, schema2, report,
 
     ignore_set = set(_dequalify_columns_for_table(table, ignore_columns))
 
-    column_list1 = _get_column_list(db1, schema1, table)
-    column_list2 = _get_column_list(db2, schema2, table)
+    column_list1 = db1.column_list(table, schema1)
+    column_list2 = db2.column_list(table, schema2)
 
     column_set1 = set(column_list1) - ignore_set
     column_set2 = set(column_list2) - ignore_set
@@ -331,8 +273,8 @@ def _compare_tables(db1, db2, schema1, schema2, report,
         for column in only_in_db2:
             report.column_only_in(2, table, column)
 
-    pkey1 = _get_primary_key(db1, schema1, table)
-    pkey2 = _get_primary_key(db2, schema2, table)
+    pkey1 = db1.primary_key(table, schema1)
+    pkey2 = db2.primary_key(table, schema1)
 
     if pkey1 == pkey2:
         content_matches = _compare_content(db1, db2, schema1, schema2, report,
@@ -418,15 +360,19 @@ def compare_databases(db1, db2, schema1='public', schema2='public',
     db1.autocommit = True
     db2.autocommit = True
 
-    db1_name = _get_database_name(db1)
-    db2_name = _get_database_name(db2)
+    # Wrap the connections with the DatabaseConnection wrapper from dbutil.
+    # This gives access to the utility queries.
 
-    report = Reporter(db1_name, db2_name, verbosity, output)
+    db1 = dbutil.DatabaseConnection(db1)
+    db2 = dbutil.DatabaseConnection(db2)
+
+    report = Reporter(db1.database_name(), db2.database_name(),
+                      verbosity, output)
 
     ignore_set = set(ignore_tables)
 
-    table_set1 = set(_get_table_list(db1, schema1)) - ignore_set
-    table_set2 = set(_get_table_list(db2, schema2)) - ignore_set
+    table_set1 = set(db1.table_list(schema1)) - ignore_set
+    table_set2 = set(db2.table_list(schema2)) - ignore_set
 
     only_in_db1 = table_set1 - table_set2
     only_in_db2 = table_set2 - table_set1
@@ -518,15 +464,21 @@ def compare_tables(db1, db2, table, schema1='public', schema2='public',
     db1.autocommit = True
     db2.autocommit = True
 
-    db1_name = _get_database_name(db1)
-    db2_name = _get_database_name(db2)
+    # Wrap the connections with the DatabaseConnection wrapper from dbutil.
+    # This gives access to the utility queries.
 
-    report = Reporter(db1_name, db2_name, verbosity, output)
+    db1 = dbutil.DatabaseConnection(db1)
+    db2 = dbutil.DatabaseConnection(db2)
 
-    assert _table_exists(db1, schema1, table), \
-        "Could not find table '%s' in database '%s'." % (table, db1_name)
-    assert _table_exists(db2, schema2, table), \
-        "Could not find table '%s' in database '%s'." % (table, db2_name)
+    report = Reporter(db1.database_name(), db2.database_name(),
+                      verbosity, output)
+
+    assert db1.table_exists(table, schema1), \
+        ("Could not find table '%s' in database '%s'." %
+         (table, db1.database_name()))
+    assert db2.table_exists(table, schema2), \
+        ("Could not find table '%s' in database '%s'." %
+         (table, db2.database_name()))
 
     tables_match = _compare_tables(db1, db2, schema1, schema2, report,
                                    table, ignore_columns)
