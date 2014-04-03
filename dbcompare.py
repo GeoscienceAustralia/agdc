@@ -116,6 +116,74 @@ class Reporter(object):
 
                 print >> self.output, ""
 
+#
+# ComparisonWrapper connection wrapper class.
+#
+
+
+class ComparisonWrapper(dbutil.ConnectionWrapper):
+    """Wrapper for a connection intended for database comparison.
+
+    This implements queries about the structure of the database,
+    as recorded in the information schema."""
+
+    def column_list(self, table, schema='public'):
+        """Return a list of the columns in a database table."""
+
+        sql = ("SELECT column_name FROM information_schema.columns\n" +
+               "WHERE table_schema = %(schema)s AND table_name = %(table)s\n" +
+               "ORDER BY ordinal_position;")
+
+        with self.conn.cursor() as curs:
+            curs.execute(sql, {'table': table, 'schema': schema})
+            col_list = [tup[0] for tup in curs.fetchall()]
+
+        return col_list
+
+    def table_list(self, schema='public'):
+        """Return a list of the tables in a database."""
+
+        sql = ("SELECT table_name FROM information_schema.tables\n" +
+               "WHERE table_schema = %(schema)s\n" +
+               "ORDER BY table_name;")
+
+        with self.conn.cursor() as curs:
+            curs.execute(sql, {'schema': schema})
+            tab_list = [tup[0] for tup in curs.fetchall()]
+
+        return tab_list
+
+    def table_exists(self, table, schema='public'):
+        """Returns True if the table exists in the database."""
+
+        sql = ("SELECT table_name FROM information_schema.tables\n" +
+               "WHERE table_schema = %(schema)s AND table_name = %(table)s;")
+
+        with self.conn.cursor() as curs:
+            curs.execute(sql, {'table': table, 'schema': schema})
+            tab_found = bool(curs.fetchone())
+
+        return tab_found
+
+    def primary_key(self, table, schema='public'):
+        """Returns the primary key for a table as a list of columns."""
+
+        sql = ("SELECT column_name\n" +
+               "FROM information_schema.key_column_usage\n" +
+               "WHERE constraint_schema = %(schema)s AND\n" +
+               "   constraint_name IN\n" +
+               "      (SELECT constraint_name\n" +
+               "       FROM information_schema.table_constraints\n" +
+               "       WHERE table_schema = %(schema)s AND\n" +
+               "          table_name = %(table)s AND\n" +
+               "          constraint_type = 'PRIMARY KEY')\n" +
+               "ORDER BY ordinal_position;")
+
+        with self.conn.cursor() as curs:
+            curs.execute(sql, {'table': table, 'schema': schema})
+            pkey = [tup[0] for tup in curs.fetchall()]
+
+        return pkey
 
 #
 # Local Functions
@@ -360,11 +428,10 @@ def compare_databases(db1, db2, schema1='public', schema2='public',
     db1.autocommit = True
     db2.autocommit = True
 
-    # Wrap the connections with the DatabaseConnection wrapper from dbutil.
-    # This gives access to the utility queries.
+    # Wrap the connections to gain access to database structure queries.
 
-    db1 = dbutil.DatabaseConnection(db1)
-    db2 = dbutil.DatabaseConnection(db2)
+    db1 = ComparisonWrapper(db1)
+    db2 = ComparisonWrapper(db2)
 
     report = Reporter(db1.database_name(), db2.database_name(),
                       verbosity, output)
@@ -464,11 +531,10 @@ def compare_tables(db1, db2, table, schema1='public', schema2='public',
     db1.autocommit = True
     db2.autocommit = True
 
-    # Wrap the connections with the DatabaseConnection wrapper from dbutil.
-    # This gives access to the utility queries.
+    # Wrap the connections to gain access to database structure queries.
 
-    db1 = dbutil.DatabaseConnection(db1)
-    db2 = dbutil.DatabaseConnection(db2)
+    db1 = ComparisonWrapper(db1)
+    db2 = ComparisonWrapper(db2)
 
     report = Reporter(db1.database_name(), db2.database_name(),
                       verbosity, output)

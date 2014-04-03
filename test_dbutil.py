@@ -1,40 +1,255 @@
+#!/usr/bin/env python
+"""Tests for the dbutil.py module."""
+
+import os
+import unittest
+import psycopg2
+import dbutil
+
 #
-# Unit tests for Server class
+# Test cases
 #
 
+# pylint: disable=too-many-public-methods
 
-TEST_CONNECT_DBNAME = "postgres"
+
+class TestUtilityFunctions(unittest.TestCase):
+    """Unit tests for utility functions."""
+
+    def test_random_name(self):
+        "Test random_name random database name generator."
+
+        basename = 'Fred'
+        rnd_name1 = dbutil.random_name(basename)
+        rnd_name2 = dbutil.random_name(basename)
+
+        self.assertRegexpMatches(rnd_name1, r'^Fred_[\d]{9}',
+                                 "Random name has unexpected format '%s'" %
+                                 rnd_name1)
+        self.assertRegexpMatches(rnd_name2, r'^Fred_[\d]{9}',
+                                 "Random name has unexpected format '%s'" %
+                                 rnd_name2)
+        self.assertNotEqual(rnd_name1, rnd_name2,
+                            "Random names are equal: '%s'" % rnd_name1)
+
+    def test_safe_name(self):
+        "Test safe_name database name sanitiser."
+
+        self.assertEqual(dbutil.safe_name('Fred'), 'Fred')
+        self.assertEqual(dbutil.safe_name('Fred_123456789'), 'Fred_123456789')
+        self.assertEqual(dbutil.safe_name('Fred!@%&***'), 'Fred')
+        self.assertEqual(dbutil.safe_name('Fred;drop postgres;'),
+                         'Freddroppostgres')
+
 
 class TestServerClass(unittest.TestCase):
+    """Unit tests for Server class."""
+
+    MAINTENANCE_DB = "postgres"
+    TEST_CONNECT_DB = "postgres"
+
+    TEST_CREATE_FILE = "test_create_db.sql"
+
+    def setUp(self):
+        self.dbname1 = None
+        self.dbname2 = None
+
+        self.filename1 = None
 
     def test_connect(self):
         "Test pscopg2 connection to the server"
 
+        # Attempt to connect as ordinary user.
         try:
-            test_server().raw_connect_to(TEST_CONNECT_DBNAME,
-                                         test_server().user)
+            conn = dbutil.TESTSERVER.connect(self.TEST_CONNECT_DB)
         except psycopg2.Error as err:
-            self.fail("Unable to connect as user '%s'" % test_server().user +
+            self.fail("Unable to connect as user '%s'" %
+                      dbutil.TESTSERVER.user +
                       ((":\n" + err.pgerr) if err.pgerr else ""))
+        else:
+            conn.close()
 
+        # Attempt to connect as superuser.
         try:
-            test_server().raw_connect_to(TEST_CONNECT_DBNAME,
-                                       test_server().superuser)
+            conn = dbutil.TESTSERVER.connect(self.TEST_CONNECT_DB,
+                                             superuser=True)
         except psycopg2.Error as err:
             self.fail("Unable to connect as superuser '%s'" %
-                      test_server().superuser +
+                      dbutil.TESTSERVER.superuser +
                       ((":\n" + err.pgerr) if err.pgerr else ""))
+        else:
+            conn.close()
+
+    def test_create(self):
+        "Test database creation and loading"
+
+        self.dbname1 = dbutil.random_name('test_create_db')
+
+        # Create a new database.
+        dbutil.TESTSERVER.create(self.dbname1, self.TEST_CREATE_FILE)
+
+        # Check if the newly created database exists.
+        maint_conn = dbutil.TESTSERVER.connect(self.MAINTENANCE_DB,
+                                               superuser=True)
+        try:
+            maint_conn = dbutil.MaintenanceWrapper(maint_conn)
+            self.assertTrue(maint_conn.exists(self.dbname1),
+                            "New database does not seem to be there.")
+        finally:
+            maint_conn.close()
+
+    def test_drop(self):
+        "Test ability to drop a database"
+
+        self.dbname1 = dbutil.random_name('test_drop_db')
+
+        # Create a new database.
+        dbutil.TESTSERVER.create(self.dbname1, self.TEST_CREATE_FILE)
+
+        # Connect to the newly created database, to make sure it is
+        # there, and to create a pgbouncer pool.
+        conn = dbutil.TESTSERVER.connect(self.dbname1)
+        try:
+            conn = dbutil.ConnectionWrapper(conn)
+            dbname = conn.database_name()
+            self.assertEqual(dbname, self.dbname1)
+        finally:
+            conn.close()
+
+        # Now drop the database...
+        dbutil.TESTSERVER.drop(self.dbname1)
+
+        # and make sure it is gone.
+        maint_conn = dbutil.TESTSERVER.connect(self.MAINTENANCE_DB,
+                                               superuser=True)
+        try:
+            maint_conn = dbutil.MaintenanceWrapper(maint_conn)
+            self.assertFalse(maint_conn.exists(self.dbname1),
+                             "Dropped database still seems to be there.")
+        finally:
+            maint_conn.close()
+
+    def test_recreate(self):
+        "Test ablility to recreate a database on top of itself"
+
+        self.dbname1 = dbutil.random_name('test_recreate_db')
+
+        # Create a new database.
+        dbutil.TESTSERVER.create(self.dbname1, self.TEST_CREATE_FILE)
+
+        # Connect to the newly created database, to make sure it is
+        # there, and to create a pgbouncer pool.
+        conn = dbutil.TESTSERVER.connect(self.dbname1)
+        try:
+            conn = dbutil.ConnectionWrapper(conn)
+            dbname = conn.database_name()
+            self.assertEqual(dbname, self.dbname1)
+        finally:
+            conn.close()
+
+        # Now recreate on top of the existing database...
+        dbutil.TESTSERVER.create(self.dbname1, self.TEST_CREATE_FILE)
+
+        # and check that it exists.
+        maint_conn = dbutil.TESTSERVER.connect(self.MAINTENANCE_DB,
+                                               superuser=True)
+        try:
+            maint_conn = dbutil.MaintenanceWrapper(maint_conn)
+            self.assertTrue(maint_conn.exists(self.dbname1),
+                            "Recreated database does not seem to be there.")
+        finally:
+            maint_conn.close()
+
+    def test_save(self):
+        "Test database saving (and reload)."
+
+        self.dbname1 = dbutil.random_name('test_save_db')
+        self.filename1 = self.dbname1 + ".sql"
+
+        # Create a new database.
+        dbutil.TESTSERVER.create(self.dbname1, self.TEST_CREATE_FILE)
+
+        # Save the database to disk.
+        dbutil.TESTSERVER.save(self.dbname1, self.filename1)
+
+        # Now reload the file as a new database...
+        self.dbname2 = dbutil.random_name('test_save_db_copy')
+        dbutil.TESTSERVER.create(self.dbname2, self.filename1)
+
+        # and check that it exists.
+        maint_conn = dbutil.TESTSERVER.connect(self.MAINTENANCE_DB,
+                                               superuser=True)
+        try:
+            maint_conn = dbutil.MaintenanceWrapper(maint_conn)
+            self.assertTrue(maint_conn.exists(self.dbname2),
+                            "Saved and reloaded database " +
+                            "does not seem to be there.")
+        finally:
+            maint_conn.close()
+
+    def tearDown(self):
+        # Attempt to drop any test databases that may have been created.
+        if self.dbname1:
+            dbutil.TESTSERVER.drop(self.dbname1)
+        if self.dbname2:
+            dbutil.TESTSERVER.drop(self.dbname2)
+
+        # Attempt to remove any test save files that may have been created.
+        if self.filename1:
+            filepath1 = os.path.join(dbutil.TESTSERVER.save_dir,
+                                     self.filename1)
+            try:
+                os.remove(filepath1)
+            except OSError:
+                # Don't worry if it is not there: test may have bombed
+                # before creating the file.
+                pass
 
 
+class TestConnectionWrapper(unittest.TestCase):
+    """Unit tests for ConnectionWrapper classs."""
+
+    TEST_DB_FILE = "test_hypercube_empty.sql"
+
+    def setUp(self):
+        self.conn = None
+        self.dbname = dbutil.random_name('test_connection_wrapper_db')
+
+        dbutil.TESTSERVER.create(self.dbname, self.TEST_DB_FILE)
+
+        self.conn = dbutil.TESTSERVER.connect(self.dbname)
+        self.conn = dbutil.ConnectionWrapper(self.conn)
+
+    def test_database_name(self):
+        "Test get database name."
+
+        dbname = self.conn.database_name()
+        self.assertEqual(dbname, self.dbname)
+
+    def tearDown(self):
+
+        if self.conn:
+            self.conn.close()
+
+        dbutil.TESTSERVER.drop(self.dbname)
 
 #
 # Define test suites
 #
 
+
 def the_suite():
     """Returns a test suite of all the tests in this module."""
 
-    suite = unittest.defaultTestLoader.loadTestsFromTestCase(TestServerClass)
+    test_classes = [TestUtilityFunctions,
+                    TestServerClass,
+                    TestConnectionWrapper]
+
+    suite_list = map(unittest.defaultTestLoader.loadTestsFromTestCase,
+                     test_classes)
+
+    suite = unittest.TestSuite(suite_list)
+
     return suite
 
 #

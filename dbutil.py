@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 
 """dbutil.py - PostgreSQL database utilities for testing.
 
@@ -10,6 +9,7 @@ implement utility queries as methods.
 """
 
 import os
+import random
 import subprocess
 import psycopg2
 
@@ -41,10 +41,15 @@ USE_PGBOUNCER = True
 PGBOUNCER_DB = 'pgbouncer'
 
 #
-# Test server instance:
+# Random string constants. These set the parameters for random strings
+# appended to database names by the random_name utility function. The intent
+# is to make temporary database names (most likely) unique to avoid clashes.
+# The current format is 9 decimal digits.
 #
 
-TESTSERVER = Server(TESTSERVER_PARAMS)
+RANDOM_STR_MIN = 1
+RANDOM_STR_MAX = 999999999
+RANDOM_STR_FORMAT = "%09d"
 
 #
 # Server class
@@ -137,12 +142,12 @@ class Server(object):
         be issued before dropping the database. This will wait
         until active transactions are complete."""
 
-        maint_conn = MaintenanceConnection(
+        maint_conn = MaintenanceWrapper(
             self.connect(MAINTENANCE_DB, superuser=True))
         try:
             if maint_conn.exists(dbname):
                 if USE_PGBOUNCER:
-                    bouncer_conn = BouncerConnection(
+                    bouncer_conn = BouncerWrapper(
                         self.connect(PGBOUNCER_DB, superuser=True))
                     try:
                         bouncer_conn.pause(dbname)
@@ -173,12 +178,12 @@ class Server(object):
         from hanging or returning errors if pgbouncer had pools set
         up on the old database."""
 
-        maint_conn = MaintenanceConnection(
+        maint_conn = MaintenanceWrapper(
             self.connect(MAINTENANCE_DB, superuser=True))
         try:
             # Create the database, dropping it first if needed.
             if USE_PGBOUNCER:
-                bouncer_conn = BouncerConnection(
+                bouncer_conn = BouncerWrapper(
                     self.connect(PGBOUNCER_DB, superuser=True))
                 try:
                     if maint_conn.exists(dbname):
@@ -197,7 +202,7 @@ class Server(object):
             self.load(dbname, save_file)
 
             # Run ANALYSE on the newly loaded database
-            db_conn = DatabaseConnection(self.connect(dbname, superuser=True))
+            db_conn = ConnectionWrapper(self.connect(dbname, superuser=True))
             try:
                 db_conn.analyse()
             finally:
@@ -212,17 +217,39 @@ class Server(object):
 #
 
 
-class Connection(object):
+class ConnectionWrapper(object):
     """Generic connection wrapper, inherited by the specific wrappers.
 
     This is a wrapper for a psycopg2 database connection. It
     passes on unknown attribute references to the wrapped connection
     using __get_attr__. The specific wrappers that inherit from this
     implement queries and operations on the connection (self.conn)
-    as methods."""
+    as methods.
+
+    Some utility methods are implemented here. database_name is
+    useful for testing and error messages. analyse is used after
+    a database has been created."""
 
     def __init__(self, conn):
         self.conn = conn
+
+    def database_name(self):
+        """Returns the name of the connected database."""
+
+        sql = ("SELECT catalog_name\n" +
+               "FROM information_schema.information_schema_catalog_name;")
+
+        with self.conn.cursor() as curs:
+            curs.execute(sql)
+            dbname = curs.fetchone()[0]
+
+        return dbname
+
+    def analyse(self):
+        """Runs the ANALYSE command on the connected database."""
+
+        with self.conn.cursor() as curs:
+            curs.execute("ANALYSE;")
 
     def __getattr__(self, attrname):
         """Delegate unknown attributes to the psycopg2 connection."""
@@ -230,7 +257,7 @@ class Connection(object):
         return getattr(self.conn, attrname)
 
 
-class MaintenanceConnection(Connection):
+class MaintenanceWrapper(ConnectionWrapper):
     """Wrapper for a connection intented for maintenance commands."""
 
     def exists(self, dbname):
@@ -248,9 +275,7 @@ class MaintenanceConnection(Connection):
     def drop(self, dbname):
         """Drops the named database."""
 
-        assert dbname.isalnum(), "dbname expected to be alphanumeric."
-
-        drop_sql = "DROP DATABASE %s;" % dbname
+        drop_sql = "DROP DATABASE %s;" % safe_name(dbname)
 
         with self.conn.cursor() as curs:
             curs.execute(drop_sql)
@@ -258,16 +283,14 @@ class MaintenanceConnection(Connection):
     def create(self, dbname):
         """Creates the named database."""
 
-        assert dbname.isalnum(), "dbname expected to be alphanumeric."
-
-        create_sql = ("CREATE DATABASE %s\n" % dbname +
+        create_sql = ("CREATE DATABASE %s\n" % safe_name(dbname) +
                       "TEMPLATE %s;" % TEMPLATE_DB)
 
         with self.conn.cursor() as curs:
             curs.execute(create_sql)
 
 
-class BouncerConnection(Connection):
+class BouncerWrapper(ConnectionWrapper):
     """Wrapper for a connection to the pgbouncer console pseudo-database.
 
     Obviously these commands will not work if connected to an ordinary
@@ -281,12 +304,11 @@ class BouncerConnection(Connection):
         """Tells pgbouncer to pause the named database.
 
         This should cause pgbouncer to disconnect from dbname, first
-        waiting for any queries to complete.
+        waiting for any queries to complete. This allows the database
+        to be dropped.
         """
 
-        assert dbname.isalnum(), "dbname expected to be alphanumeric."
-
-        pause_sql = "PAUSE %s;" % dbname
+        pause_sql = "PAUSE %s;" % safe_name(dbname)
 
         with self.conn.cursor() as cur:
             try:
@@ -300,9 +322,7 @@ class BouncerConnection(Connection):
         If this is not called and the database was previously
         paused then connection attempts will hang or give errors."""
 
-        assert dbname.isalnum(), "dbname expected to be alphanumeric."
-
-        resume_sql = "RESUME %s;" % dbname
+        resume_sql = "RESUME %s;" % safe_name(dbname)
 
         with self.conn.cursor() as cur:
             try:
@@ -311,83 +331,28 @@ class BouncerConnection(Connection):
                 pass
 
 
-class DatabaseConnection(Connection):
-    """Wrapper for a connection to a test database.
+#
+# Utility functions
+#
 
-    This implements utility queries, mostly used by dbcompare."""
+def random_name(basename=""):
+    """Returns a database name with a 9 digit random number appended."""
 
-    def analyse(self):
-        """Runs the ANALYSE command on the connected database."""
+    random_str = (RANDOM_STR_FORMAT %
+                  random.randint(RANDOM_STR_MIN, RANDOM_STR_MAX))
 
-        with self.conn.cursor() as curs:
-            curs.execute("ANALYSE;")
+    return basename + "_" + random_str
 
-    def database_name(self):
-        """Returns the name of the connected database."""
 
-        sql = ("SELECT calalog_name\n" +
-               "FROM information_schema.information_schema_catalog_name;")
+def safe_name(dbname):
+    """Returns a database name with non letter, digit, _ characters removed."""
 
-        with self.conn.cursor() as curs:
-            curs.execute(sql)
-            dbname = curs.fetchone()[0]
+    char_list = [c for c in dbname if c.isalnum() or c == '_']
 
-        return dbname
+    return "".join(char_list)
 
-    def column_list(self, table, schema='public'):
-        """Return a list of the columns in a database table."""
+#
+# Test server instance:
+#
 
-        sql = ("SELECT column_name FROM information_schema.columns\n" +
-               "WHERE table_schema = %(schema)s AND table_name = %(table)s\n" +
-               "ORDER BY ordinal_position;")
-
-        with self.conn.cursor() as curs:
-            curs.execute(sql, {'table': table, 'schema': schema})
-            col_list = [tup[0] for tup in curs.fetchall()]
-
-        return col_list
-
-    def table_list(self, schema='public'):
-        """Return a list of the tables in a database."""
-
-        sql = ("SELECT table_name FROM information_schema.tables\n" +
-               "WHERE table_schema = %(schema)s\n" +
-               "ORDER BY table_name;")
-
-        with self.conn.cursor() as curs:
-            curs.execute(sql, {'schema': schema})
-            tab_list = [tup[0] for tup in curs.fetchall()]
-
-        return tab_list
-
-    def table_exists(self, table, schema='public'):
-        """Returns True if the table exists in the database."""
-
-        sql = ("SELECT table_name FROM information_schema.tables\n" +
-               "WHERE table_schema = %(schema)s AND table_name = %(table)s;")
-
-        with self.conn.cursor() as curs:
-            curs.execute(sql, {'table': table, 'schema': schema})
-            tab_found = bool(curs.fetchone())
-
-        return tab_found
-
-    def primary_key(self, table, schema='public'):
-        """Returns the primary key for a table as a list of columns."""
-
-        sql = ("SELECT column_name\n" +
-               "FROM information_schema.key_column_usage\n" +
-               "WHERE constraint_schema = %(schema)s AND\n" +
-               "   constraint_name IN\n" +
-               "      (SELECT constraint_name\n" +
-               "       FROM information_schema.table_constraints\n" +
-               "       WHERE table_schema = %(schema)s AND\n" +
-               "          table_name = %(table)s AND\n" +
-               "          constraint_type = 'PRIMARY KEY')\n" +
-               "ORDER BY ordinal_position;")
-
-        with self.conn.cursor() as curs:
-            curs.execute(sql, {'table': table, 'schema': schema})
-            pkey = [tup[0] for tup in curs.fetchall()]
-
-        return pkey
+TESTSERVER = Server(TESTSERVER_PARAMS)
