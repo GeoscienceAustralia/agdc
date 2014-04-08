@@ -41,6 +41,139 @@ class TestUtilityFunctions(unittest.TestCase):
         self.assertEqual(dbutil.safe_name('Fred;drop postgres;'),
                          'Freddroppostgres')
 
+    def check_directory(self, path, expected_path):
+        "Check that a directory exists and has the right path."
+
+        self.assertEqual(path, expected_path)
+        self.assertTrue(os.path.isdir(path),
+                        "Test directory does not seem to have been " +
+                        "created:\n" + path)
+
+        # Check directory permissons. We are interested in user, group, and
+        # world permisions (not SUID, SGID, or sticky bit). This is octal
+        # 0777 as a mask.
+        mode = os.stat(path).st_mode & 0o0777
+        # We want all user and group permissions, but not world permisions.
+        # This is octal 770.
+        self.assertEqual(mode, 0o770, "Test directory has the wrong " +
+                         "permissions:\n" + path)
+
+    def test_resources_directory(self):
+        "Test test resources directory finder/creator."
+
+        dummy_user = dbutil.random_name('user')
+        expected_path = os.path.join(dbutil.TEST_RESOURCES_ROOT,
+                                     dummy_user, 'test', 'module', 'suite')
+        try:
+            path = dbutil.resources_directory(dummy_user,
+                                              'test', 'module', 'suite')
+            self.check_directory(path, expected_path)
+        finally:
+            os.removedirs(path)
+
+    def test_output_directory_1(self):
+        "Test test output directory finder/creator, test 1."
+
+        dummy_user = dbutil.random_name('user')
+        expected_path = os.path.join(dbutil.TEST_RESOURCES_ROOT,
+                                     dummy_user, 'output', 'module', 'suite')
+        try:
+            path = dbutil.output_directory('module', 'suite', user=dummy_user)
+            self.check_directory(path, expected_path)
+        finally:
+            os.removedirs(path)
+
+    def test_output_directory_2(self):
+        "Test test output directory finder/creator, test 2."
+
+        dummy_user = dbutil.random_name('user')
+        expected_path = os.path.join(dbutil.TEST_RESOURCES_ROOT,
+                                     dummy_user, 'output', 'module', 'suite')
+        old_user = os.environ['USER']
+
+        try:
+            os.environ['USER'] = dummy_user
+            path = dbutil.output_directory('module', 'suite')
+            self.check_directory(path, expected_path)
+        finally:
+            os.environ['USER'] = old_user
+            os.removedirs(path)
+
+    def test_expected_directory_1(self):
+        "Test test expected directory finder/creator, test 1."
+
+        dummy_user = dbutil.random_name('user')
+        expected_path = os.path.join(dbutil.TEST_RESOURCES_ROOT,
+                                     dummy_user, 'expected', 'module', 'suite')
+        old_user = os.environ['USER']
+
+        try:
+            os.environ['USER'] = dummy_user
+            path = dbutil.expected_directory('module', 'suite')
+            self.check_directory(path, expected_path)
+        finally:
+            os.environ['USER'] = old_user
+            os.removedirs(path)
+
+    def test_expected_directory_2(self):
+        "Test test expected directory finder/creator, test 2."
+
+        dummy_user = dbutil.random_name('user')
+        expected_path = os.path.join(dbutil.TEST_RESOURCES_ROOT,
+                                     dummy_user, 'expected', 'module', 'suite')
+        old_user = os.environ['USER']
+
+        try:
+            os.environ['USER'] = dummy_user
+            path = dbutil.expected_directory('module', 'suite', version='user')
+            self.check_directory(path, expected_path)
+        finally:
+            os.environ['USER'] = old_user
+            os.removedirs(path)
+
+    def test_expected_directory_3(self):
+        "Test test expected directory finder/creator, test 3."
+
+        dummy_user = dbutil.random_name('user')
+        expected_path = os.path.join(dbutil.TEST_RESOURCES_ROOT,
+                                     dummy_user, 'expected', 'module', 'suite')
+        try:
+            path = dbutil.expected_directory('module', 'suite',
+                                             version='user', user=dummy_user)
+            self.check_directory(path, expected_path)
+        finally:
+            os.removedirs(path)
+
+    def test_expected_directory_4(self):
+        "Test test expected directory finder/creator, test 4."
+
+        dummy_version = dbutil.random_name('version')
+        expected_path = os.path.join(dbutil.TEST_RESOURCES_ROOT,
+                                     dummy_version, 'expected',
+                                     'module', 'suite')
+        try:
+            path = dbutil.expected_directory('module', 'suite',
+                                             version=dummy_version)
+            self.check_directory(path, expected_path)
+        finally:
+            os.removedirs(path)
+
+    def test_expected_directory_5(self):
+        "Test test expected directory finder/creator, test 5."
+
+        dummy_version = dbutil.random_name('version')
+        old_version = os.environ.get('DATACUBE_VERSION', None)
+        expected_path = os.path.join(dbutil.TEST_RESOURCES_ROOT,
+                                     dummy_version, 'expected',
+                                     'module', 'suite')
+        try:
+            os.environ['DATACUBE_VERSION'] = dummy_version
+            path = dbutil.expected_directory('module', 'suite')
+            self.check_directory(path, expected_path)
+        finally:
+            if old_version:
+                os.environ['DATACUBE_VERSION'] = old_version
+            os.removedirs(path)
 
 class TestServerClass(unittest.TestCase):
     """Unit tests for Server class."""

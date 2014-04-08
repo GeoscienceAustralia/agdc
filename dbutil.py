@@ -14,6 +14,12 @@ import subprocess
 import psycopg2
 
 #
+# Root directory for test resources.
+#
+
+TEST_RESOURCES_ROOT = '/g/data1/v10/test_resources'
+
+#
 # Setup information for the test server. This might be better off loaded
 # from a config file, but this will do for now. The password is kept
 # in a .pgpass file to avoid saving it in versioned files. This is likely
@@ -27,7 +33,8 @@ TESTSERVER_PARAMS = {
     'port': '6432',
     'user': 'cube_tester',
     'superuser': 'cube_admin',
-    'save_dir': '/g/data1/v10/test_resources/databases'}
+    'save_dir': os.path.join(TEST_RESOURCES_ROOT, 'databases')
+    }
 
 #
 # Database connection constants. These would be better off being defaults
@@ -350,6 +357,81 @@ def safe_name(dbname):
     char_list = [c for c in dbname if c.isalnum() or c == '_']
 
     return "".join(char_list)
+
+
+def resources_directory(*names):
+    """Returns the path to a test resources directory, creating it if needed.
+
+    The path of the directory is TEST_RESOURCES_ROOT/name1/name2/...
+    where name1, name2, ... are the names passed in as parameters.
+    """
+
+    test_dir = os.path.join(TEST_RESOURCES_ROOT, *names)
+
+    if not os.path.isdir(test_dir):
+        # Allow group permissions on the directory we are about to create
+        old_umask = os.umask(0o007)
+        # Make the directories
+        os.makedirs(test_dir)
+        # Put back the old umask
+        os.umask(old_umask)
+
+    return test_dir
+
+
+def output_directory(module, suite, user=None):
+    """Returns the path to a test output directory, creating it if needed.
+
+    The path of the directory is TEST_RESOUCES_ROOT/user/output/module/suite/.
+    If user is not given, the environment variable USER is used as the
+    name of the user.
+
+    module: the name of the module being tested, eg 'dbcompare'
+    suite: the name of the test suite or test class containting the test,
+        eg 'TestReporter'
+
+    The 'output' directory is for the output of the tests. The files are
+    expected to be named after the test that produces them.
+    """
+
+    if not user:
+        user = os.environ['USER']
+
+    return resources_directory(user, 'output', module, suite)
+
+
+def expected_directory(module, suite, version=None, user=None):
+    """Returns a path to a test expected directory, creating it if needed.
+
+    The path of the directory is
+    TEST_RESOURCES_ROOT/version/expected/module/suite/. If the version is
+    'user' then the user argument takes the place of version in the path.
+
+    module: The name of the module being tested, eg 'dbcompare'.
+    suite: The name of the test suite of test class containting the test,
+        eg 'TestReporter'.
+    version: The version of the datacube code. This is expected to be either
+        'develop', 'user', or a version number. If not given it is taken
+        from the DATACUBE_VERSION environment variable. If the DATACUBE_VERSION
+        variable is not defined it is taken to be 'user'.
+    user: The user name. This is used in place of version if version is 'user'.
+        If this is not defined it is taken from the USER environment variable.
+
+    The 'expected' directory is for the expected output of the tests. The
+    files are expected to be named after the test that produces them. These
+    files are used to automate the tests by comparing output produced against
+    expected output.
+    """
+
+    if not version:
+        version = os.environ.get('DATACUBE_VERSION', 'user')
+
+    if version == 'user':
+        if not user:
+            user = os.environ['USER']
+        version = user
+
+    return resources_directory(version, 'expected', module, suite)
 
 #
 # Test server instance:

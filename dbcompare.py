@@ -38,22 +38,22 @@ class Reporter(object):
         """Report a table only present in one database."""
 
         if self.verbosity > 0:
-            msg = "Table %s only in database %s." % (table, self.db[db_no])
+            msg = "Only in %s: table '%s'" % (self.db[db_no], table)
             print >> self.output, msg
 
     def column_only_in(self, db_no, table, column):
         """Report a column only present in one database."""
 
         if self.verbosity > 0:
-            msg = "Column %s.%s only in database %s." % (table, column,
-                                                         self.db[db_no])
+            msg = ("Only in %s: column '%s.%s'" %
+                   (self.db[db_no], table, column))
             print >> self.output, msg
 
     def primary_keys_differ(self, table):
         """Report a mismatch in the primary keys between the two databases."""
 
         if self.verbosity > 0:
-            msg = "Primary keys differ for table %s." % table
+            msg = "Primary keys differ: table '%s'" % table
             print >> self.output, msg
 
     def new_table(self, table, columns):
@@ -91,10 +91,12 @@ class Reporter(object):
 
         if self.diff_list:
             if self.verbosity > 0:
-                msg = "Content different for table %s." % self.curr_table
+                msg = "Contents differ: table '%s'" % self.curr_table
                 print >> self.output, msg
 
             if self.verbosity > 1:
+                db_width = max(len(self.db[1]), len(self.db[2]))
+
                 field_width = map(len, self.column_list)
                 for (db_number, row) in self.diff_list:
                     row_width = map(len, row)
@@ -102,17 +104,15 @@ class Reporter(object):
 
                 col_format = ""
                 for width in field_width:
-                    col_format += " %" + str(width) +  "s"
+                    col_format += " %-" + str(width) +  "s"
 
-                print >> self.output, "1: is database %s" % self.db[1]
-                print >> self.output, "2: is database %s" % self.db[2]
+                header_format = " "*db_width + " " + col_format                
+                print >> self.output, header_format % tuple(self.column_list)
 
-                header_format = "  " + col_format
-                print >> self.output, header_format % self.column_list
-
-                row_format = "%1d:" + col_format
-                for (db_number, row) in self.diff_list:
-                    print >> self.output, row_format % (db_number,) + row
+                row_format = "%-" + str(db_width) + "s:" + col_format
+                for (db_no, row) in self.diff_list:
+                    row_values = tuple([self.db[db_no]] + row)
+                    print >> self.output, row_format % row_values
 
                 print >> self.output, ""
 
@@ -127,6 +127,34 @@ class ComparisonWrapper(dbutil.ConnectionWrapper):
     This implements queries about the structure of the database,
     as recorded in the information schema."""
 
+    def table_exists(self, table, schema='public'):
+        """Returns True if the table exists in the database."""
+
+        sql = ("SELECT table_name FROM information_schema.tables\n" +
+               "WHERE table_schema = %(schema)s AND\n" +
+               "   table_name = %(table)s AND\n" +
+               "   table_type = 'BASE TABLE';")
+
+        with self.conn.cursor() as curs:
+            curs.execute(sql, {'table': table, 'schema': schema})
+            tab_found = bool(curs.fetchone())
+
+        return tab_found
+
+    def table_list(self, schema='public'):
+        """Return a list of the tables in a database."""
+
+        sql = ("SELECT table_name FROM information_schema.tables\n" +
+               "WHERE table_schema = %(schema)s AND\n" +
+               "   table_type = 'BASE TABLE'\n" +
+               "ORDER BY table_name;")
+
+        with self.conn.cursor() as curs:
+            curs.execute(sql, {'schema': schema})
+            tab_list = [tup[0] for tup in curs.fetchall()]
+
+        return tab_list
+
     def column_list(self, table, schema='public'):
         """Return a list of the columns in a database table."""
 
@@ -139,31 +167,6 @@ class ComparisonWrapper(dbutil.ConnectionWrapper):
             col_list = [tup[0] for tup in curs.fetchall()]
 
         return col_list
-
-    def table_list(self, schema='public'):
-        """Return a list of the tables in a database."""
-
-        sql = ("SELECT table_name FROM information_schema.tables\n" +
-               "WHERE table_schema = %(schema)s\n" +
-               "ORDER BY table_name;")
-
-        with self.conn.cursor() as curs:
-            curs.execute(sql, {'schema': schema})
-            tab_list = [tup[0] for tup in curs.fetchall()]
-
-        return tab_list
-
-    def table_exists(self, table, schema='public'):
-        """Returns True if the table exists in the database."""
-
-        sql = ("SELECT table_name FROM information_schema.tables\n" +
-               "WHERE table_schema = %(schema)s AND table_name = %(table)s;")
-
-        with self.conn.cursor() as curs:
-            curs.execute(sql, {'table': table, 'schema': schema})
-            tab_found = bool(curs.fetchone())
-
-        return tab_found
 
     def primary_key(self, table, schema='public'):
         """Returns the primary key for a table as a list of columns."""
@@ -461,9 +464,10 @@ def compare_databases(db1, db2, schema1='public', schema2='public',
         tables_match = _compare_tables(db1, db2, schema1, schema2, report,
                                        table, ignore_columns)
 
-    # Put things back the way we found them.
-    db1.autocommit = old_db1_autocommit
-    db2.autocommit = old_db2_autocommit
+    # Put things back the way we found them. Use the underlying connection
+    # to set the autocommit attribute.
+    db1.conn.autocommit = old_db1_autocommit
+    db2.conn.autocommit = old_db2_autocommit
 
     return identical_so_far and tables_match
 
@@ -549,8 +553,9 @@ def compare_tables(db1, db2, table, schema1='public', schema2='public',
     tables_match = _compare_tables(db1, db2, schema1, schema2, report,
                                    table, ignore_columns)
 
-    # Put things back the way we found them.
-    db1.autocommit = old_db1_autocommit
-    db2.autocommit = old_db2_autocommit
+    # Put things back the way we found them. Use the underlying connection
+    # to set the autocommit attribute.
+    db1.conn.autocommit = old_db1_autocommit
+    db2.conn.autocommit = old_db2_autocommit
 
     return tables_match
