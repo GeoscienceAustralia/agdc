@@ -32,8 +32,7 @@ TESTSERVER_PARAMS = {
     'host': '130.56.244.226',
     'port': '6432',
     'user': 'cube_tester',
-    'superuser': 'cube_admin',
-    'save_dir': os.path.join(TEST_RESOURCES_ROOT, 'databases')
+    'superuser': 'cube_admin'
     }
 
 #
@@ -75,7 +74,6 @@ class Server(object):
         self.port = params['port']
         self.user = params['user']
         self.superuser = params['superuser']
-        self.save_dir = params['save_dir']
 
     def connect(self, dbname, superuser=False, autocommit=True):
         """create a pscopg2 connection to a database and return it.
@@ -94,13 +92,13 @@ class Server(object):
 
         return conn
 
-    def load(self, dbname, save_file):
+    def load(self, dbname, save_dir, save_file):
         """Load the contents of a database from a file.
 
         The database should be empty, and based off template0 or
         equivalent. This method calls the psql command to do the load."""
 
-        save_path = os.path.join(self.save_dir, save_file)
+        save_path = os.path.join(save_dir, save_file)
         load_cmd = ["psql",
                     "--dbname=%s" % dbname,
                     "--username=%s" % self.superuser,
@@ -116,13 +114,13 @@ class Server(object):
                        (__name__, err.cmd[0], err.output))
             raise Exception(message)
 
-    def save(self, dbname, save_file):
+    def save(self, dbname, save_dir, save_file):
         """Save the contents of a database to a file.
 
         This method calls the pg_dump command to do the save. This
         dump is in sql script format so use psql to reload."""
 
-        save_path = os.path.join(self.save_dir, save_file)
+        save_path = os.path.join(save_dir, save_file)
         save_cmd = ["pg_dump",
                     "--dbname=%s" % dbname,
                     "--username=%s" % self.superuser,
@@ -166,7 +164,7 @@ class Server(object):
         finally:
             maint_conn.close()
 
-    def create(self, dbname, save_file):
+    def create(self, dbname, save_dir, save_file):
         """Creates and loads a database from a file.
 
         This method does a clean create and load of the named database
@@ -206,7 +204,7 @@ class Server(object):
                 maint_conn.create(dbname)
 
             # Load the new database from the save file
-            self.load(dbname, save_file)
+            self.load(dbname, save_dir, save_file)
 
             # Run ANALYSE on the newly loaded database
             db_conn = ConnectionWrapper(self.connect(dbname, superuser=True))
@@ -379,6 +377,60 @@ def resources_directory(*names):
     return test_dir
 
 
+def version_or_user(version=None, user=None):
+    """Returns the version or user for a test resources directory.
+
+    Returns the version string, unless version is 'user', in which case
+    the user string is returned instead. Defaults are described below.
+
+    version: The version of the datacube code. This is expected to be either
+        'develop', 'user', or a version number. If not given it is taken
+        from the DATACUBE_VERSION environment variable. If the DATACUBE_VERSION
+        variable is not defined it is taken to be 'user'.
+    user: The user name. This is used in place of version if version is 'user'.
+        If this is not defined it is taken from the USER environment variable.
+    """
+
+    if not version:
+        # Using 'not version' rather than 'version is None' here because
+        # "" is NOT a valid version.
+        version = os.environ.get('DATACUBE_VERSION', 'user')
+
+    if version == 'user':
+        if not user:
+            # Using 'not user' rather than 'user is None' here because
+            # "" is NOT a valid user.
+            user = os.environ['USER']
+        return user
+    else:
+        return version
+
+
+def input_directory(module, suite, version=None, user=None):
+    """Returns a path to a test input directory, creating it if needed.
+
+    The path of the directory is
+    TEST_RESOURCES_ROOT/version/input/module/suite/. If the version is
+    'user' then the user argument takes the place of version in the path.
+
+    module: The name of the module being tested, eg 'dbcompare'.
+    suite: The name of the test suite of test class containting the test,
+        eg 'TestReporter'.
+    version: The version of the datacube code. This is expected to be either
+        'develop', 'user', or a version number. If not given it is taken
+        from the DATACUBE_VERSION environment variable. If the DATACUBE_VERSION
+        variable is not defined it is taken to be 'user'.
+    user: The user name. This is used in place of version if version is 'user'.
+        If this is not defined it is taken from the USER environment variable.
+
+    The 'input' directory is for input or setup files for tests. The
+    files are expected to be named after the test that uses them.
+    """
+
+    version = version_or_user(version, user)
+    return resources_directory(version, 'input', module, suite)
+
+
 def output_directory(module, suite, user=None):
     """Returns the path to a test output directory, creating it if needed.
 
@@ -394,10 +446,8 @@ def output_directory(module, suite, user=None):
     expected to be named after the test that produces them.
     """
 
-    if not user:
-        user = os.environ['USER']
-
-    return resources_directory(user, 'output', module, suite)
+    version = version_or_user(version='user', user=user)
+    return resources_directory(version, 'output', module, suite)
 
 
 def expected_directory(module, suite, version=None, user=None):
@@ -423,14 +473,7 @@ def expected_directory(module, suite, version=None, user=None):
     expected output.
     """
 
-    if not version:
-        version = os.environ.get('DATACUBE_VERSION', 'user')
-
-    if version == 'user':
-        if not user:
-            user = os.environ['USER']
-        version = user
-
+    version = version_or_user(version, user)
     return resources_directory(version, 'expected', module, suite)
 
 #

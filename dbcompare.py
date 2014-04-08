@@ -18,6 +18,7 @@ MAX_DIFFERENCES = 5
 # Reporter Class
 #
 
+
 class Reporter(object):
     """Report the differences detected between two databases."""
 
@@ -77,12 +78,13 @@ class Reporter(object):
         PRE: new_table must have been called."""
 
         diff_count = len(self.diff_list)
-        if diff_count > 0:
-            if self.verbosity <= 1:
-                return True
-            elif self.verbosity == 2 and diff_count >= MAX_DIFFERENCES:
-                return True
-        return False
+
+        if self.verbosity <= 1:
+            return diff_count > 0
+        elif self.verbosity == 2:
+            return diff_count >= MAX_DIFFERENCES
+        else:
+            return False
 
     def content_differences(self):
         """Report the content differences for a table.
@@ -98,15 +100,15 @@ class Reporter(object):
                 db_width = max(len(self.db[1]), len(self.db[2]))
 
                 field_width = map(len, self.column_list)
-                for (db_number, row) in self.diff_list:
+                for (db_no, row) in self.diff_list:
                     row_width = map(len, row)
                     field_width = map(max, field_width, row_width)
 
                 col_format = ""
                 for width in field_width:
-                    col_format += " %-" + str(width) +  "s"
+                    col_format += " %-" + str(width) + "s"
 
-                header_format = " "*db_width + " " + col_format                
+                header_format = " "*db_width + " " + col_format
                 print >> self.output, header_format % tuple(self.column_list)
 
                 row_format = "%-" + str(db_width) + "s:" + col_format
@@ -186,16 +188,35 @@ class ComparisonWrapper(dbutil.ConnectionWrapper):
             curs.execute(sql, {'table': table, 'schema': schema})
             pkey = [tup[0] for tup in curs.fetchall()]
 
+        if not pkey:
+            # pkey empty: Try an alternative query - not all rows in
+            #     the table_constraints table are accessable to an
+            #     ordinary user.
+
+            sql = ("SELECT column_name\n" +
+                   "FROM information_schema.key_column_usage\n" +
+                   "WHERE constraint_schema = %(schema)s AND\n"
+                   "   table_name = %(table)s AND\n" +
+                   "   constraint_name LIKE '%%_pkey'\n" +
+                   "ORDER BY ordinal_position;")
+
+            with self.conn.cursor() as curs:
+                curs.execute(sql, {'table': table, 'schema': schema})
+                pkey = [tup[0] for tup in curs.fetchall()]
+
+        assert pkey, "Unable to find primary key for table '%s'." % table
+
         return pkey
 
 #
 # Local Functions
 #
 
+
 def _pkey_equal(row1, row2, column_list, pkey_set):
     """Return True if the pkeys of row1 and row2 are equal."""
 
-    if row1 == None or row2 == None:
+    if row1 is None or row2 is None:
         return False
     else:
         equal_so_far = True
@@ -208,9 +229,9 @@ def _pkey_equal(row1, row2, column_list, pkey_set):
 def _pkey_less(row1, row2, column_list, pkey_list):
     """Return True if the pkey of row1 is sorted earlier than that for row2."""
 
-    if row1 == None:
+    if row1 is None:
         return False
-    elif row2 == None:
+    elif row2 is None:
         return True
     else:
         row1_less = False
@@ -225,6 +246,13 @@ def _pkey_less(row1, row2, column_list, pkey_list):
             elif pkey_cmp[col] > 0:
                 break
         return row1_less
+
+# pylint: disable=too-many-arguments
+# pylint: disable=too-many-locals
+#
+# TEMPORARY - pylint is recommending refactoring and simplification here.
+#
+
 
 def _compare_content(db1, db2, schema1, schema2, report,
                      table, pkey_list, column_list):
@@ -286,6 +314,9 @@ def _compare_content(db1, db2, schema1, schema2, report,
 
     return not differences_found
 
+# pylint: enable=too-many-arguments
+# pylint: enable=too-many-locals
+
 
 def _filter_list(the_list, filter_set):
     """Returns a list filtered by a set of items.
@@ -313,6 +344,12 @@ def _dequalify_columns_for_table(table, columns):
         else:
             raise AssertionError("Badly formed column name '%s'." % col)
     return dq_columns
+
+# pylint: disable=too-many-arguments
+# pylint: disable=too-many-locals
+#
+# TEMPORARY - pylint is recommending refactoring and simplification here.
+#
 
 
 def _compare_tables(db1, db2, schema1, schema2, report,
@@ -356,9 +393,23 @@ def _compare_tables(db1, db2, schema1, schema2, report,
 
     return identical_so_far and content_matches
 
+# pylint: enable=too-many-arguments
+# pylint: enable=too-many-locals
 
 #
 # Interface Functions
+#
+
+
+# pylint: disable=too-many-arguments
+#
+# This is OK: two positional arguments and six keyword arguments with
+# defaults.
+#
+
+# pylint: disable=too-many-locals
+#
+# TEMPORARY - pylint is recommending simplification of this function.
 #
 
 def compare_databases(db1, db2, schema1='public', schema2='public',
@@ -471,6 +522,16 @@ def compare_databases(db1, db2, schema1='public', schema2='public',
 
     return identical_so_far and tables_match
 
+# pylint: enable=too-many-arguments
+# pylint: enable=too-many-locals
+
+
+# pylint: disable=too-many-arguments
+#
+# This is OK: three positional arguments and five keyword arguments with
+# defaults.
+#
+
 def compare_tables(db1, db2, table, schema1='public', schema2='public',
                    ignore_columns=None, verbosity=0, output=sys.stdout):
     """Compares tables from two databases, returns True if identical.
@@ -559,3 +620,5 @@ def compare_tables(db1, db2, table, schema1='public', schema2='public',
     db2.conn.autocommit = old_db2_autocommit
 
     return tables_match
+
+# pylint: enable=too-many-arguments

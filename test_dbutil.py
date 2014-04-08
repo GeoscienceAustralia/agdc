@@ -11,6 +11,9 @@ import dbutil
 #
 
 # pylint: disable=too-many-public-methods
+#
+# Disabled to avoid complaints about the unittest.TestCase class.
+#
 
 
 class TestUtilityFunctions(unittest.TestCase):
@@ -175,13 +178,29 @@ class TestUtilityFunctions(unittest.TestCase):
                 os.environ['DATACUBE_VERSION'] = old_version
             os.removedirs(path)
 
-class TestServerClass(unittest.TestCase):
+    def test_input_directory(self):
+        "Test test input directory finder/creator."
+
+        dummy_version = dbutil.random_name('version')
+        input_path = os.path.join(dbutil.TEST_RESOURCES_ROOT,
+                                  dummy_version, 'input',
+                                  'module', 'suite')
+        try:
+            path = dbutil.input_directory('module', 'suite',
+                                          version=dummy_version)
+            self.check_directory(path, input_path)
+        finally:
+            os.removedirs(path)
+
+
+class TestServer(unittest.TestCase):
     """Unit tests for Server class."""
+
+    SAVE_DIR = dbutil.input_directory('dbutil', 'TestServer')
+    SAVE_FILE = "test_create_db.sql"
 
     MAINTENANCE_DB = "postgres"
     TEST_CONNECT_DB = "postgres"
-
-    TEST_CREATE_FILE = "test_create_db.sql"
 
     def setUp(self):
         self.dbname1 = None
@@ -219,7 +238,7 @@ class TestServerClass(unittest.TestCase):
         self.dbname1 = dbutil.random_name('test_create_db')
 
         # Create a new database.
-        dbutil.TESTSERVER.create(self.dbname1, self.TEST_CREATE_FILE)
+        dbutil.TESTSERVER.create(self.dbname1, self.SAVE_DIR, self.SAVE_FILE)
 
         # Check if the newly created database exists.
         maint_conn = dbutil.TESTSERVER.connect(self.MAINTENANCE_DB,
@@ -237,7 +256,7 @@ class TestServerClass(unittest.TestCase):
         self.dbname1 = dbutil.random_name('test_drop_db')
 
         # Create a new database.
-        dbutil.TESTSERVER.create(self.dbname1, self.TEST_CREATE_FILE)
+        dbutil.TESTSERVER.create(self.dbname1, self.SAVE_DIR, self.SAVE_FILE)
 
         # Connect to the newly created database, to make sure it is
         # there, and to create a pgbouncer pool.
@@ -268,7 +287,7 @@ class TestServerClass(unittest.TestCase):
         self.dbname1 = dbutil.random_name('test_recreate_db')
 
         # Create a new database.
-        dbutil.TESTSERVER.create(self.dbname1, self.TEST_CREATE_FILE)
+        dbutil.TESTSERVER.create(self.dbname1, self.SAVE_DIR, self.SAVE_FILE)
 
         # Connect to the newly created database, to make sure it is
         # there, and to create a pgbouncer pool.
@@ -281,7 +300,7 @@ class TestServerClass(unittest.TestCase):
             conn.close()
 
         # Now recreate on top of the existing database...
-        dbutil.TESTSERVER.create(self.dbname1, self.TEST_CREATE_FILE)
+        dbutil.TESTSERVER.create(self.dbname1, self.SAVE_DIR, self.SAVE_FILE)
 
         # and check that it exists.
         maint_conn = dbutil.TESTSERVER.connect(self.MAINTENANCE_DB,
@@ -300,14 +319,16 @@ class TestServerClass(unittest.TestCase):
         self.filename1 = self.dbname1 + ".sql"
 
         # Create a new database.
-        dbutil.TESTSERVER.create(self.dbname1, self.TEST_CREATE_FILE)
+        dbutil.TESTSERVER.create(self.dbname1,
+                                 self.SAVE_DIR,
+                                 self.SAVE_FILE)
 
         # Save the database to disk.
-        dbutil.TESTSERVER.save(self.dbname1, self.filename1)
+        dbutil.TESTSERVER.save(self.dbname1, self.SAVE_DIR, self.filename1)
 
         # Now reload the file as a new database...
         self.dbname2 = dbutil.random_name('test_save_db_copy')
-        dbutil.TESTSERVER.create(self.dbname2, self.filename1)
+        dbutil.TESTSERVER.create(self.dbname2, self.SAVE_DIR, self.filename1)
 
         # and check that it exists.
         maint_conn = dbutil.TESTSERVER.connect(self.MAINTENANCE_DB,
@@ -329,8 +350,7 @@ class TestServerClass(unittest.TestCase):
 
         # Attempt to remove any test save files that may have been created.
         if self.filename1:
-            filepath1 = os.path.join(dbutil.TESTSERVER.save_dir,
-                                     self.filename1)
+            filepath1 = os.path.join(self.SAVE_DIR, self.filename1)
             try:
                 os.remove(filepath1)
             except OSError:
@@ -342,13 +362,14 @@ class TestServerClass(unittest.TestCase):
 class TestConnectionWrapper(unittest.TestCase):
     """Unit tests for ConnectionWrapper classs."""
 
+    SAVE_DIR = dbutil.input_directory('dbutil', 'TestConnectionWrapper')
     TEST_DB_FILE = "test_hypercube_empty.sql"
 
     def setUp(self):
         self.conn = None
         self.dbname = dbutil.random_name('test_connection_wrapper_db')
 
-        dbutil.TESTSERVER.create(self.dbname, self.TEST_DB_FILE)
+        dbutil.TESTSERVER.create(self.dbname, self.SAVE_DIR, self.TEST_DB_FILE)
 
         self.conn = dbutil.TESTSERVER.connect(self.dbname)
         self.conn = dbutil.ConnectionWrapper(self.conn)
@@ -375,7 +396,7 @@ def the_suite():
     """Returns a test suite of all the tests in this module."""
 
     test_classes = [TestUtilityFunctions,
-                    TestServerClass,
+                    TestServer,
                     TestConnectionWrapper]
 
     suite_list = map(unittest.defaultTestLoader.loadTestsFromTestCase,

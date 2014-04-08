@@ -8,10 +8,19 @@ import dbutil
 import dbcompare
 
 #
+# Constants
+#
+
+MODULE = 'dbcompare'
+
+#
 # Test cases
 #
 
 # pylint: disable=too-many-public-methods
+#
+# Disabled to avoid complaints about the unittest.TestCase class.
+#
 
 
 class TestReporter(unittest.TestCase):
@@ -26,7 +35,6 @@ class TestReporter(unittest.TestCase):
         (4, 't1.4', 't2.4')
         ]
 
-    MODULE = 'dbcompare'
     SUITE = 'TestReporter'
 
     TEST_TABLE = 'test_table'
@@ -34,20 +42,15 @@ class TestReporter(unittest.TestCase):
 
     def setUp(self):
         # Create strings masquerading as output files.
-        self.output0 = StringIO.StringIO()
-        self.output1 = StringIO.StringIO()
-        self.output2 = StringIO.StringIO()
-        self.output3 = StringIO.StringIO()
+        self.output = [None]*4
+        for i in range(4):
+            self.output[i] = StringIO.StringIO()
 
         # Create test reporter objects.
-        self.report0 = dbcompare.Reporter('test_db1', 'test_db2',
-                                          0, self.output0)
-        self.report1 = dbcompare.Reporter('test_db1', 'test_db2',
-                                          1, self.output1)
-        self.report2 = dbcompare.Reporter('test_db1', 'test_db2',
-                                          2, self.output2)
-        self.report3 = dbcompare.Reporter('test_db1', 'test_db2',
-                                          3, self.output3)
+        self.report = [None]*4
+        for i in range(4):
+            self.report[i] = dbcompare.Reporter('test_db1', 'test_db2',
+                                                i, self.output[i])
 
     def check_output(self, file_name, output_str):
         """Check the output against an expected output file.
@@ -57,12 +60,12 @@ class TestReporter(unittest.TestCase):
         file is not present. The temporay output can be used as
         the expected output if it passes a manual check."""
 
-        output_dir_path = dbutil.output_directory(self.MODULE, self.SUITE)
+        output_dir_path = dbutil.output_directory(MODULE, self.SUITE)
         output_file_path = os.path.join(output_dir_path, file_name)
         with open(output_file_path, 'w') as output_file:
             output_file.write(output_str)
 
-        expected_dir_path = dbutil.expected_directory(self.MODULE, self.SUITE)
+        expected_dir_path = dbutil.expected_directory(MODULE, self.SUITE)
         expected_file_path = os.path.join(expected_dir_path, file_name)
         if os.path.isfile(expected_file_path):
             with open(expected_file_path) as expected_file:
@@ -71,79 +74,81 @@ class TestReporter(unittest.TestCase):
         else:
             self.skipTest(("expected output file '%s' not found for " +
                            "module '%s', suite '%s'.") %
-                          (file_name, self.MODULE, self.SUITE))
+                          (file_name, MODULE, self.SUITE))
 
     def test_table_only_in_v0(self):
         "Test reporting of extra tables, verbosity 0:"
 
-        self.report0.table_only_in(1, self.TEST_TABLE)
-        self.assertEqual(self.output0.getvalue(), "")
+        self.report[0].table_only_in(1, self.TEST_TABLE)
+        self.assertEqual(self.output[0].getvalue(), "")
 
     def test_table_only_in_v1(self):
         "Test reporting of extra tables, verbosity 1:"
 
-        self.report1.table_only_in(1, self.TEST_TABLE)
-        self.check_output('test_table_only_in_v1.txt', self.output1.getvalue())
+        self.report[1].table_only_in(1, self.TEST_TABLE)
+        self.check_output('test_table_only_in_v1.txt',
+                          self.output[1].getvalue())
 
     def test_table_only_in_v2(self):
         "Test reporting of extra tables, verbosity 2:"
 
-        self.report2.table_only_in(2, self.TEST_TABLE)
-        self.check_output('test_table_only_in_v2.txt', self.output2.getvalue())
-
+        self.report[2].table_only_in(2, self.TEST_TABLE)
+        self.check_output('test_table_only_in_v2.txt',
+                          self.output[2].getvalue())
 
     def test_column_only_in_v0(self):
         "Test reporting of extra columns, verbosity 0:"
 
-        self.report0.column_only_in(1, self.TEST_TABLE, self.TEST_COLUMN)
-        self.assertEqual(self.output0.getvalue(), "")
+        self.report[0].column_only_in(1, self.TEST_TABLE, self.TEST_COLUMN)
+        self.assertEqual(self.output[0].getvalue(), "")
 
     def test_column_only_in_v1(self):
         "Test reporting of extra columns, verbosity 1:"
 
-        self.report1.column_only_in(2, self.TEST_TABLE, self.TEST_COLUMN)
+        self.report[1].column_only_in(2, self.TEST_TABLE, self.TEST_COLUMN)
         self.check_output('test_column_only_in_v1.txt',
-                          self.output1.getvalue())
+                          self.output[1].getvalue())
 
     def test_column_only_in_v3(self):
         "Test reporting of extra columns, verbosity 3:"
 
-        self.report3.column_only_in(1, self.TEST_TABLE, self.TEST_COLUMN)
+        self.report[3].column_only_in(1, self.TEST_TABLE, self.TEST_COLUMN)
         self.check_output('test_column_only_in_v3.txt',
-                          self.output3.getvalue())
+                          self.output[3].getvalue())
 
     def test_primary_keys_differ_v0(self):
         "Test reporting of primary key mismatch, verbosity 0:"
 
-        self.report0.primary_keys_differ(self.TEST_TABLE)
-        self.assertEqual(self.output0.getvalue(), "")
+        self.report[0].primary_keys_differ(self.TEST_TABLE)
+        self.assertEqual(self.output[0].getvalue(), "")
 
     def test_primary_keys_differ_v1(self):
         "Test reporting of primary key mismatch, verbosity 1:"
 
-        self.report1.primary_keys_differ(self.TEST_TABLE)
+        self.report[1].primary_keys_differ(self.TEST_TABLE)
         self.check_output('test_primary_keys_differ_v1.txt',
-                          self.output1.getvalue())
+                          self.output[1].getvalue())
 
     def test_content_differences_v3(self):
         "Test reporting of table content differences, verbosity 3:"
 
-        self.report3.new_table(self.TEST_TABLE, self.TEST_COLUMNS)
+        self.report[3].new_table(self.TEST_TABLE, self.TEST_COLUMNS)
 
-        self.report3.add_difference(1, self.TEST_ROWS[0])
-        self.report3.add_difference(2, self.TEST_ROWS[1])
-        self.report3.add_difference(1, self.TEST_ROWS[2])
-        self.report3.add_difference(2, self.TEST_ROWS[3])
+        self.report[3].add_difference(1, self.TEST_ROWS[0])
+        self.report[3].add_difference(2, self.TEST_ROWS[1])
+        self.report[3].add_difference(1, self.TEST_ROWS[2])
+        self.report[3].add_difference(2, self.TEST_ROWS[3])
 
-        self.report3.content_differences()
+        self.report[3].content_differences()
 
         self.check_output('test_content_differences_v3.txt',
-                          self.output3.getvalue())
+                          self.output[3].getvalue())
 
 
 class TestComparisonWrapper(unittest.TestCase):
     """Unit tests for ComparisonWrapper class."""
 
+    SAVE_DIR = dbutil.input_directory('dbcompare', 'TestComparisonWrapper')
     TEST_DB_FILE = "test_hypercube_empty.sql"
 
     NOT_A_TABLE = "not_a_table_name_at_all_at_all"
@@ -184,18 +189,19 @@ class TestComparisonWrapper(unittest.TestCase):
         ]
 
     SIMPLE_PKEY_TABLE = "tile"
-
     EXPECTED_SIMPLE_PKEY = ['tile_id']
 
     COMPOUND_PKEY_TABLE = "acquisition_footprint"
-
     EXPECTED_COMPOUND_PKEY = ['tile_type_id', 'acquisition_id']
+
+    SREF_PKEY_TABLE = "spatial_ref_sys"
+    EXPECTED_SREF_PKEY = ['srid']
 
     def setUp(self):
         self.conn = None
         self.dbname = dbutil.random_name('test_wrapper_db')
 
-        dbutil.TESTSERVER.create(self.dbname, self.TEST_DB_FILE)
+        dbutil.TESTSERVER.create(self.dbname, self.SAVE_DIR, self.TEST_DB_FILE)
 
         self.conn = dbutil.TESTSERVER.connect(self.dbname)
         self.conn = dbcompare.ComparisonWrapper(self.conn)
@@ -229,14 +235,23 @@ class TestComparisonWrapper(unittest.TestCase):
         col_list = self.conn.column_list(self.COLUMN_LIST_TABLE)
         self.assertEqual(col_list, self.EXPECTED_COLUMN_LIST)
 
-    def test_primary_key(self):
-        "Test get primary key."
+    def test_primary_key_simple(self):
+        "Test get primary key, simple key."
 
         pkey = self.conn.primary_key(self.SIMPLE_PKEY_TABLE)
         self.assertEqual(pkey, self.EXPECTED_SIMPLE_PKEY)
 
+    def test_primary_key_compound(self):
+        "Test get primary key, compound key."
+
         pkey = self.conn.primary_key(self.COMPOUND_PKEY_TABLE)
         self.assertEqual(pkey, self.EXPECTED_COMPOUND_PKEY)
+
+    def test_primary_key_sref(self):
+        "Test get primary key, spatial_ref_sys table."
+
+        pkey = self.conn.primary_key(self.SREF_PKEY_TABLE)
+        self.assertEqual(pkey, self.EXPECTED_SREF_PKEY)
 
     def tearDown(self):
 
@@ -244,6 +259,49 @@ class TestComparisonWrapper(unittest.TestCase):
             self.conn.close()
 
         dbutil.TESTSERVER.drop(self.dbname)
+
+
+class TestCompareDatabases(unittest.TestCase):
+    """Unit tests for compare_databases function."""
+
+    SAVE_DIR = dbutil.input_directory('dbcompare', 'TestCompareDatabases')
+
+    TEST_DB_FILE_EMPTY = 'hypercube_empty.sql'
+
+    def setUp(self):
+        self.conn1 = None
+        self.conn2 = None
+
+        self.dbname1 = dbutil.random_name('test_compare_db1')
+        self.dbname2 = dbutil.random_name('test_compare_db2')
+
+        dbutil.TESTSERVER.create(self.dbname1,
+                                 self.SAVE_DIR,
+                                 self.TEST_DB_FILE_EMPTY)
+        dbutil.TESTSERVER.create(self.dbname2,
+                                 self.SAVE_DIR,
+                                 self.TEST_DB_FILE_EMPTY)
+
+        self.conn1 = dbutil.TESTSERVER.connect(self.dbname1)
+        self.conn2 = dbutil.TESTSERVER.connect(self.dbname2)
+
+    def test_compare_empty(self):
+        "Compare two empty databases."
+
+        result = dbcompare.compare_databases(self.conn1, self.conn2,
+                                             verbosity=2)
+        self.assertTrue(result, "Identical empty databases are " +
+                                "not comparing as equal.")
+
+    def tearDown(self):
+        if self.conn1:
+            self.conn1.close()
+        if self.conn2:
+            self.conn2.close()
+
+        dbutil.TESTSERVER.drop(self.dbname1)
+        dbutil.TESTSERVER.drop(self.dbname2)
+
 
 #
 # Define test suites
@@ -253,7 +311,9 @@ class TestComparisonWrapper(unittest.TestCase):
 def the_suite():
     """Returns a test suite of all the tests in this module."""
 
-    test_classes = [TestReporter]
+    test_classes = [TestReporter,
+                    TestComparisonWrapper,
+                    TestCompareDatabases]
 
     suite_list = map(unittest.defaultTestLoader.loadTestsFromTestCase,
                      test_classes)
