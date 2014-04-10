@@ -232,6 +232,18 @@ class TestServer(unittest.TestCase):
         else:
             conn.close()
 
+    def test_exists(self):
+        "Test database existance check."
+
+        self.assertTrue(dbutil.TESTSERVER.exists(self.MAINTENANCE_DB),
+                        "Unable to verify existance of the " +
+                        "maintenance database '%s'." % self.MAINTENANCE_DB)
+
+        dummy_dbname = dbutil.random_name('dummy')
+        self.assertFalse(dbutil.TESTSERVER.exists(dummy_dbname),
+                         "Dummy database '%s' reported as existing." %
+                         dummy_dbname)
+
     def test_create(self):
         "Test database creation and loading"
 

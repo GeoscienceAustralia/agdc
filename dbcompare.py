@@ -9,18 +9,15 @@ import re
 import dbutil
 
 #
-# Constants
-#
-
-MAX_DIFFERENCES = 5
-
-#
 # Reporter Class
 #
 
 
 class Reporter(object):
     """Report the differences detected between two databases."""
+
+    MAX_DIFFERENCES = 5
+    MAX_FIELD_WIDTH = 30
 
     def __init__(self, db1_name, db2_name, verbosity, output):
         """Create a Reporter"""
@@ -69,7 +66,7 @@ class Reporter(object):
 
         PRE: new_table must have been called."""
 
-        if self.verbosity > 2 or len(self.diff_list) < MAX_DIFFERENCES:
+        if self.verbosity > 2 or len(self.diff_list) < self.MAX_DIFFERENCES:
             self.diff_list.append((db_no, map(str, row)))
 
     def stop_adding_differences(self):
@@ -82,9 +79,30 @@ class Reporter(object):
         if self.verbosity <= 1:
             return diff_count > 0
         elif self.verbosity == 2:
-            return diff_count >= MAX_DIFFERENCES
+            return diff_count >= self.MAX_DIFFERENCES
         else:
             return False
+
+    def _get_field_width(self):
+        "Calculate the width of the fields for self.content_differences."
+
+        field_width = map(len, self.column_list)
+        for (dummy_db_no, row) in self.diff_list:
+            row_width = map(len, row)
+            field_width = map(max, field_width, row_width)
+        field_width = [min(fw, self.MAX_FIELD_WIDTH) for fw in field_width]
+        return field_width
+
+    def _truncate_row_values(self, row):
+        "Truncate the values in a row to at most MAX_FIELD_WIDTH."
+
+        row_values = []
+        for item in row:
+            val = str(item)
+            if len(val) > self.MAX_FIELD_WIDTH:
+                val = val[0:self.MAX_FIELD_WIDTH-3] + "..."
+            row_values.append(val)
+        return row_values
 
     def content_differences(self):
         """Report the content differences for a table.
@@ -98,23 +116,19 @@ class Reporter(object):
 
             if self.verbosity > 1:
                 db_width = max(len(self.db[1]), len(self.db[2]))
+                field_width = self._get_field_width()
 
-                field_width = map(len, self.column_list)
-                for (db_no, row) in self.diff_list:
-                    row_width = map(len, row)
-                    field_width = map(max, field_width, row_width)
-
-                col_format = ""
+                field_format = ""
                 for width in field_width:
-                    col_format += " %-" + str(width) + "s"
+                    field_format += " %-" + str(width) + "s"
+                header_format = " "*db_width + " " + field_format
+                row_format = "%-" + str(db_width) + "s:" + field_format
 
-                header_format = " "*db_width + " " + col_format
                 print >> self.output, header_format % tuple(self.column_list)
-
-                row_format = "%-" + str(db_width) + "s:" + col_format
                 for (db_no, row) in self.diff_list:
-                    row_values = tuple([self.db[db_no]] + row)
-                    print >> self.output, row_format % row_values
+                    row_values = self._truncate_row_values(row)
+                    print_values = tuple([self.db[db_no]] + row_values)
+                    print >> self.output, row_format % print_values
 
                 print >> self.output, ""
 
@@ -129,8 +143,16 @@ class ComparisonWrapper(dbutil.ConnectionWrapper):
     This implements queries about the structure of the database,
     as recorded in the information schema."""
 
-    def table_exists(self, table, schema='public'):
+    def __init__(self, conn, default_schema='public'):
+
+        self.default_schema = dbutil.safe_name(default_schema)
+        dbutil.ConnectionWrapper.__init__(self, conn)
+
+    def table_exists(self, table, schema=None):
         """Returns True if the table exists in the database."""
+
+        if schema is None:
+            schema = self.default_schema
 
         sql = ("SELECT table_name FROM information_schema.tables\n" +
                "WHERE table_schema = %(schema)s AND\n" +
@@ -143,8 +165,11 @@ class ComparisonWrapper(dbutil.ConnectionWrapper):
 
         return tab_found
 
-    def table_list(self, schema='public'):
+    def table_list(self, schema=None):
         """Return a list of the tables in a database."""
+
+        if schema is None:
+            schema = self.default_schema
 
         sql = ("SELECT table_name FROM information_schema.tables\n" +
                "WHERE table_schema = %(schema)s AND\n" +
@@ -157,8 +182,11 @@ class ComparisonWrapper(dbutil.ConnectionWrapper):
 
         return tab_list
 
-    def column_list(self, table, schema='public'):
+    def column_list(self, table, schema=None):
         """Return a list of the columns in a database table."""
+
+        if schema is None:
+            schema = self.default_schema
 
         sql = ("SELECT column_name FROM information_schema.columns\n" +
                "WHERE table_schema = %(schema)s AND table_name = %(table)s\n" +
@@ -170,8 +198,11 @@ class ComparisonWrapper(dbutil.ConnectionWrapper):
 
         return col_list
 
-    def primary_key(self, table, schema='public'):
+    def primary_key(self, table, schema=None):
         """Returns the primary key for a table as a list of columns."""
+
+        if schema is None:
+            schema = self.default_schema
 
         sql = ("SELECT column_name\n" +
                "FROM information_schema.key_column_usage\n" +
@@ -207,6 +238,65 @@ class ComparisonWrapper(dbutil.ConnectionWrapper):
         assert pkey, "Unable to find primary key for table '%s'." % table
 
         return pkey
+
+#
+# ComparisonPair Class
+#
+
+
+class ComparisonPair(object):
+    """A pair of databases to be compared.
+
+    Note that creating a comparison pair sets autocommit to True on
+    the database connections given to the constructor. The original
+    state can be restored by calling the restore_autocommit method.
+    """
+
+    def __init__(self, db1, db2, schema1, schema2):
+        """
+        Positional Arguments:
+            db1, db2: Connections to the databases to be compared.
+
+        Keyword Arguments:
+            schema1: The schema to be used for the first database (db1)
+            schema2: The schema to be used for the second database (db2)
+        """
+
+        # Set autocommit mode on the connections; retain the old settings.
+        self.old_autocommit = (db1.autocommit, db2.autocommit)
+        db1.autocommit = True
+        db2.autocommit = True
+
+        # Sanitise the schema names, just in case.
+        self.schema1 = dbutil.safe_name(schema1)
+        self.schema2 = dbutil.safe_name(schema2)
+
+        # Wrap the connections to gain access to database structure queries.
+        self.db1 = ComparisonWrapper(db1, self.schema1)
+        self.db2 = ComparisonWrapper(db2, self.schema2)
+
+        # Get the database names...
+        self.db1_name = self.db1.database_name()
+        self.db2_name = self.db2.database_name()
+
+        # and qualify with the schema names if they are not 'public'
+        if self.schema1 != 'public':
+            self.db1_name = self.schema1 + '.' + self.db1_name
+        if self.schema2 != 'public':
+            self.db2_name = self.schema2 + '.' + self.db2_name
+
+    def restore_autocommit(self):
+        """Restore the autocommit status of the underlying connections.
+
+        The comparison pair should not be used after calling this, in
+        case the connections have been reset to autocommit=False. The
+        method sets the database attributes to None to enforce this."""
+
+        self.db1.conn.autocommit = self.old_autocommit[0]
+        self.db2.conn.autocommit = self.old_autocommit[1]
+
+        self.db1 = None
+        self.db2 = None
 
 #
 # Local Functions
@@ -247,15 +337,13 @@ def _pkey_less(row1, row2, column_list, pkey_list):
                 break
         return row1_less
 
-# pylint: disable=too-many-arguments
+
 # pylint: disable=too-many-locals
 #
-# TEMPORARY - pylint is recommending refactoring and simplification here.
+# REFACTOR: pylint is recommending simplifing this function.
 #
 
-
-def _compare_content(db1, db2, schema1, schema2, report,
-                     table, pkey_list, column_list):
+def _compare_content(pair, report, table, pkey_list, column_list):
     """Compare the content of a table between the two databases.
 
     Returns True if the content is identical for the columns in column_list."""
@@ -266,16 +354,16 @@ def _compare_content(db1, db2, schema1, schema2, report,
     combined_columns = column_list + sorted(extra_columns)
 
     column_str = ', '.join(combined_columns)
-    table_str1 = schema1 + '.' + table
-    table_str2 = schema2 + '.' + table
+    table_str1 = pair.schema1 + '.' + table
+    table_str2 = pair.schema2 + '.' + table
     pkey_str = ', '.join(pkey_list)
 
     table_dump = "SELECT %s FROM %s ORDER BY %s;"
 
-    cur1 = db1.cursor()
+    cur1 = pair.db1.cursor()
     cur1.execute(table_dump % (column_str, table_str1, pkey_str))
 
-    cur2 = db2.cursor()
+    cur2 = pair.db2.cursor()
     cur2.execute(table_dump % (column_str, table_str2, pkey_str))
 
     row1 = cur1.fetchone()
@@ -314,7 +402,6 @@ def _compare_content(db1, db2, schema1, schema2, report,
 
     return not differences_found
 
-# pylint: enable=too-many-arguments
 # pylint: enable=too-many-locals
 
 
@@ -345,21 +432,19 @@ def _dequalify_columns_for_table(table, columns):
             raise AssertionError("Badly formed column name '%s'." % col)
     return dq_columns
 
-# pylint: disable=too-many-arguments
+
 # pylint: disable=too-many-locals
 #
-# TEMPORARY - pylint is recommending refactoring and simplification here.
+# REFACTOR: pylint is recommending simplifing this function.
 #
 
-
-def _compare_tables(db1, db2, schema1, schema2, report,
-                    table, ignore_columns):
+def _compare_tables(pair, report, table, ignore_columns):
     """Implements the compare_tables function."""
 
     ignore_set = set(_dequalify_columns_for_table(table, ignore_columns))
 
-    column_list1 = db1.column_list(table, schema1)
-    column_list2 = db2.column_list(table, schema2)
+    column_list1 = pair.db1.column_list(table)
+    column_list2 = pair.db2.column_list(table)
 
     column_set1 = set(column_list1) - ignore_set
     column_set2 = set(column_list2) - ignore_set
@@ -381,11 +466,11 @@ def _compare_tables(db1, db2, schema1, schema2, report,
         for column in only_in_db2:
             report.column_only_in(2, table, column)
 
-    pkey1 = db1.primary_key(table, schema1)
-    pkey2 = db2.primary_key(table, schema1)
+    pkey1 = pair.db1.primary_key(table)
+    pkey2 = pair.db2.primary_key(table)
 
     if pkey1 == pkey2:
-        content_matches = _compare_content(db1, db2, schema1, schema2, report,
+        content_matches = _compare_content(pair, report,
                                            table, pkey1, column_in_both)
     else:
         content_matches = False
@@ -393,7 +478,6 @@ def _compare_tables(db1, db2, schema1, schema2, report,
 
     return identical_so_far and content_matches
 
-# pylint: enable=too-many-arguments
 # pylint: enable=too-many-locals
 
 #
@@ -409,7 +493,7 @@ def _compare_tables(db1, db2, schema1, schema2, report,
 
 # pylint: disable=too-many-locals
 #
-# TEMPORARY - pylint is recommending simplification of this function.
+# REFACTOR: pylint is recommending simplifing this function.
 #
 
 def compare_databases(db1, db2, schema1='public', schema2='public',
@@ -476,24 +560,14 @@ def compare_databases(db1, db2, schema1='public', schema2='public',
     if ignore_columns is None:
         ignore_columns = []
 
-    # Set autocommit mode on the connections; retain the old settings.
-    old_db1_autocommit = db1.autocommit
-    old_db2_autocommit = db2.autocommit
-    db1.autocommit = True
-    db2.autocommit = True
+    pair = ComparisonPair(db1, db2, schema1, schema2)
 
-    # Wrap the connections to gain access to database structure queries.
-
-    db1 = ComparisonWrapper(db1)
-    db2 = ComparisonWrapper(db2)
-
-    report = Reporter(db1.database_name(), db2.database_name(),
-                      verbosity, output)
+    report = Reporter(pair.db1_name, pair.db2_name, verbosity, output)
 
     ignore_set = set(ignore_tables)
 
-    table_set1 = set(db1.table_list(schema1)) - ignore_set
-    table_set2 = set(db2.table_list(schema2)) - ignore_set
+    table_set1 = set(pair.db1.table_list()) - ignore_set
+    table_set2 = set(pair.db2.table_list()) - ignore_set
 
     only_in_db1 = table_set1 - table_set2
     only_in_db2 = table_set2 - table_set1
@@ -512,18 +586,16 @@ def compare_databases(db1, db2, schema1='public', schema2='public',
             report.table_only_in(2, table)
 
     for table in sorted(table_in_both):
-        tables_match = _compare_tables(db1, db2, schema1, schema2, report,
-                                       table, ignore_columns)
+        tables_match = _compare_tables(pair, report, table, ignore_columns)
+        if not tables_match:
+            identical_so_far = False
 
-    # Put things back the way we found them. Use the underlying connection
-    # to set the autocommit attribute.
-    db1.conn.autocommit = old_db1_autocommit
-    db2.conn.autocommit = old_db2_autocommit
+    pair.restore_autocommit()
 
-    return identical_so_far and tables_match
+    return identical_so_far
 
-# pylint: enable=too-many-arguments
 # pylint: enable=too-many-locals
+# pylint: enable=too-many-arguments
 
 
 # pylint: disable=too-many-arguments
@@ -590,34 +662,20 @@ def compare_tables(db1, db2, table, schema1='public', schema2='public',
     if ignore_columns is None:
         ignore_columns = []
 
-    # Set autocommit mode on the connections; retain the old settings.
-    old_db1_autocommit = db1.autocommit
-    old_db2_autocommit = db2.autocommit
-    db1.autocommit = True
-    db2.autocommit = True
+    table = dbutil.safe_name(table)
 
-    # Wrap the connections to gain access to database structure queries.
+    pair = ComparisonPair(db1, db2, schema1, schema2)
 
-    db1 = ComparisonWrapper(db1)
-    db2 = ComparisonWrapper(db2)
+    report = Reporter(pair.db1_name, pair.db2_name, verbosity, output)
 
-    report = Reporter(db1.database_name(), db2.database_name(),
-                      verbosity, output)
+    assert pair.db1.table_exists(table), \
+        "Could not find table '%s' in database '%s'." % (table, pair.db1_name)
+    assert pair.db2.table_exists(table), \
+        "Could not find table '%s' in database '%s'." % (table, pair.db2_name)
 
-    assert db1.table_exists(table, schema1), \
-        ("Could not find table '%s' in database '%s'." %
-         (table, db1.database_name()))
-    assert db2.table_exists(table, schema2), \
-        ("Could not find table '%s' in database '%s'." %
-         (table, db2.database_name()))
+    tables_match = _compare_tables(pair, report, table, ignore_columns)
 
-    tables_match = _compare_tables(db1, db2, schema1, schema2, report,
-                                   table, ignore_columns)
-
-    # Put things back the way we found them. Use the underlying connection
-    # to set the autocommit attribute.
-    db1.conn.autocommit = old_db1_autocommit
-    db2.conn.autocommit = old_db2_autocommit
+    pair.restore_autocommit()
 
     return tables_match
 

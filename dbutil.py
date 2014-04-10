@@ -76,7 +76,7 @@ class Server(object):
         self.superuser = params['superuser']
 
     def connect(self, dbname, superuser=False, autocommit=True):
-        """create a pscopg2 connection to a database and return it.
+        """Create a pscopg2 connection to a database and return it.
 
         dbname: The database to connect to.
         superuser: Set to True to connect as the superuser, otherwise
@@ -91,6 +91,18 @@ class Server(object):
         conn.autocommit = autocommit
 
         return conn
+
+    def exists(self, dbname):
+        """Returns True if the named database exists on the server."""
+
+        maint_conn = MaintenanceWrapper(
+            self.connect(MAINTENANCE_DB, superuser=True))
+        try:
+            result = maint_conn.exists(dbname)
+        finally:
+            maint_conn.close()
+
+        return result
 
     def load(self, dbname, save_dir, save_file):
         """Load the contents of a database from a file.

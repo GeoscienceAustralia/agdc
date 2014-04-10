@@ -57,7 +57,7 @@ class TestReporter(unittest.TestCase):
 
         This method also writes the output to a temporary
         directory, and skips the test if the expected output
-        file is not present. The temporay output can be used as
+        file is not present. The temporary output can be used as
         the expected output if it passes a manual check."""
 
         output_dir_path = dbutil.output_directory(MODULE, self.SUITE)
@@ -261,47 +261,72 @@ class TestComparisonWrapper(unittest.TestCase):
         dbutil.TESTSERVER.drop(self.dbname)
 
 
-class TestCompareDatabases(unittest.TestCase):
-    """Unit tests for compare_databases function."""
+class TestCompareFunctions(unittest.TestCase):
+    """Unit tests for dbcompare interface functions."""
 
-    SAVE_DIR = dbutil.input_directory('dbcompare', 'TestCompareDatabases')
+    SUITE = 'TestCompareFunctions'
+    INPUT_DIR = dbutil.input_directory(MODULE, SUITE)
+    OUTPUT_DIR = dbutil.output_directory(MODULE, SUITE)
+    EXPECTED_DIR = dbutil.expected_directory(MODULE, SUITE)
+    VERSION = dbutil.version_or_user()
 
-    TEST_DB_FILE_EMPTY = 'hypercube_empty.sql'
+    DB_LIST = [
+        'hypercube_empty.sql',
+        'hypercube_empty.sql',
+        'hypercube_onescene.sql'
+        ]
 
     def setUp(self):
-        self.conn1 = None
-        self.conn2 = None
+        self.db_count = len(self.DB_LIST)
+        self.conn = [None] * self.db_count
+        self.dbname = [None] * self.db_count
 
-        self.dbname1 = dbutil.random_name('test_compare_db1')
-        self.dbname2 = dbutil.random_name('test_compare_db2')
+        for i in range(self.db_count):
+            self.dbname[i] = self.VERSION + "_test_compare_db" + str(i)
 
-        dbutil.TESTSERVER.create(self.dbname1,
-                                 self.SAVE_DIR,
-                                 self.TEST_DB_FILE_EMPTY)
-        dbutil.TESTSERVER.create(self.dbname2,
-                                 self.SAVE_DIR,
-                                 self.TEST_DB_FILE_EMPTY)
+            if not dbutil.TESTSERVER.exists(self.dbname[i]):
+                dbutil.TESTSERVER.create(self.dbname[i],
+                                         self.INPUT_DIR,
+                                         self.DB_LIST[i])
 
-        self.conn1 = dbutil.TESTSERVER.connect(self.dbname1)
-        self.conn2 = dbutil.TESTSERVER.connect(self.dbname2)
+            self.conn[i] = dbutil.TESTSERVER.connect(self.dbname[i])
 
     def test_compare_empty(self):
         "Compare two empty databases."
 
-        result = dbcompare.compare_databases(self.conn1, self.conn2,
+        result = dbcompare.compare_databases(self.conn[0], self.conn[1],
                                              verbosity=2)
         self.assertTrue(result, "Identical empty databases are " +
-                                "not comparing as equal.")
+                        "not comparing as equal.")
+
+    def test_compare_different(self):
+        "Compare two databases with differences."
+
+        file_name = 'test_compare_different_v3.txt'
+
+        output = StringIO.StringIO()
+        result = dbcompare.compare_databases(self.conn[0], self.conn[2],
+                                             verbosity=3, output=output)
+
+        output_file_path = os.path.join(self.OUTPUT_DIR, file_name)
+        with open(output_file_path, 'w') as output_file:
+            output_file.write(output.getvalue())
+
+        self.assertFalse(result, "Databases with differences are " +
+                         "comparing as equal.")
+
+        expected_file_path = os.path.join(self.EXPECTED_DIR, file_name)
+        if os.path.isfile(expected_file_path):
+            with open(expected_file_path) as expected_file:
+                expected_str = expected_file.read()
+            self.assertEqual(output.getvalue(), expected_str)
+        else:
+            self.skipTest("expected output file not found.")
 
     def tearDown(self):
-        if self.conn1:
-            self.conn1.close()
-        if self.conn2:
-            self.conn2.close()
-
-        dbutil.TESTSERVER.drop(self.dbname1)
-        dbutil.TESTSERVER.drop(self.dbname2)
-
+        for i in range(self.db_count):
+            if self.conn[i]:
+                self.conn[i].close()
 
 #
 # Define test suites
@@ -311,9 +336,11 @@ class TestCompareDatabases(unittest.TestCase):
 def the_suite():
     """Returns a test suite of all the tests in this module."""
 
-    test_classes = [TestReporter,
-                    TestComparisonWrapper,
-                    TestCompareDatabases]
+    test_classes = [
+        TestReporter,
+        TestComparisonWrapper,
+        TestCompareFunctions
+        ]
 
     suite_list = map(unittest.defaultTestLoader.loadTestsFromTestCase,
                      test_classes)
