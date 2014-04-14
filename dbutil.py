@@ -240,7 +240,7 @@ class ConnectionWrapper(object):
 
     This is a wrapper for a psycopg2 database connection. It
     passes on unknown attribute references to the wrapped connection
-    using __get_attr__. The specific wrappers that inherit from this
+    using __getattr__. The specific wrappers that inherit from this
     implement queries and operations on the connection (self.conn)
     as methods.
 

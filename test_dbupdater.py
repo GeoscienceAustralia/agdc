@@ -114,6 +114,7 @@ class TestDBUpdater(unittest.TestCase):
 
     def tearDown(self):
         # Remove any tempoary databases that have been created.
+	# MPHQ the drop table, close connection order here is opposite to TestConnectionWrapper.tearDown()
         if self.test_dbname:
             dbutil.TESTSERVER.drop(self.test_dbname)
         if self.expected_dbname:
