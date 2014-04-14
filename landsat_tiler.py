@@ -164,8 +164,8 @@ class LandsatTiler(DataCube):
                 assert dataset, 'Unable to open dataset %s' % dataset_filename
                 spatial_reference = osr.SpatialReference()
                 spatial_reference.ImportFromWkt(dataset.GetProjection())
-                geotransform = dataset.GetGeoTransform()
-                logger.debug('geotransform = %s', geotransform)
+                geotrans = dataset.GetGeoTransform()
+                logger.debug('geotransform = %s', geotrans)
 #                latlong_spatial_reference = spatial_reference.CloneGeogCS()
                 tile_spatial_reference = osr.SpatialReference()
                 s = re.match('EPSG:(\d+)', tile_type_info['crs'])
@@ -179,20 +179,107 @@ class LandsatTiler(DataCube):
                 logger.debug('Tile WKT = %s', tile_spatial_reference.ExportToWkt())
                     
                 coord_transform_to_tile = osr.CoordinateTransformation(spatial_reference, tile_spatial_reference)
-                # Upper Left
-                xmin, ymax, _z = coord_transform_to_tile.TransformPoint(geotransform[0], geotransform[3], 0)
-                # Lower Right
-                xmax, ymin, _z = coord_transform_to_tile.TransformPoint(geotransform[0] + geotransform[1] * dataset.RasterXSize, 
-                                                                       geotransform[3] + geotransform[5] * dataset.RasterYSize, 
-                                                                       0)
-                
-                logger.debug('Coordinates: xmin = %f, ymin = %f, xmax = %f, ymax = %f', xmin, ymin, xmax, ymax)
+                #Have looked at following with particular scene:
+                #/g/data1/v10/NBAR/2009-03/LS5_TM_NBAR_P54_GANBAR01-002_110_078_20090319/scene01/LS5_TM_NBAR_P54_GANBAR01-002_110_078_20090319_B10.tif
+                #MPH 04/04/2014 calculate four corners of the dataset, include cross terms of the geotransform
+
+                logger.debug('Dataset vertex coordinates: UL = (%f, %f); LL = (%f, %f); UR = (%f, %f); LR = (%f, %f)', xul, yul, xll, yll, xur, yur, xlr, ylr)
+                logger.debug('Dataset bounding box:  UL = (%f, %f); LL = (%f, %f); UR = (%f, %f); LR = (%f, %f)', xmin, ymax, xmin, ymin, xmax, ymax, xmax, ymin)
 
                 return (int(floor((xmin - tile_type_info['x_origin']) / tile_type_info['x_size'])), 
                         int(floor((ymin - tile_type_info['y_origin']) / tile_type_info['y_size'])), 
                         int(ceil((xmax - tile_type_info['x_origin']) / tile_type_info['x_size'])), 
                         int(ceil((ymax - tile_type_info['y_origin']) / tile_type_info['y_size'])))
+                #Would return (-120, -27, 123, -25) on scene above
+            def get_tiles_touched_by_acquisition(dataset_filename):
+                """For the quadrilateral defined by the acquisitiion footprint,
+                   return a list of overlapping tiles as [(xtile, ytile), ..., ]"""
+                dataset = gdal.Open(dataset_filename)
+                assert dataset, 'Unable to open dataset %s' % dataset_filename
+                spatial_reference = osr.SpatialReference()
+                spatial_reference.ImportFromWkt(dataset.GetProjection())
+                geotrans = dataset.GetGeoTransform()
+                logger.debug('geotransform = %s', geotrans)
+#                latlong_spatial_reference = spatial_reference.CloneGeogCS()
+                tile_spatial_reference = osr.SpatialReference()
+                s = re.match('EPSG:(\d+)', tile_type_info['crs'])
+                if s:
+                    epsg_code = int(s.group(1))
+                    logger.debug('epsg_code = %d', epsg_code)
+                    assert tile_spatial_reference.ImportFromEPSG(epsg_code) == 0, 'Invalid EPSG code for tile projection'
+                else:
+                    assert tile_spatial_reference.ImportFromWkt(tile_type_info['crs']), 'Invalid WKT for tile projection'
                 
+                logger.debug('Tile WKT = %s', tile_spatial_reference.ExportToWkt())
+                coord_transform_to_tile = osr.CoordinateTransformation(spatial_reference, tile_spatial_reference)
+                #Determine the bounding quadrilateral of the acquisition
+                xul, yul, _z = coord_transform_to_tile.TransformPoint(geotrans[0], geotrans[3], 0)
+                xll, yll, _z = coord_transform_to_tile.TransformPoint(geotrans[0] + geotrans[2]*dataset.RasterYSize, 
+                                                                      geotrans[3] + geotrans[5]*dataset.RasterYSize, 0)
+                xur, yur, _z = coord_transform_to_tile.TransformPoint(geotrans[0] + geotrans[1]*dataset.RasterXSize,
+                                                                      geotrans[3] + geotrans[4]*dataset.RasterXSize, 0)
+                xlr, ylr, _z = coord_transform_to_tile.TransformPoint(geotrans[0] + geotrans[1]*dataset.RasterXSize + geotrans[2]*dataset.RasterYSize,
+                                                                      geotrans[3] + geotrans[4]*dataset.RasterXSize + geotrans[5]*dataset.RasterYSize,0)
+                acquisition_bbox = [(xul, yul), (xur, yur), (xlr, ylr), (xll, yll)]
+                acquisition_vertex_number = len(acqusition_bbox)
+                #Within this acqusition quadrilateral, we need to find all tiles with at least one vertex contained within the acquisition
+                #There is an outer rectangle, which is the minimum containing rectangle for the acquisition footprint,
+                #and an inner rectangle, which is the maximum rectagle contained by the acquisitiion footprint
+                outer_xmin = min(xll, xul)
+                outer_xmax = max(xlr, xur)
+                outer_ymin = min(yll, ylr)
+                outer_ymax = max(yul, yur)
+
+                inner_xmin = max(xll, xul)
+                inner_xmax = min(xlr, xur)
+                inner_ymin = max(yll, ylr)
+                inner_ymax = min(yul, yur)
+                
+                outer_xmin_index = floor((outer_xmin - tile_type_info['x_origin']) / tile_type_info['x_size'])
+                outer_xmax_index = floor((outer_xmax - tile_type_info['x_origin']) / tile_type_info['x_size'])
+                outer_ymin_index = floor((outer_ymin - tile_type_info['y_origin']) / tile_type_info['y_size'])
+                outer_ymax_index = floor((outer_ymax - tile_type_info['y_origin']) / tile_type_info['y_size'])
+
+                inner_xmin_index = floor((inner_xmin - tile_type_info['x_origin']) / tile_type_info['x_size'])
+                inner_xmax_index = floor((inner_xmax - tile_type_info['x_origin']) / tile_type_info['x_size'])
+                inner_ymin_index = floor((inner_ymin - tile_type_info['y_origin']) / tile_type_info['y_size'])
+                inner_ymax_index = floor((inner_ymax - tile_type_info['y_origin']) / tile_type_info['y_size'])
+
+                touched_tiles = []
+                #inspect tiles from the outer rectangle
+                for i in range(outer_xmin_index, outer_xmax_index + 1):
+                    for j in range(outer_ymin_index, outer_ymax_index + 1):
+                        if i >= inner_xmin_index and i <= inner_xmax_index and j >= inner_ymin_index and j <= inner_ymax_index:
+                            touched_tiles.append(i, j)
+                            continue:
+                        #For each tile in the outer rectangle but not in the inner rectangle
+                        #define the upper-left vertex
+                        (x0, y0) = (tile_type_info['x_origin'] + i * tile_type_info['x_size'],
+                                    tile_type_info['y_origin'] + (j + 1) * tile_type_info['y_size']) 
+                        tile_bbox = [(x0, y0), (x0 + tile_type_info['x_size'], y0), 
+                                     (x0 + tile_type_info['x_size'], y0 - tile_type_info['y_size']),
+                                     (x0, y0 - tile_type_info['y_size'])]
+                        for x, y in tile_bbox:
+                            #Check if (x, y) is inside acquisition footprint
+                            winding_number = 0
+                            #for each section of the acquisition bounding box perimeter, determine whether positive x-ray from (x, y) crosses the perimeter section
+                            for ivertex in len(acquisition_vertex_number):
+                                x1, y1 = acquisition_bbox[ivertex]
+                                x2, y2 = acquisition_bbox[(ivertex+1) % acquisition_vertex_number]
+                                if y2 > y1:
+                                    if y > y1 and y <= y2:
+                                        if (x2 - x1) * (y - y1) > (x - x1) * (y2 - y1):
+                                            winding_number += 1
+                                elif y1 > y2:
+                                    if y < y1 and y >= y2:
+                                        if (x2 - x1) * (y - y1) < (x - x1) * (y2 - y1):
+                                            winding_number -= 1
+                            if winding_number != 0:
+                                touched_tiles.append(i, j)
+                                break
+                return touched_tiles
+                        
+                                            
             def find_tiles(x_index = None, y_index = None):
                 """Find any tile records for current dataset
                 returns dict of tile information keyed by tile_id
@@ -329,8 +416,12 @@ where (%(x_index)s is null or x_index = %(x_index)s)
             logger.debug('tile_output_root = %s', tile_output_root)
 
             vrt_band_list = get_vrt_band_list()
-            tile_index_range = get_tile_index_range(vrt_band_list[0]['filename']) # Find extents of first band dataset
-            tile_count = abs(tile_index_range[2] - tile_index_range[0]) * (tile_index_range[3] - tile_index_range[1])
+            #Upper right obtainable as (dataset_info['ul_lon'], dataset_info['ul_lat']), but these coordinates only relate to tiles in the case of (1deg, 1deg) tiles
+            #Otherwise, we must use the generic scene-to-tile coordinate transformation in get_tile_index_range
+            #tile_index_range = get_tile_index_range(vrt_band_list[0]['filename']) # Find extents of first band dataset
+            tiles_in_acquisition = get_tiles_touched_by_acquisition(vrt_band_list[0]['filename'])
+            #The number of tile footprints touched by this acquisition
+            tile_count = len(tiles_in_acquisition)
             
             # Check whether tiles exist for every band
             tile_record_count = len(find_tiles())
@@ -417,7 +508,7 @@ where (%(x_index)s is null or x_index = %(x_index)s)
                             nodata_value = vrt_band_info_list[band_index]['nodata_value']
                             if nodata_value is not None:
                                 band.SetNoDataValue(nodata_value)
-                            
+        
                         band_stack_dataset.FlushCache()
                         self.unlock_object(vrt_band_stack_filename)
                     else:
@@ -425,136 +516,165 @@ where (%(x_index)s is null or x_index = %(x_index)s)
                         band_stack_dataset = gdal.Open(vrt_band_stack_filename)
         
                     logger.info('Processing %d %s Tiles', tile_count, processing_level)
-                    for x_index in range(tile_index_range[0], tile_index_range[2]):
-                        for y_index in range(tile_index_range[1], tile_index_range[3]):                       
-                            tile_extents = (tile_type_info['x_origin'] + x_index * tile_type_info['x_size'], 
-                            tile_type_info['y_origin'] + y_index * tile_type_info['y_size'], 
-                            tile_type_info['x_origin'] + (x_index + 1) * tile_type_info['x_size'], 
-                            tile_type_info['y_origin'] + (y_index + 1) * tile_type_info['y_size']) 
-                            logger.debug('tile_extents = %s', tile_extents)
-                                                
-                            tile_output_dir = os.path.join(tile_output_root, 
-                                                           re.sub('\+', '', '%+04d_%+04d' % (x_index, y_index)),
-                                                                  '%04d' % dataset_info['start_datetime'].year
-                                                           ) 
+                    #MPH replace double-loop with single loop over tiles touched by acquisition
+                    for x_index, y_index in tiles_in_acquisition: #MPH
+                    #for x_index in range(tile_index_range[0], tile_index_range[2]):
+                    #    for y_index in range(tile_index_range[1], tile_index_range[3]):                      
+                        #tile_extents to be used by gdalwarp -te flag. Works for our current crs EPSG 4326. In general, will need to get the tile's geotransform and
+                        #consider the max, min values in projected space (Xp, Yp). That is, need to calculate tile extents over the four vertices
+                        #Upper-left
+                        #xul = geotransform[0]
+                        #yul = geotransform[3]
+                        #Upper-right
+                        #xur = geotransform[0] + geotransform[1]*tile_type_info['x_pixels']
+                        #yur = geotransform[3] + geotransform[4]*tile_type_info['x_pixels']                            
+                        #Lower-left
+                        #xll = geotransform[0] + geotransform[2]*tile_type_info['y_pixels']
+                        #yll = geotransform[3] + geotransform[5]*tile_type_info['y_pixels']
+                        #Lower-right
+                        #xlr = geotransform[0] + geotransform[1]*tile_type_info['x_pixels'] + geotransform[2]*tile_type_info['y_pixels']
+                        #ylr = geotransform[3] + geotransform[4]*tile_type_info['x_pixels'] + geotransform[5]*tile_type_info['y_pixels']
+                        #tile_extents[0] = min(xll, xul)
+                        #tile_extents[1] = min(yll, ylr)
+                        #tile_extents[2] = max(xur, xlr)
+                        #tile_extents[3] = max(yul, yur)
+                                                        
+                        tile_extents = (tile_type_info['x_origin'] + x_index * tile_type_info['x_size'],                          
+                        tile_type_info['y_origin'] + y_index * tile_type_info['y_size'], 
+                        tile_type_info['x_origin'] + (x_index + 1) * tile_type_info['x_size'], 
+                        tile_type_info['y_origin'] + (y_index + 1) * tile_type_info['y_size']) 
+                        logger.debug('tile_extents = %s', tile_extents)                                                
+                        tile_output_dir = os.path.join(tile_output_root, 
+                                                       re.sub('\+', '', '%+04d_%+04d' % (x_index, y_index)),
+                                                              '%04d' % dataset_info['start_datetime'].year
+                                                       ) 
                                                    
-                            self.create_directory(os.path.join(tile_output_dir, 'mosaic_cache'))
+                        self.create_directory(os.path.join(tile_output_dir, 'mosaic_cache'))
                             
-                            tile_output_path = os.path.join(tile_output_dir,
-                                '_'.join([dataset_info['satellite_tag'], 
-                                    re.sub('\W', '', dataset_info['sensor_name']),
-                                    processing_level,
-                                    re.sub('\+', '', '%+04d_%+04d' % (x_index, y_index)),
-                                    re.sub(':', '-', dataset_info['start_datetime'].isoformat())
-                                    ]) + tile_type_info['file_extension']
-                                )
+                        tile_output_path = os.path.join(tile_output_dir,
+                            '_'.join([dataset_info['satellite_tag'], 
+                                re.sub('\W', '', dataset_info['sensor_name']),
+                                processing_level,
+                                re.sub('\+', '', '%+04d_%+04d' % (x_index, y_index)),
+                                re.sub(':', '-', dataset_info['start_datetime'].isoformat())
+                                ]) + tile_type_info['file_extension']
+                            )
                                      
-                            # Check whether this tile has already been processed
-                            if not self.lock_object(tile_output_path):
-                                logger.warning('Tile  %s already being processed - skipping.', tile_output_path)
-                                continue
-                            
-                            # Only generate tile file if PQA tile or tile contains data
-                            if tile_has_data.get((x_index, y_index)) is None or tile_has_data[(x_index, y_index)]:                               
-                                command_string = 'gdalwarp'
-                                if not self.debug:
-                                    command_string += ' -q'
-                                command_string += ' -t_srs %s -te %f %f %f %f -tr %f %f -tap -tap -r %s' % (
-                                    tile_type_info['crs'],
-                                    tile_extents[0], tile_extents[1], tile_extents[2], tile_extents[3], 
-                                    tile_type_info['x_pixel_size'], tile_type_info['y_pixel_size'],
-                                    resampling_method
-                                    )
-                                
-                                if nodata_value is not None:
-                                    command_string += ' -srcnodata %d -dstnodata %d' % (nodata_value, nodata_value)
-                                                                                      
-                                command_string += ' -of %s' % tile_type_info['file_format']
-                                
-                                if tile_type_info['format_options']:
-                                    for format_option in tile_type_info['format_options'].split(','):
-                                        command_string += ' -co %s' % format_option
+                        # Check whether this tile has already been processed
+                        if not self.lock_object(tile_output_path):
+                            logger.warning('Tile  %s already being processed - skipping.', tile_output_path)
+                            continue
+                        # Only generate tile file if PQA tile or tile contains data
+                        if tile_has_data.get((x_index, y_index)) is None or tile_has_data[(x_index, y_index)]:                               
+                            #Assuming tile has data, use gdalwarp to reproject from scene projection to datacube projection
+                            command_string = 'gdalwarp'
+                            if not self.debug:
+                                command_string += ' -q'
+                            command_string += ' -t_srs %s -te %f %f %f %f -tr %f %f -tap -tap -r %s' % (
+                                tile_type_info['crs'],
+                                tile_extents[0], tile_extents[1], tile_extents[2], tile_extents[3], 
+                                tile_type_info['x_pixel_size'], tile_type_info['y_pixel_size'],
+                                resampling_method
+                                )
+                               
+                            if nodata_value is not None:
+                                command_string += ' -srcnodata %d -dstnodata %d' % (nodata_value, nodata_value)
+                                                                                    
+                            command_string += ' -of %s' % tile_type_info['file_format']
+                               
+                            if tile_type_info['format_options']:
+                                for format_option in tile_type_info['format_options'].split(','):
+                                    command_string += ' -co %s' % format_option
                                     
-                                command_string += ' -overwrite %s %s' % (
-                                    vrt_band_stack_filename,
-                                    tile_output_path
-                                    )
+                            command_string += ' -overwrite %s %s' % (
+                                vrt_band_stack_filename,
+                                tile_output_path
+                                )
              
-                                logger.debug('command_string = %s', command_string)
+                            logger.debug('command_string = %s', command_string)
                                 
-                                result = execute(command_string=command_string)
+                            result = execute(command_string=command_string)
                                 
-                                if result['stdout']:
-                                    log_multiline(logger.info, result['stdout'], 'stdout from ' + command_string, '\t') 
+                            if result['stdout']:
+                                log_multiline(logger.info, result['stdout'], 'stdout from ' + command_string, '\t') 
                             
-                                if result['returncode']:
-                                    log_multiline(logger.error, result['stderr'], 'stderr from ' + command_string, '\t')
-                                    raise Exception('%s failed', command_string) 
+                            if result['returncode']:
+                                log_multiline(logger.error, result['stderr'], 'stderr from ' + command_string, '\t')
+                                raise Exception('%s failed', command_string) 
                                 
-                                # Set tile metadata
-                                tile_dataset = gdal.Open(tile_output_path)
-                                assert tile_dataset, 'Unable to open tile dataset %s' % tile_output_path
+                            # Set tile metadata
+                            tile_dataset = gdal.Open(tile_output_path)
+                            assert tile_dataset, 'Unable to open tile dataset %s' % tile_output_path
                                 
-                                # Check whether PQA tile contains any  contiguous data
-                                if tile_has_data.get((x_index, y_index)) is None and processing_level == 'PQA':
-                                    tile_has_data[(x_index, y_index)] = ((numpy.bitwise_and(tile_dataset.GetRasterBand(1).ReadAsArray(), 
+                            # Check whether PQA tile contains any  contiguous data
+                            if tile_has_data.get((x_index, y_index)) is None and processing_level == 'PQA':
+                                tile_has_data[(x_index, y_index)] = ((numpy.bitwise_and(tile_dataset.GetRasterBand(1).ReadAsArray(), 
                                                                                           1 << LandsatTiler.CONTIGUITY_BIT_INDEX)) > 0).any()
-                                    logger.debug('%s tile (%d, %d) has data = %s', processing_level, x_index, y_index, tile_has_data[(x_index, y_index)])
-                                
-                                # Only bother setting metadata if tile has valid data
-                                if tile_has_data[(x_index, y_index)]:    
-                                    metadata = band_stack_dataset.GetMetadata()
-                                    metadata['x_index'] = str(x_index)
-                                    metadata['y_index'] = str(y_index)
-                                    tile_dataset.SetMetadata(metadata)
+                                logger.debug('%s tile (%d, %d) has data = %s', processing_level, x_index, y_index, tile_has_data[(x_index, y_index)])
+
+                            #MPH check whether this processing_level has any data
+                            #if tile_has_data.get((x_index, y_index)) is None:
+                            #    if processing_level == 'PQA':
+                            #        tile_has_data[(x_index, y_index)] = ((numpy.bitwise_and(tile_dataset.GetRasterBand(1).ReadAsArray(), 
+                            #                                                              1 << LandsatTiler.CONTIGUITY_BIT_INDEX)) > 0).any()
+                            #    else:
+                            #        #pull in the multiple bands 
+                            #Would need to look at NBAR and ORTHO to know if PQA contiguity bit is 1
+
+                            # Only bother setting metadata if tile has valid data
+                            if tile_has_data[(x_index, y_index)]:
+                                metadata = band_stack_dataset.GetMetadata()
+                                metadata['x_index'] = str(x_index)
+                                metadata['y_index'] = str(y_index)
+                                tile_dataset.SetMetadata(metadata)
                                     
-                                    # Set tile band metadata
-                                    for band_index in range(len(vrt_band_info_list)):
-                                        scene_band = band_stack_dataset.GetRasterBand(band_index + 1)
-                                        tile_band = tile_dataset.GetRasterBand(band_index + 1)
-                                        tile_band.SetMetadata(scene_band.GetMetadata())
+                                # Set tile band metadata
+                                for band_index in range(len(vrt_band_info_list)):
+                                    scene_band = band_stack_dataset.GetRasterBand(band_index + 1)
+                                    tile_band = tile_dataset.GetRasterBand(band_index + 1)
+                                    tile_band.SetMetadata(scene_band.GetMetadata())
                                         
-                                        # Need to set nodata values for each band - gdalwarp doesn't copy it across
-                                        nodata_value = vrt_band_info_list[band_index]['nodata_value']
-                                        if nodata_value is not None:
-                                            tile_band.SetNoDataValue(nodata_value)
+                                    # Need to set nodata values for each band - gdalwarp doesn't copy it across
+                                    nodata_value = vrt_band_info_list[band_index]['nodata_value']
+                                    if nodata_value is not None:
+                                        tile_band.SetNoDataValue(nodata_value)
     
                                               
-                                    logger.info('Processed %s Tile (%d, %d)', processing_level, x_index, y_index)
-                                else:
-                                    logger.info('Skipped empty %s Tile (%d, %d)', processing_level, x_index, y_index)
+                                logger.info('Processed %s Tile (%d, %d)', processing_level, x_index, y_index)
                             else:
+                                logger.info('Skipped empty %s Tile (%d, %d)', processing_level, x_index, y_index)
+                        else:
                                 logger.info('Skipped empty %s Tile (%d, %d)', processing_level, x_index, y_index)
     
                             
-                            # Change permissions on any recently created files
-                            command_string = 'chmod -R 775 %s; chmod -R 777 %s' % (tile_output_dir, 
-                                                                  os.path.join(tile_output_dir, 'mosaic_cache')
-                                                                  )
+                        # Change permissions on any recently created files
+                        command_string = 'chmod -R 775 %s; chmod -R 777 %s' % (tile_output_dir, 
+                                                              os.path.join(tile_output_dir, 'mosaic_cache')
+                                                              )
+                           
+                        result = execute(command_string=command_string)
                             
-                            result = execute(command_string=command_string)
-                            
-                            if result['stdout']:
-                                log_multiline(logger.info, result['stdout'], 'stdout from ' + command_string, '\t') 
+                        if result['stdout']:
+                            log_multiline(logger.info, result['stdout'], 'stdout from ' + command_string, '\t') 
                         
-                            # N.B: command may return errors for files not owned by user
-                            if result['returncode']:
-                                log_multiline(logger.warning, result['stderr'], 'stderr from ' + command_string, '\t')
-#                                raise Exception('%s failed', command_string) 
+                        # N.B: command may return errors for files not owned by user
+                        if result['returncode']:
+                            log_multiline(logger.warning, result['stderr'], 'stderr from ' + command_string, '\t')
+#                            raise Exception('%s failed', command_string) 
                             
-                            self.unlock_object(tile_output_path)
+                        self.unlock_object(tile_output_path)
                                
-                            # Check whether tile contains any data    
-                            if tile_has_data[(x_index, y_index)]:   
-                                tile_class_id = 1 # Valid tile
-                                tile_size = self.getFileSizeMB(tile_output_path)
-                            else: # PQA tile contains no data 
-                                # Remove empty PQA tile file
-                                tile_class_id = 2 # Dummy tile record with no file
-                                self.remove(tile_output_path)
-                                tile_size = 0  
+                        # Check whether tile contains any data    
+                        if tile_has_data[(x_index, y_index)]:   
+                            tile_class_id = 1 # Valid tile
+                            tile_size = self.getFileSizeMB(tile_output_path)
+                        else: # PQA tile contains no data 
+                            # Remove empty PQA tile file
+                            tile_class_id = 2 # Dummy tile record with no file
+                            self.remove(tile_output_path)
+                            tile_size = 0  
                                                        
-                            sql = """-- Insert new tile_footprint record if necessary
+                        sql = """-- Insert new tile_footprint record if necessary
     insert into tile_footprint (
       x_index, 
       y_index, 
@@ -627,22 +747,22 @@ where (%(x_index)s is null or x_index = %(x_index)s)
         and dataset_id = %(dataset_id)s
       );
     """  
-                            params = {'x_index': x_index,
-                                      'y_index': y_index,
-                                      'tile_type_id': tile_type_info['tile_type_id'],
-                                      'x_min': tile_extents[0], 
-                                      'y_min': tile_extents[1], 
-                                      'x_max': tile_extents[2], 
-                                      'y_max': tile_extents[3],
-                                      'dataset_id': vrt_band_info_list[0]['dataset_id'], # All the same
-                                      'tile_pathname': tile_output_path,
-                                      'tile_class_id': tile_class_id,
-                                      'tile_size': tile_size
-                                      }
+                        params = {'x_index': x_index,
+                                  'y_index': y_index,
+                                  'tile_type_id': tile_type_info['tile_type_id'],
+                                  'x_min': tile_extents[0], 
+                                  'y_min': tile_extents[1], 
+                                  'x_max': tile_extents[2], 
+                                  'y_max': tile_extents[3],
+                                  'dataset_id': vrt_band_info_list[0]['dataset_id'], # All the same
+                                  'tile_pathname': tile_output_path,
+                                  'tile_class_id': tile_class_id,
+                                  'tile_size': tile_size
+                                  }
                             
-                            log_multiline(logger.debug, db_cursor1.mogrify(sql, params), 'SQL', '\t')
-                            db_cursor1.execute(sql, params)
-                                  
+                        log_multiline(logger.debug, db_cursor1.mogrify(sql, params), 'SQL', '\t')
+                        db_cursor1.execute(sql, params)
+                        #end loop over all tiles touched by acquisiton      
                 self.unlock_object(work_directory)
     
                 if not self.debug:
