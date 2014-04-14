@@ -11,6 +11,7 @@ implement utility queries as methods.
 import os
 import random
 import subprocess
+import re
 import psycopg2
 
 #
@@ -487,6 +488,32 @@ def expected_directory(module, suite, version=None, user=None):
 
     version = version_or_user(version, user)
     return resources_directory(version, 'expected', module, suite)
+
+
+def update_config_file(dbname, input_dir, output_dir, config_file_name):
+    """Creates a temporary datacube config file by updating the database name.
+
+    This function returns the path to the updated config file.
+
+    dbname: the name of the database to connect to.
+    input_dir: the directory containing the config file template.
+    output_dir: the directory in which the updated config file will be written.
+    config_file_name: the name of the config file (template and updated).
+    """
+
+    template_path = os.path.join(input_dir, config_file_name)
+    update_path = os.path.join(output_dir, config_file_name)
+
+    with open(template_path) as template:
+        template_str = template.read()
+
+    update_str = re.sub(r'^\s*dbname\s*=\s*.*$', "dbname = " + dbname,
+                        template_str, flags=re.MULTILINE)
+
+    with open(update_path, 'w') as update:
+        update.write(update_str)
+
+    return update_path
 
 #
 # Test server instance:

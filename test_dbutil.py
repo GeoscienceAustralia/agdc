@@ -3,6 +3,7 @@
 
 import os
 import unittest
+import subprocess
 import psycopg2
 import dbutil
 
@@ -18,6 +19,9 @@ import dbutil
 
 class TestUtilityFunctions(unittest.TestCase):
     """Unit tests for utility functions."""
+
+    MODULE = 'dbutil'
+    SUITE = 'TestUtilityFunctions'
 
     def test_random_name(self):
         "Test random_name random database name generator."
@@ -174,7 +178,9 @@ class TestUtilityFunctions(unittest.TestCase):
             path = dbutil.expected_directory('module', 'suite')
             self.check_directory(path, expected_path)
         finally:
-            if old_version:
+            if old_version is None:
+                del os.environ['DATACUBE_VERSION']
+            else:
                 os.environ['DATACUBE_VERSION'] = old_version
             os.removedirs(path)
 
@@ -191,6 +197,29 @@ class TestUtilityFunctions(unittest.TestCase):
             self.check_directory(path, input_path)
         finally:
             os.removedirs(path)
+
+    def test_update_config_file(self):
+        "Test config file update utility."
+
+        input_dir = dbutil.input_directory(self.MODULE, self.SUITE)
+        output_dir = dbutil.output_directory(self.MODULE, self.SUITE)
+        expected_dir = dbutil.expected_directory(self.MODULE, self.SUITE)
+
+        dbname = 'TEST_TEST_TEST'
+        config_file_name = 'test_datacube.conf'
+
+        output_path = dbutil.update_config_file(dbname, input_dir,
+                                                output_dir, config_file_name)
+
+        expected_path = os.path.join(expected_dir, config_file_name)
+        if not os.path.isfile(expected_path):
+            self.skipTest("Expected config file not found.")
+        else:
+            try:
+                subprocess.check_output(['diff', output_path, expected_path])
+            except subprocess.CalledProcessError as err:
+                self.fail("Config file does not match expected result:\n" +
+                          err.output)
 
 
 class TestServer(unittest.TestCase):
