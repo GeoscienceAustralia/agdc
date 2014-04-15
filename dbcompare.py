@@ -313,7 +313,7 @@ def _pkey_equal(row1, row2, column_list, pkey_set):
         for (val1, val2, col) in zip(row1, row2, column_list):
             if (col in pkey_set) and (val1 != val2):
                 equal_so_far = False
-                break #MPHQ
+                break
         return equal_so_far
 
 
@@ -330,7 +330,9 @@ def _pkey_less(row1, row2, column_list, pkey_list):
         for (val1, val2, col) in zip(row1, row2, column_list):
             if col in pkey_list:
                 pkey_cmp[col] = cmp(val1, val2)
-                #MPHQ could test for > 0, < 0,  here and save extra for loop
+
+        # Note: order of columns in primary key is not necessarily the
+        #     same as the order of columns in the table.
         for col in pkey_list:
             if pkey_cmp[col] < 0:
                 row1_less = True
