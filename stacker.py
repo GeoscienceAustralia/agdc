@@ -305,9 +305,11 @@ class Stacker(DataCube):
             logger.debug('cache_mosaic_files(mosaic_file_list=%s, mosaic_dataset_path=%s, overwrite=%s, pqa_data=%s) called', mosaic_file_list, mosaic_dataset_path, overwrite, pqa_data)
             
             if pqa_data: # Need to handle PQA datasets manually and produce a real output file
+                tile_type_info = self.tile_type_dict[tile_type_id]
+
                 # Change the output file extension to match the source (This is a bit ugly)
                 mosaic_dataset_path = re.sub('\.\w+$', 
-                                             re.search('\.\w+$', mosaic_file_list[0]).group(0), 
+                                             tile_type_info['file_extension'],
                                              mosaic_dataset_path)
                 
                 if os.path.exists(mosaic_dataset_path) and not overwrite:
@@ -315,19 +317,39 @@ class Stacker(DataCube):
                     return mosaic_dataset_path
             
                 logger.info('Creating PQA mosaic file %s', mosaic_dataset_path)
-                assert self.lock_object(mosaic_dataset_path), 'Unable to acquire lock for %s' % mosaic_dataset_path
+                
+                #MPH commented this out since we are working with a file path rather than a database connection
+                #assert self.lock_object(mosaic_dataset_path), 'Unable to acquire lock for %s' % mosaic_dataset_path
             
-                # Copy first source file to destination - will be same size and datatype
-                shutil.copy(mosaic_file_list[0], mosaic_dataset_path)
-                mosaic_dataset = gdal.Open(mosaic_dataset_path, gdalconst.GA_Update)
-                assert mosaic_dataset, 'Unable to copy %s to %s' % (mosaic_file_list[0], mosaic_dataset_path)
+                template_dataset = gdal.Open(mosaic_file_list[0])
+
+                gdal_driver = gdal.GetDriverByName(tile_type_info['file_format'])
+
+                #Set datatype formats appropriate to Create() and numpy
+                gdal_dtype = template_dataset.GetRasterBand(1).DataType
+                numpy_dtype = gdal.GetDataTypeName(gdal_dtype)
+
+                mosaic_dataset = gdal_driver.Create(mosaic_dataset_path,
+                                                    template_dataset.RasterXSize, template_dataset.RasterYSize,
+                                                    1, gdal_dtype,
+                                                    tile_type_info['format_options'].split(','),
+                                                    )
+                assert mosaic_dataset, 'Unable to open output dataset %s'% output_dataset
+
+                mosaic_dataset.SetGeoTransform(template_dataset.GetGeoTransform())
+                mosaic_dataset.SetProjection(template_dataset.GetProjection())
+
+                # if tile_type_info['file_format'] == 'netCDF':
+                #     pass #TODO: make vrt here - not really needed for single-layer file
+
                 output_band = mosaic_dataset.GetRasterBand(1)
-                data_array = output_band.ReadAsArray()
+                data_array=numpy.zeros(shape=(template_dataset.RasterYSize, template_dataset.RasterXSize),dtype=numpy_dtype)
                 data_array[...] = -1 # Set all background values to FFFF (i.e. all ones)
                 
-                overall_data_mask = numpy.zeros((mosaic_dataset.RasterXSize, 
-                                               mosaic_dataset.RasterYSize), 
+                overall_data_mask = numpy.zeros((mosaic_dataset.RasterYSize, 
+                                               mosaic_dataset.RasterXSize), 
                                               dtype=numpy.bool)
+                del template_dataset
                 
                 # Populate data_array with -masked PQA data
                 for pqa_dataset_index in range(len(mosaic_file_list)):
