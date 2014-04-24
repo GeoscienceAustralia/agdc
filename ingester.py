@@ -2,6 +2,8 @@
     ingester.py - top level ingestion algorithm.
 """
 
+from abc import ABCMeta, abstractmethod
+
 
 class Ingester(object):
     """
@@ -9,6 +11,8 @@ class Ingester(object):
     be subclassed and have dataset type and format specific functions
     defined before use.
     """
+
+    __metaclass__ = ABCMeta
 
     def __init__(self, collection, logger):
         """Set up the ingester object.
@@ -65,8 +69,8 @@ class Ingester(object):
 
         This is done in a single transaction: if anything goes wrong
         the transaction is rolled back and no changes are made, then
-        the error is propagated."""
-
+        the error is propagated.
+        """
 
         self.collection.begin_transaction()
         try:
@@ -116,14 +120,11 @@ class Ingester(object):
     #
     # Abstract methods
     #
-
-    # pylint: disable=unused-argument, no-self-use
-    #
     # These are abstract methods, designed to be overidden. They are
-    # here to document what needs to be implemented in a subclass. The
-    # do not do anything (except raise an exception), so they do not use
-    # their arguments.
+    # here to document what needs to be implemented in a subclass.
+    #
 
+    @abstractmethod
     def find_datasets(self, source_dir):
         """Return a list of path to the datasets under 'source_dir'.
 
@@ -133,6 +134,7 @@ class Ingester(object):
 
         raise NotImplementedError
 
+    @abstractmethod
     def open_dataset(self, dataset_path):
         """Create and return a dataset object.
 
@@ -145,8 +147,6 @@ class Ingester(object):
         """
 
         raise NotImplementedError
-
-    # pylint: enable=unused-argument, no-self-use
 
     #
     # Log messages
@@ -172,7 +172,6 @@ class Ingester(object):
                          "'%s'." % dataset_path)
 
     # pylint: enable=missing-docstring
-    # pylint: enable=no-self-use
 
 
 class DatasetError(Exception):
