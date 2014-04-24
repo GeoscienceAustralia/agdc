@@ -10,43 +10,49 @@ class Ingester(object):
     defined before use.
     """
 
-    def __init__(self, logger):
-        """Set up a logger object."""
+    def __init__(self, collection, logger):
+        """Set up the ingester object.
 
+        collection: The datacube collection which will accept the ingest.
+        logger: the logger object to which log messages will be sent.
+        """
+
+        self.collection = collection
         self.logger = logger
 
     #
     # Top level algorithm
     #
-
-    # pylint: disable=no-self-use
-    #
     # These methods describe the top-level algorithm, which is the purpose
-    # of this class. This is an algorithm-centric class, so it does not matter
-    # if the methods do not use any class data.
+    # of this class.
     #
 
-    def ingest(self, collection, source_dir):
+    def ingest(self, source_dir):
         """Initiate the ingestion process.
 
-        Find datasets under 'source_dir' and ingest them into 'collection'."""
+        Find datasets under 'source_dir' and ingest them into the collection.
+        """
 
         dataset_list = self.find_datasets(source_dir)
 
         for dataset_path in dataset_list:
-            self.ingest_individual_dataset(collection, dataset_path)
+            self.ingest_individual_dataset(dataset_path)
 
         self.log_ingestion_process_complete(source_dir)
 
-    def ingest_individual_dataset(self, collection, dataset_path):
-        """Ingests a single dataset at 'dataset_path' into 'collection'."""
+    def ingest_individual_dataset(self, dataset_path):
+        """Ingests a single dataset at 'dataset_path' into the collection.
+
+        If this process raises a DatasetError, the dataset is skipped,
+        but the process continues.
+        """
 
         try:
-            metadata = self.parse_dataset_metadata(dataset_path)
+            dataset = self.open_dataset(dataset_path)
 
-            collection.check_metadata(metadata)
+            self.collection.check_metadata(dataset)
 
-            self.ingest_transaction(collection, metadata)
+            self.ingest_transaction(dataset)
 
         except DatasetError:
             self.log_dataset_skip(dataset_path)
@@ -54,62 +60,64 @@ class Ingester(object):
         else:
             self.log_dataset_ingest_complete(dataset_path)
 
-    def ingest_transaction(self, collection, metadata):
-        """Ingests a single dataset identified by 'metadata'."""
+    def ingest_transaction(self, dataset):
+        """Ingests a single dataset into the collection.
 
-        collection.begin_transaction()
+        This is done in a single transaction: if anything goes wrong
+        the transaction is rolled back and no changes are made, then
+        the error is propagated."""
+
+
+        self.collection.begin_transaction()
         try:
-            acquisition = collection.create_acquistion(metadata)
 
-            dataset = acquisition.create_dataset(metadata)
+            acquisition_record = \
+                self.collection.create_acquistion_record(dataset)
+            dataset_record = acquisition_record.create_dataset_record(dataset)
 
-            self.tile_dataset(dataset, metadata)
+            self.tile_dataset(dataset_record, dataset)
 
-            dataset.mark_as_tiled()
+            dataset_record.mark_as_tiled()
 
         except:
-            collection.rollback_transaction()
+            self.collection.rollback_transaction()
             raise
 
         else:
-            collection.commit_transaction()
+            self.collection.commit_transaction()
 
-    def tile_dataset(self, dataset, metadata):
-        """Tiles a dataset. The database entry is 'dataset', the source
-        dataset is identified by 'metadata'."""
+    def tile_dataset(self, dataset_record, dataset):
+        """Tiles a dataset.
 
-        for tile_type in dataset.list_tile_types():
+        The database entry is identified by dataset_record."""
 
-            band_stack = self.stack_bands(tile_type, metadata)
+        for tile_type_id in dataset_record.list_tile_types():
 
-            for tile_spec in tile_type.get_tile_coverage():
+            band_list = dataset_record.list_bands(tile_type_id)
 
-                self.make_tile(tile_spec, band_stack)
+            band_stack = dataset.stack_bands(band_list)
 
-    def make_tile(self, tile_spec, band_stack):
-        """Make a single tile. 'tile_spec' gives the tile footprint,
-        'band_stack' is the untiled data."""
+            for tile_footprint in dataset_record.get_coverage(tile_type_id):
+                self.make_one_tile(dataset_record, tile_footprint, band_stack)
 
-        tile_contents = tile_spec.create_tile_contents(band_stack)
+    def make_one_tile(self, dataset_record, tile_footprint, band_stack):
+        """Makes a single tile."""
+
+        tile_contents = self.collection.create_tile_contents(tile_footprint,
+                                                             band_stack)
 
         if tile_contents.has_data():
-            tile = tile_spec.create_tile(tile_contents)
-            self.make_mosaics(tile)
-
+            tile_record = dataset_record.create_tile_record(tile_footprint,
+                                                            tile_contents)
+            tile_record.make_mosaics()
         else:
             tile_contents.remove()
-
-    def make_mosaics(self, tile):
-        """Create mosaics for a tile if it overlaps dataset boundaries."""
-
-        for overlap in tile.list_overlaps():
-            overlap.create_mosaic()
 
     #
     # Abstract methods
     #
 
-    # pylint: disable=unused-argument
+    # pylint: disable=unused-argument, no-self-use
     #
     # These are abstract methods, designed to be overidden. They are
     # here to document what needs to be implemented in a subclass. The
@@ -123,30 +131,22 @@ class Ingester(object):
         dataset may vary between dataset formats.
         """
 
-        assert False, "find_datasets abstract method not implemented."
+        raise NotImplementedError
 
-    def parse_dataset_metadata(self, dataset_path):
-        """Create and return a metadata object.
+    def open_dataset(self, dataset_path):
+        """Create and return a dataset object.
 
-        dataset_path: points to the dataset to have its metadata read.
+        dataset_path: points to the dataset to be opened and have
+           its metadata read.
 
-        Metadata objects differ for different types of dataset, but
-        should present the same interface to the database objects. They
+        Dataset objects differ for different types of dataset, but
+        should present the same interface to the database classes. They
         include the dataset path.
         """
 
-        assert False, "parse_dataset_metadata abstract method not implemented."
+        raise NotImplementedError
 
-    def stack_bands(self, tile_type, metadata):
-        """Create and return a band_stack object.
-
-        tile_type - describes which bands to stack.
-        metadata - has a path to the image data and additional information.
-        """
-
-        assert False, "stack_bands abstract method not implemented."
-
-    # pylint: enable=unused-argument
+    # pylint: enable=unused-argument, no-self-use
 
     #
     # Log messages
