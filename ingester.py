@@ -12,6 +12,10 @@ class Ingester(object):
     defined before use.
     """
 
+    #
+    # Declare this as an abstract base class, allowing the use of the
+    # abstractmethod decorator.
+    #
     __metaclass__ = ABCMeta
 
     def __init__(self, collection, logger):
@@ -123,6 +127,10 @@ class Ingester(object):
     # These are abstract methods, designed to be overidden. They are
     # here to document what needs to be implemented in a subclass.
     #
+    # The abstract method decorator checks that the abstract method
+    # has be overridden when a subclass is *instantiated* rather than
+    # when the method is called.
+    #
 
     @abstractmethod
     def find_datasets(self, source_dir):
@@ -143,7 +151,7 @@ class Ingester(object):
 
         Dataset objects differ for different types of dataset, but
         should present the same interface to the database classes. They
-        include the dataset path.
+        contain the dataset path.
         """
 
         raise NotImplementedError
