@@ -18,15 +18,15 @@ class Ingester(object):
     #
     __metaclass__ = ABCMeta
 
-    def __init__(self, collection, logger):
+    def __init__(self, logger, collection):
         """Set up the ingester object.
 
-        collection: The datacube collection which will accept the ingest.
         logger: the logger object to which log messages will be sent.
+        collection: The datacube collection which will accept the ingest.
         """
 
-        self.collection = collection
         self.logger = logger
+        self.collection = collection
 
     #
     # Top level algorithm
@@ -80,7 +80,7 @@ class Ingester(object):
         try:
 
             acquisition_record = \
-                self.collection.create_acquistion_record(dataset)
+                self.collection.create_acquisition_record(dataset)
             dataset_record = acquisition_record.create_dataset_record(dataset)
 
             self.tile_dataset(dataset_record, dataset)
