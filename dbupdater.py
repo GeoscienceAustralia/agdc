@@ -137,8 +137,10 @@ delete from dataset where dataset_id = %(dataset_id)s;
             
         dataset_list_file = os.path.join(self.temp_dir, 'dataset.list')
         if self.remove_existing_dblist:
-            os.remove(dataset_list_file)
-
+            try:
+                os.remove(dataset_list_file)
+            except:
+                pass
         db_cursor = self.db_connection.cursor()
     
         if self.purge:

@@ -84,7 +84,6 @@ class LandsatTiler(DataCube):
             source_datacube: Optional DataCube object whose connection and data will be shared
             tile_type_id: Optional tile_type_id value (defaults to config file value = 1)
         """
-        
         if source_datacube:
             # Copy values from source_datacube and then override command line args
             self.__dict__ = copy(source_datacube.__dict__)
@@ -146,7 +145,6 @@ class LandsatTiler(DataCube):
         tile_type_id = tile_type_id or self.default_tile_type_id
         
         tile_type_info = self.tile_type_dict[tile_type_id]
-        
         def process_dataset(dataset_info):
             log_multiline(logger.debug, dataset_info, 'Dataset values', '\t')
             
@@ -194,6 +192,25 @@ class LandsatTiler(DataCube):
             def get_tiles_touched_by_acquisition(dataset_filename):
                 """For the quadrilateral defined by the acquisitiion footprint,
                    return a list of overlapping tiles as [(xtile, ytile), ..., ]"""
+
+                def find_intersection(X, Y):
+                    """given a list of four x-coordinates, X, and a list of four y-coordinates, Y,
+                    determine if there is a point of intersection"""
+                    pvec = (X[0], Y[0])
+                    qvec = (X[2], Y[2])
+                    rvec = (X[1] - X[0], Y[1] - Y[0])
+                    svec = (X[3] - X[2], Y[3] - Y[2])
+                    rvec_cross_svec = rvec[0] * svec[1] - rvec[1] * svec[0]
+                    if rvec_cross_svec == 0:
+                        return False
+                    qminusp_cross_svec = (qvec[0] - pvec[0]) * svec[1] - (qvec[1] - pvec[1]) * svec[0]
+                    qminusp_cross_rvec = (qvec[0] - pvec[0]) * rvec[1] - (qvec[1] - pvec[1]) * rvec[0]
+                    tparameter = qminusp_cross_svec / rvec_cross_svec
+                    uparameter = qminusp_cross_rvec / rvec_cross_svec
+                    if tparameter > 0 and tparameter < 1 and uparameter > 0 and uparameter < 1:
+                        return True
+
+                #get_tiles_touched_by_acquisition method starts here
                 dataset = gdal.Open(dataset_filename)
                 assert dataset, 'Unable to open dataset %s' % dataset_filename
                 spatial_reference = osr.SpatialReference()
@@ -221,7 +238,7 @@ class LandsatTiler(DataCube):
                 xlr, ylr, _z = coord_transform_to_tile.TransformPoint(geotrans[0] + geotrans[1]*dataset.RasterXSize + geotrans[2]*dataset.RasterYSize,
                                                                       geotrans[3] + geotrans[4]*dataset.RasterXSize + geotrans[5]*dataset.RasterYSize,0)
                 acquisition_bbox = [(xul, yul), (xur, yur), (xlr, ylr), (xll, yll)]
-                acquisition_vertex_number = len(acqusition_bbox)
+                acquisition_vertex_number = len(acquisition_bbox)
                 #Within this acqusition quadrilateral, we need to find all tiles with at least one vertex contained within the acquisition
                 #There is an outer rectangle, which is the minimum containing rectangle for the acquisition footprint,
                 #and an inner rectangle, which is the maximum rectagle contained by the acquisitiion footprint
@@ -235,50 +252,49 @@ class LandsatTiler(DataCube):
                 inner_ymin = max(yll, ylr)
                 inner_ymax = min(yul, yur)
                 
-                outer_xmin_index = floor((outer_xmin - tile_type_info['x_origin']) / tile_type_info['x_size'])
-                outer_xmax_index = floor((outer_xmax - tile_type_info['x_origin']) / tile_type_info['x_size'])
-                outer_ymin_index = floor((outer_ymin - tile_type_info['y_origin']) / tile_type_info['y_size'])
-                outer_ymax_index = floor((outer_ymax - tile_type_info['y_origin']) / tile_type_info['y_size'])
+                outer_xmin_index = int(floor((outer_xmin - tile_type_info['x_origin']) / tile_type_info['x_size']))
+                outer_xmax_index = int(floor((outer_xmax - tile_type_info['x_origin']) / tile_type_info['x_size']))
+                outer_ymin_index = int(floor((outer_ymin - tile_type_info['y_origin']) / tile_type_info['y_size']))
+                outer_ymax_index = int(floor((outer_ymax - tile_type_info['y_origin']) / tile_type_info['y_size']))
 
-                inner_xmin_index = floor((inner_xmin - tile_type_info['x_origin']) / tile_type_info['x_size'])
-                inner_xmax_index = floor((inner_xmax - tile_type_info['x_origin']) / tile_type_info['x_size'])
-                inner_ymin_index = floor((inner_ymin - tile_type_info['y_origin']) / tile_type_info['y_size'])
-                inner_ymax_index = floor((inner_ymax - tile_type_info['y_origin']) / tile_type_info['y_size'])
+                inner_xmin_index = int(floor((inner_xmin - tile_type_info['x_origin']) / tile_type_info['x_size']))
+                inner_xmax_index = int(floor((inner_xmax - tile_type_info['x_origin']) / tile_type_info['x_size']))
+                inner_ymin_index = int(floor((inner_ymin - tile_type_info['y_origin']) / tile_type_info['y_size']))
+                inner_ymax_index = int(floor((inner_ymax - tile_type_info['y_origin']) / tile_type_info['y_size']))
 
                 touched_tiles = []
                 #inspect tiles from the outer rectangle
-                for i in range(outer_xmin_index, outer_xmax_index + 1):
-                    for j in range(outer_ymin_index, outer_ymax_index + 1):
-                        if i >= inner_xmin_index and i <= inner_xmax_index and j >= inner_ymin_index and j <= inner_ymax_index:
-                            touched_tiles.append(i, j)
-                            continue:
+                for itile in range(outer_xmin_index, outer_xmax_index + 1):
+                    for jtile in range(outer_ymin_index, outer_ymax_index + 1):
+                        if itile >= inner_xmin_index and itile <= inner_xmax_index and jtile >= inner_ymin_index and jtile <= inner_ymax_index:
+                            touched_tiles.append([itile, jtile])
+                            continue
                         #For each tile in the outer rectangle but not in the inner rectangle
                         #define the upper-left vertex
-                        (x0, y0) = (tile_type_info['x_origin'] + i * tile_type_info['x_size'],
-                                    tile_type_info['y_origin'] + (j + 1) * tile_type_info['y_size']) 
+                        (x0, y0) = (tile_type_info['x_origin'] + itile * tile_type_info['x_size'],
+                                    tile_type_info['y_origin'] + (jtile + 1) * tile_type_info['y_size']) 
                         tile_bbox = [(x0, y0), (x0 + tile_type_info['x_size'], y0), 
                                      (x0 + tile_type_info['x_size'], y0 - tile_type_info['y_size']),
                                      (x0, y0 - tile_type_info['y_size'])]
-                        for x, y in tile_bbox:
-                            #Check if (x, y) is inside acquisition footprint
-                            winding_number = 0
-                            #for each section of the acquisition bounding box perimeter, determine whether positive x-ray from (x, y) crosses the perimeter section
-                            for ivertex in len(acquisition_vertex_number):
-                                x1, y1 = acquisition_bbox[ivertex]
-                                x2, y2 = acquisition_bbox[(ivertex+1) % acquisition_vertex_number]
-                                if y2 > y1:
-                                    if y > y1 and y <= y2:
-                                        if (x2 - x1) * (y - y1) > (x - x1) * (y2 - y1):
-                                            winding_number += 1
-                                elif y1 > y2:
-                                    if y < y1 and y >= y2:
-                                        if (x2 - x1) * (y - y1) < (x - x1) * (y2 - y1):
-                                            winding_number -= 1
-                            if winding_number != 0:
-                                touched_tiles.append(i, j)
+                        tile_vertex_number =  len(tile_bbox)
+                        intersection_exists = False
+                        for tile_vertex in range(tile_vertex_number):
+                            x1, y1 = tile_bbox[tile_vertex]
+                            x2, y2 = tile_bbox[(tile_vertex + 1) % tile_vertex_number]
+                            for acquisition_vertex in range(acquisition_vertex_number):
+                                x3, y3 = acquisition_bbox[acquisition_vertex]
+                                x4, y4 = acquisition_bbox[(acquisition_vertex + 1) % acquisition_vertex_number]
+                                #get intersection of the two lines (x1, y1)-to-(x2, y2) and (x3, y3)-to-(x4, y4)
+                                xcoords = [x1, x2, x3, x4]
+                                ycoords = [y1, y2, y3, y4]
+                                intersection_exists = find_intersection(xcoords,ycoords)
+                                if intersection_exists:
+                                    touched_tiles.append([itile, jtile])
+                                    break
+                            if intersection_exists:
                                 break
                 return touched_tiles
-                        
+
                                             
             def find_tiles(x_index = None, y_index = None):
                 """Find any tile records for current dataset
@@ -422,7 +438,6 @@ where (%(x_index)s is null or x_index = %(x_index)s)
             tiles_in_acquisition = get_tiles_touched_by_acquisition(vrt_band_list[0]['filename'])
             #The number of tile footprints touched by this acquisition
             tile_count = len(tiles_in_acquisition)
-            
             # Check whether tiles exist for every band
             tile_record_count = len(find_tiles())
             logger.info('Found %d tile records in database for %d tiles', tile_record_count, tile_count * 3) # Count ORTHO, NBAR & PQA
@@ -607,6 +622,7 @@ where (%(x_index)s is null or x_index = %(x_index)s)
                             assert tile_dataset, 'Unable to open tile dataset %s' % tile_output_path
                                 
                             # Check whether PQA tile contains any  contiguous data
+                            #MPHtemp
                             if tile_has_data.get((x_index, y_index)) is None and processing_level == 'PQA':
                                 tile_has_data[(x_index, y_index)] = ((numpy.bitwise_and(tile_dataset.GetRasterBand(1).ReadAsArray(), 
                                                                                           1 << LandsatTiler.CONTIGUITY_BIT_INDEX)) > 0).any()
@@ -642,9 +658,9 @@ where (%(x_index)s is null or x_index = %(x_index)s)
                                               
                                 logger.info('Processed %s Tile (%d, %d)', processing_level, x_index, y_index)
                             else:
-                                logger.info('Skipped empty %s Tile (%d, %d)', processing_level, x_index, y_index)
+                                logger.info('AAA Skipped empty %s Tile (%d, %d)', processing_level, x_index, y_index)
                         else:
-                                logger.info('Skipped empty %s Tile (%d, %d)', processing_level, x_index, y_index)
+                                logger.info('BBB Skipped empty %s Tile (%d, %d)', processing_level, x_index, y_index)
     
                             
                         # Change permissions on any recently created files
@@ -906,7 +922,7 @@ select * from (
       ) pqa using(acquisition_id)
     inner join satellite sa using(satellite_id)
     inner join sensor se using(satellite_id, sensor_id)
-    where (%(start_date)s is null or start_datetime >= %(start_date)s)
+   where (%(start_date)s is null or start_datetime >= %(start_date)s)
       and (%(end_date)s is null or end_datetime < cast(%(end_date)s as date) + 1)
       and (%(min_path)s is null or x_ref >= %(min_path)s)
       and (%(max_path)s is null or x_ref <= %(max_path)s)
@@ -915,7 +931,7 @@ select * from (
       and (cloud_cover is null or cloud_cover < 98) -- Arbitrary threshold above which scene should be ignored
 ) datasets
 where l1t_tile_count < tiles_required
-  or nbar_tile_count < tiles_required
+ or nbar_tile_count < tiles_required
   or pqa_tile_count < tiles_required
 order by -- Order by path, row then descending date-times
   l1t_tile_count + nbar_tile_count + pqa_tile_count,
@@ -942,6 +958,7 @@ order by -- Order by path, row then descending date-times
             # This mother of all queries creates a logjam at the DB server, so we only allow one instance a query at a time to submit it
             #TODO: Find a nicer way of dealing with this
             while not self.lock_object(os.path.basename(__file__) + ' dataset query'):
+                print 'About to sleep because %s not locked' %(os.path.basename(__file__) + ' dataset query')
                 time.sleep(10)            
             try:
                 db_cursor.execute(sql, params)
@@ -1006,7 +1023,6 @@ order by -- Order by path, row then descending date-times
                         process_dataset(dataset_info)
                     except Exception, e:
                         logger.warning(e.message)
-
         
         # Start of create_tiles function
         process_scenes()
@@ -1021,5 +1037,4 @@ if __name__ == '__main__':
     # if not landsat_tiler.debug:
     #    time.sleep(random.randint(0, 30)) 
     #===========================================================================
-    
     landsat_tiler.create_tiles()

@@ -7,7 +7,6 @@ provides a way to create, load, save and drop databases from this server.
 It also provides wrapper classes for psycopg2 database connections that
 implement utility queries as methods.
 """
-
 import os
 import random
 import subprocess
@@ -125,6 +124,8 @@ class Server(object):
             # Make sure error output is in the error message.
             message = ("%s: problem calling %s:\n%s" %
                        (__name__, err.cmd[0], err.output))
+            for k in range(len(load_cmd)):
+                message = message + load_cmd[k]
             raise Exception(message)
 
     def save(self, dbname, save_dir, save_file):
@@ -506,9 +507,35 @@ def update_config_file(dbname, input_dir, output_dir, config_file_name):
 
     with open(template_path) as template:
         template_str = template.read()
-
+    
     update_str = re.sub(r'^\s*dbname\s*=\s*.*$', "dbname = " + dbname,
                         template_str, flags=re.MULTILINE)
+
+    with open(update_path, 'w') as update:
+        update.write(update_str)
+
+    return update_path
+
+def update_config_file2(parameter_values_dict, input_dir, output_dir, config_file_name):
+    """Creates a temporary datacube config file by updating those attributes according to the dictionary parameter_values.
+
+    This function returns the path to the updated config file.
+
+    parameter_values_dict: a dictionary of parameter-values to be inserted into the template config file
+    input_dir: the directory containing the config file template.
+    output_dir: the directory in which the updated config file will be written.
+    config_file_name: the name of the config file (template and updated).
+    """
+    template_path = os.path.join(input_dir, config_file_name)
+    update_path = os.path.join(output_dir, config_file_name)
+
+    with open(template_path) as template:
+        template_str = template.read()
+    
+    update_str = template_str
+    for param, value in parameter_values_dict.items():
+        update_str = re.sub(r'^\s*%s\s*=\s*.*$' %param, "%s = %s" %(param, value),
+                            update_str, flags=re.MULTILINE)
 
     with open(update_path, 'w') as update:
         update.write(update_str)
