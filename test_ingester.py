@@ -63,7 +63,7 @@ COVERAGE_DICT = {
     ('dataset3', 1): ['tile1', 'tile2', 'tile3', 'tile4', 'empty5', 'empty6'],
     ('dataset3', 2): ['tile7', 'empty8'],
     ('dataset3', 3): ['empty9'],
-    ('dataset4', 4): ['tile1', 'tile2', 'tile3']
+    ('dataset4', 4): ['tile4']
 }
 
 #
@@ -75,6 +75,7 @@ COVERAGE_DICT = {
 # Many of the methods are simple and self documenting and so do not need
 # docstrings.
 #
+
 
 class DummyCollection(object):
     """Dummy collection class for testing."""
@@ -175,6 +176,7 @@ class DummyDatasetRecord(object):
 
         return DummyTileRecord(self.logger, self.tiles, self.dataset_id,
                                tile_footprint, tile_contents)
+
 
 class DummyTileRecord(object):
     """Dummy tile record class for testing."""
@@ -369,19 +371,17 @@ class TestIngester(unittest.TestCase):
         output_tiles = self.collection.tiles
         expected_tiles = self.generate_tiles(source_dir)
 
-#        self.print_tiles("output tiles", output_tiles)
-#        self.print_tiles("expected tiles", expected_tiles)
+        self.print_tiles('output tiles', output_tiles)
 
         self.assertEqual(set(output_tiles), set(expected_tiles))
 
-    @staticmethod
-    def print_tiles(title, tiles):
-        """Print a list of tiles."""
+    def print_tiles(self, title, tiles):
+        """Print a list of tiles to the log file."""
 
-        print ""
-        print "%s:" % title
+        self.logger.info("")
+        self.logger.info("%s:", title)
         for tile in tiles:
-            print "   ", tile
+            self.logger.info("    %s", tile)
 
     @staticmethod
     def generate_tiles(source_dir):
@@ -416,6 +416,83 @@ class TestIngester(unittest.TestCase):
 
         self.ingester.ingest('multi_path')
         self.check_tiles('multi_path')
+        self.check_log_file()
+
+    def test_skip_one(self):
+        """Test for skipped datasets, test one."""
+
+        self.ingester.ingest('skip_one')
+        self.check_tiles('skip_one')
+        self.check_log_file()
+
+    def test_skip_two(self):
+        """Test for skipped datasets, test two."""
+
+        self.ingester.ingest('skip_two')
+        self.check_tiles('skip_two')
+        self.check_log_file()
+
+    def test_skip_three(self):
+        """Test for skipped datasets, test three."""
+
+        self.ingester.ingest('skip_three')
+        self.check_tiles('skip_three')
+        self.check_log_file()
+
+    def test_skip_four(self):
+        """Test for skipped datasets, test four."""
+
+        self.ingester.ingest('skip_four')
+        self.check_tiles('skip_four')
+        self.check_log_file()
+
+    def test_rollback_one(self):
+        """Test for transaction rollback, test one."""
+
+        self.ingester.ingest('rollback_one')
+        self.check_tiles('rollback_one')
+        self.check_log_file()
+
+    def test_rollback_two(self):
+        """Test for transaction rollback, test two."""
+
+        self.ingester.ingest('rollback_two')
+        self.check_tiles('rollback_two')
+        self.check_log_file()
+
+    def test_rollback_three(self):
+        """Test for transaction rollback, test three."""
+
+        self.ingester.ingest('rollback_three')
+        self.check_tiles('rollback_three')
+        self.check_log_file()
+
+    def test_rollback_four(self):
+        """Test for transaction rollback, test four."""
+
+        self.ingester.ingest('rollback_four')
+        self.check_tiles('rollback_four')
+        self.check_log_file()
+
+    def test_mixed_ops(self):
+        """Test for mixed dataset operations."""
+
+        self.ingester.ingest('mixed_ops')
+        self.check_tiles('mixed_ops')
+        self.check_log_file()
+
+    def test_no_paths(self):
+        """Test for source directory with no paths to valid datasets."""
+
+        self.ingester.ingest('no_paths')
+        self.check_tiles('no_paths')
+        self.check_log_file()
+
+    def test_empty(self):
+        """Test for source directory with no datasets."""
+
+        self.ingester.ingest('empty')
+        self.check_tiles('empty')
         self.check_log_file()
 
 #
