@@ -62,7 +62,12 @@ class DBUpdater(DataCube):
         _arg_parser.add_argument('--purge', dest='purge',
             default=False, action='store_const', const=True,
             help='Purge mode flag to force removal of nonexistent dataset records')
-    
+        _arg_parser.add_argument('--removedblist', dest='remove_existing_dblist',
+            default=False, action='store_const', const=True,
+            help='Delete any pre-existing dataset list from disk')
+        _arg_parser.add_argument('--followsymlinks', dest='follow_symbolic_links',
+            default=False, action='store_const', const=True,
+            help='Delete any pre-existing dataset list from disk')
         return _arg_parser.parse_args()
         
     def __init__(self, source_datacube=None, tile_type_id=1):
@@ -83,8 +88,7 @@ class DBUpdater(DataCube):
                 self.__setattr__(attribute_name, attribute_value)
 
         else:
-            DataCube.__init__(self); # Call inherited constructor
-            
+            DataCube.__init__(self); # Call inherited constructor        
         self.temp_dir = os.path.join(self.temp_dir, re.sub('^/', '', os.path.abspath(self.source_dir)))
         self.create_directory(self.temp_dir)
         logger.debug('self.temp_dir = %s', self.temp_dir)
@@ -131,9 +135,12 @@ delete from dataset where dataset_id = %(dataset_id)s;
 
             logger.info('Scene purging completed for %s', dataset_root) 
             
-        
         dataset_list_file = os.path.join(self.temp_dir, 'dataset.list')
-        
+        if self.remove_existing_dblist:
+            try:
+                os.remove(dataset_list_file)
+            except:
+                pass
         db_cursor = self.db_connection.cursor()
     
         if self.purge:
@@ -160,7 +167,10 @@ delete from dataset where dataset_id = %(dataset_id)s;
             
             # Create master list of datasets
             logger.info('Searching for datasets in %s', self.source_dir)
-            command = "find %s -name 'scene01' | sort" % self.source_dir
+            if self.follow_symbolic_links:
+                command = "find -L %s -name 'scene01' | sort" % self.source_dir
+            else:
+                command = "find %s -name 'scene01' | sort" % self.source_dir
             logger.debug('executing "%s"', command)
             result = execute(command)
             assert not result['returncode'], '"%s" failed: %s' % (command, result['stderr'])
@@ -176,6 +186,7 @@ delete from dataset where dataset_id = %(dataset_id)s;
             
 #            log_multiline(logger.debug, dataset_list, 'dataset_list')
 
+        print 'Not here'
         for dataset_dir in dataset_list:
             if not os.path.isdir(os.path.join(dataset_dir, 'scene01')):
                 logger.warning('Skipping nonexistent dataset %s', dataset_dir)

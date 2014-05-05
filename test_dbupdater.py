@@ -76,7 +76,9 @@ class TestDBUpdater(unittest.TestCase):
                          "dbupdater.py",
                          "--debug",
                          "--config=%s" % config_file_path,
-                         "--source=%s" % ingest_dir]
+                         "--source=%s" % ingest_dir,
+                         "--removedblist",
+                         "--followsymlinks"]
         subprocess.check_call(dbupdater_cmd, stdout=self.logfile,
                               stderr=subprocess.STDOUT)
 
