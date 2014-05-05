@@ -1,5 +1,5 @@
 """
-    test_ingester.py - tests for the top level ingestion algorithm
+    test_abstract_ingester.py - tests for the top level ingestion algorithm
 """
 
 import re
@@ -9,7 +9,7 @@ import unittest
 import subprocess
 
 import dbutil
-from ingester import Ingester, DatasetError
+from abstract_ingester import AbstractIngester, DatasetError
 
 #
 # Set up logger.
@@ -275,14 +275,14 @@ class DummyBandStack(object):
 #
 
 
-class DummyIngester(Ingester):
+class DummyIngester(AbstractIngester):
     """Dummy Ingester subclass for testing."""
 
     def __init__(self, collection):
         """Initialise the source_dir cache then call Ingester init"""
 
         self.source_dir = None
-        Ingester.__init__(self, collection)
+        AbstractIngester.__init__(self, collection)
 
     def find_datasets(self, source_dir):
         """Cache source directory then return dummy dataset paths."""
@@ -315,12 +315,12 @@ class DummyIngester(Ingester):
 
 
 class TestIngester(unittest.TestCase):
-    """Unit test for the Ingester class.
+    """Unit test for the AbstractIngester class.
 
     This is a partially abstract class, so the DummyIngester subclass
     (defined above) is actually under test here."""
 
-    MODULE = 'ingester'
+    MODULE = 'abstract_ingester'
     SUITE = 'TestIngester'
 
     OUTPUT_DIR = dbutil.output_directory(MODULE, SUITE)

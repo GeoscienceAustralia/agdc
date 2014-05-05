@@ -1,11 +1,10 @@
 """
-    dataset_interface.py - interface for dataset classes.
+    abstract_dataset.py - interface for the dataset class.
 
-    These abstract classes describe the interface between the datasets
+    This abstract class describes the interface between the dataset
     on disk and the rest of the datacube. Datasets that have different
-    packaging will need different versions of these classes to provide
-    metadata and band stacking for the ingest process. This can be done
-    by sub-classing the abstract classes and overriding the abstract methods.
+    packaging will have different version of this class. This is done
+    by sub-classing the abstract class and overriding the abstract methods.
 
     It is the responsibility of the open_dataset method of the ingester
     to choose and instantiate the right dataset class for the dataset
@@ -57,23 +56,3 @@ class AbstractDataset(object):
         """
 
         raise NotImplementedError
-
-
-class AbstractBandStack(object):
-    """
-    Abstract base class for band stack classes.
-    """
-
-    __metaclass__ = ABCMeta
-
-    #
-    # Interface for the band stack goes here. This is going to be used
-    # by the tiling process. It would be best if this provided
-    # generic data (i.e. numpy arrays) and any relevent metadata,
-    # and so avoided dependancies on any particular data/image format,
-    # e.g. GDAL or NetCDF. Most of the metadata used by the datacube,
-    # including that for the tile entries, should be avaiable via the
-    # Dataset class (above). This class just provides the data and any
-    # metadata directly relevant to creating the tile contents, i.e. the
-    # tile file associated with the tile database entry.
-    #

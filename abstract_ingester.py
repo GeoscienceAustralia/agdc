@@ -1,5 +1,5 @@
 """
-    ingester.py - top level ingestion algorithm.
+    abstract_ingester.py - top level ingestion algorithm.
 """
 
 import logging
@@ -17,7 +17,7 @@ LOGGER.setLevel(logging.INFO)
 #
 
 
-class Ingester(object):
+class AbstractIngester(object):
     """
     Partially abstract base class for ingester objects. Needs to
     be subclassed and have dataset type and format specific functions
