@@ -472,8 +472,8 @@ class TestLandsatTiler(unittest.TestCase):
 
     ###########################################################################
     ### Utility methods
-    # pylint: disable=no-self-use
-    def get_tile_pathnames(self, expected_conn, output_conn):
+    @staticmethod
+    def get_tile_pathnames(expected_conn, output_conn):
         """From two different databases, get the tile pathnames from the tile
            table. Return each as a dictionary of
            {basename: (tile_type_id, full path)}"""
@@ -493,7 +493,8 @@ class TestLandsatTiler(unittest.TestCase):
             output_dict[os.path.basename(record[1])] = (record[0], record[1])
         return (expected_dict, output_dict)
 
-    def construct_bands_source_dict(self, conn):
+    @staticmethod
+    def construct_bands_source_dict(conn):
         """Construct the self.bands object just as in datacube class"""
         sql = """-- Retrieve all band information (including derived bands)
                     select tile_type_id,
@@ -554,7 +555,8 @@ class TestLandsatTiler(unittest.TestCase):
             sensor_dict[record[7]] = band_info
         return datacube_bands_dict
 
-    def get_tiletype_sat_sens_level(self, tile_type, tile_name_dict):
+    @staticmethod
+    def get_tiletype_sat_sens_level(tile_type, tile_name_dict):
         """return a tuple of (tile_type, sat, sensor, processing_level)"""
         if tile_type == None:
             return None
@@ -568,7 +570,8 @@ class TestLandsatTiler(unittest.TestCase):
             sensor = processing_level
         return (tile_type, sat, sensor, processing_level)
 
-    def collect_source_bands(self, datacube_bands_dict, full_key):
+    @staticmethod
+    def collect_source_bands(datacube_bands_dict, full_key):
         """Given the dictionary parsed from a tile basename, return appropriate
         nested dictionary from self.bands dictionary"""
         if full_key == None:
@@ -584,7 +587,8 @@ class TestLandsatTiler(unittest.TestCase):
                 level_bands_dict[key] = sat_sensor_dict[band]
         return level_bands_dict
 
-    def load_and_check(self, fname1, fname2, dict1, dict2):
+    @staticmethod
+    def load_and_check(fname1, fname2, dict1, dict2):
         """Check that two tiles agree on their dimensions and crs, and return
         the data arrays in a list"""
         file_info_list = [(fname1, dict1), (fname2, dict2)]
@@ -626,7 +630,8 @@ class TestLandsatTiler(unittest.TestCase):
             "two arrays will be returned, with possibility of one being None"
         return (data_arrays, dimensions[0][0])
 
-    def get_band_data(self, data_array, ilayer):
+    @staticmethod
+    def get_band_data(data_array, ilayer):
         """From the three-dimensional array extract the appropriate layer and
         also the data type. If data array does not exist then set to a
         singleton nodata value"""
@@ -637,7 +642,9 @@ class TestLandsatTiler(unittest.TestCase):
             band_data = data_array[ilayer, :, :]
             datatype = band_data.dtype
         return (band_data, datatype)
-    def count_bitwise_diffs(self, arr1, arr2):
+
+    @staticmethod
+    def count_bitwise_diffs(arr1, arr2):
         """Given two flattened arrays, return a same-sized array containing the
         number of bitwise differences"""
         assert arr1.shape == arr2.shape and len(arr1.shape) == 1, \
@@ -650,7 +657,9 @@ class TestLandsatTiler(unittest.TestCase):
         difference_as_bits = numpy.unpackbits(difference_as_bytes, axis=1)
         difference = numpy.sum(difference_as_bits, axis=1, dtype=numpy.uint8)
         return difference
-    def check_equal_or_null(self, a, b):
+
+    @staticmethod
+    def check_equal_or_null(a, b):
         """Checks that two objects are the same"""
         ab_list = list((set([a]) | set([b])) - set([None]))
         assert len(ab_list) <= 1, "check_equal_or_null:\n" + a + " and " +  b
