@@ -8,6 +8,9 @@ It also provides wrapper classes for psycopg2 database connections that
 implement utility queries as methods.
 """
 import os
+import sys
+import logging
+import pprint
 import random
 import subprocess
 import re
@@ -507,7 +510,7 @@ def update_config_file(dbname, input_dir, output_dir, config_file_name):
 
     with open(template_path) as template:
         template_str = template.read()
-    
+
     update_str = re.sub(r'^\s*dbname\s*=\s*.*$', "dbname = " + dbname,
                         template_str, flags=re.MULTILINE)
 
@@ -516,12 +519,16 @@ def update_config_file(dbname, input_dir, output_dir, config_file_name):
 
     return update_path
 
-def update_config_file2(parameter_values_dict, input_dir, output_dir, config_file_name):
-    """Creates a temporary datacube config file by updating those attributes according to the dictionary parameter_values.
+
+def update_config_file2(parameter_values_dict, input_dir, output_dir,
+                        config_file_name):
+    """Creates a temporary datacube config file by updating those attributes
+    according to the dictionary parameter_values.
 
     This function returns the path to the updated config file.
 
-    parameter_values_dict: a dictionary of parameter-values to be inserted into the template config file
+    parameter_values_dict: a dictionary of parameter-values to be inserted
+        into the template config file
     input_dir: the directory containing the config file template.
     output_dir: the directory in which the updated config file will be written.
     config_file_name: the name of the config file (template and updated).
@@ -531,16 +538,82 @@ def update_config_file2(parameter_values_dict, input_dir, output_dir, config_fil
 
     with open(template_path) as template:
         template_str = template.read()
-    
+
     update_str = template_str
     for param, value in parameter_values_dict.items():
-        update_str = re.sub(r'^\s*%s\s*=\s*.*$' %param, "%s = %s" %(param, value),
+        update_str = re.sub(r'^\s*%s\s*=\s*.*$' % param,
+                            "%s = %s" % (param, value),
                             update_str, flags=re.MULTILINE)
 
     with open(update_path, 'w') as update:
         update.write(update_str)
 
     return update_path
+
+
+def create_logger(name, logfile_path=None):
+    """Creates a logger object in the datacube style.
+
+    This sets up a logger with handler, formatter, and level defined
+    as is usual for the datacube scripts. 'name' is the name of the
+    logger, __name__ (the current module) is a typical value.
+
+    If 'logfile_path' is set it is taken as the name of a log file,
+    which is opened in write mode and used to create the logger.
+    Otherwise sys.stdout is used."""
+
+    if logfile_path:
+        console_handler = logging.FileHandler(logfile_path, mode='w')
+    else:
+        console_handler = logging.StreamHandler(sys.stdout)
+
+    console_handler.setLevel(logging.INFO)
+    console_formatter = logging.Formatter('%(message)s')
+    console_handler.setFormatter(console_formatter)
+
+    logger = logging.getLogger(name)
+    if logger.level == logging.NOTSET:
+        logger.setLevel(logging.DEBUG)  # Default logging level for all modules
+        logger.addHandler(console_handler)
+
+    return logger
+
+
+def log_multiline(log_function, log_text, title=None, prefix=''):
+    """Function to log multi-line text.
+
+    This is a clone of the log_multiline function from the ULA3 package.
+    It is repeated here to reduce cross-repository dependancies.
+    """
+
+    LOGGER.debug('log_multiline(%s, %s, %s, %s) called',
+                 log_function, repr(log_text), repr(title), repr(prefix))
+
+    if type(log_text) == str:
+        LOGGER.debug('log_text is type str')
+        log_list = log_text.splitlines()
+    elif type(log_text) == list and type(log_text[0]) == str:
+        LOGGER.debug('log_text is type list with first element of type text')
+        log_list = log_text
+    else:
+        LOGGER.debug('log_text is type ' + type(log_text).__name__)
+        log_list = pprint.pformat(log_text).splitlines()
+
+    log_function(prefix + '=' * 80)
+    if title:
+        log_function(prefix + title)
+        log_function(prefix + '-' * 80)
+
+    for line in log_list:
+        log_function(prefix + line)
+
+    log_function(prefix + '=' * 80)
+
+#
+# Module logger object
+#
+
+LOGGER = create_logger(__name__)
 
 #
 # Test server instance:
