@@ -12,6 +12,13 @@ import dbutil
 from ingester import Ingester, DatasetError
 
 #
+# Set up logger.
+#
+
+LOGGER = logging.getLogger(__name__)
+LOGGER.setLevel(logging.INFO)
+
+#
 # Constants
 #
 
@@ -80,54 +87,60 @@ COVERAGE_DICT = {
 class DummyCollection(object):
     """Dummy collection class for testing."""
 
-    def __init__(self, logger):
-        self.logger = logger
+    def __init__(self):
         self.tiles = []
+
+    # pylint: disable = no-self-use
+    #
+    # These methods do not use object data because this is a dummy
+    # class for testing, but the methods in a real implementation will,
+    # so these take self as a parameter for consistancy.
 
     def check_metadata(self, dataset):
         """Raise a DatasetError if the dataset path starts with 'skip'."""
 
-        self.logger.info("Check metadata.")
+        LOGGER.info("Check metadata.")
 
         if re.match(r'^skip', dataset.dataset_path):
             raise DatasetError("Testing skip dataset.")
 
     def begin_transaction(self):
-        self.logger.info("Begin transaction.")
+        LOGGER.info("Begin transaction.")
 
     def commit_transaction(self):
-        self.logger.info("Commit transaction.")
+        LOGGER.info("Commit transaction.")
 
     def rollback_transaction(self):
-        self.logger.info("Rollback transaction.")
+        LOGGER.info("Rollback transaction.")
 
     def create_acquisition_record(self, dataset):
-        self.logger.info("Create acquistion record:")
-        self.logger.info("    dataset = %s", dataset)
+        LOGGER.info("Create acquistion record:")
+        LOGGER.info("    dataset = %s", dataset)
 
-        return DummyAcquisitionRecord(self.logger, self.tiles, dataset)
+        return DummyAcquisitionRecord(self.tiles, dataset)
 
     def create_tile_contents(self, tile_footprint, band_stack):
-        self.logger.info("Create tile contents:")
-        self.logger.info("    tile_footprint = %s", tile_footprint)
-        self.logger.info("    band_stack = %s", band_stack)
+        LOGGER.info("Create tile contents:")
+        LOGGER.info("    tile_footprint = %s", tile_footprint)
+        LOGGER.info("    band_stack = %s", band_stack)
 
-        return DummyTileContents(self.logger, tile_footprint, band_stack)
+        return DummyTileContents(tile_footprint, band_stack)
+
+    # pylint: enable = no-self-use
 
 
 class DummyAcquisitionRecord(object):
     """Dummy aquisition record class for testing."""
 
-    def __init__(self, logger, tiles, dataset):
-        self.logger = logger
+    def __init__(self, tiles, dataset):
         self.dataset = dataset
         self.tiles = tiles
 
     def create_dataset_record(self, dataset):
         """Raise a DatasetError if the dataset path starts with 'rollback'."""
 
-        self.logger.info("Create dataset record:")
-        self.logger.info("    dataset = %s", dataset)
+        LOGGER.info("Create dataset record:")
+        LOGGER.info("    dataset = %s", dataset)
 
         if re.match(r'^rollback', dataset.dataset_path):
             raise DatasetError("Testing transaction rollback.")
@@ -135,14 +148,13 @@ class DummyAcquisitionRecord(object):
         assert self.dataset is dataset, \
             "Mismatched datasets in acquisition record."
 
-        return DummyDatasetRecord(self.logger, self.tiles, dataset)
+        return DummyDatasetRecord(self.tiles, dataset)
 
 
 class DummyDatasetRecord(object):
     """Dummy dataset record class for testing."""
 
-    def __init__(self, logger, tiles, dataset):
-        self.logger = logger
+    def __init__(self, tiles, dataset):
         self.tiles = tiles
         self.dataset_id = DATASET_DICT[dataset.dataset_path]
 
@@ -150,43 +162,42 @@ class DummyDatasetRecord(object):
         return "[DatasetRecord %s]" % self.dataset_id
 
     def mark_as_tiled(self):
-        self.logger.info("%s: mark as tiled.", self)
+        LOGGER.info("%s: mark as tiled.", self)
 
     def list_tile_types(self):
-        self.logger.info("%s: list tile types.", self)
+        LOGGER.info("%s: list tile types.", self)
 
         return TILE_TYPE_DICT[self.dataset_id]
 
     def list_bands(self, tile_type_id):
-        self.logger.info("%s: list bands:", self)
-        self.logger.info("    tile_type_id = %s", tile_type_id)
+        LOGGER.info("%s: list bands:", self)
+        LOGGER.info("    tile_type_id = %s", tile_type_id)
 
         return BANDS_DICT[(self.dataset_id, tile_type_id)]
 
     def get_coverage(self, tile_type_id):
-        self.logger.info("%s: get_coverage:", self)
-        self.logger.info("    tile_type_id = %s", tile_type_id)
+        LOGGER.info("%s: get_coverage:", self)
+        LOGGER.info("    tile_type_id = %s", tile_type_id)
 
         return COVERAGE_DICT[(self.dataset_id, tile_type_id)]
 
     def create_tile_record(self, tile_footprint, tile_contents):
-        self.logger.info("%s: create tile record:", self)
-        self.logger.info("    tile_footprint = %s", tile_footprint)
-        self.logger.info("    tile_contents = %s", tile_contents)
+        LOGGER.info("%s: create tile record:", self)
+        LOGGER.info("    tile_footprint = %s", tile_footprint)
+        LOGGER.info("    tile_contents = %s", tile_contents)
 
-        return DummyTileRecord(self.logger, self.tiles, self.dataset_id,
+        return DummyTileRecord(self.tiles, self.dataset_id,
                                tile_footprint, tile_contents)
 
 
 class DummyTileRecord(object):
     """Dummy tile record class for testing."""
 
-    def __init__(self, logger, tiles, dataset_id,
+    def __init__(self, tiles, dataset_id,
                  tile_footprint, tile_contents):
         """Creates a dummy tile record, and adds the tile to the
         collection tile list."""
 
-        self.logger = logger
         self.dataset_id = dataset_id
         self.tile_footprint = tile_footprint
         self.band_list = tile_contents.band_stack.band_list
@@ -201,14 +212,13 @@ class DummyTileRecord(object):
             (self.dataset_id, self.tile_footprint, self.band_list)
 
     def make_mosaics(self):
-        self.logger.info("%s: make mosaics", self)
+        LOGGER.info("%s: make mosaics", self)
 
 
 class DummyTileContents(object):
     """Dummy tile contents class for testing."""
 
-    def __init__(self, logger, tile_footprint, band_stack):
-        self.logger = logger
+    def __init__(self, tile_footprint, band_stack):
         self.tile_footprint = tile_footprint
         self.band_stack = band_stack
         self.removed = False
@@ -224,7 +234,7 @@ class DummyTileContents(object):
         return bool(not re.match(r'^empty', self.tile_footprint))
 
     def remove(self):
-        self.logger.info("%s: remove", self)
+        LOGGER.info("%s: remove", self)
         self.removed = True
 
 #
@@ -235,16 +245,15 @@ class DummyTileContents(object):
 class DummyDataset(object):
     """Dummy dataset class for testing."""
 
-    def __init__(self, logger, dataset_path):
-        self.logger = logger
+    def __init__(self, dataset_path):
         self.dataset_path = dataset_path
 
     def __str__(self):
         return "[Dataset %s]" % self.dataset_path
 
     def stack_bands(self, band_list):
-        self.logger.info("%s: stack_bands:", self)
-        self.logger.info("    band_list = %s", band_list)
+        LOGGER.info("%s: stack_bands:", self)
+        LOGGER.info("    band_list = %s", band_list)
 
         return DummyBandStack(band_list)
 
@@ -269,18 +278,17 @@ class DummyBandStack(object):
 class DummyIngester(Ingester):
     """Dummy Ingester subclass for testing."""
 
-    def __init__(self, logger, collection):
+    def __init__(self, collection):
         """Initialise the source_dir cache then call Ingester init"""
 
         self.source_dir = None
-
-        Ingester.__init__(self, logger, collection)
+        Ingester.__init__(self, collection)
 
     def find_datasets(self, source_dir):
         """Cache source directory then return dummy dataset paths."""
 
-        self.logger.info("Ingester: find datasets")
-        self.logger.info("    source_dir = %s", source_dir)
+        LOGGER.info("Ingester: find datasets")
+        LOGGER.info("    source_dir = %s", source_dir)
 
         self.source_dir = source_dir
         return DATASET_PATH_DICT[source_dir]
@@ -288,12 +296,12 @@ class DummyIngester(Ingester):
     def open_dataset(self, dataset_path):
         """Check dataset_path then return dummy dataset object."""
 
-        self.logger.info("Ingester: open dataset")
-        self.logger.info("    dataset_path = %s", dataset_path)
+        LOGGER.info("Ingester: open dataset")
+        LOGGER.info("    dataset_path = %s", dataset_path)
 
         assert dataset_path in DATASET_PATH_DICT[self.source_dir], \
             "Unexpected dataset path while opening dataset."
-        return DummyDataset(self.logger, dataset_path)
+        return DummyDataset(dataset_path)
 
 #
 # Test suite
@@ -333,21 +341,32 @@ class TestIngester(unittest.TestCase):
         self.expected_path = os.path.join(self.EXPECTED_DIR, logfile_name)
 
         #
-        # Set up a logger to log to the logfile
+        # Set up a handler to log to the logfile, and attach it to the
+        # root logger.
         #
         self.handler = logging.FileHandler(self.logfile_path, mode='w')
         self.handler.setLevel(logging.INFO)
         self.handler.setFormatter(logging.Formatter('%(message)s'))
 
-        self.logger = logging.getLogger(name)
-        self.logger.setLevel(logging.DEBUG)
-        self.logger.addHandler(self.handler)
+        root_logger = logging.getLogger()
+        root_logger.addHandler(self.handler)
+        root_logger.setLevel(logging.DEBUG)
 
         #
         # Create the collection and ingester
         #
-        self.collection = DummyCollection(self.logger)
-        self.ingester = DummyIngester(self.logger, self.collection)
+        self.collection = DummyCollection()
+        self.ingester = DummyIngester(self.collection)
+
+    def tearDown(self):
+        #
+        # Flush the handler and remove it from the root logger.
+        #
+
+        self.handler.flush()
+
+        root_logger = logging.getLogger()
+        root_logger.removeHandler(self.handler)
 
     def check_log_file(self):
         """If an expected logfile exists, check to see if it matches."""
@@ -375,13 +394,14 @@ class TestIngester(unittest.TestCase):
 
         self.assertEqual(set(output_tiles), set(expected_tiles))
 
-    def print_tiles(self, title, tiles):
+    @staticmethod
+    def print_tiles(title, tiles):
         """Print a list of tiles to the log file."""
 
-        self.logger.info("")
-        self.logger.info("%s:", title)
+        LOGGER.info("")
+        LOGGER.info("%s:", title)
         for tile in tiles:
-            self.logger.info("    %s", tile)
+            LOGGER.info("    %s", tile)
 
     @staticmethod
     def generate_tiles(source_dir):

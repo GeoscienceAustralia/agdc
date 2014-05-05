@@ -2,7 +2,19 @@
     ingester.py - top level ingestion algorithm.
 """
 
+import logging
 from abc import ABCMeta, abstractmethod
+
+#
+# Set up logger.
+#
+
+LOGGER = logging.getLogger(__name__)
+LOGGER.setLevel(logging.INFO)
+
+#
+# Classes
+#
 
 
 class Ingester(object):
@@ -18,14 +30,11 @@ class Ingester(object):
     #
     __metaclass__ = ABCMeta
 
-    def __init__(self, logger, collection):
+    def __init__(self, collection):
         """Set up the ingester object.
 
-        logger: the logger object to which log messages will be sent.
         collection: The datacube collection which will accept the ingest.
         """
-
-        self.logger = logger
         self.collection = collection
 
     #
@@ -160,26 +169,29 @@ class Ingester(object):
     # Log messages
     #
 
-    # pylint: disable=missing-docstring
+    # pylint: disable=missing-docstring, no-self-use
     #
-    # These are simple and self documenting. They do not need docstrings.
+    # These are simple and self documenting: they do not need docstrings.
+    # Although these do not currently use object data, they may need to
+    # be modified to add more information to the log messages.
+    #
 
     def log_ingestion_process_complete(self, source_dir):
 
-        self.logger.info("Ingestion process complete for source directory " +
-                         "'%s'." % source_dir)
+        LOGGER.info("Ingestion process complete for source directory " +
+                    "'%s'." % source_dir)
 
     def log_dataset_skip(self, dataset_path):
 
-        self.logger.info("Ingestion skipped for dataset " +
-                         "'%s':" % dataset_path, exc_info=True)
+        LOGGER.info("Ingestion skipped for dataset " +
+                    "'%s':" % dataset_path, exc_info=True)
 
     def log_dataset_ingest_complete(self, dataset_path):
 
-        self.logger.info("Ingestion complete for dataset " +
-                         "'%s'." % dataset_path)
+        LOGGER.info("Ingestion complete for dataset " +
+                    "'%s'." % dataset_path)
 
-    # pylint: enable=missing-docstring
+    # pylint: enable=missing-docstring, no-self-use
 
 
 class DatasetError(Exception):
