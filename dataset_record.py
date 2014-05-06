@@ -1,5 +1,5 @@
 """
-Collection: database interface class.
+DatasetRecord: database interface class.
 
 These classes provide an interface between the database and the top-level
 ingest algorithm (AbstractIngester and its subclasses). They also provide
@@ -16,26 +16,25 @@ LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
 
-class Collection(object):
-    """Collection database interface class."""
+class DatasetRecord(object):
+    """DatasetRecord database interface class."""
 
-    def __init__(self, datacube):
-        self.datacube = datacube
+    def __init__(self, collection, acquisition_record, dataset_id):
+        self.collection = collection
+        self.acquisition_record = acquisition_record
+        self.dataset_id = dataset_id
 
-    def check_metadata(self, dataset):
+    def mark_as_tiled(self):
         pass
 
-    def begin_transaction(self):
+    def list_tile_types(self):
         pass
 
-    def commit_transaction(self):
+    def list_bands(self, tile_type_id):
         pass
 
-    def rollback_transaction(self):
+    def get_coverage(self, tile_type_id):
         pass
 
-    def create_acquisition_record(self, dataset):
-        pass
-
-    def create_tile_contents(self, tile_footprint, band_stack):
+    def create_tile_record(self, tile_footprint, tile_contents):
         pass
