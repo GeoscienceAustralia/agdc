@@ -2,8 +2,13 @@
     abstract_ingester.py - top level ingestion algorithm.
 """
 
+import os
 import logging
+import argparse
 from abc import ABCMeta, abstractmethod
+
+from datacube import DataCube
+from collection import Collection
 
 #
 # Set up logger.
@@ -15,6 +20,18 @@ LOGGER.setLevel(logging.INFO)
 #
 # Classes
 #
+
+
+class IngesterDataCube(DataCube):
+    """Datacube subclass which accepts command line arguments
+    as a Namespace passed into the constructer."""
+
+    def __init__(self, args):
+        self.my_args = args
+        DataCube.__init__(self)
+
+    def parse_args(self):
+        return self.my_args
 
 
 class AbstractIngester(object):
@@ -30,12 +47,60 @@ class AbstractIngester(object):
     #
     __metaclass__ = ABCMeta
 
-    def __init__(self, collection):
+    def __init__(self, datacube=None, collection=None):
         """Set up the ingester object.
 
+        datacube: A datacube instance (which has a database connection and
+            tile_type and band dictionaries). If this is None the Ingeseter
+            will create its own datacube instance using the arguments
+            returned by self.parse_args().
+
         collection: The datacube collection which will accept the ingest.
+            if this is None the Ingeseter will set up its own collection
+            using self.datacube.
         """
-        self.collection = collection
+
+        self.args = self.parse_args()
+
+        if datacube is None:
+            self.datacube = IngesterDataCube(self.args)
+        else:
+            self.datacube = datacube
+
+        if collection is None:
+            self.collection = Collection(self.datacube)
+        else:
+            self.collection = collection
+
+    #
+    # parse_args method for command line arguments. This should be
+    # overridden if extra arguments (beyond --config and --debug)
+    # are needed.
+    #
+
+    @staticmethod
+    def parse_args():
+        """Virtual function to parse command line arguments.
+
+        Returns:
+            argparse namespace object
+        """
+        LOGGER.debug('  Calling parse_args()')
+
+        _arg_parser = argparse.ArgumentParser()
+
+        default_config = os.path.join(os.path.dirname(__file__),
+                                      'datacube.conf')
+        _arg_parser.add_argument('-C', '--config', dest='config_file',
+                                 default=default_config,
+                                 help='DataCube configuration file')
+        _arg_parser.add_argument('-d', '--debug', dest='debug',
+                                 default=False, action='store_const',
+                                 const=True,
+                                 help='Debug mode flag')
+
+        args, dummy_unknown_args = _arg_parser.parse_known_args()
+        return args
 
     #
     # Top level algorithm

@@ -282,7 +282,7 @@ class DummyIngester(AbstractIngester):
         """Initialise the source_dir cache then call Ingester init"""
 
         self.source_dir = None
-        AbstractIngester.__init__(self, collection)
+        AbstractIngester.__init__(self, collection=collection)
 
     def find_datasets(self, source_dir):
         """Cache source directory then return dummy dataset paths."""
