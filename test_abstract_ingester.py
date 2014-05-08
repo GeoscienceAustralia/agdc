@@ -175,8 +175,9 @@ class DummyDatasetRecord(object):
 
         return BANDS_DICT[(self.dataset_id, tile_type_id)]
 
-    def get_coverage(self, tile_type_id):
+    def get_coverage(self, dataset, tile_type_id):
         LOGGER.info("%s: get_coverage:", self)
+        LOGGER.info("    dataset = %s", dataset)
         LOGGER.info("    tile_type_id = %s", tile_type_id)
 
         return COVERAGE_DICT[(self.dataset_id, tile_type_id)]
