@@ -19,6 +19,13 @@ class AbstractDataset(object):
     Abstract base class for dataset classes.
     """
 
+    # pylint: disable=too-many-public-methods
+    #
+    # This class provides metdata using acessor functions. This is
+    # both straight-forward and allows a docstring to be attached to
+    # each to document the definition of the metadata being provided.
+    #
+
     __metaclass__ = ABCMeta
 
     def __init__(self, dataset_path):
@@ -26,18 +33,249 @@ class AbstractDataset(object):
 
         Subclasses will likely override this, either to parse the
         metadata or to accept additional arguments or both.
+
         Subclasses can call the super class __init__ (i.e. this
         method) with 'AbstractDataset.__init__(self, dataset_path)'.
         """
 
-        self.dataset_path = dataset_path
+        self._dataset_path = dataset_path
 
     #
-    # Interface for dataset metadata goes here. Simple accessor methods
-    # should be fine. This is used by the database classes to check
-    # and/or fill in the dataset's metadata in the relevent database
-    # records.
+    # Accessor method for the dataset path
     #
+
+    def get_dataset_path(self):
+        """The path to the dataset on disk."""
+        return self._dataset_path
+
+    #
+    # Accessor methods for dataset metadata.
+    #
+    # These are used to populate the database tables for new acquisition
+    # records and dataset records, or to find existing records. Satellite
+    # tags, sensor names, and processing levels must already exist in the
+    # database for the dataset to be recoginised.
+    #
+
+    @abstractmethod
+    def get_satellite_tag(self):
+        """A short unique string identifying the satellite."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_sensor_name(self):
+        """A short string identifying the sensor.
+
+        The combination of satellite_tag and sensor_name must be unique.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_processing_level(self):
+        """A short string identifying the processing level or product.
+
+        The processing level must be unique for each satellite and sensor
+        combination.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_x_ref(self):
+        """The x (East-West axis) reference number for the dataset.
+
+        In whatever numbering scheme is used for this satellite.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_y_ref(self):
+        """The y (North-South axis) reference number for the dataset.
+
+        In whatever numbering scheme is used for this satellite.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_start_datetime(self):
+        """The start of the acquisition.
+
+        This is a datetime without timezone in UTC.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_end_datetime(self):
+        """The end of the acquisition.
+
+        This is a datatime without timezone in UTC.
+        """
+        raise NotImplementedError
+
+
+    @abstractmethod
+    def get_datetime_processed(self):
+        """The date and time when the dataset was processed or created.
+
+        This is used to determine if that dataset is newer than one
+        already in the database, and so should replace it.
+
+        It is a datetime without timezone in UTC.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_dataset_size(self):
+        """The size of the dataset in kilobytes as an integer."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_ll_lon(self):
+        """The longitude of the lower left corner of the coverage area."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_ll_lat(self):
+        """The lattitude of the lower left corner of the coverage area."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_lr_lon(self):
+        """The longitude of the lower right corner of the coverage area."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_lr_lat(self):
+        """The lattitude of the lower right corner of the coverage area."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_ul_lon(self):
+        """The longitude of the upper left corner of the coverage area."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_ul_lat(self):
+        """The lattitude of the upper left corner of the coverage area."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_ur_lon(self):
+        """The longitude of the upper right corner of the coverage area."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_ur_lat(self):
+        """The lattitude of the upper right corner of the coverage area."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_projection(self):
+        """The coordinate refererence system of the image data."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_ll_x(self):
+        """The x coordinate of the lower left corner of the coverage area.
+
+        This is according to the projection returned by get_projection.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_ll_y(self):
+        """The y coordinate of the lower left corner of the coverage area.
+
+        This is according to the projection returned by get_projection.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_lr_x(self):
+        """The x coordinate of the lower right corner of the coverage area.
+
+        This is according to the projection returned by get_projection.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_lr_y(self):
+        """The y coordinate of the lower right corner of the coverage area.
+
+        This is according to the projection returned by get_projection.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_ul_x(self):
+        """The x coordinate of the upper left corner of the coverage area.
+
+        This is according to the projection returned by get_projection.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_ul_y(self):
+        """The y coordinate of the upper left corner of the coverage area.
+
+        This is according to the projection returned by get_projection.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_ur_x(self):
+        """The x coordinate of the upper right corner of the coverage area.
+
+        This is according to the projection returned by get_projection.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_ur_y(self):
+        """The y coordinate of the upper right corner of the coverage area.
+
+        This is according to the projection returned by get_projection.
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def x_pixels(self):
+        """The width of the dataset in pixels."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def y_pixels(self):
+        """The height of the dataset in pixels."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def gcp_count(self):
+        """The number of ground control points?"""
+        raise NotImplementedError
+
+    @abstractmethod
+    def mtl_text(self):
+        """Text information?"""
+        raise NotImplementedError
+
+    @abstractmethod
+    def cloud_cover(self):
+        """Percentage cloud cover of the aquisition if available."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def xml_text(self):
+        """XML metadata text for the dataset if available."""
+        raise NotImplementedError
+
+    #
+    # Methods used for tiling
+    #
+
+    @abstractmethod
+    def get_geo_transform(self):
+        """The geo transform - this is a list of six numbers -
+        what does it mean?"""
+        raise NotImplementedError
 
     @abstractmethod
     def stack_bands(self, band_list):
