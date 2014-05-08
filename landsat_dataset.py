@@ -1,24 +1,36 @@
 """
-    abstract_dataset.py - interface for the dataset class.
+    landsat_dataset.py - dataset class for landset (5 and 7) datasets.
 
-    This abstract class describes the interface between the dataset
-    on disk and the rest of the datacube. Datasets that have different
-    packaging will have different version of this class. This is done
-    by sub-classing the abstract class and overriding the abstract methods.
-
-    It is the responsibility of the open_dataset method of the ingester
-    to choose and instantiate the right dataset class for the dataset
-    being opened.
+    This is the implementation of the AbstractDataset class for landsat
+    datasets. At present it only works for level 1 (L1T, ORTHO) and NBAR
+    data, as it relys on ULA3.dataset.SceneDataset.
 """
 
 import os
-from abc import ABCMeta, abstractmethod
+import logging
+import glob
+import re
+
+from ULA3.dataset import SceneDataset
+
+import cube_util
+from abstract_ingester import DatasetError
+from abstract_dataset import AbstractDataset
+
+#
+# Set up logger.
+#
+
+LOGGER = logging.getLogger(__name__)
+LOGGER.setLevel(logging.INFO)
+
+#
+# Class definition
+#
 
 
-class AbstractDataset(object):
-    """
-    Abstract base class for dataset classes.
-    """
+class LandsatDataset(AbstractDataset):
+    """Dataset class for landsat ORTHO and NBAR datasets."""
 
     # pylint: disable=too-many-public-methods
     #
@@ -27,93 +39,172 @@ class AbstractDataset(object):
     # each to document the definition of the metadata being provided.
     #
 
-    __metaclass__ = ABCMeta
-
     def __init__(self, dataset_path):
-        """Initialise the dataset.
+        """Opens the dataset and extracts metadata.
 
-        Subclasses will likely override this, either to parse the
-        metadata or to accept additional arguments or both.
-
-        Subclasses can call the super class __init__ (i.e. this
-        method) with 'AbstractDataset.__init__(self, dataset_path)'.
+        Most of the metadata is kept in self._ds which is
+        a ULA3.dataset.SceneDataset object. Some extra metadata is
+        extracted and kept the instance attributes.
         """
 
-        self._dataset_path = os.path.abspath(dataset_path)
+        AbstractDataset.__init__(self, dataset_path)
+
+        self._ds = SceneDataset(default_metadata_required=False, utm_fix=True)
+        self._ds = self._ds.Open(self.get_dataset_path())
+        if not self._ds:
+            raise DatasetError("Unable to open %s" % self.get_dataset_path())
+
+        #
+        # Cache extra metadata in instance attributes.
+        #
+
+        self._dataset_size = self._get_directory_size()
+
+        if self.get_processing_level() in ['ORTHO', 'L1T', 'MAP']:
+            LOGGER.debug('Dataset %s is Level 1', self.get_dataset_path())
+            self._gcp_count = self._get_gcp_count()
+            self._mtl_text = self._get_mtl_text()
+        else:
+            self._gcp_count = None
+            self._mtl_text = None
+
+        self._xml_text = self._get_xml_text()
 
     #
-    # Accessor method for the dataset path
+    # Methods to extract extra metadata
     #
 
-    def get_dataset_path(self):
-        """The path to the dataset on disk."""
-        return self._dataset_path
+    def _get_directory_size(self):
+        """Calculate the size of the dataset in kB."""
+
+        command = "du -sk %s | cut -f1" % self.get_dataset_path()
+        LOGGER.debug('executing "%s"', command)
+        result = cube_util.execute(command)
+
+        if result['returncode'] != 0:
+            raise DatasetError('Unable to calculate directory size: ' +
+                               '"%s" failed: %s' % (command, result['stderr']))
+
+        LOGGER.debug('stdout = %s', result['stdout'])
+
+        return int(result['stdout'])
+
+    def _get_gcp_count(self):
+        """Count the gcp (only for level 1 datasets)."""
+
+        gcp_pattern = os.path.join(self.get_dataset_path(), 'scene01',
+                                   '*_GCP.txt')
+
+        return self._extract_from_file(gcp_pattern, 'GCP.txt',
+                                       self._extract_gcp_count)
+
+    def _get_mtl_text(self):
+        """Extract the mtl text (only for level 1 datasets)."""
+
+        mtl_pattern = os.path.join(self.get_dataset_path(), 'scene01',
+                                   '*_MTL.txt')
+        return self._extract_from_file(mtl_pattern, 'MTL.txt',
+                                       self._extract_text)
+
+    def _get_xml_text(self):
+        """Extract the XML metadata text (if any)."""
+
+        xml_pattern = os.path.join(self.get_dataset_path(), 'metadata.xml')
+        return self._extract_from_file(xml_pattern, 'metadata.xml',
+                                       self._extract_text)
+
+    @staticmethod
+    def _extract_from_file(file_pattern, file_description, extract_function):
+        """Extract metadata from a file.
+
+        Returns the result of running extract_function on the opened
+        file, or None if the file cannot be found. file_pattern is a
+        glob pattern for the file: the first file found is used.
+        file_description is a description of the file for logging and
+        error messages."""
+
+        try:
+            md_path = glob.glob(file_pattern)[0]
+
+            md_file = open(md_path)
+            metadata = extract_function(md_file)
+            md_file.close()
+
+        except IndexError:  # File not found
+            metadata = None
+            LOGGER.debug('No %s file found.', file_description)
+
+        except IOError:  # Open failed
+            raise DatasetError('Unable to open %s file.' % file_description)
+
+        return metadata
+
+    @staticmethod
+    def _extract_text(md_file):
+        """Dump the text from a metadata file."""
+        return md_file.read()
+
+    @staticmethod
+    def _extract_gcp_count(md_file):
+        """Extract the gcp count from a metadata file.
+
+        Count the number of lines consisting of 8 numbers with
+        the first number being positive."""
+
+        return len([line for line in md_file.readlines()
+                    if re.match(r'\d+(\s+-?\d+\.?\d*){7}', line)])
 
     #
-    # Accessor methods for dataset metadata.
-    #
-    # These are used to populate the database tables for new acquisition
-    # records and dataset records, or to find existing records. Satellite
-    # tags, sensor names, and processing levels must already exist in the
-    # database for the dataset to be recoginised.
+    # Metadata accessor methods
     #
 
-    @abstractmethod
     def get_satellite_tag(self):
         """A short unique string identifying the satellite."""
-        raise NotImplementedError
+        return self._ds.satellite.TAG
 
-    @abstractmethod
     def get_sensor_name(self):
         """A short string identifying the sensor.
 
         The combination of satellite_tag and sensor_name must be unique.
         """
-        raise NotImplementedError
+        return self._ds.satellite.sensor
 
-    @abstractmethod
     def get_processing_level(self):
         """A short string identifying the processing level or product.
 
         The processing level must be unique for each satellite and sensor
         combination.
         """
-        raise NotImplementedError
+        return self._ds.processor_level.upper()
 
-    @abstractmethod
     def get_x_ref(self):
         """The x (East-West axis) reference number for the dataset.
 
         In whatever numbering scheme is used for this satellite.
         """
-        raise NotImplementedError
+        return self._ds.path_number
 
-    @abstractmethod
     def get_y_ref(self):
         """The y (North-South axis) reference number for the dataset.
 
         In whatever numbering scheme is used for this satellite.
         """
-        raise NotImplementedError
+        return self._ds.row_number
 
-    @abstractmethod
     def get_start_datetime(self):
         """The start of the acquisition.
 
         This is a datetime without timezone in UTC.
         """
-        raise NotImplementedError
+        return self._ds.scene_start_datetime
 
-    @abstractmethod
     def get_end_datetime(self):
         """The end of the acquisition.
 
         This is a datatime without timezone in UTC.
         """
-        raise NotImplementedError
+        return self._ds.scene_end_datetime
 
-
-    @abstractmethod
     def get_datetime_processed(self):
         """The date and time when the dataset was processed or created.
 
@@ -122,157 +213,132 @@ class AbstractDataset(object):
 
         It is a datetime without timezone in UTC.
         """
-        raise NotImplementedError
+        return self._ds.completion_datetime
 
-    @abstractmethod
     def get_dataset_size(self):
         """The size of the dataset in kilobytes as an integer."""
-        raise NotImplementedError
+        return self._dataset_size
 
-    @abstractmethod
     def get_ll_lon(self):
         """The longitude of the lower left corner of the coverage area."""
-        raise NotImplementedError
+        return self._ds.ll_lon
 
-    @abstractmethod
     def get_ll_lat(self):
         """The lattitude of the lower left corner of the coverage area."""
-        raise NotImplementedError
+        return self._ds.ll_lat
 
-    @abstractmethod
     def get_lr_lon(self):
         """The longitude of the lower right corner of the coverage area."""
-        raise NotImplementedError
+        return self._ds.lr_lon
 
-    @abstractmethod
     def get_lr_lat(self):
         """The lattitude of the lower right corner of the coverage area."""
-        raise NotImplementedError
+        return self._ds.lr_lat
 
-    @abstractmethod
     def get_ul_lon(self):
         """The longitude of the upper left corner of the coverage area."""
-        raise NotImplementedError
+        return self._ds.ul_lon
 
-    @abstractmethod
     def get_ul_lat(self):
         """The lattitude of the upper left corner of the coverage area."""
-        raise NotImplementedError
+        return self._ds.ul_lat
 
-    @abstractmethod
     def get_ur_lon(self):
         """The longitude of the upper right corner of the coverage area."""
-        raise NotImplementedError
+        return self._ds.ur_lon
 
-    @abstractmethod
     def get_ur_lat(self):
         """The lattitude of the upper right corner of the coverage area."""
-        raise NotImplementedError
+        return self._ds.ur_lat
 
-    @abstractmethod
     def get_projection(self):
         """The coordinate refererence system of the image data."""
-        raise NotImplementedError
+        return self._ds.GetProjection()
 
-    @abstractmethod
     def get_ll_x(self):
         """The x coordinate of the lower left corner of the coverage area.
 
         This is according to the projection returned by get_projection.
         """
-        raise NotImplementedError
+        return self._ds.ll_x
 
-    @abstractmethod
     def get_ll_y(self):
         """The y coordinate of the lower left corner of the coverage area.
 
         This is according to the projection returned by get_projection.
         """
-        raise NotImplementedError
+        return self._ds.ll_y
 
-    @abstractmethod
     def get_lr_x(self):
         """The x coordinate of the lower right corner of the coverage area.
 
         This is according to the projection returned by get_projection.
         """
-        raise NotImplementedError
+        return self._ds.lr_x
 
-    @abstractmethod
     def get_lr_y(self):
         """The y coordinate of the lower right corner of the coverage area.
 
         This is according to the projection returned by get_projection.
         """
-        raise NotImplementedError
+        return self._ds.lr_y
 
-    @abstractmethod
     def get_ul_x(self):
         """The x coordinate of the upper left corner of the coverage area.
 
         This is according to the projection returned by get_projection.
         """
-        raise NotImplementedError
+        return self._ds.ul_x
 
-    @abstractmethod
     def get_ul_y(self):
         """The y coordinate of the upper left corner of the coverage area.
 
         This is according to the projection returned by get_projection.
         """
-        raise NotImplementedError
+        return self._ds.ul_y
 
-    @abstractmethod
     def get_ur_x(self):
         """The x coordinate of the upper right corner of the coverage area.
 
         This is according to the projection returned by get_projection.
         """
-        raise NotImplementedError
+        return self._ds.ur_x
 
-    @abstractmethod
     def get_ur_y(self):
         """The y coordinate of the upper right corner of the coverage area.
 
         This is according to the projection returned by get_projection.
         """
-        raise NotImplementedError
+        return self._ds.ur_y
 
-    @abstractmethod
     def get_x_pixels(self):
         """The width of the dataset in pixels."""
-        raise NotImplementedError
+        return self._ds.image_pixels
 
-    @abstractmethod
     def get_y_pixels(self):
         """The height of the dataset in pixels."""
-        raise NotImplementedError
+        return self._ds.image_lines
 
-    @abstractmethod
     def get_gcp_count(self):
         """The number of ground control points?"""
-        raise NotImplementedError
+        return self._gcp_count
 
-    @abstractmethod
     def get_mtl_text(self):
         """Text information?"""
-        raise NotImplementedError
+        return self._mtl_text
 
-    @abstractmethod
     def get_cloud_cover(self):
         """Percentage cloud cover of the aquisition if available."""
-        raise NotImplementedError
+        return self._ds.cloud_cover_percentage
 
-    @abstractmethod
     def get_xml_text(self):
         """XML metadata text for the dataset if available."""
-        raise NotImplementedError
+        return self._xml_text
 
     #
     # Methods used for tiling
     #
 
-    @abstractmethod
     def get_geo_transform(self):
         """The affine transform between pixel and geographic coordinates.
 
@@ -282,9 +348,8 @@ class AbstractDataset(object):
 
         See http://www.gdal.org/gdal_datamodel for details.
         """
-        raise NotImplementedError
+        return self._ds.GetGeoTransform()
 
-    @abstractmethod
     def stack_bands(self, band_list):
         """Creates and returns a band_stack object from the dataset.
 
