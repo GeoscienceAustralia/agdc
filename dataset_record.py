@@ -48,6 +48,7 @@ class DatasetRecord(object):
         #Get the transformation between the two projections
         transformation = self.define_transformation(dataset_crs, tile_crs)
         #Determine the bounding quadrilateral of the dataset extent
+        #in tile coordinates
         dataset_bbox = self.get_bbox(transformation, dataset_geotransform,
                                      pixels, lines)
         #Determine maximum inner rectangle, which is guaranteed to need  tiling
