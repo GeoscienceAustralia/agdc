@@ -67,7 +67,7 @@ class DBUpdater(DataCube):
             help='Delete any pre-existing dataset list from disk')
         _arg_parser.add_argument('--followsymlinks', dest='follow_symbolic_links',
             default=False, action='store_const', const=True,
-            help='Delete any pre-existing dataset list from disk')
+            help='Follow symbolic links when finding datasets to ingest')
         return _arg_parser.parse_args()
         
     def __init__(self, source_datacube=None, tile_type_id=1):
