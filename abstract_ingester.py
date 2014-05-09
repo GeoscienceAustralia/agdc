@@ -179,7 +179,8 @@ class AbstractIngester(object):
 
             band_stack = dataset.stack_bands(band_list)
 
-            for tile_footprint in dataset_record.get_coverage(tile_type_id):
+            for tile_footprint in dataset_record.get_coverage(dataset,
+                                                              tile_type_id):
                 self.make_one_tile(dataset_record, tile_footprint, band_stack)
 
     def make_one_tile(self, dataset_record, tile_footprint, band_stack):
@@ -249,7 +250,8 @@ class AbstractIngester(object):
     def log_dataset_skip(self, dataset_path):
 
         LOGGER.info("Ingestion skipped for dataset " +
-                    "'%s':" % dataset_path, exc_info=True)
+                    "'%s':" % dataset_path)
+        LOGGER.debug("Exception info:", exc_info=True)
 
     def log_dataset_ingest_complete(self, dataset_path):
 
