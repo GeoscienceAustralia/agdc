@@ -19,6 +19,7 @@ LOGGER.setLevel(logging.INFO)
 
 class DatasetRecord(object):
     """DatasetRecord database interface class."""
+    # pylint: disable=missing-docstring
     def __init__(self, collection, acquisition_record, dataset_id):
         self.collection = collection
         self.acquisition_record = acquisition_record
@@ -140,6 +141,7 @@ class DatasetRecord(object):
             self.get_contained_tiles(possible_tiles, dataset_bbox,
                                               cube_origin, cube_tile_size)
         coverage_set = coverage_set.union(contained_tiles)
+        return coverage_set
 
     @staticmethod
     def get_definite_and_possible_tiles(bbox, cube_origin, cube_tile_size):
@@ -214,7 +216,6 @@ class DatasetRecord(object):
                         self.check_intersection(xcoords, ycoords)
                     if intersection_exists:
                         keep_list.append((itile, jtile))
-                        intersection_exists = True
                         break
                 if intersection_exists:
                     break
@@ -248,9 +249,9 @@ class DatasetRecord(object):
                     elif y <= y1 and y > y2:
                         if (x - x1) * (y2 - y1) < (x2 - x1) * (y - y1):
                             winding_number += 1
-                tile_vtx_inside.append(winding_number % 2 == 0)
+                tile_vtx_inside.append(winding_number % 2 == 1)
             if tile_vtx_inside.count(True) == len(tile_bbox):
-                keep_list.append(itile, jtile)
+                keep_list.append((itile, jtile))
             assert tile_vtx_inside.count(True) == 4 or \
                    tile_vtx_inside.count(True) == 0, \
                    "Tile partially inside dataset bounding box but has" \
