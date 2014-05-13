@@ -12,6 +12,7 @@
 """
 
 import os
+import re
 from abc import ABCMeta, abstractmethod
 
 
@@ -48,6 +49,36 @@ class AbstractDataset(object):
     def get_dataset_path(self):
         """The path to the dataset on disk."""
         return self._dataset_path
+
+    #
+    # Metadata as dict utility method
+    #
+
+    def build_metadata_dict(self):
+        """Returns the metadata as a python dict.
+
+        The keys are the same as the accessor methods but without
+        the 'get_' prefix, the values come from calling the accessor
+        methods.
+
+        Note that the keys are from AbstractDataset, i.e. this interface,
+        but the values come from the instance, self, which will be a subclass.
+
+        Anything *not* wanted in this dictionary should not be returned from
+        an accessor method starting with 'get_', i.e. the method should be
+        renamed.
+        """
+
+        mdd = {}
+
+        for attribute in AbstractDataset.__dict__.keys():
+            accessor_match = re.match(r'get_(.+)$', attribute)
+            if accessor_match:
+                md_key = accessor_match.group(1)
+                md_value = getattr(self, accessor_match.group(0))()
+                mdd[md_key] = md_value
+
+        return mdd
 
     #
     # Accessor methods for dataset metadata.
