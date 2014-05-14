@@ -39,6 +39,11 @@ class LandsatDataset(AbstractDataset):
     # each to document the definition of the metadata being provided.
     #
 
+    PROCESSING_LEVEL_ALIASES = {
+        'Pixel Quality': 'PQ',
+        'Fractional Cover': 'FC'
+        }
+
     def __init__(self, dataset_path):
         """Opens the dataset and extracts metadata.
 
@@ -175,7 +180,12 @@ class LandsatDataset(AbstractDataset):
         The processing level must be unique for each satellite and sensor
         combination.
         """
-        return self._ds.processor_level.upper()
+
+        level = self._ds.processor_level
+        if level in self.PROCESSING_LEVEL_ALIASES:
+            level = self.PROCESSING_LEVEL_ALIASES[level]
+
+        return level.upper()
 
     def get_x_ref(self):
         """The x (East-West axis) reference number for the dataset.
@@ -334,6 +344,14 @@ class LandsatDataset(AbstractDataset):
     def get_xml_text(self):
         """XML metadata text for the dataset if available."""
         return self._xml_text
+
+    def get_pq_tests_run(self):
+        """The tests run for a Pixel Quality dataset.
+
+        This is a 16 bit integer with the bits acting as flags. 1 indicates
+        that the test was run, 0 that it was not.
+        """
+        return self._ds.pq_tests_run
 
     #
     # Methods used for tiling

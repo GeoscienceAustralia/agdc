@@ -43,14 +43,6 @@ class AbstractDataset(object):
         self._dataset_path = os.path.abspath(dataset_path)
 
     #
-    # Accessor method for the dataset path
-    #
-
-    def get_dataset_path(self):
-        """The path to the dataset on disk."""
-        return self._dataset_path
-
-    #
     # Metadata as dict utility method
     #
 
@@ -87,6 +79,32 @@ class AbstractDataset(object):
     # records and dataset records, or to find existing records. Satellite
     # tags, sensor names, and processing levels must already exist in the
     # database for the dataset to be recoginised.
+    #
+
+    #
+    # Accessor methods with defaults. These can be overridden in a
+    # subclass if the defaults are not appropriate.
+    #
+    # pylint: disable=no-self-use
+    #
+
+    def get_dataset_path(self):
+        """The path to the dataset on disk."""
+        return self._dataset_path
+
+
+    def get_pq_tests_run(self):
+        """The tests run for a Pixel Quality dataset.
+
+        This is a 16 bit integer with the bits acting as flags. 1 indicates
+        that the test was run, 0 that it was not.
+        """
+        return None
+
+    # pylint: enable=no-self-use
+
+    #
+    # Abstract accessor methods. These must be overridden in a subclass.
     #
 
     @abstractmethod
