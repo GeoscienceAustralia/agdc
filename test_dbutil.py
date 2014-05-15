@@ -273,6 +273,15 @@ class TestServer(unittest.TestCase):
                          "Dummy database '%s' reported as existing." %
                          dummy_dbname)
 
+    def test_dblist(self):
+        "Test database list."
+
+        db_list = dbutil.TESTSERVER.dblist()
+
+        self.assertIn(self.MAINTENANCE_DB, db_list,
+                      "Unable to find the maintenance database " +
+                      "in the list of databases.")
+
     def test_create(self):
         "Test database creation and loading"
 
