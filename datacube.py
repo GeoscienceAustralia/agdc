@@ -11,6 +11,7 @@ import ConfigParser
 import logging
 import errno
 import psycopg2
+import socket
 
 from ULA3.utils import execute
 from ULA3.utils import log_multiline
@@ -180,7 +181,7 @@ where tile_type_id = %(tile_type_id)s
     def __init__(self):
         self.db_connection = None
         
-        self.process_id = os.getenv('PBS_O_HOST', os.getenv('HOSTNAME')) + ':' + os.getenv('PBS_JOBID', str(os.getpid()))
+        self.process_id = os.getenv('PBS_O_HOST', socket.gethostname()) + ':' + os.getenv('PBS_JOBID', str(os.getpid()))
         def open_config(config_file):
             assert os.path.exists(config_file), config_file + " does not exist"
             
