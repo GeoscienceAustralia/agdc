@@ -10,7 +10,6 @@ implement utility queries as methods.
 import os
 import sys
 import logging
-import pprint
 import random
 import subprocess
 import re
@@ -102,6 +101,18 @@ class Server(object):
             self.connect(MAINTENANCE_DB, superuser=True))
         try:
             result = maint_conn.exists(dbname)
+        finally:
+            maint_conn.close()
+
+        return result
+
+    def dblist(self):
+        """Returns a list of the databases on the server."""
+
+        maint_conn = MaintenanceWrapper(
+            self.connect(MAINTENANCE_DB, superuser=True))
+        try:
+            result = maint_conn.dblist()
         finally:
             maint_conn.close()
 
@@ -293,6 +304,17 @@ class MaintenanceWrapper(ConnectionWrapper):
             db_found = bool(curs.fetchone())
 
         return db_found
+
+    def dblist(self):
+        """Returns a list of the databases on the server."""
+
+        dblist_sql = "SELECT datname FROM pg_database;"
+
+        with self.conn.cursor() as curs:
+            curs.execute(dblist_sql)
+            result = [tup[0] for tup in curs.fetchall()]
+
+        return result
 
     def drop(self, dbname):
         """Drops the named database."""
