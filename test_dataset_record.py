@@ -124,10 +124,10 @@ COVERAGE_TILE_STRINGS = \
     '115_-035 116_-034 116_-036 117_-035 131_-034 132_-033 132_-035 133_-034 '\
     '134_-033 134_-035 114_-035 115_-034 115_-036 116_-035 117_-034 117_-036 '\
     '131_-035 132_-034 133_-033 133_-035 134_-034'
-PATTERN = r'(?P<lon>\d+)_(?P<lat>-*\d+)'
+PATTERN = r'(\d+)_(-*\d+)'
 COVERAGE = set([(int(re.match(PATTERN, tile).group(1)),
-             int(re.match(PATTERN, tile).group(2)))
-            for tile in COVERAGE_TILE_STRINGS.split()])
+                 int(re.match(PATTERN, tile).group(2)))
+                for tile in COVERAGE_TILE_STRINGS.split()])
 # Set of definite tiles that are inside the maximum rectangle contained in the
 # dataset bounding box:
 DEFINITE_TILES = \
@@ -155,7 +155,7 @@ POSSIBLE_TILES = \
 #Set of expected possible tiles that intersect the dataset bounding box
 INTERSECTED_TILES = COVERAGE.difference(DEFINITE_TILES)
 #Set of expected possible tiles that are wholly contained in the bounding box
-CONTAINED_TILES = set([])
+CONTAINED_TILES = set()
 
 #
 # Test suite
@@ -289,11 +289,11 @@ class TestDatasetRecord(unittest.TestCase):
                 DATASET_XPIXELS, DATASET_YPIXELS,
                 zip(zip(TILE_XUL, TILE_YUL), zip(TILE_XUR, TILE_YUR),
                     zip(TILE_XLR, TILE_YLR), zip(TILE_XLL, TILE_YLL)))
-        total_definite_tiles = set([])
-        total_possible_tiles = set([])
-        total_intersected_tiles = set([])
-        total_contained_tiles = set([])
-        total_touched_tiles = set([])
+        total_definite_tiles = set()
+        total_possible_tiles = set()
+        total_intersected_tiles = set()
+        total_contained_tiles = set()
+        total_touched_tiles = set()
         cube_origin = \
             (self.ingester.datacube.tile_type_dict[tile_type_id]['x_origin'],
              self.ingester.datacube.tile_type_dict[tile_type_id]['y_origin'])

@@ -10,6 +10,7 @@ format changes.
 """
 
 import logging
+from tile_contents import TileContents
 
 # Set up logger.
 LOGGER = logging.getLogger(__name__)
@@ -37,5 +38,9 @@ class Collection(object):
     def create_acquisition_record(self, dataset):
         pass
 
-    def create_tile_contents(self, tile_footprint, band_stack):
-        pass
+    def create_tile_contents(self, tile_type_info, tile_footprint, band_stack):
+        """Factory method to create an instance of the TileContents class. The
+        tile_type_dict contains the information required for resampling extents
+        and resolution."""
+        return TileContents(self.datacube.tile_root, tile_type_info,
+                            tile_footprint, band_stack)

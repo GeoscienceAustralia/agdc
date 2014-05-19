@@ -26,3 +26,12 @@ class AbstractBandstack(object):
     # metadata directly relevant to creating the tile contents, i.e. the
     # tile file associated with the tile database entry.
     #
+
+
+
+
+
+
+
+
+

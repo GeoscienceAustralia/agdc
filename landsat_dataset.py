@@ -16,6 +16,7 @@ from ULA3.dataset import SceneDataset
 import cube_util
 from abstract_ingester import DatasetError
 from abstract_dataset import AbstractDataset
+from landsat_bandstack import LandsatBandstack
 
 #
 # Set up logger.
@@ -350,11 +351,11 @@ class LandsatDataset(AbstractDataset):
         """
         return self._ds.GetGeoTransform()
 
-    def stack_bands(self, band_list):
+    def stack_bands(self, band_dict):
         """Creates and returns a band_stack object from the dataset.
 
-        band_list: a list of band numbers describing the bands to
-        be included in the stack.
+        band_dict: a dictionary describing the bands to be included in the
+        stack.
 
         PRE: The numbers in the band list must refer to bands present
         in the dataset. This method (or things that it calls) should
@@ -364,5 +365,5 @@ class LandsatDataset(AbstractDataset):
         (described below), allowing the datacube to chop the relevent
         bands into tiles.
         """
-
-        raise NotImplementedError
+        return LandsatBandstack(band_dict, self.metadata_dict)
+        #raise NotImplementedError

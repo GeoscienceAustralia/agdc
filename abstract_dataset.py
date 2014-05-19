@@ -41,7 +41,7 @@ class AbstractDataset(object):
         """
 
         self._dataset_path = os.path.abspath(dataset_path)
-
+        self.metadata_dict = self.build_metadata_dict()
     #
     # Accessor method for the dataset path
     #

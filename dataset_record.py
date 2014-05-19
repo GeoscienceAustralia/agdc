@@ -24,26 +24,60 @@ class DatasetRecord(object):
         self.collection = collection
         self.acquisition_record = acquisition_record
         self.dataset_id = dataset_id
+        self.mdd = None
 
     def mark_as_tiled(self):
         pass
 
-    def list_tile_types(self):
-        pass
+    def list_tile_types_and_bands(self):
+        """Return the set of tile type ids pertaining to the dataset record
+        and also a dictionary of band source information. This dictionary is
+        extracted from the datacube.bands object, on the condition that the
+        satellite, sensor and processing level matches those of the dataset.
+        For derived products such as PQA and Fractional Cover, the (satellite,
+        sensor) pair is taken as ('DERIVED', processing_level), as per the
+        secondary keys of the datacube.bands dictionary. The returned
+        dictionary omits this secondary key and so is keyed as
+        dataset_bands[tile_type][file_number]"""
+        tile_type_set = set()
+        dataset_bands = {} #will contain bands from datacube.bands
+        satellite, sensor, level = \
+            self.get_satellite_sensor_level()
+        datacube_tile_types = self.collection.datacube.bands.keys()
+        for tile_type in datacube_tile_types:
+            #define datacube_bands as those nested dictionaries pertaining to
+            #this tile_type and the dataset's (satellite, sensor) pair
+            datacube_bands = \
+                self.collection.datacube.bands[tile_type][(satellite, sensor)]
+            for file_number in datacube_bands:
+                if datacube_bands[file_number]['level_name'] != level:
+                    #This band's level_name is not relevant to this dataset
+                    continue
+                #add this tile_type to the dataset's tile_type_set
+                tile_type_set = tile_type_set.union(set([tile_type]))
+                #add the band source information to the dataset_bands dict
+                if tile_type not in dataset_bands:
+                    dataset_bands[tile_type] = {}
+                if file_number not in  dataset_bands[tile_type]:
+                    dataset_bands[tile_type][file_number] = {}
+                dataset_inner_dict = dataset_bands[tile_type][file_number]
+                datacube_inner_dict = datacube_bands[tile_type][file_number]
+                dataset_inner_dict.update(datacube_inner_dict)
+        return tile_type_set, dataset_bands
 
     def list_bands(self, tile_type_id):
         pass
 
     # pylint: enable=missing-docstring
-    def get_coverage(self, dataset, tile_type_id):
+    def get_coverage(self, tile_type_id):
         """Given the coordinate reference system of the dataset and that of the
         tile_type_id, return a list of tiles within the dataset footprint"""
         tile_type_info = self.collection.datacube.tile_type_dict[tile_type_id]
         #Get geospatial information from the dataset.
-        dataset_crs = dataset.get_projection()
-        dataset_geotransform = dataset.get_geotransform()
-        pixels = dataset.x_pixels()
-        lines = dataset.y_pixels()
+        dataset_crs = self.mdd['projection']
+        dataset_geotransform = self.mdd['geotransform']
+        pixels = self.mdd['x_pixels']
+        lines = self.mdd['y_pixels']
         #Look up the datacube's projection information for this tile_type
         tile_crs = tile_type_info['crs']
         #Get the transformation between the two projections
@@ -280,6 +314,19 @@ class DatasetRecord(object):
                 uparameter > 0 and uparameter < 1:
             return True
 
+    def get_satellite_sensor_level(self):
+        """Use the dataset_record's metadata dictionary to return a tuple of
+        (satellite, sensor, processing_level), The purpose of this is to look
+        up the datacube.bands nested dictionaries. For bands of derived
+        products such as PQA and Fractional Cover, the (satellite, sensor) key
+        takes the value ('DERIVED', processing_level)"""
+        satellite = self.mdd['satellite_tag'].upper()
+        sensor = self.mdd['sensor_name'].upper()
+        processing_level = self.mdd['processing_level'].upper()
+        if processing_level in ['PQA', 'FC', 'DSM']:
+            satellite = 'DERIVED'
+            sensor = processing_level
+        return (satellite, sensor, processing_level)
 
 
 
