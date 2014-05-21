@@ -28,3 +28,4 @@ class TileRecord(object):
 
     def make_mosaics(self):
         pass
+# Test push from git-bash
