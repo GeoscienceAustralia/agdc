@@ -41,7 +41,7 @@ class LandsatDataset(AbstractDataset):
     #
 
     PROCESSING_LEVEL_ALIASES = {
-        'Pixel Quality': 'PQ',
+        'Pixel Quality': 'PQA',
         'Fractional Cover': 'FC'
         }
 
@@ -53,7 +53,7 @@ class LandsatDataset(AbstractDataset):
         extracted and kept the instance attributes.
         """
 
-        AbstractDataset.__init__(self, dataset_path)
+        self._dataset_path = dataset_path
 
         self._ds = SceneDataset(default_metadata_required=False, utm_fix=True)
         self._ds = self._ds.Open(self.get_dataset_path())
@@ -75,6 +75,8 @@ class LandsatDataset(AbstractDataset):
             self._mtl_text = None
 
         self._xml_text = self._get_xml_text()
+
+        AbstractDataset.__init__(self)
 
     #
     # Methods to extract extra metadata
@@ -163,6 +165,10 @@ class LandsatDataset(AbstractDataset):
     #
     # Metadata accessor methods
     #
+
+    def get_dataset_path(self):
+        """The path to the dataset on disk."""
+        return self._dataset_path
 
     def get_satellite_tag(self):
         """A short unique string identifying the satellite."""

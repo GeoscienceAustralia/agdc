@@ -11,7 +11,6 @@
     being opened.
 """
 
-import os
 import re
 from abc import ABCMeta, abstractmethod
 
@@ -30,17 +29,16 @@ class AbstractDataset(object):
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, dataset_path):
+    def __init__(self):
         """Initialise the dataset.
 
         Subclasses will likely override this, either to parse the
         metadata or to accept additional arguments or both.
 
         Subclasses can call the super class __init__ (i.e. this
-        method) with 'AbstractDataset.__init__(self, dataset_path)'.
+        method) with 'AbstractDataset.__init__(self)'.
         """
 
-        self._dataset_path = os.path.abspath(dataset_path)
         self.metadata_dict = self.build_metadata_dict()
     #
     # Metadata as dict utility method
@@ -88,10 +86,6 @@ class AbstractDataset(object):
     # pylint: disable=no-self-use
     #
 
-    def get_dataset_path(self):
-        """The path to the dataset on disk."""
-        return self._dataset_path
-
 
     def get_pq_tests_run(self):
         """The tests run for a Pixel Quality dataset.
@@ -106,6 +100,11 @@ class AbstractDataset(object):
     #
     # Abstract accessor methods. These must be overridden in a subclass.
     #
+
+    @abstractmethod
+    def get_dataset_path(self):
+        """The path to the dataset on disk."""
+        raise NotImplementedError
 
     @abstractmethod
     def get_satellite_tag(self):
