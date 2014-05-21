@@ -10,6 +10,7 @@ format changes.
 """
 
 import logging
+from abstract_ingester import DatasetError
 from tile_contents import TileContents
 from acquisition_record import AcquisitionRecord
 from dbutil import ConnectionWrapper
@@ -58,7 +59,16 @@ class Collection(object):
         self.in_a_transaction = False
 
     def check_metadata(self, dataset):
-        pass
+        """Check that the satellite, sensor, and bands are in the database.
+
+        Checks that the dataset is of a kind that the database knows about
+        (by checking basic metadata), and the bands that the database expects
+        are present.
+        """
+
+        self.__check_satellite_and_sensor(dataset)
+        self.__check_processing_level(dataset)
+        self.__check_bands(dataset)
 
     def begin_transaction(self):
         """Begin a transaction on the collection."""
@@ -121,7 +131,7 @@ class Collection(object):
             self.db.get_satellite_id(acquisition_dict['satellite_tag'])
         acquisition_dict['sensor_id'] = \
             self.db.get_sensor_id(acquisition_dict['satellite_id'],
-                                            acquisition_dict['sensor_name'])
+                                  acquisition_dict['sensor_name'])
 
         # Finally look up the acquisiton_id, or create a new record if it
         # does not exist, and fill it into the dictionary.
@@ -179,6 +189,59 @@ class Collection(object):
                     new_bands[dataset_key][tile_type][file_number] = band_info
 
         return new_bands
+
+    def __check_satellite_and_sensor(self, dataset):
+        """Check that the dataset's satellite and sensor are in the database.
+
+        Raises a DatasetError if they are not.
+        """
+
+        satellite_id = self.db.get_satellite_id(dataset.get_satellite_tag())
+        if satellite_id is None:
+            raise DatasetError("Unknown satellite tag: '%s'" %
+                                dataset.get_satellite_tag())
+
+        sensor_id = self.db.get_sensor_id(satellite_id,
+                                          dataset.get_sensor_name())
+        if sensor_id is None:
+            msg = ("Unknown satellite and sensor pair: '%s', '%s'" %
+                   (dataset.get_satellite_tag(), dataset.get_sensor_name()))
+            raise DatasetError(msg)
+
+    def __check_processing_level(self, dataset):
+        """Check that the dataset's processing_level is in the database.
+        
+        Raises a DatasetError if it is not.
+        """
+        
+        level_id = self.db.get_level_id(dataset.get_processing_level())
+        if level_id is None:
+            raise DatasetError("Unknown processing level: '%s'" %
+                               dataset.get_processing_level())
+
+    def __check_bands(self, dataset):
+        """Check that the dataset has the expected bands.
+        
+        Raises a DatasetError if any band expected for this dataset (according
+        to the database) is missing.
+        """ 
+        
+        dataset_key = (dataset.get_satellite_tag(),
+                       dataset.get_sensor_name(),
+                       dataset.get_processing_level())
+        
+        dataset_bands = self.new_bands[dataset_key]
+        for (tile_type, tile_type_bands) in dataset_bands.items():
+            for (file_number, band_info) in tile_type_bands.items():
+                if not dataset.band_exists(file_number,
+                                           band_info['file_pattern']):
+                    msg = (("Unable to verify  the existance of a band: " +
+                            "tile_type = %s, " +
+                            "file_number = %s, " +
+                            "file_pattern = '%s'") %
+                            (tile_type, file_number, band_info['file_pattern']))
+                    raise DatasetError(msg)
+
 
 class CollectionDBWrapper(ConnectionWrapper):
     pass
