@@ -13,7 +13,7 @@ import logging
 from abstract_ingester import DatasetError
 from tile_contents import TileContents
 from acquisition_record import AcquisitionRecord
-from dbutil import ConnectionWrapper
+from ingest_db_wrapper import IngestDBWrapper
 
 # Set up logger.
 LOGGER = logging.getLogger(__name__)
@@ -53,7 +53,7 @@ class Collection(object):
     def __init__(self, datacube):
 
         self.datacube = datacube
-        self.db = CollectionDBWrapper(datacube.db_connection)
+        self.db = IngestDBWrapper(datacube.db_connection)
         self.new_bands = self.__reindex_bands(datacube.bands)
         self.tile_list = None
         self.in_a_transaction = False
@@ -190,19 +190,37 @@ class Collection(object):
 
         return new_bands
 
+    def __get_satellite_and_sensor_id(self, dataset):
+        """Look up the satellite_id and sensor_id in the database.
+
+        These are returned as a tuple (satellite_id, sensor_id). They are
+        obtianed from the database by matching to the satellite_tag and
+        sensor_name from the dataset metadata. They are set to None if
+        they cannot be found.
+        """
+
+        satellite_id = self.db.get_satellite_id(dataset.get_satellite_tag())
+
+        if satellite_id is not None:
+            sensor_id = self.db.get_sensor_id(satellite_id,
+                                              dataset.get_sensor_name())
+        else:
+            sensor_id = None
+
+        return satellite_id, sensor_id
+
     def __check_satellite_and_sensor(self, dataset):
         """Check that the dataset's satellite and sensor are in the database.
 
         Raises a DatasetError if they are not.
         """
 
-        satellite_id = self.db.get_satellite_id(dataset.get_satellite_tag())
+        (satellite_id, sensor_id) = self.__get_satellite_and_sensor(dataset)
+
         if satellite_id is None:
             raise DatasetError("Unknown satellite tag: '%s'" %
                                 dataset.get_satellite_tag())
 
-        sensor_id = self.db.get_sensor_id(satellite_id,
-                                          dataset.get_sensor_name())
         if sensor_id is None:
             msg = ("Unknown satellite and sensor pair: '%s', '%s'" %
                    (dataset.get_satellite_tag(), dataset.get_sensor_name()))
@@ -241,8 +259,4 @@ class Collection(object):
                             "file_pattern = '%s'") %
                             (tile_type, file_number, band_info['file_pattern']))
                     raise DatasetError(msg)
-
-
-class CollectionDBWrapper(ConnectionWrapper):
-    pass
 
