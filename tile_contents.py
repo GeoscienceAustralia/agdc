@@ -19,13 +19,16 @@ import cube_util
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
+PQA_CONTIGUITY_BIT = 8 #PQA has valid data if this bit is set
 
 class TileContents(object):
     """TileContents database interface class."""
-
-    def __init__(self, tile_root, tile_type_info, tile_footprint, band_stack):
+    
+    def __init__(self, tile_root, tile_type_info,
+                 tile_footprint, band_stack): 
         """set the tile_footprint over which we want to resample this dataset.
         """
+        self.tile_type_id = tile_type_info['tile_type_id']
         self.tile_type_info = tile_type_info
         self.tile_footprint = tile_footprint
         self.band_stack = band_stack
@@ -56,8 +59,10 @@ class TileContents(object):
                       ]) + tile_type_info['file_extension']
             )
         self.temp_tile_output_path = \
-            os.path.join(os.path.dirname(self.band_stack.vrt_name))
-                         
+                        os.path.join(os.path.dirname(self.tile_output_path),
+                                     'ingest_temp',
+                                     os.path.basename(self.tile_output_path))
+
     def reproject(self):
         """Reproject the scene dataset into tile coordinate reference system
         and extent. This method uses gdalwarp to do the reprojection."""
@@ -71,11 +76,12 @@ class TileContents(object):
         y0 = y_origin + self.tile_footprint[1] * y_size
         tile_extents = (x0, y0, x0 + x_size, y0 + y_size)
         nodata_value = self.band_stack.nodata_list[0]
-        #Assume resampling method is the same for all bands, this is the case
+        #Assume resampling method is the same for all bands, this is
         #because resampling_method is per proessing_level
         #TODO assert this is the case
         first_file_number = self.band_stack.band_dict.keys()[0]
-        resampling_method = self.band_stack.band_dict[first_file_number]['resampling_method']
+        resampling_method = self.band_stack.band_dict[first_file_number] \
+                                     ['resampling_method']
         if nodata_value is not None:
             #TODO: Check this works for PQA, where
             #band_dict[10]['resampling_method'] == None
@@ -100,11 +106,108 @@ class TileContents(object):
                          ]
         result = cube_util.execute(reproject_cmd)
         if result['returncode'] != 0:
-            raise DatasetError('Unable to perform gdalwarp: ' +
-                               '"%s" failed: %s' % (reproject_cmd, result['stderr']))
+            raise DatasetError('Unable to perform gdalwarp: ' + ###test commit
+                               '"%s" failed: %s' % (reproject_cmd,
+                         result['stderr']))
+                                    
 
     def has_data(self):
-        pass
+        """Check if the reprojection gave rise to a tile with valid data.
+
+        Open the file and check if there is data"""
+        tile_dataset = gdal.Open(self.tile_output_path)
+        data = tile_dataset.ReadAsArray()
+        if len(data.shape) == 2:
+            data = data[None, :]
+        assert data.shape[0] == len(self.band_stack.band_dict), \
+            "Number of layers in tile file does not match number of bands" \
+            "from database"
+        for file_number in self.band_stack.band_dict:
+            nodata_val = self.band_stack.band_dict[file_number]['nodata_value']
+            if nodata_val == None:
+                if self.band_stack.band_dict[file_number] \
+                                            ['level_name'] == 'PQA':
+                    if (numpy.bitwise_and(data,
+                                          1 << PQA_CONTIGUITY_BIT) > 0).any():
+                        return True
+                else:
+                    #nodata_value of None means all array data is valid
+                    return True
+            else:
+                if (data != nodata_val).any():
+                    return True
+        #If all comparisons have shown that all array contents are nodata:
+        return False
 
     def remove(self):
         pass
+
+    #
+    #Methods that mosaic several tiles together
+    #
+    def make_pqa_mosaic_tile(self, tile_list, mosaic_pathname):
+        template_dataset = gdal.Open(tile_list[0]['tile_pathname'])
+        gdal_driver = gdal.GetDriverByName(self.tile_contents.
+                                           tile_type_info['file_format'])
+        #Set datatype formats appropriate to Create() and numpy
+        gdal_dtype = template_dataset.GetRasterBand(1).DataType
+        numpy_dtype = gdal.GetDataTypeName(gdal_dtype)
+        mosaic_dataset = gdal_driver.Create(mosaic_pathname,
+                                            template_dataset.RasterXSize,
+                                            template_dataset.RasterYSize,
+                                            1, gdal_dtype,
+                                            self.tile_contents.
+                                            tile_type_info
+                                            ['format_options'].split(','))
+
+        assert mosaic_dataset, \
+            'Unable to open output dataset %s'% output_dataset
+        
+        mosaic_dataset.SetGeoTransform(template_dataset.GetGeoTransform())
+        mosaic_dataset.SetProjection(template_dataset.GetProjection())
+
+        # if tile_type_info['file_format'] == 'netCDF':
+        #     pass
+        #TODO: make vrt here - not really needed for single-layer file
+
+        output_band = mosaic_dataset.GetRasterBand(1)
+        data_array=numpy.zeros(shape=(mosaic_dataset.RasterYSize,
+                                      mosaic_dataset.RasterXSize),
+                               dtype=numpy_dtype)
+        data_array[...] = -1 # Set all background values to FFFF
+    
+        overall_data_mask = numpy.zeros(shape=(mosaic_dataset.RasterYSize, 
+                                               mosaic_dataset.RasterXSize),
+                                        dtype=numpy.bool)
+        del template_dataset
+
+        # Populate data_array with -masked PQA data
+        for pqa_dataset_index in range(len(tile_list)):
+            pqa_dataset_path = tile_list[pqa_dataset_index]
+            pqa_dataset = gdal.Open(pqa_dataset_path)
+            assert pqa_dataset, 'Unable to open %s' % pqa_dataset_path
+            pqa_array = pqa_dataset.ReadAsArray()
+            del pqa_dataset
+            # Set all data-containing pixels to true in data_mask
+            pqa_data_mask = (pqa_array != PQA_NO_DATA_VALUE) & \
+                            (pqa_array != 0)
+            # Update overall_data_mask to true for all valid-data pixels
+            overall_data_mask = overall_data_mask | pqa_data_mask
+            # Set bits which are true in all source arrays
+            data_array[pqa_data_mask] = \
+                        numpy.bitwise_and(data_array[pqa_data_mask],
+                                          pqa_array[pqa_data_mask])
+            # Set all pixels which don't contain data to PQA_NO_DATA_VALUE
+        data_array[~overall_data_mask] = PQA_NO_DATA_VALUE
+        output_band.WriteArray(data_array)  
+        mosaic_dataset.FlushCache()
+    
+    def make_mosaic_vrt(self, tile_list, mosaic_pathname):
+        """Form two or more source tile's create a vrt"""
+        gdalbuildvrt_cmd = ["gdalbuildvrt -q",
+                            "-overwrite",
+                            "%s" %mosaic_pathname,
+                            "%s" %(" ".join([t['tile_pathname']
+                                             for t in tile_list]))]
+        result = cube_util.execute(gdalbuildvrt_cmd)
+

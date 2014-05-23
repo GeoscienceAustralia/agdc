@@ -165,7 +165,7 @@ class AbstractIngester(object):
             dataset_record = acquisition_record.create_dataset_record(dataset)
 
             #dataset.metadata_dict = dataset.build_metadata_dict()
-            dataset_record.mdd = dataset.metadat_dict
+            dataset_record.mdd = dataset.metadata_dict
 
             self.tile_dataset(dataset_record, dataset)
 
@@ -181,29 +181,26 @@ class AbstractIngester(object):
     def tile_dataset(self, dataset_record, dataset):
         """Tiles a dataset.
         The database entry is identified by dataset_record."""
-        tile_type_set, dataset_bands = \
-            dataset_record.list_tile_types_and_bands()
-        for tile_type_id in \
-                tile_type_set:
-            tile_type_info = self.datacube.tile_type_dict[tile_type_id]
-            band_dict = dataset_bands[tile_type_id]
-            band_stack = dataset.stack_bands(band_dict)
-            band_stack.buildvrt(self.datacube.temp_dir)
+        dataset_key = dataset_record.get_dataset_key()
+        tile_type_set = dataset_record.list_tile_types(dataset_key)
+        for tile_type_id in tile_type_set:
+            dataset_bands_dict = dataset_record.list_bands(tile_type_id)
+            vrt_temp_dir = self.collection.make_tempdir(tile_type_id)
+            #tile_type_info = self.datacube.tile_type_dict[tile_type_id]
+            band_stack = dataset.stack_bands(dataset_bands_dict)
+            band_stack.buildvrt(vrt_temp_dir)
             for tile_footprint in \
                     dataset_record.get_coverage(tile_type_id):
-                self.make_one_tile(dataset_record, tile_type_info,
-                                   dataset_record, tile_footprint)
+                self.make_one_tile(dataset_record, tile_type_id, tile_footprint, band_stack)
 
-    def make_one_tile(self, dataset_record, tile_type_info,
-                      tile_footprint, band_stack):
+    def make_one_tile(self, dataset_record, tile_type_id, tile_footprint, band_stack):
         """Makes a single tile."""
-        tile_contents = self.collection.create_tile_contents(tile_type_info,
+        tile_contents = self.collection.create_tile_contents(tile_type_id,
                                                              tile_footprint,
                                                              band_stack)
         tile_contents.reproject()
         if tile_contents.has_data():
-            tile_record = dataset_record.create_tile_record(tile_footprint,
-                                                            tile_contents)
+            tile_record = dataset_record.create_tile_record(tile_contents)
             tile_record.make_mosaics()
         else:
             tile_contents.remove()

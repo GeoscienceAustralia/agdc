@@ -12,19 +12,67 @@ format changes.
 import logging
 from osgeo import osr
 from abstract_ingester import DatasetError
+from ingest_db_wrapper import IngestDBWrapper
 from math import floor
+
 # Set up logger.
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
 class DatasetRecord(object):
     """DatasetRecord database interface class."""
+
+    DATASET_METADATA_FIELDS = ['dataset_path',
+                               'level_name',
+                               'datetime_processed',
+                               'dataset_size',
+                               'crs',
+                               'll_x',
+                               'll_y',
+                               'lr_x',
+                               'lr_y',
+                               'ul_x',
+                               'ul_y',
+                               'ur_x',
+                               'ur_y',
+                               'x_pixels',
+                               'y_pixels',
+                               'xml_text'
+                                ]
+
     # pylint: disable=missing-docstring
-    def __init__(self, collection, acquisition_record, dataset_id):
+    def __init__(self, collection, acquisition, dataset):
+
         self.collection = collection
-        self.acquisition_record = acquisition_record
-        self.dataset_id = dataset_id
-        self.mdd = None
+        self.acquisition = acquisition
+        self.datacube = collection.datacube
+        self.db = IngestDBWrapper(self.datacube.db_connection)
+        self.mdd = dataset.metadata_dict
+
+        self.dataset_dict = {}
+
+        for field in self.DATASET_METADATA_FIELDS:
+            self.dataset_dict[field] = self.mdd[field]
+
+        self.dataset_dict['acquisition_id'] = self.acquisition.acquisition_id
+        self.dataset_dict['level_id'] = \
+            self.db.get_processing_level(self.dataset_dict['level_name'])
+
+        self.dataset_id = self.db.get_dataset_id(self.dataset_dict)
+        if self.dataset_id is None:
+            # create a new dataset record in the database
+            self.dataset_id = self.db.insert_dataset_record(self.dataset_dict)
+        else:
+            # check to see if the existing dataset is more recent
+            if (self.db.get_dataset_creation_datetime(self.dataset_id) >=
+                    self.dataset_dict['datetime_processed']):
+                raise DatasetError("Cannot update a more recent dataset.")
+            # otherwise, remove the old tiles
+            self.__remove_dataset_tiles()
+            # and do the update
+            self.db.update_dataset_record(self.dataset_id, self.dataset_dict)
+
+        self.dataset_dict['dataset_id'] = self.dataset_id
 
     def mark_as_tiled(self):
         pass
@@ -327,6 +375,15 @@ class DatasetRecord(object):
             satellite = 'DERIVED'
             sensor = processing_level
         return (satellite, sensor, processing_level)
+    
+    def __remove_dataset_tiles(self):
+        """Remove the tiles associated with a dataset that is about to
+        be updated."""
+
+        for tile_id in self.db.get_dataset_tile_ids(self.dataset_id):
+            tile_pathname = self.db.get_tile_pathname(tile_id)
+            self.db.remove_tile_record(tile_id)
+            self.collection.mark_tile_for_removal(tile_pathname)
 
 
 
