@@ -157,3 +157,23 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         fields are updated to match the values in dataset_dict."""
 
         pass
+
+    def get_dataset_tile_ids(self, dataset_id):
+        """Returns a list of tile_ids associated with a dataset."""
+
+        tile_id_list = None
+
+        return tile_id_list
+
+    def get_tile_pathname(self, tile_id):
+        """Returns the pathname for a tile."""
+
+        tile_pathname = None
+
+        return tile_pathname
+
+    def remove_tile_record(self, tile_id):
+        """Removes a tile record from the database."""
+
+        pass
+

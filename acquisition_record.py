@@ -12,6 +12,7 @@ format changes.
 import logging
 
 from ingest_db_wrapper import IngestDBWrapper
+from dataset_record import DatasetRecord
 
 # Set up logger.
 LOGGER = logging.getLogger(__name__)
@@ -45,7 +46,6 @@ class AcquisitionRecord(object):
         self.collection = collection
         self.datacube = collection.datacube
         self.db = IngestDBWrapper(self.datacube.db_connection)
-        self.new_bands = collection.new_bands
         self.acquisition_dict = {}
         self.acquisiton_id = None # set below
         
@@ -81,5 +81,6 @@ class AcquisitionRecord(object):
         tiles) if one exists. It will raise a DatasetError if a later (or
         equal time) record for this dataset already exists in the database.
         """
-        
-        pass
+
+        return DatasetRecord(self.collection, self, dataset)
+

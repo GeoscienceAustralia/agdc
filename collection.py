@@ -10,6 +10,7 @@ format changes.
 """
 
 import logging
+import os
 from abstract_ingester import DatasetError
 from tile_contents import TileContents
 from acquisition_record import AcquisitionRecord
@@ -28,11 +29,16 @@ class Collection(object):
     #
 
     def __init__(self, datacube):
+        """Initialise the collection object.
+        
+        Note that tile_create_list is a list of TileContent objects,
+        while tile_remove_list is a list of pathnames."""
 
         self.datacube = datacube
         self.db = IngestDBWrapper(datacube.db_connection)
         self.new_bands = self.__reindex_bands(datacube.bands)
-        self.tile_list = None
+        self.tile_remove_list = None
+        self.tile_create_list = None
         self.in_a_transaction = False
         self.previous_commit_mode = None
 
@@ -53,7 +59,8 @@ class Collection(object):
 
         assert not self.in_a_transaction
 
-        self.tile_list = []
+        self.tile_remove_list = []
+        self.tile_create_list = []
         self.previous_commit_mode = self.db.turn_off_autocommit()
         self.in_a_transaction = True
 
@@ -66,11 +73,17 @@ class Collection(object):
 
         assert self.in_a_transaction
 
-        for tile_contents in self.tile_list:
+        for tile_pathname in self.tile_remove_list:
+            if os.path.isfile(tile_pathname):
+                os.remove(tile_pathname)
+        self.tile_remove_list = None
+
+        for tile_contents in self.tile_create_list:
             tile_contents.make_permanent()
-        self.tile_list = None
+        self.tile_create_list = None
 
         self.db.commit()
+
         self.db.restore_autocommit(self.previous_commit_mode)
         self.in_a_transaction = False
 
@@ -82,11 +95,14 @@ class Collection(object):
 
         assert self.in_a_transaction
 
-        for tile_contents in self.tile_list:
+        self.tile_remove_list = None
+
+        for tile_contents in self.tile_create_list:
             tile_contents.remove()
-        self.tile_list = None
+        self.tile_create_list = None
 
         self.db.rollback()
+
         self.db.restore_autocommit(self.previous_commit_mode)
         self.in_a_transaction = False
 
@@ -113,6 +129,16 @@ class Collection(object):
         self.tile_list.append(tile_contents)
 
         return tile_contents
+    
+    def mark_tile_for_removal(self, tile_pathname):
+        """Mark a tile file for removal.
+        
+        These tiles will be deleted if the transaction is commited,
+        but not if it is rolled back."""
+
+        assert self.in_a_transaction
+
+        self.tile_remove_list.append(tile_pathname)
 
     #
     # worker methods
