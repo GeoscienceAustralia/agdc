@@ -21,9 +21,10 @@ LOGGER.setLevel(logging.INFO)
 class AcquisitionRecord(object):
     """AcquisitionRecord database interface class."""
 
-    def __init__(self, collection, acquisition_id):
-        self.collection = collection
-        self.acquisition_id = acquisition_id
+    def __init__(self, datacube, new_bands, acquisition_dict):
+        self.datacube = datacube
+        self.new_bands = new_bands
+        self.acquisition_dict = acquisition_dict
 
     def create_dataset_record(self, dataset):
         pass
