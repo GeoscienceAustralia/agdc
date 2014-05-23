@@ -6,8 +6,9 @@ import os
 import logging
 import unittest
 import dbutil
-import dataset_record
+from dataset_record import DatasetRecord
 from abstract_ingester import AbstractIngester
+from abstract_dataset import AbstractDataset
 from math import floor
 #
 # Set up logger.
@@ -91,6 +92,18 @@ DATASET_YPIXELS = [8481, 8361, 8521, 8641, 8521, 8761]
 # List of tile crs for datacube
 TILE_CRS = ['EPSG:4326', 'EPSG:4326', 'EPSG:4326',
             'EPSG:4326', 'EPSG:4326', 'EPSG:4326']
+
+#Values to be given to metadata_dict
+SATELLITE_SENSOR = ['LS5-TM', 'LS7-ETM+', 'LS7-ETM+', 'LS7-ETM+', 'LS5-TM',
+                   'LS7-ETM+']
+
+DATASET_SATELLITE_TAG = \
+    [re.match(r'([\w+]+)-([\w+]+)', sat_sen_string).group(1)
+     for sat_sen_string in SATELLITE_SENSOR]
+DATASET_SENSOR_NAME = \
+    [re.match(r'([\w+]+)-([\w+]+)', sat_sen_string).group(2)
+     for sat_sen_string in SATELLITE_SENSOR]
+
 
 ################ THE EXPECTED OUTPUT: ################
 TOLERANCE = 1e-02 #tolerance in number of pixels for bbox calculation
@@ -205,9 +218,16 @@ class TestDatasetRecord(unittest.TestCase):
         self.handler.setFormatter(logging.Formatter('%(message)s'))
 
         # Set the DatasetRecord instance
-        self.dset_record = dataset_record.DatasetRecord(None, None, None)
         # Set an instance of the ingester to get a datacube object
         self.ingester = TestIngester()
+        self.dset_record = DatasetRecord(self.ingester.collection, None, None)
+        #Create a metedata_dict, as if constructed by AbstractDataset.__init__
+        #To be updated before we call dataset_record.get_coverage() method on
+        #each dataset.
+        self.dset_record.mdd = {}
+        mdd = {'satellite_tag': 'LS7', 'sensor_name': 'ETM+',
+               'processing_level': 'ORTHO'}
+        self.dset_record.mdd.update(mdd)
     def tearDown(self):
         #
         # Flush the handler and remove it from the root logger.
@@ -287,6 +307,7 @@ class TestDatasetRecord(unittest.TestCase):
         example_set = \
             zip(DATASET_CRS, TILE_CRS, DATASET_GEOTRANSFORM,
                 DATASET_XPIXELS, DATASET_YPIXELS,
+                DATASET_SATELLITE_TAG, DATASET_SENSOR_NAME,
                 zip(zip(TILE_XUL, TILE_YUL), zip(TILE_XUR, TILE_YUR),
                     zip(TILE_XLR, TILE_YLR), zip(TILE_XLL, TILE_YLL)))
         total_definite_tiles = set()
@@ -294,6 +315,7 @@ class TestDatasetRecord(unittest.TestCase):
         total_intersected_tiles = set()
         total_contained_tiles = set()
         total_touched_tiles = set()
+        total_coverage = set()
         cube_origin = \
             (self.ingester.datacube.tile_type_dict[tile_type_id]['x_origin'],
              self.ingester.datacube.tile_type_dict[tile_type_id]['y_origin'])
@@ -302,9 +324,17 @@ class TestDatasetRecord(unittest.TestCase):
              self.ingester.datacube.tile_type_dict[tile_type_id]['y_size'])
         for example in example_set:
             dataset_crs, tile_crs, geotrans, \
-                pixels, lines, dummy_dataset_bbox = example
+                pixels, lines, satellite_tag, sensor_name, \
+            dummy_dataset_bbox = example
+            #update mdd, for use by get_coverage() method
+            self.dset_record.mdd['projection'] = dataset_crs
+            self.dset_record.mdd['geotransform'] = geotrans
+            self.dset_record.mdd['x_pixels'] = pixels
+            self.dset_record.mdd['y_pixels'] = lines
+            self.dset_record.mdd['satellite_tag'] = satellite_tag
+            self.dset_record.mdd['sensor_name'] = sensor_name
             transformation = \
-            self.dset_record.define_transformation(dataset_crs, tile_crs)
+                self.dset_record.define_transformation(dataset_crs, tile_crs)
             #Determine the bounding quadrilateral of the dataset extent
             bbox = self.dset_record.get_bbox(transformation, geotrans,
                                              pixels, lines)
@@ -340,6 +370,9 @@ class TestDatasetRecord(unittest.TestCase):
                                                    cube_origin,
                                                    cube_tile_size)
             total_touched_tiles = total_touched_tiles.union(touched_tiles)
+            #use parent method get_coverage to get coverage
+            coverage = self.dset_record.get_coverage(tile_type_id)
+            total_coverage = total_coverage.union(coverage)
 
         #Check definite and possible tiles are as expected
         assert total_definite_tiles == DEFINITE_TILES, \
@@ -356,6 +389,9 @@ class TestDatasetRecord(unittest.TestCase):
          #Check results of get_touced_tiles against expectations
         assert total_touched_tiles == COVERAGE, \
             "Set of tiles returned by get_touched_tiles does not agree " \
+            "with test data"
+        assert total_coverage == COVERAGE, \
+            "Set of tiles returned by get_coverage does not agree " \
             "with test data"
 
 def the_suite():

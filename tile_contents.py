@@ -13,7 +13,7 @@ import logging
 import os
 import re
 import cube_util
-from abstract_ingester import DatasetError
+#from abstract_ingester import DatasetError
 
 # Set up logger.
 LOGGER = logging.getLogger(__name__)
