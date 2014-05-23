@@ -155,3 +155,17 @@ def execute(command_string=None, shell=True, cwd=None, env=None,
     return result
 
 # pylint: enable = too-many-arguments, too-many-locals
+def getFileSizeMB(path):
+    """Gets the size of a file (megabytes).
+
+    Arguments:
+    path: file path
+ 
+    Returns:
+    File size (MB)
+
+    Raises:
+    OSError [Errno=2] if file does not exist
+    """     
+    return os.path.getsize(path) / (1024*1024)
+

@@ -22,10 +22,12 @@ LOGGER.setLevel(logging.INFO)
 
 class TileContents(object):
     """TileContents database interface class."""
-
-    def __init__(self, tile_root, tile_type_info, tile_footprint, band_stack):
+    
+    def __init__(self, tile_root, tile_type_info,
+                 tile_footprint, band_stack): 
         """set the tile_footprint over which we want to resample this dataset.
         """
+        self.tile_type_id = tile_type_info['tile_type_id']
         self.tile_type_info = tile_type_info
         self.tile_footprint = tile_footprint
         self.band_stack = band_stack
@@ -56,10 +58,11 @@ class TileContents(object):
                       ]) + tile_type_info['file_extension']
             )
         self.temp_tile_output_path = \
-            os.path.join(os.path.dirname(self.band_stack.vrt_name))
+                                os.path.dirname(self.band_stack.vrt_name)))
                          
     def reproject(self):
         """Reproject the scene dataset into tile coordinate reference system
+        and then we do not need 
         and extent. This method uses gdalwarp to do the reprojection."""
         x_origin = self.tile_type_info['x_origin']
         y_origin = self.tile_type_info['y_origin']
@@ -71,7 +74,7 @@ class TileContents(object):
         y0 = y_origin + self.tile_footprint[1] * y_size
         tile_extents = (x0, y0, x0 + x_size, y0 + y_size)
         nodata_value = self.band_stack.nodata_list[0]
-        #Assume resampling method is the same for all bands, this is the case
+        #Assume resampling method is the same for all bands, this is
         #because resampling_method is per proessing_level
         #TODO assert this is the case
         first_file_number = self.band_stack.band_dict.keys()[0]
@@ -100,7 +103,7 @@ class TileContents(object):
                          ]
         result = cube_util.execute(reproject_cmd)
         if result['returncode'] != 0:
-            raise DatasetError('Unable to perform gdalwarp: ' +
+            raise DatasetError('Unable to perform gdalwarp: ' + ###test commit
                                '"%s" failed: %s' % (reproject_cmd, result['stderr']))
 
     def has_data(self):

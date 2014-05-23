@@ -165,7 +165,7 @@ class AbstractIngester(object):
             dataset_record = acquisition_record.create_dataset_record(dataset)
 
             #dataset.metadata_dict = dataset.build_metadata_dict()
-            dataset_record.mdd = dataset.metadat_dict
+            dataset_record.mdd = dataset.metadata_dict
 
             self.tile_dataset(dataset_record, dataset)
 
@@ -192,7 +192,7 @@ class AbstractIngester(object):
             for tile_footprint in \
                     dataset_record.get_coverage(tile_type_id):
                 self.make_one_tile(dataset_record, tile_type_info,
-                                   dataset_record, tile_footprint)
+                                   tile_footprint, band_stack)
 
     def make_one_tile(self, dataset_record, tile_type_info,
                       tile_footprint, band_stack):
