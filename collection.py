@@ -117,13 +117,13 @@ class Collection(object):
 
         return AcquisitionRecord(self.collection, dataset)
 
-    def create_tile_contents(self, tile_type_info, tile_footprint,
+    def create_tile_contents(self, tile_type_id, tile_footprint,
                              band_stack):
         """Factory method to create an instance of the TileContents class.
         
         The tile_type_dict contains the information required for
         resampling extents and resolution."""
-
+        tile_type_info = self.datacube.tile_type_dict[tile_type_id]
         tile_contents = TileContents(self.datacube.tile_root, tile_type_info,
                                      tile_footprint, band_stack)
         self.tile_list.append(tile_contents)
@@ -228,4 +228,3 @@ class Collection(object):
                             "file_pattern = '%s'") %
                             (tile_type, file_number, band_info['file_pattern']))
                     raise DatasetError(msg)
-

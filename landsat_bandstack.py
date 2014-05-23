@@ -23,7 +23,7 @@ class LandsatBandstack(AbstractBandstack):
         self.nodata_list = None
         self.vrt_name = None
         self.vrt_band_stack = None
-    def buildvrt(self, temp_dir):
+    def buildvrt(temp_dir):
         """Given a dataset_record and corresponding dataset, build the vrt that
         will be used to reproject the dataset's data to tile coordinates"""
         #Make the list of filenames from the dataset_path/scene01 and each
@@ -37,7 +37,7 @@ class LandsatBandstack(AbstractBandstack):
         else:
             nodata_spec = ""
         #Form the vrt_band_stack_filename
-        vrt_band_stack_filename = self.get_vrt_name(temp_dir)
+        self.vrt_name = self.get_vrt_name(temp_dir)
         #build the vrt
         buildvrt_cmd = ["gdalbuildvrt -separate",
                         "-q",
