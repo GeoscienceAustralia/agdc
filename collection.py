@@ -24,29 +24,6 @@ class Collection(object):
     """Collection database interface class."""
 
     #
-    # Constants
-    #
-
-    ACQUISITION_METADATA_FIELDS = ['satellite_tag',
-                                   'sensor_name',
-                                   'x_ref',
-                                   'y_ref',
-                                   'start_datetime',
-                                   'end_datetime',
-                                   'll_lon',
-                                   'll_lat',
-                                   'lr_lon',
-                                   'lr_lat',
-                                   'ul_lon',
-                                   'ul_lat',
-                                   'ur_lon',
-                                   'ur_lat',
-                                   'gcp_count',
-                                   'mtl_text',
-                                   'cloud_cover'
-                                   ]
-
-    #
     # Interface methods
     #
 
@@ -57,13 +34,14 @@ class Collection(object):
         self.new_bands = self.__reindex_bands(datacube.bands)
         self.tile_list = None
         self.in_a_transaction = False
+        self.previous_commit_mode = None
 
     def check_metadata(self, dataset):
         """Check that the satellite, sensor, and bands are in the database.
 
         Checks that the dataset is of a kind that the database knows about
         (by checking basic metadata), and the bands that the database expects
-        are present.
+        are present. Raises a DatasetError if the checks fail.
         """
 
         self.__check_satellite_and_sensor(dataset)
@@ -76,7 +54,7 @@ class Collection(object):
         assert not self.in_a_transaction
 
         self.tile_list = []
-        self.db.turn_off_autocommit()
+        self.previous_commit_mode = self.db.turn_off_autocommit()
         self.in_a_transaction = True
 
     def commit_transaction(self):
@@ -90,9 +68,10 @@ class Collection(object):
 
         for tile_contents in self.tile_list:
             tile_contents.make_permanent()
+        self.tile_list = None
 
         self.db.commit()
-        self.db.restore_autocommit()
+        self.db.restore_autocommit(self.previous_commit_mode)
         self.in_a_transaction = False
 
     def rollback_transaction(self):
@@ -105,9 +84,10 @@ class Collection(object):
 
         for tile_contents in self.tile_list:
             tile_contents.remove()
+        self.tile_list = None
 
         self.db.rollback()
-        self.db.restore_autocommit()
+        self.db.restore_autocommit(self.previous_commit_mode)
         self.in_a_transaction = False
 
     def create_acquisition_record(self, dataset):
@@ -119,30 +99,7 @@ class Collection(object):
 
         assert self.in_a_transaction
 
-        # Fill a dictonary with data for the acquisition.
-        # Start with fields from the dataset metadata.
-        acquisition_dict = {}
-        for field in self.ACQUISITION_METADATA_FIELDS:
-            acquisition_dict[field] = dataset.metadata_dict[field]
-
-        # Next look up the satellite_id and sensor_id in the
-        # database and fill these in.
-        acquisition_dict['satellite_id'] = \
-            self.db.get_satellite_id(acquisition_dict['satellite_tag'])
-        acquisition_dict['sensor_id'] = \
-            self.db.get_sensor_id(acquisition_dict['satellite_id'],
-                                  acquisition_dict['sensor_name'])
-
-        # Finally look up the acquisiton_id, or create a new record if it
-        # does not exist, and fill it into the dictionary.
-        acquisition_id = self.db.get_acquisition_id(acquisition_dict)
-        if acquisition_id is None:
-            acquisition_id = \
-                self.db.insert_acquisition_record(acquisition_dict)
-        acquisition_dict['acquisition_id'] = acquisition_id
-
-        return AcquisitionRecord(self.datacube, self.new_bands,
-                                 acquisition_dict)
+        return AcquisitionRecord(self.collection, dataset)
 
     def create_tile_contents(self, tile_type_info, tile_footprint,
                              band_stack):
@@ -174,6 +131,10 @@ class Collection(object):
             bands[tile_type][satellite_sensor][file_number]
         where satellite_sensor is a tuple:
             (satellite_tag, sensor_name)
+
+        Note that satellite_tag and sensor_name are replaced by 'DERIVED' and
+        the processing_level for PQA and FC datasets. This needs to be taken
+        into account when constructing a dataset_key.
         """
 
         new_bands = {}
@@ -190,37 +151,19 @@ class Collection(object):
 
         return new_bands
 
-    def __get_satellite_and_sensor_id(self, dataset):
-        """Look up the satellite_id and sensor_id in the database.
-
-        These are returned as a tuple (satellite_id, sensor_id). They are
-        obtianed from the database by matching to the satellite_tag and
-        sensor_name from the dataset metadata. They are set to None if
-        they cannot be found.
-        """
-
-        satellite_id = self.db.get_satellite_id(dataset.get_satellite_tag())
-
-        if satellite_id is not None:
-            sensor_id = self.db.get_sensor_id(satellite_id,
-                                              dataset.get_sensor_name())
-        else:
-            sensor_id = None
-
-        return satellite_id, sensor_id
-
     def __check_satellite_and_sensor(self, dataset):
         """Check that the dataset's satellite and sensor are in the database.
 
         Raises a DatasetError if they are not.
         """
 
-        (satellite_id, sensor_id) = self.__get_satellite_and_sensor(dataset)
-
+        satellite_id = self.db.get_satellite_id(dataset.get_satellite_tag())
         if satellite_id is None:
             raise DatasetError("Unknown satellite tag: '%s'" %
                                 dataset.get_satellite_tag())
 
+        sensor_id = self.db.get_sensor_id(satellite_id,
+                                          dataset.get_sensor_name())
         if sensor_id is None:
             msg = ("Unknown satellite and sensor pair: '%s', '%s'" %
                    (dataset.get_satellite_tag(), dataset.get_sensor_name()))
