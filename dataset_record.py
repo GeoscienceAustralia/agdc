@@ -63,6 +63,7 @@ class DatasetRecord(object):
         if self.dataset_id is None:
             # create a new dataset record in the database
             self.dataset_id = self.db.insert_dataset_record(self.dataset_dict)
+            self.dataset_dict['dataset_id'] = self.dataset_id
         else:
             # check to see if the existing dataset is more recent
             if (self.db.get_dataset_creation_datetime(self.dataset_id) >=
@@ -72,9 +73,8 @@ class DatasetRecord(object):
             # otherwise, remove the old tiles
             self.__remove_dataset_tiles()
             # and do the update
-            self.db.update_dataset_record(self.dataset_id, self.dataset_dict)
-
-        self.dataset_dict['dataset_id'] = self.dataset_id
+            self.dataset_dict['dataset_id'] = self.dataset_id
+            self.db.update_dataset_record(self.dataset_dict)
 
     def create_tile_record(self, tile_contents):
         """Factory method to create an instance of the TileRecord class.
