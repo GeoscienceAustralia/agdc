@@ -148,10 +148,10 @@ class Collection(object):
         tile_type_info = self.datacube.tile_type_dict[tile_type_id]
         tile_contents = TileContents(self.datacube.tile_root, tile_type_info,
                                      tile_footprint, band_stack)
-        self.tile_list.append(tile_contents)
+        self.tile_create_list.append(tile_contents)
 
         return tile_contents
-    
+
     def mark_tile_for_removal(self, tile_pathname):
         """Mark a tile file for removal.
         

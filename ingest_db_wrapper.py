@@ -134,7 +134,12 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
 
         Returns a datetime object representing the creation time for
         the dataset, as recorded in the database. The dataset record
-        is identified by dataset_id."""
+        is identified by dataset_id.
+        
+        The creation time is the earliest of either the datetime_processed
+        field from the dataset table or the earliest tile.ctime field for
+        the dataset's tiles.
+        """
 
         creation_datetime = None
 

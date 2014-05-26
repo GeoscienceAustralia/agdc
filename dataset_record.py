@@ -23,7 +23,6 @@ class DatasetRecord(object):
     """DatasetRecord database interface class."""
 
     DATASET_METADATA_FIELDS = ['dataset_path',
-                               'level_name',
                                'datetime_processed',
                                'dataset_size',
                                'crs',
@@ -55,6 +54,8 @@ class DatasetRecord(object):
             self.dataset_dict[field] = self.mdd[field]
 
         self.dataset_dict['acquisition_id'] = self.acquisition.acquisition_id
+
+        self.dataset_dict['level_name'] = self.mdd['processing_level']
         self.dataset_dict['level_id'] = \
             self.db.get_processing_level(self.dataset_dict['level_name'])
 
@@ -66,7 +67,8 @@ class DatasetRecord(object):
             # check to see if the existing dataset is more recent
             if (self.db.get_dataset_creation_datetime(self.dataset_id) >=
                     self.dataset_dict['datetime_processed']):
-                raise DatasetError("Cannot update a more recent dataset.")
+                raise DatasetError("Dataset to be ingested is older than" +
+                                   "the version in the database.")
             # otherwise, remove the old tiles
             self.__remove_dataset_tiles()
             # and do the update
