@@ -333,6 +333,16 @@ class AbstractDataset(object):
         raise NotImplementedError
 
     @abstractmethod
+    def find_band_file(self, file_pattern):
+        """Find the file in dataset_dir matching file_pattern and check
+        uniqueness.
+        
+        Returns the path to the file if found, raises a DatasetError
+        otherwise."""
+
+        raise NotImplementedError
+
+    @abstractmethod
     def stack_bands(self, band_list):
         """Creates and returns a band_stack object from the dataset.
 

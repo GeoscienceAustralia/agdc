@@ -375,6 +375,24 @@ class LandsatDataset(AbstractDataset):
         """
         return self._ds.GetGeoTransform()
 
+    def find_band_file(self, file_pattern):
+        """Find the file in dataset_dir matching file_pattern and check
+        uniqueness.
+        
+        Returns the path to the file if found, raises a DatasetError
+        otherwise."""
+
+        dataset_dir = os.path.join(self.dataset_mdd['dataset_path'], 'scene01')
+        if not os.path.isdir(dataset_dir):
+            raise DatasetError('%s is not a valid directory' % dataset_dir)
+        filelist = [filename for filename in os.listdir(dataset_dir)
+                    if re.match(file_pattern, filename)]
+        if not len(filelist) == 1:
+            raise DatasetError('Unable to find unique match ' +
+                                'for file pattern %s' % file_pattern)
+
+        return os.path.join(dataset_dir, filelist[0])
+
     def stack_bands(self, band_dict):
         """Creates and returns a band_stack object from the dataset.
 
@@ -389,5 +407,5 @@ class LandsatDataset(AbstractDataset):
         (described below), allowing the datacube to chop the relevent
         bands into tiles.
         """
-        return LandsatBandstack(band_dict, self.metadata_dict)
+        return LandsatBandstack(band_dict, self)
         #raise NotImplementedError

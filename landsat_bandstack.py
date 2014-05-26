@@ -16,14 +16,16 @@ import cube_util
 
 class LandsatBandstack(AbstractBandstack):
     """Landsat subclass of AbstractBandstack class"""
-    def __init__(self, band_dict, dataset_metadata_dict):
+    def __init__(self, band_dict, dataset):
         self.band_dict = band_dict
-        self.dataset_mdd = dataset_metadata_dict
+        self.dataset = dataset
+        self.dataset_mdd = dataset.metadata_dict
         self.source_file_list = None
         self.nodata_list = None
         self.vrt_name = None
         self.vrt_band_stack = None
-    def buildvrt(temp_dir):
+        
+    def buildvrt(self,temp_dir):
         """Given a dataset_record and corresponding dataset, build the vrt that
         will be used to reproject the dataset's data to tile coordinates"""
         #Make the list of filenames from the dataset_path/scene01 and each
@@ -42,7 +44,7 @@ class LandsatBandstack(AbstractBandstack):
         buildvrt_cmd = ["gdalbuildvrt -separate",
                         "-q",
                         nodata_spec,
-                        "-overwrite %s %s" %(vrt_band_stack_filename,
+                        "-overwrite %s %s" %(self.vrt_name,
                                              ' '.join(self.source_file_list))
                         ]
         result = cube_util.execute(buildvrt_cmd)
@@ -52,32 +54,20 @@ class LandsatBandstack(AbstractBandstack):
                                    % (buildvrt_cmd, result['stderr']))
         #Add the metadata and return the band_stack as a gdal datatset, storing
         #as an attribute of the Bandstack object
-        self.vrt_band_stack = self.add_metadata(vrt_band_stack_filename)
+        self.vrt_band_stack = self.add_metadata(self.vrt_name)
 
     def list_source_files(self):
         """Given the nested dictionary of band source information, form a list
         of scene file names from which a vrt can be constructed"""
-        dataset_dir = os.path.join(self.dataset_mdd['dataset_path'], 'scene01')
+
         file_list = []
         nodata_list = []
         for file_number in self.band_dict:
             pattern = self.band_dict[file_number]['file_pattern']
-            this_file = self.find_file(dataset_dir, pattern)
+            this_file = self.dataset.find_band_file(pattern)
             file_list.append(this_file)
             nodata_list.append(self.band_dict[file_number]['nodata_value'])
         return (file_list, nodata_list)
-
-    @staticmethod
-    def find_file(dataset_dir, file_pattern):
-        """Find the file in dataset_dir matching file_pattern and check
-        uniqueness"""
-        assert os.path.isdir(dataset_dir), '%s is not a valid directory' \
-            % dataset_dir
-        filelist = [filename for filename in os.listdir(dataset_dir)
-                    if re.match(file_pattern, filename)]
-        assert len(filelist) == 1, \
-            'Unable to find unique match for file pattern %s' % file_pattern
-        return os.path.join(dataset_dir, filelist[0])
 
     def get_vrt_name(self, vrt_dir):
         """Use the dataset's metadata to form the vrt file name"""
