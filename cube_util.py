@@ -169,3 +169,21 @@ def getFileSizeMB(path):
     """     
     return os.path.getsize(path) / (1024*1024)
 
+def create_directory(self, dirname):
+    """Create dirname, including any intermediate directories necessary to
+    create the leaf directory."""
+    try:
+        os.makedirs(dirname)
+        logger.info('Created directory %s', dirname)
+    except OSError, e:
+        if e.errno != errno.EEXIST:
+            raise DatasetError('Directory %s could not be created' %dirname)
+
+
+class DatasetError(Exception):
+    """
+    A problem specific to a dataset. If raised it will cause the
+    current dataset to be skipped, but the ingest process will continue.
+    """
+
+    pass

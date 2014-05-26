@@ -14,12 +14,20 @@ import os
 import re
 import cube_util
 from abstract_ingester import DatasetError
+import numpy as np
 
 # Set up logger.
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
-PQA_CONTIGUITY_BIT = 8 #PQA has valid data if this bit is set
+#
+#Constants for PQA mosaic formation:
+#
+#PQA has valid data if this bit is set
+PQA_CONTIGUITY_BIT = 8
+#For a mosaiced tile, if a pixel has the contiguity bit unset in all componenet
+#tiles, then set it to PQA_NODATA_VALUE in the mosaiced tile
+PQA_NODATA_VALUE = 16127
 
 class TileContents(object):
     """TileContents database interface class."""
@@ -58,9 +66,10 @@ class TileContents(object):
                                  dataset_mdd['start_datetime'].isoformat())
                       ]) + tile_type_info['file_extension']
             )
+        #Set the provisional tile location to be the same as the vrt created
+        #for the scenes
         self.temp_tile_output_path = \
-                        os.path.join(os.path.dirname(self.tile_output_path),
-                                     'ingest_temp',
+                        os.path.join(os.path.dirname(self.band_stack.vrt_name),
                                      os.path.basename(self.tile_output_path))
 
     def reproject(self):
@@ -115,20 +124,24 @@ class TileContents(object):
         """Check if the reprojection gave rise to a tile with valid data.
 
         Open the file and check if there is data"""
-        tile_dataset = gdal.Open(self.tile_output_path)
+        tile_dataset = gdal.Open(self.temp_tile_output_path)
         data = tile_dataset.ReadAsArray()
         if len(data.shape) == 2:
             data = data[None, :]
-        assert data.shape[0] == len(self.band_stack.band_dict), \
-            "Number of layers in tile file does not match number of bands" \
-            "from database"
+        if data.shape[0] != len(self.band_stack.band_dict):
+            raise DatasetError("Number of layers (%d) in tile file\n %s\n" \
+                               "does not match number of bands (%d) from " \
+                               "database." %(data.shape[0],
+                                             self.temp_tile_output_path,
+                                             len(self.band_stack.band_dict)))
         for file_number in self.band_stack.band_dict:
             nodata_val = self.band_stack.band_dict[file_number]['nodata_value']
             if nodata_val == None:
                 if self.band_stack.band_dict[file_number] \
                                             ['level_name'] == 'PQA':
-                    if (numpy.bitwise_and(data,
-                                          1 << PQA_CONTIGUITY_BIT) > 0).any():
+                    #Check if any pixel has the contiguity bit set
+                    if (np.bitwise_and(data,
+                                       1 << PQA_CONTIGUITY_BIT) > 0).any():
                         return True
                 else:
                     #nodata_value of None means all array data is valid
@@ -146,68 +159,81 @@ class TileContents(object):
     #Methods that mosaic several tiles together
     #
     def make_pqa_mosaic_tile(self, tile_list, mosaic_pathname):
+        """From the PQA tiles in tile_list, create a mosaic tile
+        at mosaic_pathname.
+        
+        For a given pixel, the algorithm is as follows:
+        1. If the pixel has contiguity bit unset in all component tiles, then
+        set the pixel's value to PQA_NODATA_VALUE.
+        2. For a pixel with the contiguity bit set in at least one component
+        tile, the mosaic result of Bit n is 1 if and only if it is 1 on all
+        componenet tiles for which the contiguity bit is set."""
+
         template_dataset = gdal.Open(tile_list[0]['tile_pathname'])
-        gdal_driver = gdal.GetDriverByName(self.tile_contents.
-                                           tile_type_info['file_format'])
+        gdal_driver = gdal.GetDriverByName(self.tile_type_info['file_format'])
         #Set datatype formats appropriate to Create() and numpy
         gdal_dtype = template_dataset.GetRasterBand(1).DataType
         numpy_dtype = gdal.GetDataTypeName(gdal_dtype)
-        mosaic_dataset = gdal_driver.Create(mosaic_pathname,
-                                            template_dataset.RasterXSize,
-                                            template_dataset.RasterYSize,
-                                            1, gdal_dtype,
-                                            self.tile_contents.
-                                            tile_type_info
-                                            ['format_options'].split(','))
+        mosaic_dataset = \
+                gdal_driver.Create(mosaic_pathname,
+                                   template_dataset.RasterXSize,
+                                   template_dataset.RasterYSize,
+                                   1, gdal_dtype,
+                                   self.tile_type_info['format_options']
+                                   .split(','))
 
-        assert mosaic_dataset, \
-            'Unable to open output dataset %s'% output_dataset
+        if not mosaic_dataset:
+            raise DatasetError('Unable to open output dataset %s'
+                               % output_dataset)
         
         mosaic_dataset.SetGeoTransform(template_dataset.GetGeoTransform())
         mosaic_dataset.SetProjection(template_dataset.GetProjection())
 
-        # if tile_type_info['file_format'] == 'netCDF':
-        #     pass
-        #TODO: make vrt here - not really needed for single-layer file
-
         output_band = mosaic_dataset.GetRasterBand(1)
-        data_array=numpy.zeros(shape=(mosaic_dataset.RasterYSize,
-                                      mosaic_dataset.RasterXSize),
-                               dtype=numpy_dtype)
+        data_array=np.zeros(shape=(mosaic_dataset.RasterYSize,
+                                   mosaic_dataset.RasterXSize),
+                            dtype=numpy_dtype)
         data_array[...] = -1 # Set all background values to FFFF
     
-        overall_data_mask = numpy.zeros(shape=(mosaic_dataset.RasterYSize, 
-                                               mosaic_dataset.RasterXSize),
-                                        dtype=numpy.bool)
+        overall_data_mask = np.zeros(shape=(mosaic_dataset.RasterYSize, 
+                                            mosaic_dataset.RasterXSize),
+                                     dtype=np.bool)
         del template_dataset
 
         # Populate data_array with -masked PQA data
         for pqa_dataset_index in range(len(tile_list)):
-            pqa_dataset_path = tile_list[pqa_dataset_index]
+            pqa_dataset_path = tile_list[pqa_dataset_index]['tile_pathname']
             pqa_dataset = gdal.Open(pqa_dataset_path)
-            assert pqa_dataset, 'Unable to open %s' % pqa_dataset_path
+            if not pqa_dataset:
+                raise DatasetError('Unable to open %s' % pqa_dataset_path)
             pqa_array = pqa_dataset.ReadAsArray()
             del pqa_dataset
             # Set all data-containing pixels to true in data_mask
-            pqa_data_mask = (pqa_array != PQA_NO_DATA_VALUE) & \
-                            (pqa_array != 0)
+            pqa_data_mask = np.bitwise_and(pqa_array,
+                                           1 << PQA_CONTIGUITY_BIT) > 0
             # Update overall_data_mask to true for all valid-data pixels
             overall_data_mask = overall_data_mask | pqa_data_mask
-            # Set bits which are true in all source arrays
+            # At those pixels where this source tile contains valid data,
+            # update the mosaiced array with this source tile's PQ results,
+            # setting to the mosaic value to 0 if it is 0 in this source tile.
             data_array[pqa_data_mask] = \
-                        numpy.bitwise_and(data_array[pqa_data_mask],
-                                          pqa_array[pqa_data_mask])
-            # Set all pixels which don't contain data to PQA_NO_DATA_VALUE
+                        np.bitwise_and(data_array[pqa_data_mask],
+                                       pqa_array[pqa_data_mask])
+        # Set all pixels which don't contain data to PQA_NO_DATA_VALUE
         data_array[~overall_data_mask] = PQA_NO_DATA_VALUE
         output_band.WriteArray(data_array)  
         mosaic_dataset.FlushCache()
     
-    def make_mosaic_vrt(self, tile_list, mosaic_pathname):
-        """Form two or more source tile's create a vrt"""
+    @staticmethod
+    def make_mosaic_vrt(tile_list, mosaic_pathname):
+        """From two or more source tiles create a vrt"""
         gdalbuildvrt_cmd = ["gdalbuildvrt -q",
                             "-overwrite",
                             "%s" %mosaic_pathname,
                             "%s" %(" ".join([t['tile_pathname']
                                              for t in tile_list]))]
         result = cube_util.execute(gdalbuildvrt_cmd)
-
+        if result['returncode'] != 0:
+            raise DatasetError('Unable to perform gdalbuildvrt: ' +
+                               '"%s" failed: %s'\
+                               % (gdalbuildvrt_cmd, result['stderr']))

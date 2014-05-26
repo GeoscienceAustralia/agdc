@@ -63,7 +63,11 @@ class Collection(object):
             sensor = level
 
         return (satellite, sensor, level)
-
+    
+    def list_tile_types(self, dataset_key):
+        """Return the list of tile types associated with a dataset_key."""
+        return self.new_bands[dataset_key].keys()
+        
     def check_metadata(self, dataset):
         """Check that the satellite, sensor, and bands are in the database.
 

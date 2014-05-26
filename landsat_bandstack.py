@@ -17,7 +17,8 @@ import cube_util
 class LandsatBandstack(AbstractBandstack):
     """Landsat subclass of AbstractBandstack class"""
     def __init__(self, band_dict, dataset):
-        self.band_dict = band_dict
+        #Order the band_dict by the file number key
+        self.band_dict = sorted(band_dict.items(), key=lambda t: t[0])
         self.dataset = dataset
         self.dataset_mdd = dataset.metadata_dict
         self.source_file_list = None
@@ -25,9 +26,10 @@ class LandsatBandstack(AbstractBandstack):
         self.vrt_name = None
         self.vrt_band_stack = None
         
-    def buildvrt(self,temp_dir):
+    def buildvrt(self, temp_dir):
         """Given a dataset_record and corresponding dataset, build the vrt that
         will be used to reproject the dataset's data to tile coordinates"""
+
         #Make the list of filenames from the dataset_path/scene01 and each
         #file_number's file_pattern. Also get list of nodata_value.
         self.source_file_list, self.nodata_list = self.list_source_files()
@@ -39,6 +41,7 @@ class LandsatBandstack(AbstractBandstack):
         else:
             nodata_spec = ""
         #Form the vrt_band_stack_filename
+        cube_utils.make_directory(temp_dir)
         self.vrt_name = self.get_vrt_name(temp_dir)
         #build the vrt
         buildvrt_cmd = ["gdalbuildvrt -separate",
@@ -57,8 +60,9 @@ class LandsatBandstack(AbstractBandstack):
         self.vrt_band_stack = self.add_metadata(self.vrt_name)
 
     def list_source_files(self):
-        """Given the nested dictionary of band source information, form a list
-        of scene file names from which a vrt can be constructed"""
+        """Given the dictionary of band source information, form a list
+        of scene file names from which a vrt can be constructed. Also return a
+        list of nodata values for use by add_metadata"""
 
         file_list = []
         nodata_list = []
@@ -93,12 +97,15 @@ class LandsatBandstack(AbstractBandstack):
              'path': '%03d' % self.dataset_mdd['x_ref'],
              'row': '%03d' % self.dataset_mdd['y_ref']}
             )
-        for band_index in range(len(self.band_dict)):
-            band = band_stack_dataset.GetRasterBand(band_index + 1)
-            band.SetMetadata({'name': self.band_dict[band_index]['band_name'],
-                              'filename': self.source_file_list[band_index]})
-            if self.nodata_list[band_index] is not None:
-                band.SetNoDataValue(self.nodata_list[band_index])
+        for file_number, band_info in self.band_dict.items():
+            #Assume ordering file_number keys also orders the tile_layer
+            band_number = band_info['tile_layer']
+            band = band_stack_dataset.GetRasterBand(band_number)
+            band.SetMetadata \
+                ({'name': band_info['band_name'],
+                  'filename': self.source_file_list[band_number - 1]})
+            if self.nodata_list[band_number - 1] is not None:
+                band.SetNoDataValue(self.nodata_list[band_number - 1])
         return band_stack_dataset
 
 
