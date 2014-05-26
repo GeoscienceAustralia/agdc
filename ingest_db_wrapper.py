@@ -32,17 +32,31 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
     """IngestDBWrapper: low-level database commands for the ingest process.
     """
 
-    def execute_sql(self, sql, params):
-        """Executes an sql query.
+    def execute_sql_single(self, sql, params):
+        """Executes an sql query returning (at most) a single row.
         
         This creates a cursor, executes the sql query or command specified
         by the operation string 'sql' and parameters 'params', and returns
-        the first row of the result."""
-        
+        the first row of the result, or None if there is no result."""
+
         with self.conn.cursor() as cur:
             self.log_sql(cur.mogrify(sql, params))
             cur.execute(sql, params)
             result = cur.fetchone()
+
+        return result
+
+    def execute_sql_multi(self, sql, params):
+        """Executes an sql query returning multiple rows.
+
+        This creates a cursor, executes the sql query or command specified
+        by the operation string 'sql' and parameters 'params', and returns
+        a list of results, or an empty list if there are no results."""
+
+        with self.conn.cursor() as cur:
+            self.log_sql(cur.mogrify(sql, params))
+            cur.execute(sql, params)
+            result = cur.fetchall()
 
         return result
 
@@ -107,7 +121,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         sql = ("SELECT satellite_id FROM satellite\n" +
                "WHERE satellite_tag = %s;")        
         params = (satellite_tag,)
-        result = self.execute_sql(sql, params)
+        result = self.execute_sql_single(sql, params)
         satellite_id = result(0) if result else None
 
         return satellite_id
@@ -123,7 +137,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
                "WHERE satellite_id = %s AND\n" +
                "    sensor_name = %s;")
         params = (satellite_id, sensor_name)
-        result = self.execute_sql(sql, params)
+        result = self.execute_sql_single(sql, params)
         sensor_id = result(0) if result else None
 
         return sensor_id
@@ -137,7 +151,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         sql = ("SELECT level_id FROM level\n" +
                "WHERE level_name = %s;")
         params = (level_name,)
-        result = self.execute_sql(sql, params)
+        result = self.execute_sql_single(sql, params)
         level_id = result(0) if result else None
 
         return level_id
@@ -159,7 +173,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
                "    y_ref = %(yref)s AND\n" +
                "    start_datetime = %(start_datetime)s AND\n" +
                "    end_datetime = %(end_datetime)s;")
-        result = self.execute_sql(sql, acquisition_dict)
+        result = self.execute_sql_single(sql, acquisition_dict)
         acquisition_id = result(0) if result else None
 
         return acquisition_id
@@ -209,7 +223,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
                "VALUES " + values + "\n" +
                "RETURNING acquisition_id;")
         
-        result = self.execute_sql(sql, acquisition_dict)
+        result = self.execute_sql_single(sql, acquisition_dict)
         acquisition_id = result(0)
 
         return acquisition_id
@@ -225,7 +239,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         sql = ("SELECT dataset_id FROM dataset\n" +
                "WHERE acquisition_id = %(acquisition_id) AND\n" +
                "    level_id = %(level_id);")
-        result = self.execute_sql(sql, dataset_dict)
+        result = self.execute_sql_single(sql, dataset_dict)
         dataset_id = result(0) if result else None
 
         return dataset_id
@@ -244,13 +258,13 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
 
         sql_dtp = ("SELECT datetime_processed FROM dataset\n" +
                    "WHERE dataset_id = %s;")
-        result = self.execute_sql(sql_dtp, (dataset_id,))
+        result = self.execute_sql_single(sql_dtp, (dataset_id,))
         datetime_processed = result(0)
 
         # This needs to be checked to see if the tile_type(s) is right.
         sql_ctime = ("SELECT MIN(ctime) FROM tile\n" +
                      "WHERE dataset_id = %s AND tile_type = 1;")
-        result = self.execute_sql(sql_ctime, (dataset_id,))
+        result = self.execute_sql_single(sql_ctime, (dataset_id,))
         min_ctime = result(0)
 
         if min_ctime:
@@ -302,7 +316,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
                "VALUES " + values + "\n" +
                "RETURNING dataset_id;")
         
-        result = self.execute_sql(sql, dataset_dict)
+        result = self.execute_sql_single(sql, dataset_dict)
         dataset_id = result(0)
 
         return dataset_id
@@ -337,7 +351,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         sql = ("UPDATE dataset\n" +
                "SET " + assignments + "\n" +
                "WHERE dataset_id = %(dataset_id);")
-        self.execute_sql(sql, dataset_dict)
+        self.execute_sql_single(sql, dataset_dict)
 
     def get_dataset_tile_ids(self, dataset_id):
         """Returns a list of tile_ids associated with a dataset."""
