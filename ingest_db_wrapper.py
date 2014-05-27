@@ -122,7 +122,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
                "WHERE satellite_tag = %s;")        
         params = (satellite_tag,)
         result = self.execute_sql_single(sql, params)
-        satellite_id = result(0) if result else None
+        satellite_id = result[0] if result else None
 
         return satellite_id
 
@@ -138,7 +138,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
                "    sensor_name = %s;")
         params = (satellite_id, sensor_name)
         result = self.execute_sql_single(sql, params)
-        sensor_id = result(0) if result else None
+        sensor_id = result[0] if result else None
 
         return sensor_id
 
@@ -152,7 +152,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
                "WHERE level_name = %s;")
         params = (level_name,)
         result = self.execute_sql_single(sql, params)
-        level_id = result(0) if result else None
+        level_id = result[0] if result else None
 
         return level_id
 
@@ -174,7 +174,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
                "    start_datetime = %(start_datetime)s AND\n" +
                "    end_datetime = %(end_datetime)s;")
         result = self.execute_sql_single(sql, acquisition_dict)
-        acquisition_id = result(0) if result else None
+        acquisition_id = result[0] if result else None
 
         return acquisition_id
 
@@ -224,7 +224,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
                "RETURNING acquisition_id;")
         
         result = self.execute_sql_single(sql, acquisition_dict)
-        acquisition_id = result(0)
+        acquisition_id = result[0]
 
         return acquisition_id
 
@@ -240,7 +240,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
                "WHERE acquisition_id = %(acquisition_id) AND\n" +
                "    level_id = %(level_id);")
         result = self.execute_sql_single(sql, dataset_dict)
-        dataset_id = result(0) if result else None
+        dataset_id = result[0] if result else None
 
         return dataset_id
 
@@ -260,13 +260,13 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         sql_dtp = ("SELECT datetime_processed FROM dataset\n" +
                    "WHERE dataset_id = %s;")
         result = self.execute_sql_single(sql_dtp, (dataset_id,))
-        datetime_processed = result(0)
+        datetime_processed = result[0]
 
         sql_ctime = ("SELECT MIN(ctime) FROM tile\n" +
                      "WHERE dataset_id = %s" +
                      self.tile_types_clause(tile_types) + ";")
         result = self.execute_sql_single(sql_ctime, (dataset_id,))
-        min_ctime = result(0)
+        min_ctime = result[0]
 
         if min_ctime:
             creation_datetime = min(datetime_processed, min_ctime)
@@ -318,7 +318,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
                "RETURNING dataset_id;")
         
         result = self.execute_sql_single(sql, dataset_dict)
-        dataset_id = result(0)
+        dataset_id = result[0]
 
         return dataset_id
 
@@ -388,7 +388,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         sql = ("SELECT pathname FROM tile\n" +
                "WHERE tile_id = %s;")
         result = self.execute_sql_single(sql, (tile_id,))
-        tile_pathname = result(0)
+        tile_pathname = result[0]
 
         return tile_pathname
 
