@@ -36,6 +36,7 @@ class DatasetRecord(object):
                                'ur_y',
                                'x_pixels',
                                'y_pixels',
+                               'xml_text'
                                 ]
 
     # pylint: disable=missing-docstring
@@ -53,7 +54,6 @@ class DatasetRecord(object):
 
         self.dataset_dict['acquisition_id'] = self.acquisition.acquisition_id
         self.dataset_dict['crs'] = self.mdd['projection']
-        self.dataset_dict['xml_text'] = dataset._xml_text
         self.dataset_dict['level_name'] = self.mdd['processing_level']
         self.dataset_dict['level_id'] = \
             self.db.get_level_id(self.dataset_dict['level_name'])
