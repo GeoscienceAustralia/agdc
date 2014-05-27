@@ -237,8 +237,8 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         The dataset_dict must contain values for both of these."""
 
         sql = ("SELECT dataset_id FROM dataset\n" +
-               "WHERE acquisition_id = %(acquisition_id) AND\n" +
-               "    level_id = %(level_id);")
+               "WHERE acquisition_id = %(acquisition_id)s AND\n" +
+               "    level_id = %(level_id)s;")
         result = self.execute_sql_single(sql, dataset_dict)
         dataset_id = result[0] if result else None
 
@@ -351,7 +351,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
 
         sql = ("UPDATE dataset\n" +
                "SET " + assignments + "\n" +
-               "WHERE dataset_id = %(dataset_id);")
+               "WHERE dataset_id = %(dataset_id)s;")
         self.execute_sql_single(sql, dataset_dict)
 
     def get_dataset_tile_ids(self, dataset_id, tile_types=[1]):
@@ -398,86 +398,113 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         sql = "DELETE FROM tile WHERE tile_id = %s;"
         self.execute_sql_single(sql, (tile_id,))
 
-    def get_overlapping_tiles(self, tile_type_id, tile_footprint, dataset_id):
-        """Return tile records within the given foorprint."""
+    def get_tile_id(self, tile_dict):
+        """Finds the id of a tile record in the database.
+        
+        Returns a tile_id if a record metching the key fields in
+        tile_dict is found, None otherwise. The key fields are:
+            dataset_id, x_index and y_index.
+        The tile_dict must contain values for both of these."""
+
+        sql = ("SELECT tile_id FROM tile\n" +
+               "WHERE dataset_id = %(dataset_id)s AND\n" +
+               "    x_index = %(x_index)s AND\n" +
+               "    y_index = %(y_index)s;")
+        result = self.execute_sql_single(sql, tile_dict)
+        tile_id = result[0] if result else None
+        return tile_id
+
+ 
+    def insert_tile_record(self, tile_dict):
+        """Creates a new tile record in the database.
+
+        The values of the fields in the new record are taken from
+        tile_dict. Returns the tile_id of the new record."""
+
+        column_list = ['tile_id',
+                       'x_index',
+                       'y_index',
+                       'tile_type_id',
+                       'dataset_id',
+                       'tile_pathname',
+                       'tile_class_id',
+                       'tile_size',
+                       'ctime']
+        columns = "(" + ",\n".join(column_list) + ")"
+        
+        # Values are taken from the tile_dict, with keys the same
+        # as the column name, except for tile_id, which is the next
+        # value in the dataset_id_seq sequence.
+        value_list = []
+        for column in column_list:
+            if column == 'tile_id':
+                value_list.append("nextval('tile_id_seq')")
+            else:
+                value_list.append("%(" + column + ")s")
+        values = "(" + ",\n".join(value_list) + ")"
+
+        sql = ("INSERT INTO tile " + columns + "\n" +
+               "VALUES " + values + "\n" +
+               "RETURNING tile_id;")
+        
+        result = self.execute_sql_single(sql, tile_dict)
+        tile_id = result[0] 
+        return tile_id
+
+    def get_overlapping_tiles(self, tile_dict):
+        """Return tile records for a given footprint for the mosaicing process.
+
+        The tile, dataset and acquisition tables are queried to determine the
+        set of overlapping tiles deriving from the same satellite pass, but
+        from different scenes. The returned fields should match the constant
+        TILE_DICT_METADATA_FIELDS defined in tile_record.py. The returned
+        records are ordered by the acquisition start_datetime."""
+
+        sql = ("-- Find all scenes contributing data to this tile " + "\n" +
+               "-- select o.*, od.*, oa.* " + "\n" +
+               "select o.tile_id, o.x_index, o.y_index," + "\n" +
+               "       o.tile_type_id, o.dataset_id, o.tile_pathname," + "\n" +
+               "       o.tile_class_id, o.tile_size, o.ctime" + "\n" +
+               "from tile t"  + "\n" +
+               "inner join dataset d using(dataset_id)" + "\n" +
+               "inner join acquisition a using(acquisition_id)" + "\n" +
+               "inner join tile o using(x_index, y_index, tile_type_id)" +
+               + "\n" +
+               "inner join dataset od on"  + "\n" +
+               "    od.dataset_id = o.dataset_id and" + "\n" +
+               "    od.level_id = d.level_id"  + "\n" +
+               "inner join acquisition oa on"  + "\n" +
+               "    oa.acquisition_id = od.acquisition_id and" + "\n" +
+               "    oa.satellite_id = a.satellite_id" + "\n" +
+               "where" + "\n" +
+               "t.tile_class_id = 1 and" + "\n" +
+               "o.tile_class_id = 1 and" + "\n" +
+               "t.tile_type_id = %(tile_type_id)s and" + "\n" +
+               "t.x_index = %(x_index)s and" + "\n" +
+               "t.y_index = %(y_index)s and" + "\n" +
+               "d.dataset_id = %(dataset_id)s" + "\n" +
+               "and o.tile_id <> t.tile_id" + "\n" +
+               "and (oa.start_datetime between" + "\n" +
+               "a.start_datetime - interval '1 hour' and" + "\n" +
+               "a.end_datetime + interval '1 hour'" + "\n" +
+               "or oa.end_datetime between a.start_datetime " + "\n" +
+               "- interval '1 hour'" + "\n" +
+               "and a.end_datetime + interval '1 hour')" + "\n" +
+               "order by oa.start_datetime")
+        result = self.execute_sql_multi(sql, tile_dict)
+        return result
 
 
+        def update_tile_records_post_mosaic(tile_dict_list,
+                                            mosaic_final_pathname):
+            """Update the database tile table to reflect the changes to the
+            Tile Store resulting from the mosacing process.
 
-        #TODO: see if can use tile_table_column_names in select clause
-        #TODO: check assumption that the tiles of this (uncommited)
-        #transaction are visible
+            The constituent tiles in tile_dict_list have their tile_class_id
+            changed from 1 to 3. Also insert a record for the mosaiced tile,
+            with a tile_class_id of 4."""
+        
 
-        x_index, y_index = tile_footprint
-        tile_table_column_names = ['tile_id', 'x_index', 'y_index',
-                                   'tile_type_id', 'dataset_id', 'tile_pathname',
-                                   'tile_class_id', 'tile_size', 'ctime']
-        db_cursor = self.conn.cursor()
-        sql = """-- Find all scenes that might contribute data to this tile
-            -- TODO: specify exact items
-            -- select o.*, od.*, oa.*
-            select o.tile_id, o.x_index, o.y_index,
-                   o.tile_type_id, o.dataset_id, o.tile_pathname,
-                   o.tile_class_id, o.tile_size, o.ctime
-            from tile t
-            inner join dataset d using(dataset_id)
-            inner join acquisition a using(acquisition_id)
-            inner join tile o using(x_index, y_index, tile_type_id)
-            inner join dataset od on
-                od.dataset_id = o.dataset_id and
-                od.level_id = d.level_id
-            inner join acquisition oa on
-                oa.acquisition_id = od.acquisition_id and
-                oa.satellite_id = a.satellite_id
-            /*
-            -- Use tile_id to specify tile
-            where t.tile_id = 460497
-            */
-
-            -- Use tile spatio-temporal parameters to specify tile
-            where
-            t.tile_class_id = 1 and
-            o.tile_class_id = 1 and
-            t.tile_type_id = %(tile_type_id)s and
-            t.x_index = %(x_index)s and
-            t.y_index = %(y_index)s and
-            -- MPH comment out following two conditions:
-            -- a.start_datetime = %(start_datetime)s and
-            -- d.level_id = %(level_id)s
-            -- and replace with: (possible since there is a one-to-one 
-            -- (corrspondence between (acquisiton, level_id) and dataset
-            d.dataset_id = %(dataset_id)s
-            and o.tile_id <> t.tile_id -- Uncomment this to exclude original
-            -- TODO check that tile created for current dataset is present
-            -- i.e. is it visible if it is part of an uncommited transaction
-            -- Use temporal extents to find overlaps
-            and (oa.start_datetime between
-            a.start_datetime - interval '1 hour' and
-            a.end_datetime + interval '1 hour'
-            or oa.end_datetime between a.start_datetime - interval '1 hour'  
-            and a.end_datetime + interval '1 hour')
-            order by oa.start_datetime
-        """
-
-        params = {'tile_type_id': tile_type_id,
-                  'x_index': x_index,
-                  'y_index': y_index,
-                  'dataset_id': dataset_id}
-        db_cursor.execute(sql, params)
-        #initialise list of tiles to be mosaiced
-        tile_list = []
-        for record in db_cursor:
-            #Form a list of dictionaries so that we can keep the datetime order
-            if record[4] == self.dataset_record.dataset_id:
-                #For the constituent tile deriving from the curent dataset id,
-                #will need to change its location in tile_list from the value
-                #stored in the database to the value stored in the
-                #tile_contents object.
-                tile_dir, tile_basename = os.path.split(record[5])
-                tile_dir = os.path.dirname(self.tile_contents.bandstack.vrt_name)
-                record[5] = os.path.join(tile_dir, tile_basename)
-            tile_list.append(dict(zip(tile_table_column_names, record)))
-        db_cursor.close()
-        return tile_list
 
 
 

@@ -18,7 +18,8 @@ LOGGER.setLevel(logging.INFO)
 class TileRecord(object):
     """TileRecord database interface class."""
     
-    TILE_METADATA_FIELDS = ['x_index',
+    TILE_METADATA_FIELDS = ['tile_id',
+                            'x_index',
                             'y_index',
                             'tile_type_id',
                             'dataset_id',
@@ -52,7 +53,7 @@ class TileRecord(object):
         # The physical file is currently in the temporary location
         tile_dict['tile_size'] = \
             cube_util.getFileSizeMB(self.tile_contents.temp_tile_output_path)
-        #Make the tile recoprd entry on the database:
+        #Make the tile record entry on the database:
         self.tile_id = self.db.get_tile_id(self.tile_dict)
         if self.tile_id  is None:
             self.tile_id = self.db.insert_tile_record(self.tile_dict)
@@ -68,9 +69,7 @@ class TileRecord(object):
         """Query the database to determine if this tile_record should be
         mosaiced with tiles from previously ingested datasets."""
         tile_record_list = \
-            self.db.get_overlapping_tiles(self.tile_type_id,
-                                          self.tile_footprint,
-                                          self.dataset_record.dataset_id)
+            self.db.get_overlapping_tiles(self.tile_dict)
         if len(tile_record_list) < 1:
             raise DatasetError("Mosaic process for dataset_id=%d, x_index=%d,"\
                                " y_index=%d did not find any tile records,"\
@@ -81,18 +80,19 @@ class TileRecord(object):
 
         if len(tile_record_list) == 1:
             return
-        
+        tile_dict_list = []
         for tile_record in tile_record_list:
             if tile_record[4] == self.dataset_record.dataset_id:
                 #For the constituent tile deriving from the current dataset id,
-                #we need to change its location in tile_list from the value
-                #stored in the database to the value stored in the
+                #we need to change its location to the value stored in the
                 #tile_contents object.
-                record[5] = self.tile_contents.temp_tile_output_path
-                #tile_record_list.append(dict(zip(tile_table_column_names, record)))
+                tile_record[5] = self.tile_contents.temp_tile_output_path
+                tile_dict_list.append(dict(zip(TILE_DICT_METADATA_FIELDS,
+                                               tile_record)))
 
         # Make the temporary and permanent locations of the mosaic
-        mosaic_basename = os.path.basename(tile_list[0]['tile_pathname'])
+        mosaic_basename = \
+                    os.path.basename(tile_dict_list[0]['tile_pathname'])
         mosaic_temp_dir = \
             os.path.join(os.path.dirname(self.tile_contents.
                                          temp_tile_output_path),
@@ -107,11 +107,12 @@ class TileRecord(object):
         mosaic_final_pathname = os.path.join(mosaic_final_dir, mosaic_basename)
         # Make the physical tile for PQA or a vrt otherwise
         if self.dataset_record.mdd['processing_level'] == 'PQA':
-            self.tile_contents.make_pqa_mosaic_tile(tile_record_list, mosaic_temp_pathname)
+            self.tile_contents.make_pqa_mosaic_tile(tile_dict_list, mosaic_temp_pathname)
         else:
-            self.tile_contents.make_mosaic_vrt(tile_record_list, mosaic_temp_pathname)
+            self.tile_contents.make_mosaic_vrt(tile_dicy_list, mosaic_temp_pathname)
                                
-        self.update_tile_table(tile_record_list, mosaic_final_pathname):
+        self.db.update_tile_records_post_mosaic(tile_dict_list,
+                                                mosaic_final_pathname)
         
     #
     #Methods that query and update the database:

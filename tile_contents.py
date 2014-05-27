@@ -158,8 +158,8 @@ class TileContents(object):
     #
     #Methods that mosaic several tiles together
     #
-    def make_pqa_mosaic_tile(self, tile_list, mosaic_pathname):
-        """From the PQA tiles in tile_list, create a mosaic tile
+    def make_pqa_mosaic_tile(self, tile_dict_list, mosaic_pathname):
+        """From the PQA tiles in tile_dict_list, create a mosaic tile
         at mosaic_pathname.
         
         For a given pixel, the algorithm is as follows:
@@ -169,7 +169,7 @@ class TileContents(object):
         tile, the mosaic result of Bit n is 1 if and only if it is 1 on all
         componenet tiles for which the contiguity bit is set."""
 
-        template_dataset = gdal.Open(tile_list[0]['tile_pathname'])
+        template_dataset = gdal.Open(tile_dict_list[0]['tile_pathname'])
         gdal_driver = gdal.GetDriverByName(self.tile_type_info['file_format'])
         #Set datatype formats appropriate to Create() and numpy
         gdal_dtype = template_dataset.GetRasterBand(1).DataType
@@ -201,8 +201,8 @@ class TileContents(object):
         del template_dataset
 
         # Populate data_array with -masked PQA data
-        for pqa_dataset_index in range(len(tile_list)):
-            pqa_dataset_path = tile_list[pqa_dataset_index]['tile_pathname']
+        for pqa_dataset_index in range(len(tile_dict_list)):
+            pqa_dataset_path = tile_dict_list[pqa_dataset_index]['tile_pathname']
             pqa_dataset = gdal.Open(pqa_dataset_path)
             if not pqa_dataset:
                 raise DatasetError('Unable to open %s' % pqa_dataset_path)
@@ -225,13 +225,13 @@ class TileContents(object):
         mosaic_dataset.FlushCache()
     
     @staticmethod
-    def make_mosaic_vrt(tile_list, mosaic_pathname):
+    def make_mosaic_vrt(tile_dict_list, mosaic_pathname):
         """From two or more source tiles create a vrt"""
         gdalbuildvrt_cmd = ["gdalbuildvrt -q",
                             "-overwrite",
                             "%s" %mosaic_pathname,
                             "%s" %(" ".join([t['tile_pathname']
-                                             for t in tile_list]))]
+                                             for t in tile_dict_list]))]
         result = cube_util.execute(gdalbuildvrt_cmd)
         if result['returncode'] != 0:
             raise DatasetError('Unable to perform gdalbuildvrt: ' +
