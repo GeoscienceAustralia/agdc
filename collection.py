@@ -42,6 +42,32 @@ class Collection(object):
         self.in_a_transaction = False
         self.previous_commit_mode = None
 
+    @staticmethod
+    def get_dataset_key(dataset):
+        """Return the dataset key for use with the new_bands dictionary.
+
+        This is a tuple (satellite_tag, sensor_name, processing_level) except
+        that for derived datasets (currently PQA and FC) the satellite_tag is
+        replaced with 'DERIVED' and the processing_level is used as the
+        sensor_name. So the tuple looks like ('DERIVED', processing_level, processing_level).
+        """
+
+        derived_levels = {'PQA', 'FC'}
+
+        satellite = dataset.get_satellite_tag()
+        sensor = dataset.get_sensor_name()
+        level = dataset.get_processing_level()
+
+        if level in derived_levels:
+            satellite = 'DERIVED'
+            sensor = level
+
+        return (satellite, sensor, level)
+    
+    def list_tile_types(self, dataset_key):
+        """Return the list of tile types associated with a dataset_key."""
+        return self.new_bands[dataset_key].keys()
+        
     def check_metadata(self, dataset):
         """Check that the satellite, sensor, and bands are in the database.
 
@@ -126,10 +152,10 @@ class Collection(object):
         tile_type_info = self.datacube.tile_type_dict[tile_type_id]
         tile_contents = TileContents(self.datacube.tile_root, tile_type_info,
                                      tile_footprint, band_stack)
-        self.tile_list.append(tile_contents)
+        self.tile_create_list.append(tile_contents)
 
         return tile_contents
-    
+
     def mark_tile_for_removal(self, tile_pathname):
         """Mark a tile file for removal.
         
@@ -212,19 +238,8 @@ class Collection(object):
         Raises a DatasetError if any band expected for this dataset (according
         to the database) is missing.
         """ 
-        
-        dataset_key = (dataset.get_satellite_tag(),
-                       dataset.get_sensor_name(),
-                       dataset.get_processing_level())
-        
-        dataset_bands = self.new_bands[dataset_key]
-        for (tile_type, tile_type_bands) in dataset_bands.items():
-            for (file_number, band_info) in tile_type_bands.items():
-                if not dataset.band_exists(file_number,
-                                           band_info['file_pattern']):
-                    msg = (("Unable to verify  the existance of a band: " +
-                            "tile_type = %s, " +
-                            "file_number = %s, " +
-                            "file_pattern = '%s'") %
-                            (tile_type, file_number, band_info['file_pattern']))
-                    raise DatasetError(msg)
+
+        dataset_bands = self.new_bands[self.get_dataset_key(dataset)]
+        for tile_type_bands in dataset_bands.values():
+            for band_info in tile_type_bands.values():
+                dataset.find_band_file(band_info['file_pattern'])

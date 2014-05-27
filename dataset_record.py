@@ -23,7 +23,6 @@ class DatasetRecord(object):
     """DatasetRecord database interface class."""
 
     DATASET_METADATA_FIELDS = ['dataset_path',
-                               'level_name',
                                'datetime_processed',
                                'dataset_size',
                                'crs',
@@ -55,6 +54,8 @@ class DatasetRecord(object):
             self.dataset_dict[field] = self.mdd[field]
 
         self.dataset_dict['acquisition_id'] = self.acquisition.acquisition_id
+
+        self.dataset_dict['level_name'] = self.mdd['processing_level']
         self.dataset_dict['level_id'] = \
             self.db.get_processing_level(self.dataset_dict['level_name'])
 
@@ -62,58 +63,29 @@ class DatasetRecord(object):
         if self.dataset_id is None:
             # create a new dataset record in the database
             self.dataset_id = self.db.insert_dataset_record(self.dataset_dict)
+            self.dataset_dict['dataset_id'] = self.dataset_id
         else:
             # check to see if the existing dataset is more recent
             if (self.db.get_dataset_creation_datetime(self.dataset_id) >=
                     self.dataset_dict['datetime_processed']):
-                raise DatasetError("Cannot update a more recent dataset.")
+                raise DatasetError("Dataset to be ingested is older than" +
+                                   "the version in the database.")
             # otherwise, remove the old tiles
             self.__remove_dataset_tiles()
             # and do the update
-            self.db.update_dataset_record(self.dataset_id, self.dataset_dict)
+            self.dataset_dict['dataset_id'] = self.dataset_id
+            self.db.update_dataset_record(self.dataset_dict)
 
-        self.dataset_dict['dataset_id'] = self.dataset_id
+    def create_tile_record(self, tile_contents):
+        """Factory method to create an instance of the TileRecord class.
+        
+        The created object will be resposible for inserting tile table records
+        into the database for reprojected or mosaiced tiles."""
+        return TileRecord(self.collection, self.acquisition,
+                          self, tile_contents)
+        
 
     def mark_as_tiled(self):
-        pass
-
-    def list_tile_types_and_bands(self):
-        """Return the set of tile type ids pertaining to the dataset record
-        and also a dictionary of band source information. This dictionary is
-        extracted from the datacube.bands object, on the condition that the
-        satellite, sensor and processing level matches those of the dataset.
-        For derived products such as PQA and Fractional Cover, the (satellite,
-        sensor) pair is taken as ('DERIVED', processing_level), as per the
-        secondary keys of the datacube.bands dictionary. The returned
-        dictionary omits this secondary key and so is keyed as
-        dataset_bands[tile_type][file_number]"""
-        tile_type_set = set()
-        dataset_bands = {} #will contain bands from datacube.bands
-        satellite, sensor, level = \
-            self.get_satellite_sensor_level()
-        datacube_tile_types = self.collection.datacube.bands.keys()
-        for tile_type in datacube_tile_types:
-            #define datacube_bands as those nested dictionaries pertaining to
-            #this tile_type and the dataset's (satellite, sensor) pair
-            datacube_bands = \
-                self.collection.datacube.bands[tile_type][(satellite, sensor)]
-            for file_number in datacube_bands:
-                if datacube_bands[file_number]['level_name'] != level:
-                    #This band's level_name is not relevant to this dataset
-                    continue
-                #add this tile_type to the dataset's tile_type_set
-                tile_type_set = tile_type_set.union(set([tile_type]))
-                #add the band source information to the dataset_bands dict
-                if tile_type not in dataset_bands:
-                    dataset_bands[tile_type] = {}
-                if file_number not in  dataset_bands[tile_type]:
-                    dataset_bands[tile_type][file_number] = {}
-                dataset_inner_dict = dataset_bands[tile_type][file_number]
-                datacube_inner_dict = datacube_bands[tile_type][file_number]
-                dataset_inner_dict.update(datacube_inner_dict)
-        return tile_type_set, dataset_bands
-
-    def list_bands(self, tile_type_id):
         pass
 
     # pylint: enable=missing-docstring
