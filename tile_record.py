@@ -29,60 +29,89 @@ class TileRecord(object):
                             ]
 
     def __init__(self, collection, acquisition_record,
-                 dataset_record, tile_type_id, tile_footprint, tile_contents):
+                 dataset_record, tile_contents):
         self.collection = collection
         self.acquisition_record = acquisition_record
         self.dataset_record = dataset_record
-        self.tile_footprint = tile_footprint
         self.tile_contents = tile_contents
+        self.tile_footprint = tile_contents.tile_footprint
+        self.tile_type_id = tile_contents.tile_type_id
+        #Set tile_class_id to 1 indicating non-mosaiced tile
+        self.tile_class_id = 1
+        #Set tile_id, determined below from database query
+        self.tile_id = None
         self.db = IngestDBWrapper(self.datacube.db_connection)
         # Fill a dictionary with data for the tile
-        tile_dict['x_index'] = tile_footprint[0]
-        tile_dict['y_index'] = tile_footprint[1]
-        tile_dict['tile_type_id'] = tile_type_id
-        tile_dict['dataset_id'] = dataset_record.dataset_id
+        tile_dict['x_index'] = self.tile_footprint[0]
+        tile_dict['y_index'] = self.tile_footprint[1]
+        tile_dict['tile_type_id'] = self.tile_type_id
+        tile_dict['dataset_id'] = self.dataset_record.dataset_id
+        # Store final destination in the 'tile_pathname' field
         tile_dict['tile_pathname'] = self.tile_contents.tile_output_path
-        tile_dict['tile_class_id'] = tile_class_id
-        tile_dict['tile_size'] = cube_util
+        tile_dict['tile_class_id'] = 1
+        # The physical file is currently in the temporary location
+        tile_dict['tile_size'] = \
+            cube_util.getFileSizeMB(self.tile_contents.temp_tile_output_path)
+        #Make the tile recoprd entry on the database:
+        self.tile_id = self.db.get_tile_id(self.tile_dict)
+        if self.tile_id  is None:
+            self.tile_id = self.db.insert_tile_record(self.tile_dict)
+        else:
+            #If there is any existing tile corresponding to tile_dict then
+            #it will have been removed by dataset_record.__remove_dataset_tiles()
+            #and its associated calls to methods in self.db.
+            assert 1 == 2, "Should not be in tiling process"
+        tile_dict['tile_id'] = self.tile_id
+        self.tile_dict = tile_dict
         
-
     def make_mosaics(self):
+        """Query the database to determine if this tile_record should be
+        mosaiced with tiles from previously ingested datasets."""
         tile_record_list = \
-            self.db.get_overlappiong_tiles(self.tile_contents.tile_type_id,
-                                           self.tile_contents.tile_footprint,
-                                           self.dataset_record.dataset_id)
+            self.db.get_overlapping_tiles(self.tile_type_id,
+                                          self.tile_footprint,
+                                          self.dataset_record.dataset_id)
+        if len(tile_record_list) < 1:
+            raise DatasetError("Mosaic process for dataset_id=%d, x_index=%d,"\
+                               " y_index=%d did not find any tile records,"\
+                               " including current tile_record!"\
+                               %(self.dataset_record.dataset_id,
+                                 self.tile_dict['x_index'],
+                                 self.tile_dict['y_index']))
+
+        if len(tile_record_list) == 1:
+            return
+        
         for tile_record in tile_record_list:
             if tile_record[4] == self.dataset_record.dataset_id:
-                #For the constituent tile deriving from the curent dataset id,
-                #will need to change its location in tile_list from the value
+                #For the constituent tile deriving from the current dataset id,
+                #we need to change its location in tile_list from the value
                 #stored in the database to the value stored in the
                 #tile_contents object.
-                tile_basename = os.path.basename(record[5])
-                tile_dir = os.path.dirname(self.tile_contents.
-                                           temp_tile_output_path)
-                record[5] = os.path.join(tile_dir, tile_basename)
-                tile_record_list.append(dict(zip(tile_table_column_names, record)))
-        assert len(tile_list) >= 1, \
-            "Mosaic process did not find any tile records"
-        assert len(tile_list) > 2, \
-            "Mosaic process found more than 2 tile records"
+                record[5] = self.tile_contents.temp_tile_output_path
+                #tile_record_list.append(dict(zip(tile_table_column_names, record)))
 
-        if len(tile_list) == 1:
-            return
+        # Make the temporary and permanent locations of the mosaic
         mosaic_basename = os.path.basename(tile_list[0]['tile_pathname'])
-        mosaic_dir = \
+        mosaic_temp_dir = \
             os.path.join(os.path.dirname(self.tile_contents.
                                          temp_tile_output_path),
                          'mosaic_cache')
-        if not os.path.isdir(mosaic_dir):
-            mkdir_cmd = ["mkdir -p", "%s" % mosaic_dir]
-            result = cube_util.execute(mkdir_cmd)
-        mosaic_pathname = os.path.join(mosaic_dir, mosaic_basename)
+        cube_util.create_directory(mosaic_temp_dir)
+        mosaic_final_dir = \
+            os.path.join(os.path.dirname(self.tile_contents.
+                                         tile_output_path),
+                        'mosaic_cache')
+        cube_util.create_directory(mosaic_final_dir)
+        mosaic_temp_pathname = os.path.join(mosaic_temp_dir, mosaic_basename)
+        mosaic_final_pathname = os.path.join(mosaic_final_dir, mosaic_basename)
+        # Make the physical tile for PQA or a vrt otherwise
         if self.dataset_record.mdd['processing_level'] == 'PQA':
-            self.tile_contents.make_pqa_mosaic_tile(tile_list, mosaic_pathname)
+            self.tile_contents.make_pqa_mosaic_tile(tile_record_list, mosaic_temp_pathname)
         else:
-            self.tile_contents.make_mosaic_vrt(tile_list, mosaic_pathname)
-        self.update_tile_table(tile_list, mosaic_pathname):
+            self.tile_contents.make_mosaic_vrt(tile_record_list, mosaic_temp_pathname)
+                               
+        self.update_tile_table(tile_record_list, mosaic_final_pathname):
         
     #
     #Methods that query and update the database:
