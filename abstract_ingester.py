@@ -7,6 +7,7 @@ import logging
 import argparse
 from abc import ABCMeta, abstractmethod
 
+from cube_util import DatasetError
 from datacube import DataCube
 from collection import Collection
 
@@ -61,6 +62,10 @@ class AbstractIngester(object):
         """
 
         self.args = self.parse_args()
+
+        if self.args.debug:
+            # Set DEBUG level on the root logger
+            logging.getLogger().setLevel(logging.DEBUG)
 
         if datacube is None:
             self.datacube = IngesterDataCube(self.args)
@@ -196,7 +201,7 @@ class AbstractIngester(object):
     def make_one_tile(self, dataset_record, tile_type_id, tile_footprint, band_stack):
         """Makes a single tile."""
         tile_contents = self.collection.create_tile_contents(tile_type_id,
-                                                             tile_footprint
+                                                             tile_footprint,
                                                              band_stack)
         tile_contents.reproject()
         if tile_contents.has_data():
