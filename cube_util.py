@@ -179,6 +179,10 @@ def create_directory(dirname):
         if e.errno != errno.EEXIST:
             raise DatasetError('Directory %s could not be created' %dirname)
 
+#
+# Exceptions
+#
+
 
 class DatasetError(Exception):
     """

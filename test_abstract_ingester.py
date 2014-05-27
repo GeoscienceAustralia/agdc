@@ -9,7 +9,8 @@ import unittest
 import subprocess
 
 import dbutil
-from abstract_ingester import AbstractIngester, DatasetError
+from cube_util import DatasetError
+from abstract_ingester import AbstractIngester
 
 #
 # Set up logger.

@@ -7,6 +7,7 @@ import logging
 import argparse
 from abc import ABCMeta, abstractmethod
 
+from cube_util import DatasetError
 from datacube import DataCube
 from collection import Collection
 from cube_util import DatasetError
@@ -62,6 +63,10 @@ class AbstractIngester(object):
         """
 
         self.args = self.parse_args()
+
+        if self.args.debug:
+            # Set DEBUG level on the root logger
+            logging.getLogger().setLevel(logging.DEBUG)
 
         if datacube is None:
             self.datacube = IngesterDataCube(self.args)
