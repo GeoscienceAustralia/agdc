@@ -30,7 +30,7 @@ class Collection(object):
 
     def __init__(self, datacube):
         """Initialise the collection object.
-        
+
         Note that tile_create_list is a list of TileContent objects,
         while tile_remove_list is a list of pathnames."""
 
@@ -49,7 +49,8 @@ class Collection(object):
         This is a tuple (satellite_tag, sensor_name, processing_level) except
         that for derived datasets (currently PQA and FC) the satellite_tag is
         replaced with 'DERIVED' and the processing_level is used as the
-        sensor_name. So the tuple looks like ('DERIVED', processing_level, processing_level).
+        sensor_name. So the tuple looks like:
+        ('DERIVED', processing_level, processing_level).
         """
 
         derived_levels = {'PQA', 'FC'}
@@ -63,11 +64,11 @@ class Collection(object):
             sensor = level
 
         return (satellite, sensor, level)
-    
+
     def list_tile_types(self, dataset_key):
         """Return the list of tile types associated with a dataset_key."""
         return self.new_bands[dataset_key].keys()
-        
+
     def check_metadata(self, dataset):
         """Check that the satellite, sensor, and bands are in the database.
 
@@ -141,12 +142,12 @@ class Collection(object):
 
         assert self.in_a_transaction
 
-        return AcquisitionRecord(self.collection, dataset)
+        return AcquisitionRecord(self, dataset)
 
     def create_tile_contents(self, tile_type_id, tile_footprint,
                              band_stack):
         """Factory method to create an instance of the TileContents class.
-        
+
         The tile_type_dict contains the information required for
         resampling extents and resolution."""
         tile_type_info = self.datacube.tile_type_dict[tile_type_id]
@@ -158,7 +159,7 @@ class Collection(object):
 
     def mark_tile_for_removal(self, tile_pathname):
         """Mark a tile file for removal.
-        
+
         These tiles will be deleted if the transaction is commited,
         but not if it is rolled back."""
 
@@ -223,10 +224,10 @@ class Collection(object):
 
     def __check_processing_level(self, dataset):
         """Check that the dataset's processing_level is in the database.
-        
+
         Raises a DatasetError if it is not.
         """
-        
+
         level_id = self.db.get_level_id(dataset.get_processing_level())
         if level_id is None:
             raise DatasetError("Unknown processing level: '%s'" %
@@ -234,10 +235,10 @@ class Collection(object):
 
     def __check_bands(self, dataset):
         """Check that the dataset has the expected bands.
-        
+
         Raises a DatasetError if any band expected for this dataset (according
         to the database) is missing.
-        """ 
+        """
 
         dataset_bands = self.new_bands[self.get_dataset_key(dataset)]
         for tile_type_bands in dataset_bands.values():

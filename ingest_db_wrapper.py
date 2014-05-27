@@ -5,7 +5,7 @@ This class (based on ConnectionWrapper) provides low-level database
 commands used by the ingest process. This is where the SQL queries go.
 
 The methods in this class should be context free, so all context information
-should be passed in as parameters and passed out as return values. To put 
+should be passed in as parameters and passed out as return values. To put
 it another way, the database connection should be the *only* data attribute.
 
 If you feel you need to cache the result of database queries or track context,
@@ -14,11 +14,9 @@ and simple interface to the database, to replace big chunks of SQL with
 meaningfully named method calls.
 """
 
-import os
 import logging
-import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-from psycopg2.extensions import ISOLATION_LEVEL_READ_COMMITED
+from psycopg2.extensions import ISOLATION_LEVEL_READ_COMMITTED
 
 import dbutil
 import cube_util
@@ -27,6 +25,7 @@ import cube_util
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
+# pylint: disable=too-many-public-methods
 
 class IngestDBWrapper(dbutil.ConnectionWrapper):
     """IngestDBWrapper: low-level database commands for the ingest process.
@@ -34,7 +33,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
 
     def execute_sql_single(self, sql, params):
         """Executes an sql query returning (at most) a single row.
-        
+
         This creates a cursor, executes the sql query or command specified
         by the operation string 'sql' and parameters 'params', and returns
         the first row of the result, or None if there is no result."""
@@ -63,7 +62,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
     @staticmethod
     def log_sql(sql_query_string):
         """Logs an sql query to the logger at debug level.
-        
+
         This uses the log_multiline utility function from cube_util.
         sql_query_string is as returned from cursor.mogrify."""
 
@@ -76,11 +75,11 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         Returns the old commit mode in a form suitable for passing to
         the restore_commit_mode method. Note that changeing commit mode
         must be done outside a transaction."""
-        
+
         old_commit_mode = (self.conn.autocommit, self.conn.isolation_level)
 
         self.conn.autocommit = False
-        self.conn.set_isolation_level(ISOLATION_LEVEL_READ_COMMITED)
+        self.conn.set_isolation_level(ISOLATION_LEVEL_READ_COMMITTED)
 
         return old_commit_mode
 
@@ -119,7 +118,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         found."""
 
         sql = ("SELECT satellite_id FROM satellite\n" +
-               "WHERE satellite_tag = %s;")        
+               "WHERE satellite_tag = %s;")
         params = (satellite_tag,)
         result = self.execute_sql_single(sql, params)
         satellite_id = result[0] if result else None
@@ -222,7 +221,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         sql = ("INSERT INTO acquisition " + columns + "\n" +
                "VALUES " + values + "\n" +
                "RETURNING acquisition_id;")
-        
+
         result = self.execute_sql_single(sql, acquisition_dict)
         acquisition_id = result[0]
 
@@ -230,7 +229,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
 
     def get_dataset_id(self, dataset_dict):
         """Finds the id of a dataset record in the database.
-        
+
         Returns a dataset_id if a record metching the key fields in
         dataset_dict is found, None otherwise. The key fields are:
             aquisition_id and level_id.
@@ -244,13 +243,13 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
 
         return dataset_id
 
-    def get_dataset_creation_datetime(self, dataset_id, tile_types=[1]):
+    def get_dataset_creation_datetime(self, dataset_id, tile_types=(1,)):
         """Finds the creation date and time for a dataset.
 
         Returns a datetime object representing the creation time for
         the dataset, as recorded in the database. The dataset record
         is identified by dataset_id.
-        
+
         The creation time is the earliest of either the datetime_processed
         field from the dataset table or the earliest tile.ctime field for
         the dataset's tiles. Tiles considered are restricted to those with
@@ -301,7 +300,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
                        'y_pixels',
                        'xml_text']
         columns = "(" + ",\n".join(column_list) + ")"
-        
+
         # Values are taken from the dataset_dict, with keys the same
         # as the column name, except for dataset_id, which is the next
         # value in the dataset_id_seq sequence.
@@ -316,7 +315,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         sql = ("INSERT INTO dataset " + columns + "\n" +
                "VALUES " + values + "\n" +
                "RETURNING dataset_id;")
-        
+
         result = self.execute_sql_single(sql, dataset_dict)
         dataset_id = result[0]
 
@@ -354,9 +353,9 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
                "WHERE dataset_id = %(dataset_id)s;")
         self.execute_sql_single(sql, dataset_dict)
 
-    def get_dataset_tile_ids(self, dataset_id, tile_types=[1]):
+    def get_dataset_tile_ids(self, dataset_id, tile_types=(1,)):
         """Returns a list of tile_ids associated with a dataset.
-        
+
         The tile_ids returned are restricted to those with types that match
         the tile_types list."""
 
@@ -400,7 +399,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
 
     def get_tile_id(self, tile_dict):
         """Finds the id of a tile record in the database.
-        
+
         Returns a tile_id if a record metching the key fields in
         tile_dict is found, None otherwise. The key fields are:
             dataset_id, x_index and y_index.
@@ -414,7 +413,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         tile_id = result[0] if result else None
         return tile_id
 
- 
+
     def insert_tile_record(self, tile_dict):
         """Creates a new tile record in the database.
 
@@ -431,7 +430,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
                        'tile_size',
                        'ctime']
         columns = "(" + ",\n".join(column_list) + ")"
-        
+
         # Values are taken from the tile_dict, with keys the same
         # as the column name, except for tile_id, which is the next
         # value in the dataset_id_seq sequence.
@@ -446,9 +445,9 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         sql = ("INSERT INTO tile " + columns + "\n" +
                "VALUES " + values + "\n" +
                "RETURNING tile_id;")
-        
+
         result = self.execute_sql_single(sql, tile_dict)
-        tile_id = result[0] 
+        tile_id = result[0]
         return tile_id
 
     def get_overlapping_tiles(self, tile_dict):
@@ -495,17 +494,16 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         return result
 
 
-        def update_tile_records_post_mosaic(tile_dict_list,
-                                            mosaic_final_pathname):
-            """Update the database tile table to reflect the changes to the
-            Tile Store resulting from the mosacing process.
+    def update_tile_records_post_mosaic(self, tile_dict_list,
+                                        mosaic_final_pathname):
+        """Update the database tile table to reflect the changes to the
+        Tile Store resulting from the mosacing process.
 
-            The constituent tiles in tile_dict_list have their tile_class_id
-            changed from 1 to 3. Also insert a record for the mosaiced tile,
-            with a tile_class_id of 4."""
-        
+        The constituent tiles in tile_dict_list have their tile_class_id
+        changed from 1 to 3. Also insert a record for the mosaiced tile,
+        with a tile_class_id of 4."""
 
-
+        pass
 
 
 #       there is already data from another existing dataset. Dictionary keys

@@ -42,13 +42,13 @@ class AcquisitionRecord(object):
                                    ]
 
     def __init__(self, collection, dataset):
-       
+
         self.collection = collection
         self.datacube = collection.datacube
         self.db = IngestDBWrapper(self.datacube.db_connection)
         self.acquisition_dict = {}
         self.acquisiton_id = None # set below
-        
+
         # Fill a dictonary with data for the acquisition.
         # Start with fields from the dataset metadata.
         for field in self.ACQUISITION_METADATA_FIELDS:
@@ -75,7 +75,7 @@ class AcquisitionRecord(object):
 
     def create_dataset_record(self, dataset):
         """Factory method to create an instance of the DatasetRecord class.
-        
+
         This method creates a new record in the database if one does not
         already exist. It will overwrite an earlier dataset record (and its
         tiles) if one exists. It will raise a DatasetError if a later (or
