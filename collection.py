@@ -11,7 +11,7 @@ format changes.
 
 import logging
 import os
-from abstract_ingester import DatasetError
+from cube_util import DatasetError
 from tile_contents import TileContents
 from acquisition_record import AcquisitionRecord
 from ingest_db_wrapper import IngestDBWrapper
@@ -141,7 +141,7 @@ class Collection(object):
 
         assert self.in_a_transaction
 
-        return AcquisitionRecord(self.collection, dataset)
+        return AcquisitionRecord(self, dataset)
 
     def create_tile_contents(self, tile_type_id, tile_footprint,
                              band_stack):

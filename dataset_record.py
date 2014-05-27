@@ -11,8 +11,9 @@ format changes.
 
 import logging
 from osgeo import osr
-from abstract_ingester import DatasetError
+from cube_util import DatasetError
 from ingest_db_wrapper import IngestDBWrapper
+from tile_record import TileRecord
 from math import floor
 
 # Set up logger.
@@ -25,7 +26,6 @@ class DatasetRecord(object):
     DATASET_METADATA_FIELDS = ['dataset_path',
                                'datetime_processed',
                                'dataset_size',
-                               'crs',
                                'll_x',
                                'll_y',
                                'lr_x',
@@ -54,10 +54,10 @@ class DatasetRecord(object):
             self.dataset_dict[field] = self.mdd[field]
 
         self.dataset_dict['acquisition_id'] = self.acquisition.acquisition_id
-
+        self.dataset_dict['crs'] = self.mdd['projection']
         self.dataset_dict['level_name'] = self.mdd['processing_level']
         self.dataset_dict['level_id'] = \
-            self.db.get_processing_level(self.dataset_dict['level_name'])
+            self.db.get_level_id(self.dataset_dict['level_name'])
 
         self.dataset_id = self.db.get_dataset_id(self.dataset_dict)
         if self.dataset_id is None:
@@ -78,12 +78,12 @@ class DatasetRecord(object):
 
     def create_tile_record(self, tile_contents):
         """Factory method to create an instance of the TileRecord class.
-        
+
         The created object will be resposible for inserting tile table records
         into the database for reprojected or mosaiced tiles."""
         return TileRecord(self.collection, self.acquisition,
                           self, tile_contents)
-        
+
 
     def mark_as_tiled(self):
         pass
@@ -347,7 +347,7 @@ class DatasetRecord(object):
             satellite = 'DERIVED'
             sensor = processing_level
         return (satellite, sensor, processing_level)
-    
+
     def __remove_dataset_tiles(self):
         """Remove the tiles associated with a dataset that is about to
         be updated."""

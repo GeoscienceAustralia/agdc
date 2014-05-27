@@ -8,6 +8,7 @@ import time
 import pdb
 import logging
 import pprint
+import errno
 
 #
 # Set up logger
@@ -155,26 +156,25 @@ def execute(command_string=None, shell=True, cwd=None, env=None,
     return result
 
 # pylint: enable = too-many-arguments, too-many-locals
-def getFileSizeMB(path):
+def get_file_size_mb(path):
     """Gets the size of a file (megabytes).
 
     Arguments:
     path: file path
- 
+
     Returns:
     File size (MB)
 
     Raises:
     OSError [Errno=2] if file does not exist
-    """     
+    """
     return os.path.getsize(path) / (1024*1024)
 
-def create_directory(self, dirname):
+def create_directory(dirname):
     """Create dirname, including any intermediate directories necessary to
     create the leaf directory."""
     try:
         os.makedirs(dirname)
-        logger.info('Created directory %s', dirname)
     except OSError, e:
         if e.errno != errno.EEXIST:
             raise DatasetError('Directory %s could not be created' %dirname)

@@ -8,11 +8,10 @@
     object to instantiate the correct subclass.
 """
 import os
-import re
 from osgeo import gdal
 from abstract_bandstack import AbstractBandstack
-from abstract_ingester import DatasetError
 import cube_util
+from cube_util import DatasetError
 
 class LandsatBandstack(AbstractBandstack):
     """Landsat subclass of AbstractBandstack class"""
@@ -25,7 +24,7 @@ class LandsatBandstack(AbstractBandstack):
         self.nodata_list = None
         self.vrt_name = None
         self.vrt_band_stack = None
-        
+
     def buildvrt(self, temp_dir):
         """Given a dataset_record and corresponding dataset, build the vrt that
         will be used to reproject the dataset's data to tile coordinates"""
@@ -41,7 +40,7 @@ class LandsatBandstack(AbstractBandstack):
         else:
             nodata_spec = ""
         #Form the vrt_band_stack_filename
-        cube_utils.make_directory(temp_dir)
+        cube_util.create_directory(temp_dir)
         self.vrt_name = self.get_vrt_name(temp_dir)
         #build the vrt
         buildvrt_cmd = ["gdalbuildvrt -separate",
@@ -97,7 +96,7 @@ class LandsatBandstack(AbstractBandstack):
              'path': '%03d' % self.dataset_mdd['x_ref'],
              'row': '%03d' % self.dataset_mdd['y_ref']}
             )
-        for file_number, band_info in self.band_dict.items():
+        for band_info in self.band_dict.values():
             #Assume ordering file_number keys also orders the tile_layer
             band_number = band_info['tile_layer']
             band = band_stack_dataset.GetRasterBand(band_number)

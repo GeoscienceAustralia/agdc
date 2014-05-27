@@ -14,7 +14,7 @@ import re
 from ULA3.dataset import SceneDataset
 
 import cube_util
-from abstract_ingester import DatasetError
+from cube_util import DatasetError
 from abstract_dataset import AbstractDataset
 from landsat_bandstack import LandsatBandstack
 
@@ -354,10 +354,12 @@ class LandsatDataset(AbstractDataset):
 
     def get_pq_tests_run(self):
         """The tests run for a Pixel Quality dataset.
-
+    
         This is a 16 bit integer with the bits acting as flags. 1 indicates
         that the test was run, 0 that it was not.
         """
+        # Temporariltiy set pq_tests_run pending PQA metadata extraction
+        return 0xFFFF # TEMP
         return self._ds.pq_tests_run
 
     #
@@ -378,11 +380,12 @@ class LandsatDataset(AbstractDataset):
     def find_band_file(self, file_pattern):
         """Find the file in dataset_dir matching file_pattern and check
         uniqueness.
-        
+
         Returns the path to the file if found, raises a DatasetError
         otherwise."""
 
-        dataset_dir = os.path.join(self.dataset_mdd['dataset_path'], 'scene01')
+        dataset_dir = os.path.join(self.metadata_dict['dataset_path'],
+                                   'scene01')
         if not os.path.isdir(dataset_dir):
             raise DatasetError('%s is not a valid directory' % dataset_dir)
         filelist = [filename for filename in os.listdir(dataset_dir)

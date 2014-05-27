@@ -6,6 +6,7 @@ import os
 import logging
 import unittest
 import dbutil
+from landsat_dataset import LandsatDataset
 from dataset_record import DatasetRecord
 from abstract_ingester import AbstractIngester
 from abstract_dataset import AbstractDataset
@@ -220,7 +221,18 @@ class TestDatasetRecord(unittest.TestCase):
         # Set the DatasetRecord instance
         # Set an instance of the ingester to get a datacube object
         self.ingester = TestIngester()
-        self.dset_record = DatasetRecord(self.ingester.collection, None, None)
+        self.dataset = \
+            LandsatDataset('/g/data/v10/test_resources/mph547/input/' \
+                            'landsat_tiler/six_acquisitions/tiler_testing/' \
+                            'Condition0/L1/2005-06/LS5_TM_OTH_P51_GALPGS01' \
+                            '-002_112_084_20050626/scene01')
+        self.ingester.collection.in_a_transaction = True
+        self.ingester.collection.db = dbutil.TESTSERVER #Try this
+        self.acquisition = \
+            self.ingester.collection.create_acquisition_record(self.dataset)
+        self.dset_record = DatasetRecord(self.ingester.collection,
+                                         self.acquisition,
+                                         self.dataset)
         #Create a metedata_dict, as if constructed by AbstractDataset.__init__
         #To be updated before we call dataset_record.get_coverage() method on
         #each dataset.

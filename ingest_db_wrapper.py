@@ -18,7 +18,7 @@ import os
 import logging
 import psycopg2
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-from psycopg2.extensions import ISOLATION_LEVEL_READ_COMMITED
+from psycopg2.extensions import ISOLATION_LEVEL_READ_COMMITTED
 
 import dbutil
 import cube_util
@@ -148,7 +148,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         This method returns a level_id found by matching the level_name
         in the database, or None if it cannot be found."""
 
-        sql = ("SELECT level_id FROM level\n" +
+        sql = ("SELECT level_id FROM processing_level\n" +
                "WHERE level_name = %s;")
         params = (level_name,)
         result = self.execute_sql_single(sql, params)
@@ -169,8 +169,8 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         sql = ("SELECT acquisition_id FROM acquisition\n" +
                "WHERE satellite_id = %(satellite_id)s AND\n" +
                "    sensor_id = %(sensor_id)s AND\n" +
-               "    x_ref = %(xref)s AND\n" +
-               "    y_ref = %(yref)s AND\n" +
+               "    x_ref = %(x_ref)s AND\n" +
+               "    y_ref = %(y_ref)s AND\n" +
                "    start_datetime = %(start_datetime)s AND\n" +
                "    end_datetime = %(end_datetime)s;")
         result = self.execute_sql_single(sql, acquisition_dict)
@@ -457,7 +457,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         The tile, dataset and acquisition tables are queried to determine the
         set of overlapping tiles deriving from the same satellite pass, but
         from different scenes. The returned fields should match the constant
-        TILE_DICT_METADATA_FIELDS defined in tile_record.py. The returned
+        TILE_METADATA_FIELDS defined in tile_record.py. The returned
         records are ordered by the acquisition start_datetime."""
 
         sql = ("-- Find all scenes contributing data to this tile " + "\n" +

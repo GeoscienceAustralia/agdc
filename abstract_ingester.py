@@ -9,6 +9,7 @@ from abc import ABCMeta, abstractmethod
 
 from datacube import DataCube
 from collection import Collection
+from cube_util import DatasetError
 
 #
 # Set up logger.
@@ -179,6 +180,7 @@ class AbstractIngester(object):
             self.collection.commit_transaction()
 
     def tile_dataset(self, dataset_record, dataset):
+        # pylint: disable=maybe-no-member
         """Tiles a dataset.
         The database entry is identified by dataset_record."""
         dataset_key = self.collection.get_dataset_key(dataset)
@@ -191,12 +193,15 @@ class AbstractIngester(object):
                                              'ingest_temp'))
             for tile_footprint in \
                     dataset_record.get_coverage(tile_type_id):
-                self.make_one_tile(dataset_record, tile_type_id, tile_footprint, band_stack)
+                self.make_one_tile(dataset_record, tile_type_id,
+                                   tile_footprint, band_stack)
+        # pylint: enable=maybe-no-member
 
-    def make_one_tile(self, dataset_record, tile_type_id, tile_footprint, band_stack):
+    def make_one_tile(self, dataset_record, tile_type_id,
+                      tile_footprint, band_stack):
         """Makes a single tile."""
         tile_contents = self.collection.create_tile_contents(tile_type_id,
-                                                             tile_footprint
+                                                             tile_footprint,
                                                              band_stack)
         tile_contents.reproject()
         if tile_contents.has_data():
