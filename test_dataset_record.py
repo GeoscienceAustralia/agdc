@@ -9,6 +9,7 @@ import dbutil
 from landsat_dataset import LandsatDataset
 from dataset_record import DatasetRecord
 from abstract_ingester import AbstractIngester
+from abstract_ingester import IngesterDataCube
 from abstract_dataset import AbstractDataset
 from math import floor
 #
@@ -180,6 +181,10 @@ CONTAINED_TILES = set()
 # Disabled to avoid complaints about the unittest.TestCase class (which has too
 # many public methods according to pylint).
 #
+
+class TestArgs(object):
+    pass
+
 class TestIngester(AbstractIngester):
     """An ingester class from which to get a datacube object"""
     def __init__(self):
@@ -220,7 +225,14 @@ class TestDatasetRecord(unittest.TestCase):
 
         # Set the DatasetRecord instance
         # Set an instance of the ingester to get a datacube object
-        self.ingester = TestIngester()
+
+        test_args = TestArgs()
+        test_args.config_file = "My config file path here"
+        test_args.debug = False
+
+        test_datacube = IngesterDataCube(test_args)
+
+        self.ingester = TestIngester(datacube=test_datacube)
         self.dataset = \
             LandsatDataset('/g/data/v10/test_resources/mph547/input/' \
                             'landsat_tiler/six_acquisitions/tiler_testing/' \
