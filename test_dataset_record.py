@@ -187,8 +187,8 @@ class TestArgs(object):
 
 class TestIngester(AbstractIngester):
     """An ingester class from which to get a datacube object"""
-    def __init__(self):
-        AbstractIngester.__init__(self)
+    def __init__(self, datacube):
+        AbstractIngester.__init__(self, datacube)
     def find_datasets(self, source_dir):
         pass
     def open_dataset(self, dataset_path):
@@ -227,7 +227,7 @@ class TestDatasetRecord(unittest.TestCase):
         # Set an instance of the ingester to get a datacube object
 
         test_args = TestArgs()
-        test_args.config_file = "My config file path here"
+        test_args.config_file = "/g/data/v10/test_resources/test_datacube.conf"
         test_args.debug = False
 
         test_datacube = IngesterDataCube(test_args)
@@ -237,14 +237,11 @@ class TestDatasetRecord(unittest.TestCase):
             LandsatDataset('/g/data/v10/test_resources/mph547/input/' \
                             'landsat_tiler/six_acquisitions/tiler_testing/' \
                             'Condition0/L1/2005-06/LS5_TM_OTH_P51_GALPGS01' \
-                            '-002_112_084_20050626/scene01')
-        self.ingester.collection.in_a_transaction = True
-        self.ingester.collection.db = dbutil.TESTSERVER #Try this
+                            '-002_112_084_20050626')
+        self.ingester.collection.begin_transaction()
         self.acquisition = \
             self.ingester.collection.create_acquisition_record(self.dataset)
-        self.dset_record = DatasetRecord(self.ingester.collection,
-                                         self.acquisition,
-                                         self.dataset)
+        self.dset_record = self.acquisition.create_dataset_record(self.dataset)
         #Create a metedata_dict, as if constructed by AbstractDataset.__init__
         #To be updated before we call dataset_record.get_coverage() method on
         #each dataset.
@@ -252,6 +249,7 @@ class TestDatasetRecord(unittest.TestCase):
         mdd = {'satellite_tag': 'LS7', 'sensor_name': 'ETM+',
                'processing_level': 'ORTHO'}
         self.dset_record.mdd.update(mdd)
+        #self.ingester.collection.commit_transaction()
     def tearDown(self):
         #
         # Flush the handler and remove it from the root logger.
@@ -346,6 +344,7 @@ class TestDatasetRecord(unittest.TestCase):
         cube_tile_size = \
             (self.ingester.datacube.tile_type_dict[tile_type_id]['x_size'],
              self.ingester.datacube.tile_type_dict[tile_type_id]['y_size'])
+
         for example in example_set:
             dataset_crs, tile_crs, geotrans, \
                 pixels, lines, satellite_tag, sensor_name, \
@@ -360,6 +359,7 @@ class TestDatasetRecord(unittest.TestCase):
             transformation = \
                 self.dset_record.define_transformation(dataset_crs, tile_crs)
             #Determine the bounding quadrilateral of the dataset extent
+
             bbox = self.dset_record.get_bbox(transformation, geotrans,
                                              pixels, lines)
             #Get the definite and possible tiles from this dataset and

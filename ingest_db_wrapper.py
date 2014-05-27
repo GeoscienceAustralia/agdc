@@ -372,7 +372,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         """Returns an sql clause to restrict tile types to those specified."""
 
         if tile_types:
-            compare_list = ["    tile_type = %s" % tt for tt in tile_types]
+            compare_list = ["    tile_type_id = %s" % tt for tt in tile_types]
             clause = (" AND (\n" +
                       " OR\n".join(compare_list) +
                       ")")

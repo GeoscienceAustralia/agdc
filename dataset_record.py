@@ -36,7 +36,6 @@ class DatasetRecord(object):
                                'ur_y',
                                'x_pixels',
                                'y_pixels',
-                               'xml_text'
                                 ]
 
     # pylint: disable=missing-docstring
@@ -47,7 +46,6 @@ class DatasetRecord(object):
         self.datacube = collection.datacube
         self.db = IngestDBWrapper(self.datacube.db_connection)
         self.mdd = dataset.metadata_dict
-
         self.dataset_dict = {}
 
         for field in self.DATASET_METADATA_FIELDS:
@@ -55,10 +53,10 @@ class DatasetRecord(object):
 
         self.dataset_dict['acquisition_id'] = self.acquisition.acquisition_id
         self.dataset_dict['crs'] = self.mdd['projection']
+        self.dataset_dict['xml_text'] = dataset._get_xml_
         self.dataset_dict['level_name'] = self.mdd['processing_level']
         self.dataset_dict['level_id'] = \
             self.db.get_level_id(self.dataset_dict['level_name'])
-
         self.dataset_id = self.db.get_dataset_id(self.dataset_dict)
         if self.dataset_id is None:
             # create a new dataset record in the database
@@ -68,7 +66,7 @@ class DatasetRecord(object):
             # check to see if the existing dataset is more recent
             if (self.db.get_dataset_creation_datetime(self.dataset_id) >=
                     self.dataset_dict['datetime_processed']):
-                raise DatasetError("Dataset to be ingested is older than" +
+                raise DatasetError("Dataset to be ingested is older than " +
                                    "the version in the database.")
             # otherwise, remove the old tiles
             self.__remove_dataset_tiles()
