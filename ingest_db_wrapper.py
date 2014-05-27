@@ -244,7 +244,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
 
         return dataset_id
 
-    def get_dataset_creation_datetime(self, dataset_id):
+    def get_dataset_creation_datetime(self, dataset_id, tile_types=[1]):
         """Finds the creation date and time for a dataset.
 
         Returns a datetime object representing the creation time for
@@ -253,7 +253,8 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         
         The creation time is the earliest of either the datetime_processed
         field from the dataset table or the earliest tile.ctime field for
-        the dataset's tiles.
+        the dataset's tiles. Tiles considered are restricted to those with
+        tiles in the tile_types list.
         """
 
         sql_dtp = ("SELECT datetime_processed FROM dataset\n" +
@@ -261,9 +262,9 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         result = self.execute_sql_single(sql_dtp, (dataset_id,))
         datetime_processed = result(0)
 
-        # This needs to be checked to see if the tile_type(s) is right.
         sql_ctime = ("SELECT MIN(ctime) FROM tile\n" +
-                     "WHERE dataset_id = %s AND tile_type = 1;")
+                     "WHERE dataset_id = %s" +
+                     self.tile_types_clause(tile_types) + ";")
         result = self.execute_sql_single(sql_ctime, (dataset_id,))
         min_ctime = result(0)
 
@@ -353,24 +354,49 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
                "WHERE dataset_id = %(dataset_id);")
         self.execute_sql_single(sql, dataset_dict)
 
-    def get_dataset_tile_ids(self, dataset_id):
-        """Returns a list of tile_ids associated with a dataset."""
+    def get_dataset_tile_ids(self, dataset_id, tile_types=[1]):
+        """Returns a list of tile_ids associated with a dataset.
+        
+        The tile_ids returned are restricted to those with types that match
+        the tile_types list."""
 
-        tile_id_list = None
+        sql = ("SELECT tile_id FROM tile\n" +
+               "WHERE dataset_id = %s" +
+               self.tile_types_clause(tile_types) + ";")
+        result = self.execute_sql_multi(sql, (dataset_id,))
+        tile_id_list = [tup[0] for tup in result]
 
         return tile_id_list
+
+    @staticmethod
+    def tile_types_clause(tile_types):
+        """Returns an sql clause to restrict tile types to those specified."""
+
+        if tile_types:
+            compare_list = ["    tile_type = %s" % tt for tt in tile_types]
+            clause = (" AND (\n" +
+                      " OR\n".join(compare_list) +
+                      ")")
+        else:
+            clause = ""
+
+        return clause
 
     def get_tile_pathname(self, tile_id):
         """Returns the pathname for a tile."""
 
-        tile_pathname = None
+        sql = ("SELECT pathname FROM tile\n" +
+               "WHERE tile_id = %s;")
+        result = self.execute_sql_single(sql, (tile_id,))
+        tile_pathname = result(0)
 
         return tile_pathname
 
     def remove_tile_record(self, tile_id):
         """Removes a tile record from the database."""
 
-        pass
+        sql = "DELETE FROM tile WHERE tile_id = %s;"
+        self.execute_sql_single(sql, (tile_id,))
 
     def get_overlapping_tiles(self, tile_type_id, tile_footprint, dataset_id):
         """Return tile records within the given foorprint."""
