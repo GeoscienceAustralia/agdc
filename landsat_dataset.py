@@ -354,13 +354,24 @@ class LandsatDataset(AbstractDataset):
 
     def get_pq_tests_run(self):
         """The tests run for a Pixel Quality dataset.
-    
+
         This is a 16 bit integer with the bits acting as flags. 1 indicates
         that the test was run, 0 that it was not.
         """
-        # Temporariltiy set pq_tests_run pending PQA metadata extraction
-        return 0xFFFF # TEMP
-        return self._ds.pq_tests_run
+
+        # Default value provided for pq_tests_run value in case PQA metadata
+        # extraction fails due to out of date version of SceneDataset.
+        # This should be a temporary measure.
+
+        try:
+            pq_tests_run = self._ds.pq_tests_run
+        except AttributeError:
+            pq_tests_run = None
+
+        if pq_tests_run is None and self.get_processing_level() == 'PQA':
+            pq_tests_run = 0xFFFC
+
+        return pq_tests_run
 
     #
     # Methods used for tiling
@@ -392,7 +403,7 @@ class LandsatDataset(AbstractDataset):
                     if re.match(file_pattern, filename)]
         if not len(filelist) == 1:
             raise DatasetError('Unable to find unique match ' +
-                                'for file pattern %s' % file_pattern)
+                               'for file pattern %s' % file_pattern)
 
         return os.path.join(dataset_dir, filelist[0])
 
