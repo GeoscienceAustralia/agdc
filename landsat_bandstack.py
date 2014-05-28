@@ -15,10 +15,10 @@ from cube_util import DatasetError
 
 class LandsatBandstack(AbstractBandstack):
     """Landsat subclass of AbstractBandstack class"""
-    def __init__(self, band_dict, dataset):
+    def __init__(self, dataset, band_dict):
         #Order the band_dict by the file number key
-        self.band_dict = sorted(band_dict.items(), key=lambda t: t[0])
         self.dataset = dataset
+        self.band_dict = sorted(band_dict.items(), key=lambda t: t[0])
         self.dataset_mdd = dataset.metadata_dict
         self.source_file_list = None
         self.nodata_list = None

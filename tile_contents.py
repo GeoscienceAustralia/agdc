@@ -14,6 +14,7 @@ import os
 import re
 import cube_util
 from cube_util import DatasetError
+from osgeo import gdal
 import numpy as np
 # Set up logger.
 LOGGER = logging.getLogger(__name__)
@@ -30,9 +31,9 @@ PQA_NODATA_VALUE = 16127
 
 class TileContents(object):
     """TileContents database interface class."""
-    
+
     def __init__(self, tile_root, tile_type_info,
-                 tile_footprint, band_stack): 
+                 tile_footprint, band_stack):
         """set the tile_footprint over which we want to resample this dataset.
         """
         self.tile_type_id = tile_type_info['tile_type_id']
@@ -44,12 +45,12 @@ class TileContents(object):
             os.path.join(\
             tile_root, tile_type_info['tile_directory'],
             '%s_%s' %(band_stack.dataset_mdd['satellite_tag']+
-                      re.sub('\W', '',
+                      re.sub(r'\W', '',
                              band_stack.dataset_mdd['sensor_name'])))
-        
+
         tile_output_dir = \
-            os.path.join(tile_output_root, 
-                         re.sub('\+', '', '%+04d_%+04d' 
+            os.path.join(tile_output_root,
+                         re.sub(r'\+', '', '%+04d_%+04d'
                                 % (tile_footprint[0], tile_footprint[1])),
                          '%04d' % band_stack.dataset_mdd['start_datetime'].year
                          )
@@ -57,10 +58,10 @@ class TileContents(object):
         self.tile_output_path = \
             os.path.join(
             tile_output_dir,
-            '_'.join([band_stack.dataset_mdd['satellite_tag'], 
-                      re.sub('\W', '', band_stack.dataset_mdd['sensor_name']),
+            '_'.join([band_stack.dataset_mdd['satellite_tag'],
+                      re.sub(r'\W', '', band_stack.dataset_mdd['sensor_name']),
                       band_stack.dataset_mdd['processing_level'],
-                      re.sub('\+', '', '%+04d_%+04d' % (x_index, y_index)),
+                      re.sub(r'\+', '', '%+04d_%+04d' % (x_index, y_index)),
                       re.sub(':', '-', band_stack. \
                                  dataset_mdd['start_datetime'].isoformat())
                       ]) + tile_type_info['file_extension']
@@ -74,6 +75,7 @@ class TileContents(object):
     def reproject(self):
         """Reproject the scene dataset into tile coordinate reference system
         and extent. This method uses gdalwarp to do the reprojection."""
+        # pylint: disable=too-many-locals
         x_origin = self.tile_type_info['x_origin']
         y_origin = self.tile_type_info['y_origin']
         x_size = self.tile_type_info['x_size']
@@ -100,7 +102,7 @@ class TileContents(object):
         format_spec = ""
         for format_option in self.tile_type_info['format_options'].split(','):
             format_spec = '%s -co %s' % (format_spec, format_option)
-                                    
+
         reproject_cmd = ["gdalwarp -q",
                          " -t_srs %s" % self.tile_type_info['crs'],
                          " -te %f %f %f %f" % tile_extents,
@@ -108,7 +110,7 @@ class TileContents(object):
                          "-tap -tap",
                          "-r %s" % resampling_method,
                          nodata_spec,
-                         format_spec, 
+                         format_spec,
                          "-overwrite %s %s" % (self.band_stack.vrt_name,
                                                self.temp_tile_output_path)
                          ]
@@ -117,7 +119,6 @@ class TileContents(object):
             raise DatasetError('Unable to perform gdalwarp: ' + ###test commit
                                '"%s" failed: %s' % (reproject_cmd,
                          result['stderr']))
-                                    
 
     def has_data(self):
         """Check if the reprojection gave rise to a tile with valid data.
@@ -152,6 +153,7 @@ class TileContents(object):
         return False
 
     def remove(self):
+        """Remove tiles that were in coverage but have no data."""
         pass
 
     #
@@ -160,14 +162,14 @@ class TileContents(object):
     def make_pqa_mosaic_tile(self, tile_dict_list, mosaic_pathname):
         """From the PQA tiles in tile_dict_list, create a mosaic tile
         at mosaic_pathname.
-        
+
         For a given pixel, the algorithm is as follows:
         1. If the pixel has contiguity bit unset in all component tiles, then
         set the pixel's value to PQA_NODATA_VALUE.
         2. For a pixel with the contiguity bit set in at least one component
         tile, the mosaic result of Bit n is 1 if and only if it is 1 on all
         componenet tiles for which the contiguity bit is set."""
-
+        # pylint: disable=too-many-locals
         template_dataset = gdal.Open(tile_dict_list[0]['tile_pathname'])
         gdal_driver = gdal.GetDriverByName(self.tile_type_info['file_format'])
         #Set datatype formats appropriate to Create() and numpy
@@ -183,25 +185,26 @@ class TileContents(object):
 
         if not mosaic_dataset:
             raise DatasetError('Unable to open output dataset %s'
-                               % output_dataset)
-        
+                               % mosaic_dataset)
+
         mosaic_dataset.SetGeoTransform(template_dataset.GetGeoTransform())
         mosaic_dataset.SetProjection(template_dataset.GetProjection())
 
         output_band = mosaic_dataset.GetRasterBand(1)
-        data_array=np.zeros(shape=(mosaic_dataset.RasterYSize,
-                                   mosaic_dataset.RasterXSize),
-                            dtype=numpy_dtype)
+        data_array = np.zeros(shape=(mosaic_dataset.RasterYSize,
+                                     mosaic_dataset.RasterXSize),
+                              dtype=numpy_dtype)
         data_array[...] = -1 # Set all background values to FFFF
-    
-        overall_data_mask = np.zeros(shape=(mosaic_dataset.RasterYSize, 
+
+        overall_data_mask = np.zeros(shape=(mosaic_dataset.RasterYSize,
                                             mosaic_dataset.RasterXSize),
                                      dtype=np.bool)
         del template_dataset
 
         # Populate data_array with -masked PQA data
         for pqa_dataset_index in range(len(tile_dict_list)):
-            pqa_dataset_path = tile_dict_list[pqa_dataset_index]['tile_pathname']
+            pqa_dataset_path = \
+                tile_dict_list[pqa_dataset_index]['tile_pathname']
             pqa_dataset = gdal.Open(pqa_dataset_path)
             if not pqa_dataset:
                 raise DatasetError('Unable to open %s' % pqa_dataset_path)
@@ -219,10 +222,10 @@ class TileContents(object):
                         np.bitwise_and(data_array[pqa_data_mask],
                                        pqa_array[pqa_data_mask])
         # Set all pixels which don't contain data to PQA_NO_DATA_VALUE
-        data_array[~overall_data_mask] = PQA_NO_DATA_VALUE
-        output_band.WriteArray(data_array)  
+        data_array[~overall_data_mask] = PQA_NODATA_VALUE
+        output_band.WriteArray(data_array)
         mosaic_dataset.FlushCache()
-    
+
     @staticmethod
     def make_mosaic_vrt(tile_dict_list, mosaic_pathname):
         """From two or more source tiles create a vrt"""

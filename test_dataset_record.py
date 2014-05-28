@@ -7,10 +7,8 @@ import logging
 import unittest
 import dbutil
 from landsat_dataset import LandsatDataset
-#from dataset_record import DatasetRecord
 from abstract_ingester import AbstractIngester
 from abstract_ingester import IngesterDataCube
-#from abstract_dataset import AbstractDataset
 from math import floor
 #
 # Set up logger.
@@ -183,12 +181,13 @@ class TestDatasetRecord(unittest.TestCase):
                                                      self.OUTPUT_DIR,
                                                      "test_datacube.conf")
 
-        # Set an instance of the ingester to get a datacube object
+        # Set an instance of the datacube and pass it to an ingester instance
         test_args = TestArgs()
         test_args.config_file = config_file_path
         test_args.debug = False
         test_datacube = IngesterDataCube(test_args)
         self.ingester = TestIngester(datacube=test_datacube)
+        self.collection = self.ingester.collection
 
     def tearDown(self):
         #

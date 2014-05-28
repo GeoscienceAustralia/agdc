@@ -59,7 +59,8 @@ class TileRecord(object):
         tile_dict['tile_class_id'] = 1
         # The physical file is currently in the temporary location
         tile_dict['tile_size'] = \
-            cube_util.getFileSizeMB(self.tile_contents.temp_tile_output_path)
+            cube_util.get_file_size_mb(self.tile_contents
+                                       .temp_tile_output_path)
         #Make the tile record entry on the database:
         self.tile_id = self.db.get_tile_id(self.tile_dict)
         if self.tile_id  is None:
@@ -177,7 +178,7 @@ class TileRecord(object):
     #         where not exists
     #             (select tile_id
     #              from tile
-    #              where 
+    #              where
     #              x_index = %(x_index)s and
     #              y_index = %(y_index)s and
     #              tile_type_id = %(tile_type_id)s and
