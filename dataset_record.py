@@ -93,7 +93,7 @@ class DatasetRecord(object):
         tile_type_info = self.collection.datacube.tile_type_dict[tile_type_id]
         #Get geospatial information from the dataset.
         dataset_crs = self.mdd['projection']
-        dataset_geotransform = self.mdd['geotransform']
+        dataset_geotransform = self.mdd['geo_transform']
         pixels = self.mdd['x_pixels']
         lines = self.mdd['y_pixels']
         #Look up the datacube's projection information for this tile_type

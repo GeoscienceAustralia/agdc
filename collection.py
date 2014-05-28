@@ -111,7 +111,7 @@ class Collection(object):
 
         self.db.commit()
 
-        self.db.restore_autocommit(self.previous_commit_mode)
+        self.db.restore_commit_mode(self.previous_commit_mode)
         self.in_a_transaction = False
 
     def rollback_transaction(self):

@@ -7,10 +7,10 @@ import logging
 import unittest
 import dbutil
 from landsat_dataset import LandsatDataset
-from dataset_record import DatasetRecord
+#from dataset_record import DatasetRecord
 from abstract_ingester import AbstractIngester
 from abstract_ingester import IngesterDataCube
-from abstract_dataset import AbstractDataset
+#from abstract_dataset import AbstractDataset
 from math import floor
 #
 # Set up logger.
@@ -26,89 +26,29 @@ LOGGER.setLevel(logging.INFO)
 #
 # ############### THE DATA FROM THE DATASETS: ################
 # List of dataset crs from sample datasets
-DATASET_CRS = [
-    r'PROJCS["GDA94 / MGA zone 50",GEOGCS["GDA94",DATUM["Geocentric_Datum_' \
-    r'of_Australia_1994",SPHEROID["GRS 1980",6378137,298.2572221010002,' \
-    r'AUTHORITY["EPSG","7019"]],AUTHORITY["EPSG","6283"]],PRIMEM["Greenwich"' \
-    r',0],UNIT["degree",0.0174532925199433],AUTHORITY["EPSG","4283"]],' \
-    r'PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],' \
-    r'PARAMETER["central_meridian",117],PARAMETER["scale_factor",0.9996], ' \
-    r'PARAMETER["false_easting",500000],PARAMETER["false_northing",10000000]' \
-    r',UNIT["metre",1,AUTHORITY["EPSG","9001"]],AUTHORITY["EPSG","28350"]]'
-    ,
-    r'PROJCS["GDA94 / MGA zone 54",GEOGCS["GDA94",DATUM["Geocentric_Datum_' \
-    r'of_Australia_1994",SPHEROID["GRS 1980",6378137,298.2572221010002,' \
-    r'AUTHORITY["EPSG","7019"]],AUTHORITY["EPSG","6283"]],PRIMEM["Greenwich"' \
-    r',0],UNIT["degree",0.0174532925199433],AUTHORITY["EPSG","4283"]],' \
-    r'PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],' \
-    r'PARAMETER["central_meridian",141],PARAMETER["scale_factor",0.9996],' \
-    r'PARAMETER["false_easting",500000],PARAMETER["false_northing",10000000]' \
-    r',UNIT["metre",1,AUTHORITY["EPSG","9001"]],AUTHORITY["EPSG","28354"]]'
-    ,
-    r'PROJCS["GDA94 / MGA zone 51",GEOGCS["GDA94",DATUM["Geocentric_Datum_' \
-    r'of_Australia_1994",SPHEROID["GRS 1980",6378137,298.2572221010002,' \
-    r'AUTHORITY["EPSG","7019"]],AUTHORITY["EPSG","6283"]],PRIMEM["Greenwich"' \
-    r',0],UNIT["degree",0.0174532925199433],AUTHORITY["EPSG","4283"]],' \
-    r'PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],' \
-    r'PARAMETER["central_meridian",123],PARAMETER["scale_factor",0.9996],' \
-    r'PARAMETER["false_easting",500000],PARAMETER["false_northing",10000000]' \
-    r',UNIT["metre",1,AUTHORITY["EPSG","9001"]],AUTHORITY["EPSG","28351"]]'
-    ,
-    r'PROJCS["GDA94 / MGA zone 52",GEOGCS["GDA94",DATUM["Geocentric_Datum_' \
-    r'of_Australia_1994",SPHEROID["GRS 1980",6378137,298.2572221010002,' \
-    r'AUTHORITY["EPSG","7019"]],AUTHORITY["EPSG","6283"]],PRIMEM["Greenwich"' \
-    r',0],UNIT["degree",0.0174532925199433],AUTHORITY["EPSG","4283"]],' \
-    r'PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],' \
-    r'PARAMETER["central_meridian",129],PARAMETER["scale_factor",0.9996],' \
-    r'PARAMETER["false_easting",500000],PARAMETER["false_northing",10000000]' \
-    r',UNIT["metre",1,AUTHORITY["EPSG","9001"]],AUTHORITY["EPSG","28352"]]'
-    ,
-    r'PROJCS["GDA94 / MGA zone 53",GEOGCS["GDA94",DATUM["Geocentric_Datum_' \
-    r'of_Australia_1994",SPHEROID["GRS 1980",6378137,298.2572221010002,' \
-    r'AUTHORITY["EPSG","7019"]],AUTHORITY["EPSG","6283"]],PRIMEM["Greenwich"' \
-    r',0],UNIT["degree",0.0174532925199433],AUTHORITY["EPSG","4283"]],' \
-    r'PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],' \
-    r'PARAMETER["central_meridian",135],PARAMETER["scale_factor",0.9996],' \
-    r'PARAMETER["false_easting",500000],PARAMETER["false_northing",10000000]' \
-    r',UNIT["metre",1,AUTHORITY["EPSG","9001"]],AUTHORITY["EPSG","28353"]]'
-    ,
-    r'PROJCS["GDA94 / MGA zone 54",GEOGCS["GDA94",DATUM["Geocentric_Datum_' \
-    r'of_Australia_1994",SPHEROID["GRS 1980",6378137,298.2572221010002,' \
-    r'AUTHORITY["EPSG","7019"]],AUTHORITY["EPSG","6283"]],PRIMEM["Greenwich"' \
-    r',0],UNIT["degree",0.0174532925199433],AUTHORITY["EPSG","4283"]]' \
-    r',PROJECTION["Transverse_Mercator"],PARAMETER["latitude_of_origin",0],'
-    r'PARAMETER["central_meridian",141],PARAMETER["scale_factor",0.9996],' \
-    r'PARAMETER["false_easting",500000],PARAMETER["false_northing",10000000]' \
-    r',UNIT["metre",1,AUTHORITY["EPSG","9001"]],AUTHORITY["EPSG","28354"]]']
-
-# List of geotransforms, pixels and lines
-DATASET_GEOTRANSFORM = [(273000.0, 25.0, 0.0, 6276000.0, 0.0, -25.0),
-                        (98000.0, 25.0, 0.0, 7227000.0, 0.0, -25.0),
-                        (166000.0, 25.0, 0.0, 7071000.0, 0.0, -25.0),
-                        (524000.0, 25.0, 0.0, 7233000.0, 0.0, -25.0),
-                        (220000.0, 25.0, 0.0, 6431000.0, 0.0, -25.0),
-                        (580000.0, 25.0, 0.0, 6119000.0, 0.0, -25.0)]
-DATASET_XPIXELS = [9601, 9361, 9401, 9561, 9441, 9761]
-DATASET_YPIXELS = [8481, 8361, 8521, 8641, 8521, 8761]
-
-# List of tile crs for datacube
-TILE_CRS = ['EPSG:4326', 'EPSG:4326', 'EPSG:4326',
-            'EPSG:4326', 'EPSG:4326', 'EPSG:4326']
-
-#Values to be given to metadata_dict
-SATELLITE_SENSOR = ['LS5-TM', 'LS7-ETM+', 'LS7-ETM+', 'LS7-ETM+', 'LS5-TM',
-                   'LS7-ETM+']
-
-DATASET_SATELLITE_TAG = \
-    [re.match(r'([\w+]+)-([\w+]+)', sat_sen_string).group(1)
-     for sat_sen_string in SATELLITE_SENSOR]
-DATASET_SENSOR_NAME = \
-    [re.match(r'([\w+]+)-([\w+]+)', sat_sen_string).group(2)
-     for sat_sen_string in SATELLITE_SENSOR]
+DATASETS_TO_INGEST = [
+    os.path.join('/g/data/v10/test_resources/scenes/tiler_testing0',
+                 'Condition0/L1/2005-06',
+                 'LS5_TM_OTH_P51_GALPGS01-002_112_084_20050626'),
+    os.path.join('/g/data/v10/test_resources/scenes/tiler_testing0',
+                 'Condition1/NBAR/1999-09',
+                 'LS7_ETM_NBAR_P54_GANBAR01-002_099_078_19990927'),
+    os.path.join('/g/data/v10/test_resources/scenes/tiler_testing0',
+                 'Condition2/L1/2006-06',
+                 'LS7_ETM_OTH_P51_GALPGS01-002_110_079_20060623'),
+    os.path.join('/g/data/v10/test_resources/scenes/tiler_testing0',
+                 'Condition3/L1/2007-02',
+                 'LS7_ETM_OTH_P51_GALPGS01-002_104_078_20070224'),
+    os.path.join('/g/data/v10/test_resources/scenes/tiler_testing0',
+                 'Condition4/L1/1998-10'),
+    os.path.join('/g/data/v10/test_resources/scenes/tiler_testing0',
+                 'Condition4/L1/1999-12',
+                 'LS7_ETM_OTH_P51_GALPGS01-002_094_085_19991229_1')
+    ]
 
 
 ################ THE EXPECTED OUTPUT: ################
-TOLERANCE = 1e-02 #tolerance in number of pixels for bbox calculation
+TOLERANCE = 1e-02 #tolerance in number of datacube pixels for bbox calculation
 #List of dataset bounding box coordinates
 TILE_XLL = [114.4960138888889, 136.9537, 119.59266944444444,
             129.241830556, 131.963466667, 141.899613889]
@@ -126,6 +66,8 @@ TILE_XUR = [117.14047777777779, 139.334688889, 122.00699444444444,
             131.605866667, 134.533133333, 144.550966667]
 TILE_YUR = [-33.65578611111111, -25.0633805556, -26.477969444444444,
              -24.9956972222, -32.2568333333, -35.0197527778]
+DATASET_BBOX = zip(zip(TILE_XUL, TILE_YUL), zip(TILE_XUR, TILE_YUR),
+                   zip(TILE_XLR, TILE_YLR), zip(TILE_XLL, TILE_YLL))
 
 # Set of expected tiles inside the bounding box's maximum contained rectangle.
 # Paste in list of tiles in lon_lat format from previously hand-checked run of
@@ -183,6 +125,8 @@ CONTAINED_TILES = set()
 #
 
 class TestArgs(object):
+    """The sole instance of this class stores the config_path and debug
+    arguments for passing to the datacube constructor."""
     pass
 
 class TestIngester(AbstractIngester):
@@ -199,6 +143,7 @@ class TestDatasetRecord(unittest.TestCase):
     MODULE = 'dataset_record'
     SUITE = 'DatasetRecord'
 
+    INPUT_DIR = dbutil.input_directory(MODULE, SUITE)
     OUTPUT_DIR = dbutil.output_directory(MODULE, SUITE)
     EXPECTED_DIR = dbutil.expected_directory(MODULE, SUITE)
     def setUp(self):
@@ -223,99 +168,90 @@ class TestDatasetRecord(unittest.TestCase):
         self.handler.setLevel(logging.INFO)
         self.handler.setFormatter(logging.Formatter('%(message)s'))
 
-        # Set the DatasetRecord instance
+        # Create an empty database
+        self.test_conn = None
+        print 'Create an empty database'
+        self.test_dbname = dbutil.random_name("test_dataset_record")
+        print 'Creating %s' %self.test_dbname
+        dbutil.TESTSERVER.create(self.test_dbname,
+                                     self.INPUT_DIR, "hypercube_empty.sql")
+
+        # Set the datacube configuration file to point to the empty database
+        configuration_dict = {'dbname': self.test_dbname}
+        config_file_path = dbutil.update_config_file2(configuration_dict,
+                                                     self.INPUT_DIR,
+                                                     self.OUTPUT_DIR,
+                                                     "test_datacube.conf")
+
         # Set an instance of the ingester to get a datacube object
-
         test_args = TestArgs()
-        test_args.config_file = "/g/data/v10/test_resources/test_datacube.conf"
+        test_args.config_file = config_file_path
         test_args.debug = False
-
         test_datacube = IngesterDataCube(test_args)
-
         self.ingester = TestIngester(datacube=test_datacube)
-        self.dataset = \
-            LandsatDataset('/g/data/v10/test_resources/mph547/input/' \
-                            'landsat_tiler/six_acquisitions/tiler_testing/' \
-                            'Condition0/L1/2005-06/LS5_TM_OTH_P51_GALPGS01' \
-                            '-002_112_084_20050626')
-        self.ingester.collection.begin_transaction()
-        self.acquisition = \
-            self.ingester.collection.create_acquisition_record(self.dataset)
-        self.dset_record = self.acquisition.create_dataset_record(self.dataset)
-        #Create a metedata_dict, as if constructed by AbstractDataset.__init__
-        #To be updated before we call dataset_record.get_coverage() method on
-        #each dataset.
-        self.dset_record.mdd = {}
-        mdd = {'satellite_tag': 'LS7', 'sensor_name': 'ETM+',
-               'processing_level': 'ORTHO'}
-        self.dset_record.mdd.update(mdd)
-        #self.ingester.collection.commit_transaction()
+
     def tearDown(self):
         #
         # Flush the handler and remove it from the root logger.
         #
-
         self.handler.flush()
-
         root_logger = logging.getLogger()
         root_logger.removeHandler(self.handler)
+        if self.test_dbname:
+            print 'About to drop %s' %self.test_dbname
+            dbutil.TESTSERVER.drop(self.test_dbname)
 
-    def test_get_bbox(self, tile_type_id=1):
+    def test_get_bbox_dataset(self, tile_type_id=1):
+        """Test the DatasetRecord class get_bbox() method on six landsat
+        datasets."""
         #pylint: disable=too-many-locals
-        """Test the dataset_record.get_bbox() method.
-        At the top of this file, constants define data pertaining to six actual
-        landsat scenes. This includes assumed return values for the
-        dataset.get_xxx() methods, Specifically:
-        1. DATASET_CRS:          dataset.get_projection()
-        2. DATASET_GEOTRANSFORM: dataset.get_geotransform()
-        3. DATASET_XPIXELS:      dataset.x_pixels()
-        4. DATASET_YPIXELS:      dataset.y_pixels()
-        The constants also provide test data expected to be returned by the
-        tested get_coverage methods:
-        1. TILE_XLL, TILE_YLL,... : dataset bounding box in tile projection
-                                    coordinates TILE_CRS
-        """
-        example_set = \
-            zip(DATASET_CRS, TILE_CRS, DATASET_GEOTRANSFORM,
-                DATASET_XPIXELS, DATASET_YPIXELS,
-                zip(zip(TILE_XUL, TILE_YUL), zip(TILE_XUR, TILE_YUR),
-                    zip(TILE_XLR, TILE_YLR), zip(TILE_XLL, TILE_YLL)))
         cube_tile_size = \
             (self.ingester.datacube.tile_type_dict[tile_type_id]['x_size'],
              self.ingester.datacube.tile_type_dict[tile_type_id]['y_size'])
         cube_pixels = \
             (self.ingester.datacube.tile_type_dict[tile_type_id]['x_pixels'],
              self.ingester.datacube.tile_type_dict[tile_type_id]['y_pixels'])
-        #Check that bounding box in tile space is within 1% of a pixel size
-        for example in example_set:
-            dataset_crs, tile_crs, geotrans, \
-                pixels, lines, dataset_bbox = example
-            transformation = \
-                self.dset_record.define_transformation(dataset_crs, tile_crs)
+        tile_crs = \
+            self.ingester.datacube.tile_type_dict[tile_type_id]['crs']
+        for idataset in range(len(DATASETS_TO_INGEST)):
+            # Get information required for calculating the bounding box.
+            dset = LandsatDataset(DATASETS_TO_INGEST[idataset])
+            dataset_crs = dset.get_projection()
+            geotrans = dset.get_geo_transform()
+            pixels = dset.get_x_pixels()
+            lines = dset.get_y_pixels()
+            # Create a DatasetRecord instance so that we can test its
+            # get_bbox() method. In doing this we need to create a
+            # collection object and entries on the acquisition and dataset
+            # tables of the database.
+            self.ingester.collection.begin_transaction()
+            acquisition = \
+                self.ingester.collection.create_acquisition_record(dset)
+            dset_record = acquisition.create_dataset_record(dset)
+            self.ingester.collection.commit_transaction()
+            # Test the DatasetRecord get_bbox() method
             #Determine the bounding quadrilateral of the dataset extent
-            bbox = self.dset_record.get_bbox(transformation, geotrans,
-                                             pixels, lines)
+            transformation = \
+                dset_record.define_transformation(dataset_crs, tile_crs)
+            bbox = dset_record.get_bbox(transformation, geotrans,
+                                        pixels, lines)
+            reference_dataset_bbox = DATASET_BBOX[idataset]
             #Check bounding box is as expected
+            print 'Checking bbox for Dataset %d' %idataset
             residual_in_pixels = \
                 [((x2 - x1) * cube_pixels[0] / cube_tile_size[0],
                   (y2 - y1) * cube_pixels[1] / cube_tile_size[1])
-                 for ((x1, y1), (x2, y2)) in zip(dataset_bbox, bbox)]
+                 for ((x1, y1), (x2, y2)) in zip(reference_dataset_bbox, bbox)]
             assert all(abs(dx) < TOLERANCE and  abs(dy) < TOLERANCE
                        for (dx, dy) in residual_in_pixels), \
                        "bounding box calculation incorrect"
 
     def test_get_coverage(self, tile_type_id=1):
-        #pylint: disable=too-many-locals
+        # pylint: disable=too-many-locals
         """Test the methods called by the dataset_record.get_coverage() method.
-        At the top of this file, constants define data pertaining to six actual
-        landsat scenes. This includes assumed return values for the
-        dataset.get_xxx() methods, Specifically:
-        1. DATASET_CRS:          dataset.get_projection()
-        2. DATASET_GEOTRANSFORM: dataset.get_geotransform()
-        3. DATASET_XPIXELS:      dataset.x_pixels()
-        4. DATASET_YPIXELS:      dataset.y_pixels()
-        The constants also provide test data expected to be returned by the
-        tested get_coverage methods:
+
+        The constants at the top of this file provide test data expected to be
+        returned by the tested get_coverage methods:
         1. TILE_XLL, TILE_YLL,... : dataset bounding box in tile projection
                                     coordinates TILE_CRS
         2. DEFINITE_TILES: tiles in inner rectangle
@@ -324,14 +260,8 @@ class TestDatasetRecord(unittest.TestCase):
         intersect the dataset bounding box
         5. CONTAINED_TILES: those tiles from outer rectangle wholly contained
         in the dataset bounding box
-        6. COVERAGE: the tiles to be returned from dataset_record.get_coverage
+        6. COVERAGE: the tiles to be returned from DatasetRecord.get_coverage()
         """
-        example_set = \
-            zip(DATASET_CRS, TILE_CRS, DATASET_GEOTRANSFORM,
-                DATASET_XPIXELS, DATASET_YPIXELS,
-                DATASET_SATELLITE_TAG, DATASET_SENSOR_NAME,
-                zip(zip(TILE_XUL, TILE_YUL), zip(TILE_XUR, TILE_YUR),
-                    zip(TILE_XLR, TILE_YLR), zip(TILE_XLL, TILE_YLL)))
         total_definite_tiles = set()
         total_possible_tiles = set()
         total_intersected_tiles = set()
@@ -344,45 +274,52 @@ class TestDatasetRecord(unittest.TestCase):
         cube_tile_size = \
             (self.ingester.datacube.tile_type_dict[tile_type_id]['x_size'],
              self.ingester.datacube.tile_type_dict[tile_type_id]['y_size'])
-
-        for example in example_set:
-            dataset_crs, tile_crs, geotrans, \
-                pixels, lines, satellite_tag, sensor_name, \
-            dummy_dataset_bbox = example
-            #update mdd, for use by get_coverage() method
-            self.dset_record.mdd['projection'] = dataset_crs
-            self.dset_record.mdd['geotransform'] = geotrans
-            self.dset_record.mdd['x_pixels'] = pixels
-            self.dset_record.mdd['y_pixels'] = lines
-            self.dset_record.mdd['satellite_tag'] = satellite_tag
-            self.dset_record.mdd['sensor_name'] = sensor_name
-            transformation = \
-                self.dset_record.define_transformation(dataset_crs, tile_crs)
+        tile_crs = \
+            self.ingester.datacube.tile_type_dict[tile_type_id]['crs']
+        for idataset in range(len(DATASETS_TO_INGEST)):
+            print 'Getting the coverage from Dataset %d' %idataset
+            dset = LandsatDataset(DATASETS_TO_INGEST[idataset])
+            dataset_crs = dset.get_projection()
+            geotrans = dset.get_geo_transform()
+            pixels = dset.get_x_pixels()
+            lines = dset.get_y_pixels()
+            # Create a DatasetRecord instance so that we can test its
+            # get_coverage() method. In doing this we need to create a
+            # collection object and entries on the acquisition and dataset
+            # tables of the database.
+            self.ingester.collection.begin_transaction()
+            acquisition = \
+                self.ingester.collection.create_acquisition_record(dset)
+            dset_record = acquisition.create_dataset_record(dset)
+            self.ingester.collection.commit_transaction()
+            # Test the DatasetRecord get_bbox() method
             #Determine the bounding quadrilateral of the dataset extent
-
-            bbox = self.dset_record.get_bbox(transformation, geotrans,
-                                             pixels, lines)
+            transformation = \
+                dset_record.define_transformation(dataset_crs, tile_crs)
+            #Determine the bounding quadrilateral of the dataset extent
+            bbox = dset_record.get_bbox(transformation, geotrans,
+                                        pixels, lines)
             #Get the definite and possible tiles from this dataset and
             #accumulate in running total
             definite_tiles, possible_tiles = \
-                self.dset_record.get_definite_and_possible_tiles(
-                bbox, cube_origin, cube_tile_size)
+                dset_record.get_definite_and_possible_tiles(bbox, cube_origin,
+                                                            cube_tile_size)
             total_definite_tiles = \
                 total_definite_tiles.union(definite_tiles)
             total_possible_tiles = \
                 total_possible_tiles.union(possible_tiles)
             #Get intersected tiles and accumulate in running total
             intersected_tiles = \
-                self.dset_record.get_intersected_tiles(possible_tiles,
-                                                       bbox,
-                                                       cube_origin,
-                                                       cube_tile_size)
+                dset_record.get_intersected_tiles(possible_tiles,
+                                                  bbox,
+                                                  cube_origin,
+                                                  cube_tile_size)
             total_intersected_tiles = \
                 total_intersected_tiles.union(intersected_tiles)
             #Take out intersected tiles from possibole tiles and get contained
             possible_tiles = possible_tiles.difference(intersected_tiles)
             contained_tiles = \
-                self.dset_record.get_contained_tiles(possible_tiles,
+                dset_record.get_contained_tiles(possible_tiles,
                                                      bbox,
                                                      cube_origin,
                                                      cube_tile_size)
@@ -390,12 +327,12 @@ class TestDatasetRecord(unittest.TestCase):
                 total_contained_tiles.union(contained_tiles)
             #Use parent method to get touched tiles
             touched_tiles = \
-                self.dset_record.get_touched_tiles(bbox,
-                                                   cube_origin,
-                                                   cube_tile_size)
+                dset_record.get_touched_tiles(bbox,
+                                              cube_origin,
+                                              cube_tile_size)
             total_touched_tiles = total_touched_tiles.union(touched_tiles)
             #use parent method get_coverage to get coverage
-            coverage = self.dset_record.get_coverage(tile_type_id)
+            coverage = dset_record.get_coverage(tile_type_id)
             total_coverage = total_coverage.union(coverage)
 
         #Check definite and possible tiles are as expected
