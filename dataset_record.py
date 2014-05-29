@@ -39,24 +39,26 @@ class DatasetRecord(object):
                                'xml_text'
                                 ]
 
-    # pylint: disable=missing-docstring
     def __init__(self, collection, acquisition, dataset):
 
         self.collection = collection
-        self.acquisition = acquisition
         self.datacube = collection.datacube
         self.db = IngestDBWrapper(self.datacube.db_connection)
+
+        dataset_key = collection.get_dataset_key(dataset)
+        self.dataset_bands = collection.new_bands[dataset_key]
+
         self.mdd = dataset.metadata_dict
         self.dataset_dict = {}
-
         for field in self.DATASET_METADATA_FIELDS:
             self.dataset_dict[field] = self.mdd[field]
 
-        self.dataset_dict['acquisition_id'] = self.acquisition.acquisition_id
+        self.dataset_dict['acquisition_id'] = acquisition.acquisition_id
         self.dataset_dict['crs'] = self.mdd['projection']
         self.dataset_dict['level_name'] = self.mdd['processing_level']
         self.dataset_dict['level_id'] = \
             self.db.get_level_id(self.dataset_dict['level_name'])
+
         self.dataset_id = self.db.get_dataset_id(self.dataset_dict)
         if self.dataset_id is None:
             # create a new dataset record in the database
@@ -79,14 +81,30 @@ class DatasetRecord(object):
 
         The created object will be resposible for inserting tile table records
         into the database for reprojected or mosaiced tiles."""
-        return TileRecord(self.collection, self.acquisition,
-                          self, tile_contents)
-
+        return TileRecord(self.collection, self, tile_contents)
 
     def mark_as_tiled(self):
+        """Flag the dataset record as tiled in the database.
+
+        This flag does not exist in the current database schema,
+        so this method does nothing at the moment."""
+
         pass
 
-    # pylint: enable=missing-docstring
+    def list_tile_types(self):
+        """Returns a list of the tile type ids for this dataset."""
+
+        return self.dataset_bands.keys()
+
+    def get_tile_bands(self, tile_type_id):
+        """Returns a dictionary containing the band info for one tile type.
+
+        The tile_type_id must valid for this dataset, available from
+        list_tile_types above.
+        """
+
+        return self.dataset_bands[tile_type_id]
+
     def get_coverage(self, tile_type_id):
         """Given the coordinate reference system of the dataset and that of the
         tile_type_id, return a list of tiles within the dataset footprint"""
@@ -354,6 +372,3 @@ class DatasetRecord(object):
             tile_pathname = self.db.get_tile_pathname(tile_id)
             self.db.remove_tile_record(tile_id)
             self.collection.mark_tile_for_removal(tile_pathname)
-
-
-

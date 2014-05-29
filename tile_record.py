@@ -33,11 +33,9 @@ class TileRecord(object):
                             'tile_size'
                             'ctime'
                             ]
-    def __init__(self, collection, acquisition_record,
-                 dataset_record, tile_contents):
+    def __init__(self, collection, dataset_record, tile_contents):
         self.collection = collection
         self.datacube = collection.datacube
-        self.acquisition_record = acquisition_record
         self.dataset_record = dataset_record
         self.tile_contents = tile_contents
         self.tile_footprint = tile_contents.tile_footprint

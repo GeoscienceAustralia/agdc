@@ -7,7 +7,6 @@ import logging
 import argparse
 from abc import ABCMeta, abstractmethod
 
-from cube_util import DatasetError
 from datacube import DataCube
 from collection import Collection
 from cube_util import DatasetError
@@ -163,18 +162,12 @@ class AbstractIngester(object):
 
         self.collection.begin_transaction()
         try:
-
             acquisition_record = \
                 self.collection.create_acquisition_record(dataset)
 
-
             dataset_record = acquisition_record.create_dataset_record(dataset)
 
-            #dataset.metadata_dict = dataset.build_metadata_dict()
-            dataset_record.mdd = dataset.metadata_dict
-
             self.tile_dataset(dataset_record, dataset)
-
             dataset_record.mark_as_tiled()
 
         except:
@@ -185,22 +178,21 @@ class AbstractIngester(object):
             self.collection.commit_transaction()
 
     def tile_dataset(self, dataset_record, dataset):
-        # pylint: disable=maybe-no-member
         """Tiles a dataset.
-        The database entry is identified by dataset_record."""
-        dataset_key = self.collection.get_dataset_key(dataset)
-        tile_type_list = self.collection.list_tile_types(dataset_key)
+
+        The database entry is identified by dataset_record.
+        """
+
+        tile_type_list = dataset_record.list_tile_types()
         for tile_type_id in tile_type_list:
-            dataset_bands_dict = \
-                    self.collection.new_bands[dataset_key][tile_type_id]
-            band_stack = dataset.stack_bands(dataset_bands_dict)
-            band_stack.buildvrt(os.path.join(self.datacube.tile_root,
-                                             'ingest_temp'))
-            for tile_footprint in \
-                    dataset_record.get_coverage(tile_type_id):
+            tile_bands = dataset_record.get_tile_bands(tile_type_id)
+            band_stack = dataset.stack_bands(tile_bands)
+            band_stack.buildvrt(self.collection.get_temp_tile_directory())
+
+            tile_footprint_list = dataset_record.get_coverage(tile_type_id)
+            for tile_footprint in tile_footprint_list:
                 self.make_one_tile(dataset_record, tile_type_id,
                                    tile_footprint, band_stack)
-        # pylint: enable=maybe-no-member
 
     def make_one_tile(self, dataset_record, tile_type_id,
                       tile_footprint, band_stack):
@@ -278,4 +270,3 @@ class AbstractIngester(object):
                     "'%s'." % dataset_path)
 
     # pylint: enable=missing-docstring, no-self-use
-

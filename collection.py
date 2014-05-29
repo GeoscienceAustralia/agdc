@@ -65,9 +65,10 @@ class Collection(object):
 
         return (satellite, sensor, level)
 
-    def list_tile_types(self, dataset_key):
-        """Return the list of tile types associated with a dataset_key."""
-        return self.new_bands[dataset_key].keys()
+    def get_temp_tile_directory(self):
+        """Return a path to a directory for temporary tile related files."""
+
+        return os.path.join(self.datacube.tile_root, 'ingest_temp')
 
     def check_metadata(self, dataset):
         """Check that the satellite, sensor, and bands are in the database.
@@ -213,7 +214,7 @@ class Collection(object):
         satellite_id = self.db.get_satellite_id(dataset.get_satellite_tag())
         if satellite_id is None:
             raise DatasetError("Unknown satellite tag: '%s'" %
-                                dataset.get_satellite_tag())
+                               dataset.get_satellite_tag())
 
         sensor_id = self.db.get_sensor_id(satellite_id,
                                           dataset.get_sensor_name())
