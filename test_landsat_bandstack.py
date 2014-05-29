@@ -1,13 +1,15 @@
+"""
+    test_landsat_bandstack.py - tests for the LandsatBandstack
+"""
+# pylint: disable=too-many-public-methods
 import re
 import os
 import logging
 import unittest
 import dbutil
-import landsat_bandstack
+from landsat_dataset import LandsatDataset
 from abstract_ingester import AbstractIngester
 from abstract_ingester import IngesterDataCube
-from math import floor
-import cube_util
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
@@ -106,77 +108,45 @@ class TestLandsatBandstack(unittest.TestCase):
         test_args.debug = False
         test_datacube = IngesterDataCube(test_args)
         self.ingester = TestIngester(datacube=test_datacube)
+        self.collection = self.ingester.collection
 
-    def xxxxsetUp(self):
-        #
-        # Parse out the name of the test case and use it to name a logfile
-        #
-        match = re.search(r'\.([^\.]+)$', self.id())
-        if match:
-            name = match.group(1)
-        else:
-            name = 'TestIngester'
-
-        logfile_name = "%s.log" % name
-        self.logfile_path = os.path.join(self.OUTPUT_DIR, logfile_name)
-        self.expected_path = os.path.join(self.EXPECTED_DIR, logfile_name)
-
-        #
-        # Set up a handler to log to the logfile, and attach it to the
-        # root logger.
-        #
-        self.handler = logging.FileHandler(self.logfile_path, mode='w')
-        self.handler.setLevel(logging.INFO)
-        self.handler.setFormatter(logging.Formatter('%(message)s'))
-        # Set an instance of the ingester to get a datacube object
-        self.ingester = TestIngester()
-        # Set a DatasetRecord instance
-        self.dset_record = \
-            dataset_record.DatasetRecord(self.ingester.collection, None, None)   
-        # Set the LandsatBandstack instance and pass it a metadata_dict
-        # pertaining to the single acquistion in /g/data/v10/test_resources
-        self.dset_record.mdd = {}
-        #metadata_dict = {'dataset_path':
-        #                'satellite_tag':
-        #                'sensor_name':
-        #                'start_datetime':
-        #                'end_datetime':
-        #                'x_ref':
-        #                'y_ref':
-        #                }
-        self.dset_record.mdd.update(metadata_dict)
-        tile_type_set, dataset_bands = \
-            self.dset_record.list_tile_types_and_bands()
-        tile_type_id = 1
-        tile_type_info = self.ingester.datacube.tile_type_dict[tile_type_id]
-        band_dict = dataset_bands[tile_type_id]
-        self.landsat_bandstack = LandsatBandstack(band_dict, metadata_dict)
-        #Set up a vrt benchmark for comparision
-        
-    def test_test(self):
-        pass
-
-    def xxxtest_buildvrt(self, vrt_benchmark):
+    def test_buildvrt(self):
         """Test the LandsatBandstack.buildvrt() method by comparing output to a
         file on disk"""
-        self.landsat_bandstack.buildvrt(self.ingester.datacube.temp_dir)
-        diff_cmd = ["diff %s %s" %(self.landsat_bandstack.vrt_name,
-                                   EXAMPLE_VRT)] 
-        result = cube_util.execute(diff_cmd)
-        #TODO check whether there are any valid differences such as creation
-        #time 
-        assert result['stdout'] == ''
+        vrt_benchmark = ""
+        for idataset in range(len(DATASETS_TO_INGEST)):
+            if idataset != 1:
+                continue
+            print 'Testing Dataset %s' %DATASETS_TO_INGEST[idataset]
+            dset = LandsatDataset(DATASETS_TO_INGEST[idataset])
+            # Create a DatasetRecord instance so that we can access its
+            # list_tile_types() method. In doing this we need to create a
+            # collection object and entries on the acquisition and dataset
+            # tables of the database.
+            self.collection.begin_transaction()
+            acquisition = \
+                self.collection.create_acquisition_record(dset)
+            dset_record = acquisition.create_dataset_record(dset)
+            self.collection.commit_transaction()
+            tile_type_list = dset_record.list_tile_types()
+            print 'tile_type_list=', tile_type_list
+            #Assume dataset has tile_type = 1 only:
+            tile_type_id = 1
+            dataset_bands_dict = dset_record.get_tile_bands(tile_type_id)
+            ls_bandstack = dset.stack_bands(dataset_bands_dict)
+            temp_dir = os.path.join(self.ingester.datacube.tile_root,
+                                    'ingest_temp')
+            print "Calling buildvrt"
+            ls_bandstack.buildvrt(temp_dir)
+            print "Finished calling buildvrt"
 
-    def xxxtest_buildvrt(self, vrt_benchmark):
-        """Test the LandsatBandstack.buildvrt() method by comparing output to a
-        file on disk"""
-        self.landsat_bandstack.buildvrt(self.ingester.datacube.temp_dir)
-        diff_cmd = ["diff %s %s" %(self.landsat_bandstack.vrt_name,
-                                   EXAMPLE_VRT)] 
-        result = cube_util.execute(diff_cmd)
+        #diff_cmd = ["diff %s %s" %(self.landsat_bandstack.vrt_name,
+        #                           EXAMPLE_VRT)]
+        #result = cube_util.execute(diff_cmd)
         #TODO check whether there are any valid differences such as creation
-        #time 
-        assert result['stdout'] == ''
+        #time
+        #assert result['stdout'] == ''
+
 
     def tearDown(self):
         #
@@ -201,6 +171,17 @@ if __name__ == '__main__':
     unittest.TextTestRunner(verbosity=2).run(the_suite())
 
 
-    
-        
-            
+
+
+
+
+
+
+
+
+
+
+
+
+
+

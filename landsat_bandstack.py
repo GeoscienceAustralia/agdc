@@ -8,17 +8,20 @@
     object to instantiate the correct subclass.
 """
 import os
+import re
 from osgeo import gdal
 from abstract_bandstack import AbstractBandstack
 import cube_util
 from cube_util import DatasetError
+from collections import OrderedDict
 
 class LandsatBandstack(AbstractBandstack):
     """Landsat subclass of AbstractBandstack class"""
     def __init__(self, dataset, band_dict):
         #Order the band_dict by the file number key
         self.dataset = dataset
-        self.band_dict = sorted(band_dict.items(), key=lambda t: t[0])
+        self.band_dict = \
+            OrderedDict(sorted(band_dict.items(), key=lambda t: t[0]))
         self.dataset_mdd = dataset.metadata_dict
         self.source_file_list = None
         self.nodata_list = None
@@ -38,7 +41,7 @@ class LandsatBandstack(AbstractBandstack):
             nodata_spec = "-srcnodata %d -vrtnodata %d" %(nodata_value,
                                                           nodata_value)
         else:
-            nodata_spec = ""
+            nodata_spec = ''
         #Form the vrt_band_stack_filename
         cube_util.create_directory(temp_dir)
         self.vrt_name = self.get_vrt_name(temp_dir)
@@ -48,7 +51,11 @@ class LandsatBandstack(AbstractBandstack):
                         nodata_spec,
                         "-overwrite %s %s" %(self.vrt_name,
                                              ' '.join(self.source_file_list))
-                        ]
+                         ]
+        #Above does not work when passed to cube_util.execute,
+        #so reformat as a single string:
+        #TODO: find out why
+        buildvrt_cmd = ' '.join(buildvrt_cmd)
         result = cube_util.execute(buildvrt_cmd)
         if result['returncode'] != 0:
             raise DatasetError('Unable to perform gdalbuildvrt: ' +
@@ -76,6 +83,7 @@ class LandsatBandstack(AbstractBandstack):
         """Use the dataset's metadata to form the vrt file name"""
         satellite = self.dataset_mdd['satellite_tag'].upper()
         sensor = self.dataset_mdd['sensor_name'].upper()
+        sensor = re.sub(r'\+', r'', sensor)
         start_datetime = \
             self.dataset_mdd['start_datetime'].date().strftime('%Y%m%d')
         x_ref = self.dataset_mdd['x_ref']

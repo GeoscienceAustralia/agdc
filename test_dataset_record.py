@@ -223,11 +223,11 @@ class TestDatasetRecord(unittest.TestCase):
             # get_bbox() method. In doing this we need to create a
             # collection object and entries on the acquisition and dataset
             # tables of the database.
-            self.ingester.collection.begin_transaction()
+            self.collection.begin_transaction()
             acquisition = \
-                self.ingester.collection.create_acquisition_record(dset)
+                self.collection.create_acquisition_record(dset)
             dset_record = acquisition.create_dataset_record(dset)
-            self.ingester.collection.commit_transaction()
+            self.collection.commit_transaction()
             # Test the DatasetRecord get_bbox() method
             #Determine the bounding quadrilateral of the dataset extent
             transformation = \
@@ -286,11 +286,11 @@ class TestDatasetRecord(unittest.TestCase):
             # get_coverage() method. In doing this we need to create a
             # collection object and entries on the acquisition and dataset
             # tables of the database.
-            self.ingester.collection.begin_transaction()
+            self.collection.begin_transaction()
             acquisition = \
-                self.ingester.collection.create_acquisition_record(dset)
+                self.collection.create_acquisition_record(dset)
             dset_record = acquisition.create_dataset_record(dset)
-            self.ingester.collection.commit_transaction()
+            self.collection.commit_transaction()
             # Test the DatasetRecord get_bbox() method
             #Determine the bounding quadrilateral of the dataset extent
             transformation = \

@@ -358,6 +358,7 @@ class LandsatDataset(AbstractDataset):
         This is a 16 bit integer with the bits acting as flags. 1 indicates
         that the test was run, 0 that it was not.
         """
+        return 0x3FFF
         return self._ds.pq_tests_run
 
     #
@@ -408,5 +409,5 @@ class LandsatDataset(AbstractDataset):
         (described below), allowing the datacube to chop the relevent
         bands into tiles.
         """
-        return LandsatBandstack(self, band_dictf)
+        return LandsatBandstack(self, band_dict)
         #raise NotImplementedError
