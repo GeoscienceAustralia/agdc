@@ -358,8 +358,16 @@ class LandsatDataset(AbstractDataset):
         This is a 16 bit integer with the bits acting as flags. 1 indicates
         that the test was run, 0 that it was not.
         """
-        return 0x3FFF
-        return self._ds.pq_tests_run
+
+        # None value provided for pq_tests_run value in case PQA metadata
+        # extraction fails due to out of date version of SceneDataset.
+        # This should be a temporary measure.
+        try:
+            pq_tests_run = self._ds.pq_tests_run
+        except AttributeError:
+            pq_tests_run = None
+
+        return pq_tests_run
 
     #
     # Methods used for tiling
