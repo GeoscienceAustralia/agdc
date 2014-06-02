@@ -1,12 +1,19 @@
+"""
+    test_tile_contents.py - tests for the TileContents class
+"""
+# pylint: disable=too-many-public-methods
 import re
 import os
 import logging
 import unittest
 import dbutil
-import landsat_bandstack
+#import landsat_bandstack
 from abstract_ingester import AbstractIngester
-import cube_util
-from test_landsat_tiler import load_and_check
+from abstract_ingester import IngesterDataCube
+from landsat_dataset import LandsatDataset
+#import cube_util
+from test_landsat_tiler import TestLandsatTiler
+import ingest_test_data as TestIngest
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
@@ -14,18 +21,39 @@ LOGGER.setLevel(logging.INFO)
 #
 # Constants
 #
-TILE_FOOTPRINT = (123, -023)
-BENCHMARK_NBAR_VRT = ''
-BENCHMARK_NBAR_TILE = ''
-BENCHMARK_ORTHO_VRT = ''
-BENCHMARK_ORTHO_TILE = ''
-BENCHMARK_PQA_VRT = ''
-BENCHMARK_PQA_TILE = ''
+# ############### THE DATA FROM THE DATASETS: ################
+# List of dataset crs from sample datasets
+### DATASETS_TO_INGEST = [
+###     os.path.join('/g/data/v10/test_resources/scenes/tiler_testing0',
+###                  'Condition0/L1/2005-06',
+###                  'LS5_TM_OTH_P51_GALPGS01-002_112_084_20050626'),
+###     os.path.join('/g/data/v10/test_resources/scenes/tiler_testing0',
+###                  'Condition1/NBAR/1999-09',
+###                  'LS7_ETM_NBAR_P54_GANBAR01-002_099_078_19990927'),
+###     os.path.join('/g/data/v10/test_resources/scenes/tiler_testing0',
+###                  'Condition2/L1/2006-06',
+###                  'LS7_ETM_OTH_P51_GALPGS01-002_110_079_20060623'),
+###     os.path.join('/g/data/v10/test_resources/scenes/tiler_testing0',
+###                  'Condition3/L1/2007-02',
+###                  'LS7_ETM_OTH_P51_GALPGS01-002_104_078_20070224'),
+###     os.path.join('/g/data/v10/test_resources/scenes/tiler_testing0',
+###                  'Condition4/L1/1998-10'),
+###     os.path.join('/g/data/v10/test_resources/scenes/tiler_testing0',
+###                  'Condition4/L1/1999-12',
+###                  'LS7_ETM_OTH_P51_GALPGS01-002_094_085_19991229_1')
+###     ]
+
+
+
+class TestArgs(object):
+    """The sole instance of this class stores the config_path and debug
+    arguments for passing to the datacube constructor."""
+    pass
 
 class TestIngester(AbstractIngester):
     """An ingester class from which to get a datacube object"""
-    def __init__(self):
-        AbstractIngester.__init__(self)
+    def __init__(self, datacube):
+        AbstractIngester.__init__(self, datacube)
     def find_datasets(self, source_dir):
         pass
     def open_dataset(self, dataset_path):
@@ -36,10 +64,12 @@ class TestTileContents(unittest.TestCase):
     MODULE = 'tile_contents'
     SUITE = 'TileContents'
 
+    INPUT_DIR = dbutil.input_directory(MODULE, SUITE)
     OUTPUT_DIR = dbutil.output_directory(MODULE, SUITE)
     EXPECTED_DIR = dbutil.expected_directory(MODULE, SUITE)
 
     EXAMPLE_TILE = '/g/data/v10/test_resources/benchmark_results/gdalwarp/...'
+
     def setUp(self):
         #
         # Parse out the name of the test case and use it to name a logfile
@@ -61,180 +91,183 @@ class TestTileContents(unittest.TestCase):
         self.handler = logging.FileHandler(self.logfile_path, mode='w')
         self.handler.setLevel(logging.INFO)
         self.handler.setFormatter(logging.Formatter('%(message)s'))
-        # Set an instance of the ingester to get a datacube object
-        self.ingester = TestIngester()
-        # Set a DatasetRecord instance
-        self.dset_record = \
-            dataset_record.DatasetRecord(self.ingester.collection, None, None)   
-        # Set the LandsatBandstack instance and pass it a metadata_dict
-        # pertaining to the single acquistion in /g/data/v10/test_resources
-        self.dset_record.mdd = {}
-        metadata_dict = {'dataset_path': '/g/data/v10/test_resources/scenes/...' #TODO fill in
-                        'satellite_tag':
-                        'sensor_name':
-                        'processing_level':
-                        'start_datetime':
-                        'end_datetime':
-                        'x_ref':
-                        'y_ref':
-                        }
-        self.dset_record.mdd.update(metadata_dict)
-        tile_type_set, dataset_bands = \
-            self.dset_record.list_tile_types_and_bands()
-        tile_type_id = 1
-        self.tile_type_info = self.ingester.datacube.tile_type_dict[tile_type_id]
-        band_dict = dataset_bands[tile_type_id]
-        self.landsat_bandstack = LandsatBandstack(band_dict, metadata_dict)        
-        #Set up a benchmark reprojected tile for comparision
 
-    def test_NBAR_tiling(self):
-        """Test the LandsatBandstack.buildvrt() and
-        TileContentsmethod.reproject() methods 
-        by comparing output to benchmarked files on disk"""
-        new_processing_level = 'NBAR'
-        number_bands = 6
-        benchmark_vrt = BENCHMARK_NBAR_VRT
-        benchmark_tile = BENCHMARK_NBAR_TILE
+        # Create an empty database
+        self.test_conn = None
+        self.test_dbname = dbutil.random_name("test_tile_contents")
+        LOGGER.info('Creating %s', self.test_dbname)
+        dbutil.TESTSERVER.create(self.test_dbname,
+                                     self.INPUT_DIR, "hypercube_empty.sql")
 
-        self.switch_metadata_dict(self.dset_record.mdd, new_processing_level)
-        tile_type_set, dataset_bands = \
-            self.dset_record.list_tile_types_and_bands()
-        tile_type_id = 1
-        tile_type_info = self.ingester.datacube.tile_type_dict[tile_type_id]
-        band_dict = dataset_bands[tile_type_id]
-        assert len(band_dict) == 6, "Expected %d bands for %s got %d" \
-            %(number_bands, new_processing_level, len(band_dict))
-        landsat_bandstack = LandsatBandstack(band_dict, self.dset_record.mdd)
-        self.landsat_bandstack.buildvrt(self.ingester.datacube.temp_dir)
-        diff_cmd = ["diff %s %s" %(self.landsat_bandstack.vrt_name,
-                                   benchmark_vrt)]
-        result = cube_util.execute(diff_cmd)
-        #TODO check whether there are any valid differences such as creation
-        #time 
-        assert result['stdout'] == ''
-        #TODO set TILE_FOOTPRINT
-        tile_footprint = TILE_FOOTPRINT
-        tile_contents = TileContents(self.ingester.datacube.temp_dir,
-                                     tile_type_info, tile_footprint,
-                                     landsat_bandstack)
-        tile_contents.reproject()
-        ([arr1, arr2], ndims) =
-        test_landsat_tiler.load_and_check(benchmark_tile,
-                                          tile_contents.temp_tile_output_path,
-                                          band_dict, band_dict)
-        assert ndims == 6, "Expected load_and_check to return %d for %s " \
-            "got %d" %(number_bands, new_processing_level, ndims)
-        max_diff = abs(arr1 - arr2).max()
-        assert max_diff == 0.0, "Maximum difference of %f between benchmark" \
-            "tile:\n%s and test result:\n%s" \
-            %(max_diff, benchmark_tile, tile_contents.temp_tile_output_path)
-        
+        # Set the datacube configuration file to point to the empty database
+        configuration_dict = {'dbname': self.test_dbname,
+                              'tile_root': os.path.join(self.OUTPUT_DIR,
+                                                        'tiles')}
+        config_file_path = dbutil.update_config_file2(configuration_dict,
+                                                     self.INPUT_DIR,
+                                                     self.OUTPUT_DIR,
+                                                     "test_datacube.conf")
 
-    def test_ORTHO_tiling(self):
-        """Test the LandsatBandstack.buildvrt() and
-        TileContentsmethod.reproject() methods 
-        by comparing output to benchmarked files on disk"""
-        new_processing_level = 'ORTHO'
-        number_bands = 2
-        benchmark_vrt = BENCHMARK_ORTHO_VRT
-        benchmark_tile = BENCHMARK_ORTHO_TILE
+        # Set an instance of the datacube and pass it to an ingester instance
+        test_args = TestArgs()
+        test_args.config_file = config_file_path
+        test_args.debug = False
+        test_datacube = IngesterDataCube(test_args)
+        self.ingester = TestIngester(datacube=test_datacube)
+        self.collection = self.ingester.collection
 
-        self.switch_metadata_dict(self.dset_record.mdd, new_processing_level)
-        tile_type_set, dataset_bands = \
-            self.dset_record.list_tile_types_and_bands()
-        tile_type_id = 1
-        tile_type_info = self.ingester.datacube.tile_type_dict[tile_type_id]
-        band_dict = dataset_bands[tile_type_id]
-        assert len(band_dict) == 6, "Expected %d bands for %s got %d" \
-            %(number_bands, new_processing_level, len(band_dict))
-        landsat_bandstack = LandsatBandstack(band_dict, self.dset_record.mdd)
-        self.landsat_bandstack.buildvrt(self.ingester.datacube.temp_dir)
-        diff_cmd = ["diff %s %s" %(self.landsat_bandstack.vrt_name,
-                                   benchmark_vrt)]
-        result = cube_util.execute(diff_cmd)
-        #TODO check whether there are any valid differences such as creation
-        #time 
-        assert result['stdout'] == ''
-        #TODO set TILE_FOOTPRINT
-        tile_footprint = TILE_FOOTPRINT
-        tile_contents = TileContents(self.ingester.datacube.temp_dir,
-                                     tile_type_info, tile_footprint,
-                                     landsat_bandstack)
-        tile_contents.reproject()
-        ([arr1, arr2], ndims) =
-        test_landsat_tiler.load_and_check(benchmark_tile,
-                                          tile_contents.temp_tile_output_path,
-                                          band_dict, band_dict)
-        assert ndims == 6, "Expected load_and_check to return %d for %s " \
-            "got %d" %(number_bands, new_processing_level, ndims)
-        max_diff = abs(arr1 - arr2).max()
-        assert max_diff == 0.0, "Maximum difference of %f between benchmark" \
-            "tile:\n%s and test result:\n%s" \
-            %(max_diff, benchmark_tile, tile_contents.temp_tile_output_path)
-        
-
-
-    def test_PQA_tiling(self):
-        """Test the LandsatBandstack.buildvrt() and
-        TileContentsmethod.reproject() methods 
-        by comparing output to benchmarked files on disk"""
-        new_processing_level = 'PQA'
-        number_bands = 1
-        benchmark_vrt = BENCHMARK_PQA_VRT
-        benchmark_tile = BENCHMARK_PQA_TILE
-
-        self.switch_metadata_dict(self.dset_record.mdd, new_processing_level)
-        tile_type_set, dataset_bands = \
-            self.dset_record.list_tile_types_and_bands()
-        tile_type_id = 1
-        tile_type_info = self.ingester.datacube.tile_type_dict[tile_type_id]
-        band_dict = dataset_bands[tile_type_id]
-        assert len(band_dict) == 6, "Expected %d bands for %s got %d" \
-            %(number_bands, new_processing_level, len(band_dict))
-        landsat_bandstack = LandsatBandstack(band_dict, self.dset_record.mdd)
-        self.landsat_bandstack.buildvrt(self.ingester.datacube.temp_dir)
-        diff_cmd = ["diff %s %s" %(self.landsat_bandstack.vrt_name,
-                                   benchmark_vrt)]
-        result = cube_util.execute(diff_cmd)
-        #TODO check whether there are any valid differences such as creation
-        #time 
-        assert result['stdout'] == ''
-        #TODO set TILE_FOOTPRINT
-        tile_footprint = TILE_FOOTPRINT
-        tile_contents = TileContents(self.ingester.datacube.temp_dir,
-                                     tile_type_info, tile_footprint,
-                                     landsat_bandstack)
-        tile_contents.reproject()
-        ([arr1, arr2], ndims) =
-        test_landsat_tiler.load_and_check(benchmark_tile,
-                                          tile_contents.temp_tile_output_path,
-                                          band_dict, band_dict)
-        assert ndims == 6, "Expected load_and_check to return %d for %s " \
-            "got %d" %(number_bands, new_processing_level, ndims)
-        max_diff = abs(arr1 - arr2).max()
-        assert max_diff == 0.0, "Maximum difference of %f between benchmark" \
-            "tile:\n%s and test result:\n%s" \
-            %(max_diff, benchmark_tile, tile_contents.temp_tile_output_path)
-        
-    @staticmethod
-    def switch_metadata_dict(mdd, new_level):
-        """Switch the metadata dict values to reflect the new processing level"""
-        old_level = mdd['processing_level']
-        old_path = mdd['dataset_path']
-        mdd['dataset_path'] = self.switch_dataset_path(old_path, old_level, new_level)
-        mdd['processing_level'] = new_level
+    def tearDown(self):
+        #
+        # Flush the handler and remove it from the root logger.
+        #
+        self.handler.flush()
+        root_logger = logging.getLogger()
+        root_logger.removeHandler(self.handler)
+        if self.test_dbname:
+            LOGGER.info('About to drop %s', self.test_dbname)
+            dbutil.TESTSERVER.drop(self.test_dbname)
 
     @staticmethod
-    def switch_dataset_path(old_path, old_level, new_level):
-        """Switch full path to dataset based on the processing level change"""
-        olddir, oldfile = os.path.split(old_path)
-        if old_level == 'ORTHO':
-            old_str = 'L1'
-        if new_level == 'ORTHO':
-            new_str = 'L1'
-        newdir = re.sub(old_str, new_str, olddir)
-        newfile = re.sub(old_level, new_level, oldfile)
-        return os.path.join(newdir, newfile)
+    def get_benchmark_footprints(dset_dict, benchmark_dir):
+        """Given a dataset_dict, parse the list of files in benchmark directory
+        and generate a list of tile footprints."""
+        # Get information from dataset that will be used to match
+        # tile pathnames in the benchmark directory
+        sat = dset_dict['satellite_tag'].upper()
+        sensor = dset_dict['sensor_name'].upper()
+        level = dset_dict['processing_level']
+        ymd_str = re.match(r'(.*)T',
+                           dset_dict['start_datetime'].isoformat()).group(1)
+        #return
+        # From the list of benchmark files get the list of footprints
+        # for this dataset.
+        pattern = re.compile(r'%s_%s_%s_(?P<xindex>[-]*\d+)_'
+                             r'(?P<yindex>[-]*\d+)_'
+                             r'.*%s.*ti[f]*$'
+                             %(sat, sensor, level, ymd_str))
+        matchobject_list = [re.match(pattern, filename).groupdict()
+                            for filename in  os.listdir(benchmark_dir)
+                            if re.match(pattern, filename)]
+        footprints = [(int(m['xindex']), int(m['yindex']))
+                      for m in matchobject_list]
+        return footprints
+
+    @staticmethod
+    def get_benchmark_tile(dset_dict, benchmark_dir, footprint):
+        """Given the dataset metadata dictionary and the benchmark directory,
+        get the tile which matches the current footprint."""
+        xindex, yindex = footprint
+        sat = dset_dict['satellite_tag'].upper()
+        sensor = dset_dict['sensor_name'].upper()
+        level = dset_dict['processing_level']
+        ymd_str = re.match(r'(.*)T',
+                           dset_dict['start_datetime'].isoformat()).group(1)
+        file_pattern = '%s_%s_%s_%03d_%04d_%s.*ti[f]*$' %(sat, sensor, level,
+                                                 xindex, yindex, ymd_str)
+        filelist = [filename for filename in os.listdir(benchmark_dir)
+                    if re.match(file_pattern, filename)]
+        assert len(filelist) <= 1, "Unexpected multiple benchmark tiles"
+        if len(filelist) == 1:
+            return os.path.join(benchmark_dir, filelist[0])
+        else:
+            return None
+
+    def test_reproject(self):
+        """Test the Landsat tiling process method by comparing output to a
+        file on disk."""
+        # pylint: disable=too-many-locals
+        #For each processing_level, and dataset keep record of those
+        #tile footprints in the benchmark set.
+        bench_footprints = {}
+        #for iacquisition in range(len(TestIngest.DATASETS_TO_INGEST['PQA'])):
+        for iacquisition in range(1):
+            for processing_level in ['PQA', 'NBAR', 'ORTHO']:
+                dataset_path =  \
+                    TestIngest.DATASETS_TO_INGEST[processing_level]\
+                    [iacquisition]
+                LOGGER.info('Testing Dataset %s', dataset_path)
+                dset = LandsatDataset(dataset_path)
+                # Create a DatasetRecord instance so that we can access its
+                # list_tile_types() method. In doing this we need to create a
+                # collection object and entries on the acquisition and dataset
+                # tables of the database.
+                self.collection.begin_transaction()
+                acquisition = \
+                    self.collection.create_acquisition_record(dset)
+                dset_record = acquisition.create_dataset_record(dset)
+                self.collection.commit_transaction()
+                # List the benchmark footprints associated with this datset
+                ftprints = \
+                    self.get_benchmark_footprints(dset_record.mdd,
+                                                  TestIngest.BENCHMARK_DIR)
+                bench_footprints.setdefault(processing_level, {})
+                bench_footprints[processing_level].setdefault(iacquisition, {})
+                bench_footprints[processing_level][iacquisition] = ftprints
+                LOGGER.info('bench_footprints=%s', str(ftprints))
+                # Get tile types
+                tile_type_list = dset_record.list_tile_types()
+                # Assume dataset has tile_type = 1 only:
+                tile_type_id = 1
+                dataset_bands_dict = dset_record.get_tile_bands(tile_type_id)
+                ls_bandstack = dset.stack_bands(dataset_bands_dict)
+                temp_dir = os.path.join(self.ingester.datacube.tile_root,
+                                    'ingest_temp')
+                # Form scene vrt
+                ls_bandstack.buildvrt(temp_dir)
+                # Reproject scene data onto selected tile coverage
+                tile_footprint_list = dset_record.get_coverage(tile_type_id)
+                LOGGER.info('coverage=%s', str(tile_footprint_list))
+                for tile_footprint in tile_footprint_list:
+                    tile_contents = \
+                        self.collection.create_tile_contents(tile_type_id,
+                                                             tile_footprint,
+                                                             ls_bandstack)
+                    LOGGER.info('reprojecting for %s tile %s',
+                                (processing_level, str(tile_footprint)))
+                    tile_contents.reproject()
+                    # Because date-time of PQA datasets is coming directly from
+                    # the PQA dataset, rather NBAR, match on ymd string of
+                    # datetime, rather than the micorseconds version in the
+                    # NBAR data.
+                    tile_benchmark = \
+                        self.get_benchmark_tile(dset_record.mdd,
+                                                TestIngest.BENCHMARK_DIR,
+                                                tile_footprint)
+                    LOGGER.info('tile_benchmark is %s', tile_benchmark)
+                    if tile_contents.has_data():
+                        LOGGER.info('Tile %s has data', str(tile_footprint))
+                        # The tile might have data but, if PQA does not, then
+                        # the benchmark tile will not exist
+                        if tile_footprint not in bench_footprints \
+                                [processing_level][iacquisition]:
+                            assert tile_footprint not in \
+                            bench_footprints['PQA'][iacquisition], \
+                                "Old ingester found PQA tile and should have "\
+                                "found cooresponding tile for %s"\
+                                %processing_level
+
+                            LOGGER.info('%s tile %s has data in new ingester',
+                                        processing_level, str(tile_footprint))
+                            continue
+                        # Tile exists in old ingester and new ingester
+                        LOGGER.info('Calling load and check ...')
+                        ([data1, data2], dummy_nlayers) = \
+                            TestLandsatTiler.load_and_check(
+                            tile_benchmark,
+                            tile_contents.temp_tile_output_path,
+                            tile_contents.band_stack.band_dict,
+                            tile_contents.band_stack.band_dict)
+                        LOGGER.info('Checking arrays ...')
+                        assert (data1 == data2).all(), \
+                            "Reprojected tile differs " \
+                            "from %s" %tile_benchmark
+                        LOGGER.info('...OK')
+                    else:
+                        LOGGER.info('No data in %s', str(tile_footprint))
+                        assert tile_footprint not in \
+                            bench_footprints[processing_level][iacquisition], \
+                            "%s tile %s does not have data " \
+                            %(processing_level, str(tile_footprint))
 
 def the_suite():
     "Runs the tests"""
@@ -246,5 +279,5 @@ def the_suite():
 
 if __name__ == '__main__':
     unittest.TextTestRunner(verbosity=2).run(the_suite())
-    
-            
+
+

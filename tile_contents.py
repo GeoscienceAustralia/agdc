@@ -44,7 +44,7 @@ class TileContents(object):
         tile_output_root = \
             os.path.join(\
             tile_root, tile_type_info['tile_directory'],
-            '%s_%s' %(band_stack.dataset_mdd['satellite_tag']+
+            '%s_%s' %(band_stack.dataset_mdd['satellite_tag'],
                       re.sub(r'\W', '',
                              band_stack.dataset_mdd['sensor_name'])))
 
@@ -95,26 +95,41 @@ class TileContents(object):
         if nodata_value is not None:
             #TODO: Check this works for PQA, where
             #band_dict[10]['resampling_method'] == None
-            nodata_spec = " -srcnodata %d -dstnodata %d" %(nodata_value,
-                                                           nodata_value)
+            nodata_spec = ["-srcnodata",
+                           "%d" %nodata_value,
+                           "-dstnodata",
+                           "%d" %nodata_value
+                           ]
         else:
-            nodata_spec = ""
-        format_spec = ""
+            nodata_spec = []
+        format_spec = []
         for format_option in self.tile_type_info['format_options'].split(','):
-            format_spec = '%s -co %s' % (format_spec, format_option)
+            format_spec.extend(["-co", "%s" %format_option])
 
-        reproject_cmd = ["gdalwarp -q",
-                         " -t_srs %s" % self.tile_type_info['crs'],
-                         " -te %f %f %f %f" % tile_extents,
-                         "-tr %f %f" %(x_pixel_size, y_pixel_size),
-                         "-tap -tap",
-                         "-r %s" % resampling_method,
-                         nodata_spec,
-                         format_spec,
-                         "-overwrite %s %s" % (self.band_stack.vrt_name,
-                                               self.temp_tile_output_path)
+        reproject_cmd = ["gdalwarp",
+                         "-q",
+                         "-t_srs",
+                         "%s" %self.tile_type_info['crs'],
+                         "-te",
+                         "%f" %tile_extents[0],
+                         "%f" %tile_extents[1],
+                         "%f" %tile_extents[2],
+                         "%f" %tile_extents[3],
+                         "-tr",
+                         "%f" %x_pixel_size,
+                         "%f" %y_pixel_size,
+                         "-tap",
+                         "-tap",
+                         "-r",
+                         "%s" % resampling_method,
                          ]
-        result = cube_util.execute(reproject_cmd)
+        reproject_cmd.extend(nodata_spec)
+        reproject_cmd.extend(format_spec)
+        reproject_cmd.extend(["-overwrite",
+                              "%s" %self.band_stack.vrt_name,
+                              "%s" %self.temp_tile_output_path
+                              ])
+        result = cube_util.execute(reproject_cmd, shell=False)
         if result['returncode'] != 0:
             raise DatasetError('Unable to perform gdalwarp: ' + ###test commit
                                '"%s" failed: %s' % (reproject_cmd,
