@@ -5,6 +5,7 @@
 import unittest
 import os
 import subprocess
+import logging
 
 import dbutil
 from landsat_dataset import LandsatDataset
@@ -110,10 +111,41 @@ class TestLandsatDataset(unittest.TestCase):
     CROSSCHECK_KEYS_TWO = CROSSCHECK_KEYS_ONE + ['start_datetime',
                                                  'end_datetime']
     #
-    # start_datetime and end_datetime should be in the crosscheck
-    # keys, but PQ and FC datasets do not currently have them,
-    # which is a problem ...
+    # start_datetime and end_datetime are currently different between
+    # ortho/nbar and pq/fc, so there are two sets of crosscheck keys.
     #
+
+    @classmethod
+    def setUpClass(cls):
+        """Set up logging for ULA3.dataset._scene_dataset debug output."""
+
+        cls.SD_LOGGER = logging.getLogger('root.ULA3.dataset._scene_dataset')
+        cls.SD_HANDLER = logging.FileHandler(os.path.join(cls.OUTPUT_DIR,
+                                                          'scene_dataset.log'),
+                                             mode='w')
+        cls.SD_LOGGER.addHandler(cls.SD_HANDLER)
+        cls.SD_OLD_LEVEL = cls.SD_LOGGER.level
+        cls.SD_LOGGER.setLevel(logging.DEBUG)
+
+    @classmethod
+    def tearDownClass(cls):
+        """Clean up _scene_dataset logging."""
+
+        cls.SD_LOGGER.setLevel(cls.SD_OLD_LEVEL)
+        cls.SD_LOGGER.removeHandler(cls.SD_HANDLER)
+        cls.SD_HANDLER.close()
+
+    def setUp(self):
+        self.SD_LOGGER.debug("")
+        self.SD_LOGGER.debug("---%s" + "-"*(72-(len(self._testMethodName)+3)),
+                             self._testMethodName)
+        self.SD_LOGGER.debug("")
+
+    def tearDown(self):
+        self.SD_LOGGER.debug("")
+        self.SD_LOGGER.debug("-"*72)
+        self.SD_LOGGER.debug("")
+        self.SD_HANDLER.flush()
 
     def test_build_metadata_dict(self):
         """Test for the build_metadata_dict method.
@@ -126,7 +158,7 @@ class TestLandsatDataset(unittest.TestCase):
                                                self.ORTHO_DIR,
                                                self.ORTHO_SCENE))
 
-        mdd = ortho_ds.build_metadata_dict()
+        mdd = ortho_ds.metadata_dict
 
         self.assertEqual(set(self.METADATA_KEYS), set(mdd.keys()))
 
@@ -142,7 +174,7 @@ class TestLandsatDataset(unittest.TestCase):
         ortho_ds = LandsatDataset(os.path.join(self.INPUT_DIR,
                                                self.ORTHO_DIR,
                                                self.ORTHO_SCENE))
-        mdd = ortho_ds.build_metadata_dict()
+        mdd = ortho_ds.metadata_dict
 
         self.dump_metadata('ortho_metadata.txt', mdd, self.SMALL_METADATA_KEYS)
         self.dump_string('ortho_xml.xml', mdd['xml_text'])
@@ -158,7 +190,7 @@ class TestLandsatDataset(unittest.TestCase):
         nbar_ds = LandsatDataset(os.path.join(self.INPUT_DIR,
                                               self.NBAR_DIR,
                                               self.NBAR_SCENE))
-        mdd = nbar_ds.build_metadata_dict()
+        mdd = nbar_ds.metadata_dict
 
         self.dump_metadata('nbar_metadata.txt', mdd, self.SMALL_METADATA_KEYS)
         self.dump_string('nbar_xml.xml', mdd['xml_text'])
@@ -173,7 +205,7 @@ class TestLandsatDataset(unittest.TestCase):
         pq_ds = LandsatDataset(os.path.join(self.INPUT_DIR,
                                             self.PQ_DIR,
                                             self.PQ_SCENE))
-        mdd = pq_ds.build_metadata_dict()
+        mdd = pq_ds.metadata_dict
 
         self.dump_metadata('pq_metadata.txt', mdd, self.SMALL_METADATA_KEYS)
         self.dump_string('pq_xml.xml', mdd['xml_text'])
@@ -188,7 +220,7 @@ class TestLandsatDataset(unittest.TestCase):
         fc_ds = LandsatDataset(os.path.join(self.INPUT_DIR,
                                             self.FC_DIR,
                                             self.FC_SCENE))
-        mdd = fc_ds.build_metadata_dict()
+        mdd = fc_ds.metadata_dict
 
         self.dump_metadata('fc_metadata.txt', mdd, self.SMALL_METADATA_KEYS)
         self.dump_string('fc_xml.xml', mdd['xml_text'])
@@ -197,8 +229,8 @@ class TestLandsatDataset(unittest.TestCase):
         self.check_file('fc_metadata.txt')
         self.check_file('fc_xml.xml')
 
-    def test_crosscheck(self):
-        """Test by cross-checking metadata between datasets."""
+    def test_crosscheck_ortho_nbar(self):
+        """Cross-check metadata between ortho and nbar datasets."""
 
         ortho_ds = LandsatDataset(os.path.join(self.INPUT_DIR,
                                                self.ORTHO_DIR,
@@ -208,6 +240,39 @@ class TestLandsatDataset(unittest.TestCase):
                                               self.NBAR_DIR,
                                               self.NBAR_SCENE))
 
+        self.cross_check(ortho_ds, nbar_ds, self.CROSSCHECK_KEYS_TWO)
+
+    def test_crosscheck_ortho_pq(self):
+        """Cross-check metadata between ortho and pq datasets."""
+
+        ortho_ds = LandsatDataset(os.path.join(self.INPUT_DIR,
+                                               self.ORTHO_DIR,
+                                               self.ORTHO_SCENE))
+
+        pq_ds = LandsatDataset(os.path.join(self.INPUT_DIR,
+                                            self.PQ_DIR,
+                                            self.PQ_SCENE))
+
+        self.cross_check(ortho_ds, pq_ds, self.CROSSCHECK_KEYS_ONE)
+        self.check_fuzzy_datetime_match(ortho_ds, pq_ds)
+
+    def test_crosscheck_ortho_fc(self):
+        """Cross-check metadata between ortho and fc datasets."""
+
+        ortho_ds = LandsatDataset(os.path.join(self.INPUT_DIR,
+                                               self.ORTHO_DIR,
+                                               self.ORTHO_SCENE))
+
+        fc_ds = LandsatDataset(os.path.join(self.INPUT_DIR,
+                                            self.FC_DIR,
+                                            self.FC_SCENE))
+
+        self.cross_check(ortho_ds, fc_ds, self.CROSSCHECK_KEYS_ONE)
+        self.check_fuzzy_datetime_match(ortho_ds, fc_ds)
+
+    def test_crosscheck_pq_fc(self):
+        """Cross-check metadata between pc and fc datasets."""
+
         pq_ds = LandsatDataset(os.path.join(self.INPUT_DIR,
                                             self.PQ_DIR,
                                             self.PQ_SCENE))
@@ -216,9 +281,7 @@ class TestLandsatDataset(unittest.TestCase):
                                             self.FC_DIR,
                                             self.FC_SCENE))
 
-        self.cross_check(ortho_ds, nbar_ds, self.CROSSCHECK_KEYS_TWO)
-        self.cross_check(ortho_ds, pq_ds, self.CROSSCHECK_KEYS_ONE)
-        self.cross_check(ortho_ds, fc_ds, self.CROSSCHECK_KEYS_ONE)
+        self.cross_check(pq_ds, fc_ds, self.CROSSCHECK_KEYS_TWO)
 
     def dump_metadata(self, file_name, mdd, md_keys):
         """Dump a metadata dictionary to a file.
@@ -235,7 +298,7 @@ class TestLandsatDataset(unittest.TestCase):
         for k in md_keys:
             val = mdd[k]
             if k == 'pq_tests_run' and val is not None:
-                val = '{:b}'.format(val)
+                val = '{:016b}'.format(val)
             print >> out_file, "%s: %s" % (k, val)
 
         out_file.close()
@@ -283,11 +346,41 @@ class TestLandsatDataset(unittest.TestCase):
         to be checked. The routine checks that the metadata matches
         for each key in md_keys."""
 
-        mdd1 = ds1.build_metadata_dict()
-        mdd2 = ds2.build_metadata_dict()
+        mdd1 = ds1.metadata_dict
+        mdd2 = ds2.metadata_dict
 
         for k in md_keys:
             self.assertEqual(mdd1[k], mdd2[k])
+
+    def check_fuzzy_datetime_match(self, ds1, ds2):
+        """Checks for an approximate match between start and end datetimes."""
+
+        start1 = ds1.metadata_dict['start_datetime']
+        end1 = ds1.metadata_dict['end_datetime']
+
+        start2 = ds2.metadata_dict['start_datetime']
+        end2 = ds2.metadata_dict['end_datetime']
+
+        overlap = self.calculate_overlap(start1, end1, start2, end2)
+
+        self.assertGreaterEqual(overlap, 0.9)
+
+    @staticmethod
+    def calculate_overlap(start1, end1, start2, end2):
+        """Calculate the fractional overlap between time intervals."""
+
+        interval_length = max((end1 - start1), (end2 - start2))
+        interval_seconds = interval_length.total_seconds()
+
+        overlap_start = max(start1, start2)
+        overlap_end = min(end1, end2)
+        if overlap_end > overlap_start:
+            overlap_length = overlap_end - overlap_start
+            overlap_seconds = overlap_length.total_seconds()
+        else:
+            overlap_seconds = 0.0
+
+        return overlap_seconds / interval_seconds
 
 #
 # Define test suites
