@@ -213,14 +213,30 @@ class LandsatDataset(AbstractDataset):
 
         This is a datetime without timezone in UTC.
         """
-        return self._ds.scene_start_datetime
+
+        start_dt = self._ds.scene_start_datetime
+        if start_dt is None:
+            try:
+                start_dt = self._ds.scene_alt_start_datetime
+            except AttributeError:
+                start_dt = None
+
+        return start_dt
 
     def get_end_datetime(self):
         """The end of the acquisition.
 
         This is a datatime without timezone in UTC.
         """
-        return self._ds.scene_end_datetime
+
+        end_dt = self._ds.scene_end_datetime
+        if end_dt is None:
+            try:
+                end_dt = self._ds.scene_alt_end_datetime
+            except AttributeError:
+                end_dt = None
+
+        return end_dt
 
     def get_datetime_processed(self):
         """The date and time when the dataset was processed or created.
@@ -399,7 +415,7 @@ class LandsatDataset(AbstractDataset):
                     if re.match(file_pattern, filename)]
         if not len(filelist) == 1:
             raise DatasetError('Unable to find unique match ' +
-                                'for file pattern %s' % file_pattern)
+                               'for file pattern %s' % file_pattern)
 
         return os.path.join(dataset_dir, filelist[0])
 
