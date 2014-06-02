@@ -34,8 +34,8 @@ import re
 class TestLandsatTiler(unittest.TestCase):
     """Unit tests for the dbupdater.py script"""
     def process_args(self):
-        MODULE = 'landsat_tiler'
-        SUITE = 'old_then_new'
+        MODULE = 'new_ingest_benchmark'
+        SUITE = 'benchmark'
 
         self.INPUT_DIR = dbutil.input_directory(MODULE, SUITE)
         self.OUTPUT_DIR = dbutil.output_directory(MODULE, SUITE)
@@ -59,20 +59,13 @@ class TestLandsatTiler(unittest.TestCase):
                 mode = -1
         msg = ''
         if mode not in [0, 1, 2, 3]:
-            msg =  'Please specify a mode as follows:'
+            msg =  'Please specify a mode as follows:\n'
             for mode_num, desc in mode_desc_dict.items():
                 msg = msg + 'python test_landsat_tiler.py %d:\t%s\n' %(mode_num, desc)
         return mode, msg
 
-
-        print 'mode=', mode
-        if mode == 0:
-            self.OUTPUT_DIR = self.EXPECTED_DIR
-        print 'OUTPUT_DIR =%s' %self.OUTPUT_DIR
-
-        self.PQA_CONTIGUITY_BIT = 8
-
     def setUp(self):
+        self.PQA_CONTIGUITY_BIT = 8
         self.test_dbname = None
         self.expected_dbname = None
 
@@ -83,6 +76,9 @@ class TestLandsatTiler(unittest.TestCase):
         self.bands_expected = None
         self.bands_output = None
         self.mode, self.msg = self.process_args()
+        if self.mode == 0:
+            self.OUTPUT_DIR = self.EXPECTED_DIR
+        print 'OUTPUT_DIR =%s' %self.OUTPUT_DIR
         print self.mode
         print self.msg
 
@@ -456,7 +452,8 @@ class TestLandsatTiler(unittest.TestCase):
                                           %(bin_no, difference_count[bin_no]))
             fp.close()
         else:
-            self.skipTest("Expected database save file not found.")
+            if self.mode > 0:
+                self.skipTest("Expected database save file not found.")
     def tearDown(self):
         # Remove any tempoary databases that have been created.
         if self.test_conn:

@@ -108,7 +108,7 @@ class Collection(object):
 
         for tile_contents in self.tile_create_list:
             tile_contents.make_permanent()
-        self.tile_create_list = None
+        self.tile_create_list = []
 
         self.db.commit()
 

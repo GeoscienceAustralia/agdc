@@ -38,25 +38,30 @@ class LandsatBandstack(AbstractBandstack):
         nodata_value = self.nodata_list[0]
         #TODO: check that this works for PQA where nodata_value is None
         if nodata_value is not None:
-            nodata_spec = "-srcnodata %d -vrtnodata %d" %(nodata_value,
-                                                          nodata_value)
+            nodata_spec = ["-srcnodata",
+                           "%d" %nodata_value,
+                           "-vrtnodata",
+                           "%d" %(nodata_value)]
         else:
-            nodata_spec = ''
-        #Form the vrt_band_stack_filename
+            nodata_spec = []
+        #Form the vrt_band_stack_filename.
+        #This is done using
+        #args = shlex.split(command_line)
+        #where command_line is the buildvrt command
         cube_util.create_directory(temp_dir)
         self.vrt_name = self.get_vrt_name(temp_dir)
-        #build the vrt
-        buildvrt_cmd = ["gdalbuildvrt -separate",
+        #Build the vrt
+        buildvrt_cmd = ["gdalbuildvrt",
+                        "-separate",
                         "-q",
-                        nodata_spec,
-                        "-overwrite %s %s" %(self.vrt_name,
-                                             ' '.join(self.source_file_list))
-                         ]
-        #Above does not work when passed to cube_util.execute,
-        #so reformat as a single string:
-        #TODO: find out why
-        buildvrt_cmd = ' '.join(buildvrt_cmd)
-        result = cube_util.execute(buildvrt_cmd)
+                        ]
+        buildvrt_cmd.extend(nodata_spec)
+        buildvrt_cmd.extend(["-overwrite", "%s" %self.vrt_name])
+        buildvrt_cmd.extend(self.source_file_list)
+        #for fle in self.source_file_list:
+        #    buildvrt_cmd.append(fle)
+        #buildvrt_cmd = ' '.join(buildvrt_cmd)
+        result = cube_util.execute(buildvrt_cmd, shell=False)
         if result['returncode'] != 0:
             raise DatasetError('Unable to perform gdalbuildvrt: ' +
                                '"%s" failed: %s'\
@@ -81,6 +86,9 @@ class LandsatBandstack(AbstractBandstack):
 
     def get_vrt_name(self, vrt_dir):
         """Use the dataset's metadata to form the vrt file name"""
+        #dataset_basename = os.path.basename(self.dataset_mdd['dataset_path'])
+        #return os.path.join(vrt_dir, dataset_basename)
+        level_name = self.dataset_mdd['processing_level']
         satellite = self.dataset_mdd['satellite_tag'].upper()
         sensor = self.dataset_mdd['sensor_name'].upper()
         sensor = re.sub(r'\+', r'', sensor)
@@ -88,8 +96,8 @@ class LandsatBandstack(AbstractBandstack):
             self.dataset_mdd['start_datetime'].date().strftime('%Y%m%d')
         x_ref = self.dataset_mdd['x_ref']
         y_ref = self.dataset_mdd['y_ref']
-        vrt_band_stack_basename = '%s_%s_%s_%s_%s.vrt' \
-            %(satellite, sensor, start_datetime, x_ref, y_ref)
+        vrt_band_stack_basename = '%s_%s_%s_%s_%03d_%03d.vrt' \
+            %(level_name, satellite, sensor, start_datetime, x_ref, y_ref)
         return os.path.join(vrt_dir, vrt_band_stack_basename)
 
     def add_metadata(self, vrt_filename):
@@ -113,7 +121,7 @@ class LandsatBandstack(AbstractBandstack):
                   'filename': self.source_file_list[band_number - 1]})
             if self.nodata_list[band_number - 1] is not None:
                 band.SetNoDataValue(self.nodata_list[band_number - 1])
-        return band_stack_dataset
+            band_stack_dataset.FlushCache()
 
 
 

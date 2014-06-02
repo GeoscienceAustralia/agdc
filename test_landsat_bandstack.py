@@ -1,5 +1,5 @@
 """
-    test_landsat_bandstack.py - tests for the LandsatBandstack
+    test_landsat_bandstack.py - tests for the LandsatBandstack class
 """
 # pylint: disable=too-many-public-methods
 import re
@@ -7,6 +7,7 @@ import os
 import logging
 import unittest
 import dbutil
+import cube_util
 from landsat_dataset import LandsatDataset
 from abstract_ingester import AbstractIngester
 from abstract_ingester import IngesterDataCube
@@ -17,8 +18,6 @@ LOGGER.setLevel(logging.INFO)
 #
 # Constants
 #
-EXAMPLE_VRT = ''
-
 
 # ############### THE DATA FROM THE DATASETS: ################
 # List of dataset crs from sample datasets
@@ -41,6 +40,8 @@ DATASETS_TO_INGEST = [
                  'Condition4/L1/1999-12',
                  'LS7_ETM_OTH_P51_GALPGS01-002_094_085_19991229_1')
     ]
+
+SCENE_VRT_DIR = '/g/data/v10/test_resources/benchmark/scene_vrt_files/'
 
 class TestArgs(object):
     """The sole instance of this class stores the config_path and debug
@@ -113,10 +114,7 @@ class TestLandsatBandstack(unittest.TestCase):
     def test_buildvrt(self):
         """Test the LandsatBandstack.buildvrt() method by comparing output to a
         file on disk"""
-        vrt_benchmark = ""
         for idataset in range(len(DATASETS_TO_INGEST)):
-            if idataset != 1:
-                continue
             print 'Testing Dataset %s' %DATASETS_TO_INGEST[idataset]
             dset = LandsatDataset(DATASETS_TO_INGEST[idataset])
             # Create a DatasetRecord instance so that we can access its
@@ -129,24 +127,26 @@ class TestLandsatBandstack(unittest.TestCase):
             dset_record = acquisition.create_dataset_record(dset)
             self.collection.commit_transaction()
             tile_type_list = dset_record.list_tile_types()
-            print 'tile_type_list=', tile_type_list
             #Assume dataset has tile_type = 1 only:
             tile_type_id = 1
             dataset_bands_dict = dset_record.get_tile_bands(tile_type_id)
             ls_bandstack = dset.stack_bands(dataset_bands_dict)
             temp_dir = os.path.join(self.ingester.datacube.tile_root,
                                     'ingest_temp')
-            print "Calling buildvrt"
             ls_bandstack.buildvrt(temp_dir)
-            print "Finished calling buildvrt"
-
-        #diff_cmd = ["diff %s %s" %(self.landsat_bandstack.vrt_name,
-        #                           EXAMPLE_VRT)]
-        #result = cube_util.execute(diff_cmd)
-        #TODO check whether there are any valid differences such as creation
-        #time
-        #assert result['stdout'] == ''
-
+            # Get benchmark vrt for comparision
+            vrt_benchmark = \
+                os.path.join(SCENE_VRT_DIR,
+                             os.path.basename(ls_bandstack.vrt_name))
+            diff_cmd = ["diff",
+                        "-I",
+                        "[Ff]ilename",
+                        "%s" %vrt_benchmark,
+                        "%s" %ls_bandstack.vrt_name
+                        ]
+            result = cube_util.execute(diff_cmd, shell=False)
+            assert result['stdout'] == '', "Differences between vrt files"
+            assert result['stderr'] == '', "Error in system diff command"
 
     def tearDown(self):
         #

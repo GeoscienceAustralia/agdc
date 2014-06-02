@@ -781,8 +781,8 @@ where (%(x_index)s is null or x_index = %(x_index)s)
                         #end loop over all tiles touched by acquisiton      
                 self.unlock_object(work_directory)
     
-                if not self.debug:
-                    shutil.rmtree(work_directory)
+                #if not self.debug:
+                #    shutil.rmtree(work_directory)
                     
                 result = True
                 self.db_connection.commit()  
