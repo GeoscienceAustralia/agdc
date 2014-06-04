@@ -81,6 +81,7 @@ class DatasetRecord(object):
 
         The created object will be resposible for inserting tile table records
         into the database for reprojected or mosaiced tiles."""
+
         return TileRecord(self.collection, self, tile_contents)
 
     def mark_as_tiled(self):
@@ -350,25 +351,28 @@ class DatasetRecord(object):
                 uparameter > 0 and uparameter < 1:
             return True
 
-    def get_satellite_sensor_level(self):
-        """Use the dataset_record's metadata dictionary to return a tuple of
-        (satellite, sensor, processing_level), The purpose of this is to look
-        up the datacube.bands nested dictionaries. For bands of derived
-        products such as PQA and Fractional Cover, the (satellite, sensor) key
-        takes the value ('DERIVED', processing_level)"""
-        satellite = self.mdd['satellite_tag'].upper()
-        sensor = self.mdd['sensor_name'].upper()
-        processing_level = self.mdd['processing_level'].upper()
-        if processing_level in ['PQA', 'FC', 'DSM']:
-            satellite = 'DERIVED'
-            sensor = processing_level
-        return (satellite, sensor, processing_level)
+    # def get_satellite_sensor_level(self):
+    #     """Use the dataset_record's metadata dictionary to return a tuple of
+    #     (satellite, sensor, processing_level), The purpose of this is to look
+    #     up the datacube.bands nested dictionaries. For bands of derived
+    #     products such as PQA and Fractional Cover, the (satellite, sensor) key
+    #     takes the value ('DERIVED', processing_level)"""
+    #     satellite = self.mdd['satellite_tag'].upper()
+    #     sensor = self.mdd['sensor_name'].upper()
+    #     processing_level = self.mdd['processing_level'].upper()
+    #     if processing_level in ['PQA', 'FC', 'DSM']:
+    #         satellite = 'DERIVED'
+    #         sensor = processing_level
+    #     return (satellite, sensor, processing_level)
 
     def __remove_dataset_tiles(self):
         """Remove the tiles associated with a dataset that is about to
         be updated."""
-
-        for tile_id in self.db.get_dataset_tile_ids(self.dataset_id):
+        # In future will also want to delete a mosiac tile (tile_class_id == 4)
+        # and its source tiles (tile_class_id == 3).
+        tile_class_filter = (1, 3, 4)
+        for tile_id in self.db.get_dataset_tile_ids(self.dataset_id,
+                                                    tile_class_filter):
             tile_pathname = self.db.get_tile_pathname(tile_id)
             self.db.remove_tile_record(tile_id)
             self.collection.mark_tile_for_removal(tile_pathname)

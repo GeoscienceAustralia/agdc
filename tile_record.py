@@ -59,8 +59,19 @@ class TileRecord(object):
         tile_dict['tile_size'] = \
             cube_util.get_file_size_mb(self.tile_contents
                                        .temp_tile_output_path)
-        #Make the tile record entry on the database:
-        self.tile_id = self.db.get_tile_id(self.tile_dict)
+        # Update the tile_footprint entry on the datbase:
+        if not self.db.tile_footprint_exists(tile_dict):
+            footprint_dict = {'x_index': self.tile_footprint[0],
+                              'y_index': self.tile_footprint[1],
+                              'tile_type_id': self.tile_type_id,
+                              'x_min': tile_contents.tile_extents[0],
+                              'y_min': tile_contents.tile_extents[1],
+                              'x_max': tile_contents.tile_extents[2], 
+                              'y_max': tile_contents.tile_extents[3],
+                              'bbox': 'Populate this within sql query?'}
+            self.db.insert_tile_footprint(footprint_dict)
+        # Make the tile record entry on the database:
+        self.tile_id = self.db.get_tile_id(tile_dict)
         if self.tile_id  is None:
             self.tile_id = self.db.insert_tile_record(tile_dict)
         else:
@@ -73,9 +84,9 @@ class TileRecord(object):
     def make_mosaics(self):
         """Query the database to determine if this tile_record should be
         mosaiced with tiles from previously ingested datasets."""
-        tile_record_list = \
+        tile_record_tuple = \
             self.db.get_overlapping_tiles(self.tile_dict)
-        if len(tile_record_list) < 1:
+        if len(tile_record_tuple) < 1:
             raise DatasetError("Mosaic process for dataset_id=%d, x_index=%d,"\
                                " y_index=%d did not find any tile records,"\
                                " including current tile_record!"\
@@ -83,17 +94,19 @@ class TileRecord(object):
                                  self.tile_dict['x_index'],
                                  self.tile_dict['y_index']))
 
-        if len(tile_record_list) == 1:
-            return
+        if len(tile_record_tuple) == 1:
+            return False
+
         tile_dict_list = []
-        for tile_record in tile_record_list:
+        for tile_tuple in tile_record_tuple:
+            tile_record = list(tile_tuple)
             if tile_record[4] == self.dataset_record.dataset_id:
                 #For the constituent tile deriving from the current dataset id,
                 #we need to change its location to the value stored in the
                 #tile_contents object.
                 tile_record[5] = self.tile_contents.temp_tile_output_path
-                tile_dict_list.append(dict(zip(self.TILE_METADATA_FIELDS,
-                                               tile_record)))
+            tile_dict_list.append(dict(zip(self.TILE_METADATA_FIELDS,
+                                           tile_record)))
 
         # Make the temporary and permanent locations of the mosaic
         mosaic_basename = \
@@ -120,7 +133,7 @@ class TileRecord(object):
 
         self.db.update_tile_records_post_mosaic(tile_dict_list,
                                                 mosaic_final_pathname)
-
+        return True
     #
     #Methods that query and update the database:
     #

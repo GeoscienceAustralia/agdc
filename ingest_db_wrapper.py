@@ -37,7 +37,6 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         This creates a cursor, executes the sql query or command specified
         by the operation string 'sql' and parameters 'params', and returns
         the first row of the result, or None if there is no result."""
-
         with self.conn.cursor() as cur:
             self.log_sql(cur.mogrify(sql, params))
             cur.execute(sql, params)
@@ -51,7 +50,6 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         This creates a cursor, executes the sql query or command specified
         by the operation string 'sql' and parameters 'params', and returns
         a list of results, or an empty list if there are no results."""
-
         with self.conn.cursor() as cur:
             self.log_sql(cur.mogrify(sql, params))
             cur.execute(sql, params)
@@ -410,10 +408,58 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         sql = ("SELECT tile_id FROM tile\n" +
                "WHERE dataset_id = %(dataset_id)s AND\n" +
                "    x_index = %(x_index)s AND\n" +
-               "    y_index = %(y_index)s;")
+               "    y_index = %(y_index)s AND\n" +
+               "    tile_type_id = %(tile_type_id)s;")
         result = self.execute_sql_single(sql, tile_dict)
         tile_id = result[0] if result else None
         return tile_id
+
+    def tile_footprint_exists(self, tile_dict):
+        """Check the tile footprint table for an existing entry.
+
+        The table is checked for existing entry with combination
+        (x_index, y_index, tile_type_id). Returns True if such an entry exists
+        and False otherwise.
+        """
+
+        sql = ("SELECT 1 FROM tile_footprint\n" +
+               "WHERE x_index = %(x_index)s AND\n" +
+               "      y_index = %(y_index)s AND\n" +
+               "      tile_type_id = %(tile_type_id)s;")
+        result = self.execute_sql_single(sql, tile_dict);
+        footprint_exists = True if result else False
+        return footprint_exists
+
+    def insert_tile_footprint(self, footprint_dict):
+        """Inserts an entry into the tile_footprint table of the database.
+
+        TODO: describe how bbox generated.
+        """
+        #TODO Use Alex's code in email to generate bbox
+        # Columns to be updated
+        column_list = ['x_index',
+                       'y_index',
+                       'tile_type_id',
+                       'x_min',
+                       'y_min',
+                       'x_max',
+                       'y_max',
+                       'bbox']
+
+        columns = "(" + ",\n".join(column_list) + ")"
+
+        value_list = []
+        for column in column_list:
+            if column == 'bbox':
+                value_list.append('NULL')
+            else:
+                value_list.append("%(" + column + ")s")
+        values = "(" + ",\n".join(value_list) + ")"
+
+        sql = ("INSERT INTO tile_footprint " + columns + "\n" +
+               "VALUES " + values + "\n" +
+               "RETURNING x_index;")
+        self.execute_sql_single(sql, footprint_dict)
 
 
     def insert_tile_record(self, tile_dict):
@@ -440,6 +486,8 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         for column in column_list:
             if column == 'tile_id':
                 value_list.append("nextval('tile_id_seq')")
+            elif column == 'ctime':
+                value_list.append('now()')
             else:
                 value_list.append("%(" + column + ")s")
         values = "(" + ",\n".join(value_list) + ")"
@@ -461,6 +509,40 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         TILE_METADATA_FIELDS defined in tile_record.py. The returned
         records are ordered by the acquisition start_datetime."""
 
+        # sql = ("-- Find all scenes contributing data to this tile " + "\n" +
+        #        "-- select o.*, od.*, oa.* " + "\n" +
+        #        "select tile_id, x_index, y_index," + "\n" +
+        #        "       tile_type_id, dataset_id, tile_pathname," + "\n" +
+        #        "       tile_class_id, tile_size, ctime" + "\n" +
+        #        "from tile t"  + "\n" +
+        #        "inner join dataset d using(dataset_id)" + "\n;")
+               # "inner join acquisition a using(acquisition_id)" + "\n" +
+               # "inner join tile o using(x_index, y_index, tile_type_id)" +
+               # "\n" +
+               # "inner join dataset od on"  + "\n" +
+               # "    od.dataset_id = o.dataset_id and" + "\n" +
+               # "    od.level_id = d.level_id"  + "\n" +
+               # "inner join acquisition oa on"  + "\n" +
+               # "    oa.acquisition_id = od.acquisition_id and" + "\n" +
+               # "    oa.satellite_id = a.satellite_id" + "\n" +
+               # "where" + "\n" +
+               # "t.tile_class_id = 1 and" + "\n" +
+               # "o.tile_class_id = 1 and" + "\n" +
+               # "t.tile_type_id = %(tile_type_id)s and" + "\n" +
+               # "t.x_index = %(x_index)s and" + "\n" +
+               # "t.y_index = %(y_index)s and" + "\n" +
+               # "d.dataset_id = %(dataset_id)s" + "\n" +
+               # "and o.tile_id <> t.tile_id" + "\n" +
+               # "and (oa.start_datetime between" + "\n" +
+               # "a.start_datetime - interval '1 hour' and" + "\n" +
+               # "a.end_datetime + interval '1 hour'" + "\n" +
+               # "or oa.end_datetime between a.start_datetime " + "\n" +
+               # "- interval '1 hour'" + "\n" +
+               # "and a.end_datetime + interval '1 hour')" + "\n" +
+               # "order by oa.start_datetime;")
+
+
+        #Original query
         sql = ("-- Find all scenes contributing data to this tile " + "\n" +
                "-- select o.*, od.*, oa.* " + "\n" +
                "select o.tile_id, o.x_index, o.y_index," + "\n" +
@@ -470,28 +552,28 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
                "inner join dataset d using(dataset_id)" + "\n" +
                "inner join acquisition a using(acquisition_id)" + "\n" +
                "inner join tile o using(x_index, y_index, tile_type_id)" +
-               + "\n" +
+               "\n" +
                "inner join dataset od on"  + "\n" +
                "    od.dataset_id = o.dataset_id and" + "\n" +
                "    od.level_id = d.level_id"  + "\n" +
                "inner join acquisition oa on"  + "\n" +
                "    oa.acquisition_id = od.acquisition_id and" + "\n" +
                "    oa.satellite_id = a.satellite_id" + "\n" +
-               "where" + "\n" +
+                "where" + "\n" +
                "t.tile_class_id = 1 and" + "\n" +
                "o.tile_class_id = 1 and" + "\n" +
                "t.tile_type_id = %(tile_type_id)s and" + "\n" +
                "t.x_index = %(x_index)s and" + "\n" +
                "t.y_index = %(y_index)s and" + "\n" +
                "d.dataset_id = %(dataset_id)s" + "\n" +
-               "and o.tile_id <> t.tile_id" + "\n" +
                "and (oa.start_datetime between" + "\n" +
                "a.start_datetime - interval '1 hour' and" + "\n" +
                "a.end_datetime + interval '1 hour'" + "\n" +
                "or oa.end_datetime between a.start_datetime " + "\n" +
                "- interval '1 hour'" + "\n" +
                "and a.end_datetime + interval '1 hour')" + "\n" +
-               "order by oa.start_datetime")
+               "order by oa.start_datetime;")
+
         result = self.execute_sql_multi(sql, tile_dict)
         return result
 

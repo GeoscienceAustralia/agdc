@@ -5,6 +5,7 @@
 import re
 import os
 import logging
+import sys
 import unittest
 import dbutil
 #import landsat_bandstack
@@ -60,7 +61,8 @@ class TestIngester(AbstractIngester):
         pass
 
 class TestTileContents(unittest.TestCase):
-    """Unit tests for the LandsatBandstack class"""
+    """Unit tests for the TileContents class"""
+    #pylint: disable=too-many-instance-attributes
     MODULE = 'tile_contents'
     SUITE = 'TileContents'
 
@@ -79,7 +81,6 @@ class TestTileContents(unittest.TestCase):
             name = match.group(1)
         else:
             name = 'TestIngester'
-
         logfile_name = "%s.log" % name
         self.logfile_path = os.path.join(self.OUTPUT_DIR, logfile_name)
         self.expected_path = os.path.join(self.EXPECTED_DIR, logfile_name)
@@ -91,6 +92,13 @@ class TestTileContents(unittest.TestCase):
         self.handler = logging.FileHandler(self.logfile_path, mode='w')
         self.handler.setLevel(logging.INFO)
         self.handler.setFormatter(logging.Formatter('%(message)s'))
+        LOGGER.addHandler(self.handler)
+
+        # Add a second handler to write output to console
+        self.handler2 = logging.StreamHandler(stream=sys.stdout)
+        self.handler2.setLevel(logging.INFO)
+        self.handler2.setFormatter(logging.Formatter('%(message)s'))
+        LOGGER.addHandler(self.handler2)
 
         # Create an empty database
         self.test_conn = None
@@ -159,10 +167,12 @@ class TestTileContents(unittest.TestCase):
         xindex, yindex = footprint
         sat = dset_dict['satellite_tag'].upper()
         sensor = dset_dict['sensor_name'].upper()
+        if sensor == 'ETM+':
+            sensor = 'ETM'
         level = dset_dict['processing_level']
         ymd_str = re.match(r'(.*)T',
                            dset_dict['start_datetime'].isoformat()).group(1)
-        file_pattern = '%s_%s_%s_%03d_%04d_%s.*ti[f]*$' %(sat, sensor, level,
+        file_pattern = r'%s_%s_%s_%03d_%04d_%s.*\.\w*$' %(sat, sensor, level,
                                                  xindex, yindex, ymd_str)
         filelist = [filename for filename in os.listdir(benchmark_dir)
                     if re.match(file_pattern, filename)]
@@ -179,8 +189,7 @@ class TestTileContents(unittest.TestCase):
         #For each processing_level, and dataset keep record of those
         #tile footprints in the benchmark set.
         bench_footprints = {}
-        #for iacquisition in range(len(TestIngest.DATASETS_TO_INGEST['PQA'])):
-        for iacquisition in range(1):
+        for iacquisition in range(len(TestIngest.DATASETS_TO_INGEST['PQA'])):
             for processing_level in ['PQA', 'NBAR', 'ORTHO']:
                 dataset_path =  \
                     TestIngest.DATASETS_TO_INGEST[processing_level]\
@@ -205,7 +214,7 @@ class TestTileContents(unittest.TestCase):
                 bench_footprints[processing_level][iacquisition] = ftprints
                 LOGGER.info('bench_footprints=%s', str(ftprints))
                 # Get tile types
-                tile_type_list = dset_record.list_tile_types()
+                dummy_tile_type_list = dset_record.list_tile_types()
                 # Assume dataset has tile_type = 1 only:
                 tile_type_id = 1
                 dataset_bands_dict = dset_record.get_tile_bands(tile_type_id)
@@ -223,7 +232,7 @@ class TestTileContents(unittest.TestCase):
                                                              tile_footprint,
                                                              ls_bandstack)
                     LOGGER.info('reprojecting for %s tile %s',
-                                (processing_level, str(tile_footprint)))
+                                processing_level, str(tile_footprint))
                     tile_contents.reproject()
                     # Because date-time of PQA datasets is coming directly from
                     # the PQA dataset, rather NBAR, match on ymd string of
@@ -268,6 +277,7 @@ class TestTileContents(unittest.TestCase):
                             bench_footprints[processing_level][iacquisition], \
                             "%s tile %s does not have data " \
                             %(processing_level, str(tile_footprint))
+                    LOGGER.info('-' * 80)
 
 def the_suite():
     "Runs the tests"""
@@ -279,5 +289,11 @@ def the_suite():
 
 if __name__ == '__main__':
     unittest.TextTestRunner(verbosity=2).run(the_suite())
+
+
+
+
+
+
 
 

@@ -8,7 +8,7 @@ process. They are expected to be independent of the structure of any
 particular dataset, but will change if the database schema or tile store
 format changes.
 """
-
+import shutil
 import logging
 import os
 import re
@@ -71,6 +71,7 @@ class TileContents(object):
         self.temp_tile_output_path = \
                         os.path.join(os.path.dirname(self.band_stack.vrt_name),
                                      os.path.basename(self.tile_output_path))
+        self.tile_extents = None
 
     def reproject(self):
         """Reproject the scene dataset into tile coordinate reference system
@@ -85,6 +86,8 @@ class TileContents(object):
         x0 = x_origin + self.tile_footprint[0] * x_size
         y0 = y_origin + self.tile_footprint[1] * y_size
         tile_extents = (x0, y0, x0 + x_size, y0 + y_size)
+        # Make the tile_extents visible to tile_record
+        self.tile_extents = tile_extents
         nodata_value = self.band_stack.nodata_list[0]
         #Assume resampling method is the same for all bands, this is
         #because resampling_method is per proessing_level
@@ -131,9 +134,9 @@ class TileContents(object):
                               ])
         result = cube_util.execute(reproject_cmd, shell=False)
         if result['returncode'] != 0:
-            raise DatasetError('Unable to perform gdalwarp: ' + ###test commit
+            raise DatasetError('Unable to perform gdalwarp: ' +
                                '"%s" failed: %s' % (reproject_cmd,
-                         result['stderr']))
+                                                    result['stderr']))
 
     def has_data(self):
         """Check if the reprojection gave rise to a tile with valid data.
@@ -169,7 +172,14 @@ class TileContents(object):
 
     def remove(self):
         """Remove tiles that were in coverage but have no data."""
-        pass
+        if os.path.isfile(self.temp_tile_output_path):
+            os.remove(self.temp_tile_output_path)
+
+    def make_permanent(self):
+        """Move tile contents to permanent location."""
+
+        shutil.move(self.temp_tile_output_path, self.tile_output_path)
+
 
     #
     #Methods that mosaic several tiles together
@@ -244,12 +254,14 @@ class TileContents(object):
     @staticmethod
     def make_mosaic_vrt(tile_dict_list, mosaic_pathname):
         """From two or more source tiles create a vrt"""
-        gdalbuildvrt_cmd = ["gdalbuildvrt -q",
+        source_file_list = [t['tile_pathname'] for t in tile_dict_list]
+        print source_file_list
+        gdalbuildvrt_cmd = ["gdalbuildvrt",
+                            "-q",
                             "-overwrite",
-                            "%s" %mosaic_pathname,
-                            "%s" %(" ".join([t['tile_pathname']
-                                             for t in tile_dict_list]))]
-        result = cube_util.execute(gdalbuildvrt_cmd)
+                            "%s" %mosaic_pathname]
+        gdalbuildvrt_cmd.extend(source_file_list)
+        result = cube_util.execute(gdalbuildvrt_cmd, shell=False)
         if result['returncode'] != 0:
             raise DatasetError('Unable to perform gdalbuildvrt: ' +
                                '"%s" failed: %s'\
