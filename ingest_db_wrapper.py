@@ -426,7 +426,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
                "WHERE x_index = %(x_index)s AND\n" +
                "      y_index = %(y_index)s AND\n" +
                "      tile_type_id = %(tile_type_id)s;")
-        result = self.execute_sql_single(sql, tile_dict);
+        result = self.execute_sql_single(sql, tile_dict)
         footprint_exists = True if result else False
         return footprint_exists
 
@@ -509,40 +509,6 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         TILE_METADATA_FIELDS defined in tile_record.py. The returned
         records are ordered by the acquisition start_datetime."""
 
-        # sql = ("-- Find all scenes contributing data to this tile " + "\n" +
-        #        "-- select o.*, od.*, oa.* " + "\n" +
-        #        "select tile_id, x_index, y_index," + "\n" +
-        #        "       tile_type_id, dataset_id, tile_pathname," + "\n" +
-        #        "       tile_class_id, tile_size, ctime" + "\n" +
-        #        "from tile t"  + "\n" +
-        #        "inner join dataset d using(dataset_id)" + "\n;")
-               # "inner join acquisition a using(acquisition_id)" + "\n" +
-               # "inner join tile o using(x_index, y_index, tile_type_id)" +
-               # "\n" +
-               # "inner join dataset od on"  + "\n" +
-               # "    od.dataset_id = o.dataset_id and" + "\n" +
-               # "    od.level_id = d.level_id"  + "\n" +
-               # "inner join acquisition oa on"  + "\n" +
-               # "    oa.acquisition_id = od.acquisition_id and" + "\n" +
-               # "    oa.satellite_id = a.satellite_id" + "\n" +
-               # "where" + "\n" +
-               # "t.tile_class_id = 1 and" + "\n" +
-               # "o.tile_class_id = 1 and" + "\n" +
-               # "t.tile_type_id = %(tile_type_id)s and" + "\n" +
-               # "t.x_index = %(x_index)s and" + "\n" +
-               # "t.y_index = %(y_index)s and" + "\n" +
-               # "d.dataset_id = %(dataset_id)s" + "\n" +
-               # "and o.tile_id <> t.tile_id" + "\n" +
-               # "and (oa.start_datetime between" + "\n" +
-               # "a.start_datetime - interval '1 hour' and" + "\n" +
-               # "a.end_datetime + interval '1 hour'" + "\n" +
-               # "or oa.end_datetime between a.start_datetime " + "\n" +
-               # "- interval '1 hour'" + "\n" +
-               # "and a.end_datetime + interval '1 hour')" + "\n" +
-               # "order by oa.start_datetime;")
-
-
-        #Original query
         sql = ("-- Find all scenes contributing data to this tile " + "\n" +
                "-- select o.*, od.*, oa.* " + "\n" +
                "select o.tile_id, o.x_index, o.y_index," + "\n" +
@@ -578,21 +544,51 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         return result
 
 
-    def update_tile_records_post_mosaic(self, tile_dict_list,
-                                        mosaic_final_pathname):
+    def update_tile_records_post_mosaic(self, tile_dict_list, mosaic_dict):
         """Update the database tile table to reflect the changes to the
         Tile Store resulting from the mosacing process.
 
         The constituent tiles in tile_dict_list have their tile_class_id
         changed from 1 to 3. Also insert a record for the mosaiced tile,
-        with a tile_class_id of 4."""
+        with a tile_class_id of 4. The setting of these values in via a
+        parameter dictionary passed in by the calling method."""
+        # Update tile_class_id of source tiles to 3
+        for tile_dict in tile_dict_list:
+            sql = ("UPDATE tile\n" +
+                   "SET tile_class_id = %(tile_class_id)s\n" +
+                   "WHERE tile_id = %(tile_id)s" +
+                   "RETURNING tile_id;")
+            self.execute_sql_single(sql, tile_dict)
 
-        pass
+        # Insert record for mosaiced tile
+        column_list = ['tile_id',
+                       'x_index',
+                       'y_index',
+                       'tile_type_id',
+                       'dataset_id',
+                       'tile_pathname',
+                       'tile_class_id',
+                       'tile_size',
+                       'ctime']
+        columns = "(" + ",\n".join(column_list) + ")"
 
+        # Values are taken from the tile_dict, with keys the same
+        # as the column name, except for tile_id, which is the next
+        # value in the dataset_id_seq sequence.
+        value_list = []
+        for column in column_list:
+            if column == 'tile_id':
+                value_list.append("nextval('tile_id_seq')")
+            elif column == 'ctime':
+                value_list.append('now()')
+            else:
+                value_list.append("%(" + column + ")s")
+        values = "(" + ",\n".join(value_list) + ")"
 
-#       there is already data from another existing dataset. Dictionary keys
-#       are tile_id and values are corresponding rows of the tile table. One of
-#       the constituent tiles will be from the current dataset_id and will thus
-#       not yet be fully committed; it will be in its temporary location, to be
-#        moved to its permanent location once the transaction for this dataset
-#        is committed."""
+        sql = ("INSERT INTO tile " + columns + "\n" +
+               "VALUES " + values + "\n" +
+               "RETURNING tile_id;")
+
+        result = self.execute_sql_single(sql, mosaic_dict)
+        tile_id = result[0]
+        return tile_id

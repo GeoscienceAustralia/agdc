@@ -22,29 +22,6 @@ LOGGER.setLevel(logging.INFO)
 #
 # Constants
 #
-# ############### THE DATA FROM THE DATASETS: ################
-# List of dataset crs from sample datasets
-### DATASETS_TO_INGEST = [
-###     os.path.join('/g/data/v10/test_resources/scenes/tiler_testing0',
-###                  'Condition0/L1/2005-06',
-###                  'LS5_TM_OTH_P51_GALPGS01-002_112_084_20050626'),
-###     os.path.join('/g/data/v10/test_resources/scenes/tiler_testing0',
-###                  'Condition1/NBAR/1999-09',
-###                  'LS7_ETM_NBAR_P54_GANBAR01-002_099_078_19990927'),
-###     os.path.join('/g/data/v10/test_resources/scenes/tiler_testing0',
-###                  'Condition2/L1/2006-06',
-###                  'LS7_ETM_OTH_P51_GALPGS01-002_110_079_20060623'),
-###     os.path.join('/g/data/v10/test_resources/scenes/tiler_testing0',
-###                  'Condition3/L1/2007-02',
-###                  'LS7_ETM_OTH_P51_GALPGS01-002_104_078_20070224'),
-###     os.path.join('/g/data/v10/test_resources/scenes/tiler_testing0',
-###                  'Condition4/L1/1998-10'),
-###     os.path.join('/g/data/v10/test_resources/scenes/tiler_testing0',
-###                  'Condition4/L1/1999-12',
-###                  'LS7_ETM_OTH_P51_GALPGS01-002_094_085_19991229_1')
-###     ]
-
-
 
 class TestArgs(object):
     """The sole instance of this class stores the config_path and debug
@@ -64,7 +41,7 @@ class TestTileContents(unittest.TestCase):
     """Unit tests for the TileContents class"""
     #pylint: disable=too-many-instance-attributes
     MODULE = 'tile_contents'
-    SUITE = 'TileContents'
+    SUITE = 'TileContents2'
 
     INPUT_DIR = dbutil.input_directory(MODULE, SUITE)
     OUTPUT_DIR = dbutil.output_directory(MODULE, SUITE)
@@ -172,8 +149,10 @@ class TestTileContents(unittest.TestCase):
         level = dset_dict['processing_level']
         ymd_str = re.match(r'(.*)T',
                            dset_dict['start_datetime'].isoformat()).group(1)
-        file_pattern = r'%s_%s_%s_%03d_%04d_%s.*\.\w*$' %(sat, sensor, level,
-                                                 xindex, yindex, ymd_str)
+
+        # Match .tif or .vrt
+        file_pattern = r'%s_%s_%s_%03d_%04d_%s.*\.(tif{1,2}|vrt)$' \
+            %(sat, sensor, level, xindex, yindex, ymd_str)
         filelist = [filename for filename in os.listdir(benchmark_dir)
                     if re.match(file_pattern, filename)]
         assert len(filelist) <= 1, "Unexpected multiple benchmark tiles"
@@ -191,6 +170,12 @@ class TestTileContents(unittest.TestCase):
         bench_footprints = {}
         for iacquisition in range(len(TestIngest.DATASETS_TO_INGEST['PQA'])):
             for processing_level in ['PQA', 'NBAR', 'ORTHO']:
+                #Skip all but PQA and ORTHO for first dataset.
+                #TODO program this in as a paramter of the suite
+                if iacquisition > 0:
+                    continue
+                if processing_level in ['NBAR']:
+                    continue
                 dataset_path =  \
                     TestIngest.DATASETS_TO_INGEST[processing_level]\
                     [iacquisition]
@@ -227,6 +212,10 @@ class TestTileContents(unittest.TestCase):
                 tile_footprint_list = dset_record.get_coverage(tile_type_id)
                 LOGGER.info('coverage=%s', str(tile_footprint_list))
                 for tile_footprint in tile_footprint_list:
+                    #Skip all but PQA and ORTHO for first dataset.
+                    #TODO program this in as a paramter of the suite
+                    if tile_footprint not in [(117, -35), (115, -34)]:
+                        continue
                     tile_contents = \
                         self.collection.create_tile_contents(tile_type_id,
                                                              tile_footprint,

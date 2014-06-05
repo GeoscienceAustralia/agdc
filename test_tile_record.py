@@ -44,7 +44,7 @@ class TestTileRecord(unittest.TestCase):
     """Unit tests for the TileRecord class"""
     # pylint: disable=too-many-instance-attributes
     MODULE = 'tile_record'
-    SUITE = 'TileRecord'
+    SUITE = 'TileRecord2'
 
     INPUT_DIR = dbutil.input_directory(MODULE, SUITE)
     OUTPUT_DIR = dbutil.output_directory(MODULE, SUITE)
@@ -125,7 +125,7 @@ class TestTileRecord(unittest.TestCase):
         """Test the Landsat tiling process method by comparing output to a
         file on disk."""
         # pylint: disable=too-many-locals
-        # Test a single dataset for tiel_record creation
+        # Test a single dataset for tile_record creation
         processing_level = 'PQA'
         dataset_path = TestIngest.DATASETS_TO_INGEST[processing_level][0]
         LOGGER.info('Testing Dataset %s', dataset_path)
@@ -156,7 +156,7 @@ class TestTileRecord(unittest.TestCase):
         ls_bandstack.buildvrt(temp_dir)
         # Reproject scene data onto selected tile coverage
         tile_footprint_list = dset_record.get_coverage(tile_type_id)
-        LOGGER.info('ABCcoverage=%s', str(tile_footprint_list))
+        LOGGER.info('coverage=%s', str(tile_footprint_list))
         for tile_footprint in tile_footprint_list:
             tile_contents = \
                 self.collection.create_tile_contents(tile_type_id,
@@ -179,7 +179,7 @@ class TestTileRecord(unittest.TestCase):
         pqa1, pqa2 = TestIngest.MOSAIC_SOURCE_PQA
         # Set the list of datset paths which should result in mosaic tiles
         dataset_list = [nbar1, nbar2, ortho1, ortho2, pqa1, pqa2]
-        #dataset_list = [pqa1, pqa2]
+        dataset_list = [pqa1, pqa2]
         for dataset_path in dataset_list:
             dset = LandsatDataset(dataset_path)
             self.collection.begin_transaction()
@@ -216,6 +216,7 @@ class TestTileRecord(unittest.TestCase):
                                 tile_contents.temp_tile_output_path)
                     tile_record = dset_record.create_tile_record(tile_contents)
                     mosaic_required = tile_record.make_mosaics()
+
                     if not mosaic_required:
                         continue
                     #Test mosaic tiles against benchmark

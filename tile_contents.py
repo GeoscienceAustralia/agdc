@@ -31,7 +31,7 @@ PQA_NODATA_VALUE = 16127
 
 class TileContents(object):
     """TileContents database interface class."""
-
+    # pylint: disable=too-many-instance-attributes
     def __init__(self, tile_root, tile_type_info,
                  tile_footprint, band_stack):
         """set the tile_footprint over which we want to resample this dataset.
@@ -72,6 +72,8 @@ class TileContents(object):
                         os.path.join(os.path.dirname(self.band_stack.vrt_name),
                                      os.path.basename(self.tile_output_path))
         self.tile_extents = None
+        self.mosaic_temp_pathname = None
+        self.mosaic_final_pathname = None
 
     def reproject(self):
         """Reproject the scene dataset into tile coordinate reference system
@@ -177,8 +179,13 @@ class TileContents(object):
 
     def make_permanent(self):
         """Move tile contents to permanent location."""
-
+        cube_util.create_directory(os.path.dirname(self.tile_output_path))
         shutil.move(self.temp_tile_output_path, self.tile_output_path)
+        if not self.mosaic_temp_pathname:
+            return
+        # Move mosaic if necessary
+        cube_util.create_directory(os.path.dirname(self.mosaic_final_pathname))
+        shutil.move(self.mosaic_temp_pathname, self.mosaic_final_pathname)
 
 
     #
@@ -242,7 +249,7 @@ class TileContents(object):
             overall_data_mask = overall_data_mask | pqa_data_mask
             # At those pixels where this source tile contains valid data,
             # update the mosaiced array with this source tile's PQ results,
-            # setting to the mosaic value to 0 if it is 0 in this source tile.
+            # setting the mosaic value to 0 if it is 0 in this source tile.
             data_array[pqa_data_mask] = \
                         np.bitwise_and(data_array[pqa_data_mask],
                                        pqa_array[pqa_data_mask])
