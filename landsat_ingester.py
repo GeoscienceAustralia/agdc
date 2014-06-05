@@ -55,7 +55,8 @@ class LandsatIngester(AbstractIngester):
         _arg_parser.add_argument('--source', dest='source_dir',
             required=True,
             help='Source root directory containing datasets')
-        _arg_parser.add_argument('--followsymlinks', dest='follow_symbolic_links',
+        _arg_parser.add_argument('--followsymlinks',
+                                 dest='follow_symbolic_links',
             default=False, action='store_const', const=True,
             help='Follow symbolic links when finding datasets to ingest')
 

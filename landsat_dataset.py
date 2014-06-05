@@ -214,12 +214,15 @@ class LandsatDataset(AbstractDataset):
         This is a datetime without timezone in UTC.
         """
 
-        start_dt = self._ds.scene_start_datetime
+        # Use the alternate time if available (from EODS_DATASET metadata).
+        try:
+            start_dt = self._ds.scene_alt_start_datetime
+        except AttributeError:
+            start_dt = None
+
+        # Othewise use the original time (calcualted from scene_centre_time).
         if start_dt is None:
-            try:
-                start_dt = self._ds.scene_alt_start_datetime
-            except AttributeError:
-                start_dt = None
+            start_dt = self._ds.scene_start_datetime
 
         return start_dt
 
@@ -229,12 +232,15 @@ class LandsatDataset(AbstractDataset):
         This is a datatime without timezone in UTC.
         """
 
-        end_dt = self._ds.scene_end_datetime
+        # Use the alternate time if available (from EODS_DATASET metadata).
+        try:
+            end_dt = self._ds.scene_alt_end_datetime
+        except AttributeError:
+            end_dt = None
+
+        # Othewise use the original time (calcualted from scene_centre_time).
         if end_dt is None:
-            try:
-                end_dt = self._ds.scene_alt_end_datetime
-            except AttributeError:
-                end_dt = None
+            end_dt = self._ds.scene_end_datetime
 
         return end_dt
 

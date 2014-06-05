@@ -64,7 +64,8 @@ class AcquisitionRecord(object):
 
         # Finally look up the acquisiton_id, or create a new record if it
         # does not exist, and fill it into the dictionary.
-        self.acquisition_id = self.db.get_acquisition_id(self.acquisition_dict)
+        self.acquisition_id = \
+            self.db.get_acquisition_id_fuzzy(self.acquisition_dict)
         if self.acquisition_id is None:
             self.acquisition_id = \
                 self.db.insert_acquisition_record(self.acquisition_dict)
@@ -83,4 +84,3 @@ class AcquisitionRecord(object):
         """
 
         return DatasetRecord(self.collection, self, dataset)
-

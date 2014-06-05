@@ -110,10 +110,6 @@ class TestLandsatDataset(unittest.TestCase):
 
     CROSSCHECK_KEYS_TWO = CROSSCHECK_KEYS_ONE + ['start_datetime',
                                                  'end_datetime']
-    #
-    # start_datetime and end_datetime are currently different between
-    # ortho/nbar and pq/fc, so there are two sets of crosscheck keys.
-    #
 
     @classmethod
     def setUpClass(cls):
@@ -253,8 +249,7 @@ class TestLandsatDataset(unittest.TestCase):
                                             self.PQ_DIR,
                                             self.PQ_SCENE))
 
-        self.cross_check(ortho_ds, pq_ds, self.CROSSCHECK_KEYS_ONE)
-        self.check_fuzzy_datetime_match(ortho_ds, pq_ds)
+        self.cross_check(ortho_ds, pq_ds, self.CROSSCHECK_KEYS_TWO)
 
     def test_crosscheck_ortho_fc(self):
         """Cross-check metadata between ortho and fc datasets."""
@@ -267,8 +262,7 @@ class TestLandsatDataset(unittest.TestCase):
                                             self.FC_DIR,
                                             self.FC_SCENE))
 
-        self.cross_check(ortho_ds, fc_ds, self.CROSSCHECK_KEYS_ONE)
-        self.check_fuzzy_datetime_match(ortho_ds, fc_ds)
+        self.cross_check(ortho_ds, fc_ds, self.CROSSCHECK_KEYS_TWO)
 
     def test_crosscheck_pq_fc(self):
         """Cross-check metadata between pc and fc datasets."""

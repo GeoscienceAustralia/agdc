@@ -31,6 +31,17 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
     """IngestDBWrapper: low-level database commands for the ingest process.
     """
 
+    #
+    # Constants
+    #
+
+    # This is the +- percentage to match within for fuzzy datetime matches.
+    FUZZY_MATCH_PERCENTAGE = 15
+
+    #
+    # Utility Functions
+    #
+
     def execute_sql_single(self, sql, params):
         """Executes an sql query returning (at most) a single row.
 
@@ -66,6 +77,10 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
 
         cube_util.log_multiline(LOGGER.debug, sql_query_string,
                                 title='SQL', prefix='\t')
+
+    #
+    # Queries and Commands
+    #
 
     def turn_off_autocommit(self):
         """Turns autocommit off for the database connection.
@@ -153,7 +168,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
 
         return level_id
 
-    def get_acquisition_id(self, acquisition_dict):
+    def get_acquisition_id_exact(self, acquisition_dict):
         """Finds the id of an acquisition record in the database.
 
         Returns an acquisition_id if a record matching the key fields in
@@ -161,6 +176,8 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
             satellite_id, sensor_id, x_ref, y_ref, start_datetime,
             and end_datetime.
         The acquisition_dict must contain values for all of these.
+
+        This query requires an exact match for the start and end datetimes.
         """
 
         sql = ("SELECT acquisition_id FROM acquisition\n" +
@@ -171,6 +188,40 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
                "    start_datetime = %(start_datetime)s AND\n" +
                "    end_datetime = %(end_datetime)s;")
         result = self.execute_sql_single(sql, acquisition_dict)
+        acquisition_id = result[0] if result else None
+
+        return acquisition_id
+
+    def get_acquisition_id_fuzzy(self, acquisition_dict):
+        """Finds the id of an acquisition record in the database.
+
+        Returns an acquisition_id if a record matching the key fields in
+        acquistion_dict is found, None otherwise. The key fields are:
+            satellite_id, sensor_id, x_ref, y_ref, start_datetime,
+            and end_datetime.
+        The acquisition_dict must contain values for all of these.
+
+        This query uses an approximate match for the start and end datetimes.
+        """
+
+        aq_length = (acquisition_dict['end_datetime'] -
+                     acquisition_dict['start_datetime'])
+        delta = (aq_length*self.FUZZY_MATCH_PERCENTAGE)/100
+        params = dict(acquisition_dict)
+        params['delta'] = delta
+
+        sql = ("SELECT acquisition_id FROM acquisition\n" +
+               "WHERE satellite_id = %(satellite_id)s AND\n" +
+               "    sensor_id = %(sensor_id)s AND\n" +
+               "    x_ref = %(x_ref)s AND\n" +
+               "    y_ref = %(y_ref)s AND\n" +
+               "    start_datetime BETWEEN\n" +
+               "        %(start_datetime)s - %(delta)s AND\n" +
+               "        %(start_datetime)s + %(delta)s AND\n" +
+               "    end_datetime BETWEEN\n" +
+               "        %(end_datetime)s - %(delta)s AND\n" +
+               "        %(end_datetime)s + %(delta)s;")
+        result = self.execute_sql_single(sql, params)
         acquisition_id = result[0] if result else None
 
         return acquisition_id

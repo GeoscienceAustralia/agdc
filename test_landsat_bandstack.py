@@ -66,6 +66,10 @@ class TestLandsatBandstack(unittest.TestCase):
     OUTPUT_DIR = dbutil.output_directory(MODULE, SUITE)
     EXPECTED_DIR = dbutil.expected_directory(MODULE, SUITE)
 
+    TEMP_DIR = dbutil.temp_directory(MODULE, SUITE, 'output')
+    TILE_ROOT_DIR = dbutil.tile_root_directory(MODULE, SUITE, 'output')
+    BENCHMARK_DIR = os.path.join(EXPECTED_DIR, 'scene_vrt_files')
+
     def setUp(self):
         #
         # Parse out the name of the test case and use it to name a logfile
@@ -87,6 +91,7 @@ class TestLandsatBandstack(unittest.TestCase):
         self.handler = logging.FileHandler(self.logfile_path, mode='w')
         self.handler.setLevel(logging.INFO)
         self.handler.setFormatter(logging.Formatter('%(message)s'))
+        logging.getLogger().addHandler(self.handler)
 
         # Create an empty database
         self.test_conn = None
@@ -97,7 +102,9 @@ class TestLandsatBandstack(unittest.TestCase):
                                      self.INPUT_DIR, "hypercube_empty.sql")
 
         # Set the datacube configuration file to point to the empty database
-        configuration_dict = {'dbname': self.test_dbname}
+        configuration_dict = {'dbname': self.test_dbname,
+                              'temp_dir': self.TEMP_DIR,
+                              'tile_root': self.TILE_ROOT_DIR}
         config_file_path = dbutil.update_config_file2(configuration_dict,
                                                      self.INPUT_DIR,
                                                      self.OUTPUT_DIR,
@@ -111,42 +118,68 @@ class TestLandsatBandstack(unittest.TestCase):
         self.ingester = TestIngester(datacube=test_datacube)
         self.collection = self.ingester.collection
 
-    def test_buildvrt(self):
+    def test_buildvrt_01(self):
+        """Test of LandsatBandstack.buildvrt() method, test one."""
+        self.check_buildvrt(0)
+
+    def test_buildvrt_02(self):
+        """Test of LandsatBandstack.buildvrt() method, test two."""
+        self.check_buildvrt(1)
+
+    def test_buildvrt_03(self):
+        """Test of LandsatBandstack.buildvrt() method, test three."""
+        self.check_buildvrt(2)
+
+    def test_buildvrt_04(self):
+        """Test of LandsatBandstack.buildvrt() method, test four."""
+        self.check_buildvrt(3)
+
+    def test_buildvrt_05(self):
+        """Test of LandsatBandstack.buildvrt() method, test five."""
+        self.check_buildvrt(4)
+
+    def test_buildvrt_06(self):
+        """Test of LandsatBandstack.buildvrt() method, test six."""
+        self.check_buildvrt(5)
+
+    def check_buildvrt(self, idataset):
         """Test the LandsatBandstack.buildvrt() method by comparing output to a
         file on disk"""
-        for idataset in range(len(DATASETS_TO_INGEST)):
-            print 'Testing Dataset %s' %DATASETS_TO_INGEST[idataset]
-            dset = LandsatDataset(DATASETS_TO_INGEST[idataset])
-            # Create a DatasetRecord instance so that we can access its
-            # list_tile_types() method. In doing this we need to create a
-            # collection object and entries on the acquisition and dataset
-            # tables of the database.
-            self.collection.begin_transaction()
-            acquisition = \
-                self.collection.create_acquisition_record(dset)
-            dset_record = acquisition.create_dataset_record(dset)
-            self.collection.commit_transaction()
-            tile_type_list = dset_record.list_tile_types()
-            #Assume dataset has tile_type = 1 only:
-            tile_type_id = 1
-            dataset_bands_dict = dset_record.get_tile_bands(tile_type_id)
-            ls_bandstack = dset.stack_bands(dataset_bands_dict)
-            temp_dir = os.path.join(self.ingester.datacube.tile_root,
-                                    'ingest_temp')
-            ls_bandstack.buildvrt(temp_dir)
-            # Get benchmark vrt for comparision
-            vrt_benchmark = \
-                os.path.join(SCENE_VRT_DIR,
-                             os.path.basename(ls_bandstack.vrt_name))
-            diff_cmd = ["diff",
-                        "-I",
-                        "[Ff]ilename",
-                        "%s" %vrt_benchmark,
-                        "%s" %ls_bandstack.vrt_name
-                        ]
-            result = cube_util.execute(diff_cmd, shell=False)
-            assert result['stdout'] == '', "Differences between vrt files"
-            assert result['stderr'] == '', "Error in system diff command"
+
+        assert idataset in range(len(DATASETS_TO_INGEST))
+
+        print 'Testing Dataset %s' %DATASETS_TO_INGEST[idataset]
+        dset = LandsatDataset(DATASETS_TO_INGEST[idataset])
+        # Create a DatasetRecord instance so that we can access its
+        # list_tile_types() method. In doing this we need to create a
+        # collection object and entries on the acquisition and dataset
+        # tables of the database.
+        self.collection.begin_transaction()
+        acquisition = \
+            self.collection.create_acquisition_record(dset)
+        dset_record = acquisition.create_dataset_record(dset)
+        self.collection.commit_transaction()
+        tile_type_list = dset_record.list_tile_types()
+        #Assume dataset has tile_type = 1 only:
+        tile_type_id = 1
+        dataset_bands_dict = dset_record.get_tile_bands(tile_type_id)
+        ls_bandstack = dset.stack_bands(dataset_bands_dict)
+        temp_dir = self.collection.get_temp_tile_directory()
+        ls_bandstack.buildvrt(temp_dir)
+        # Get benchmark vrt for comparision
+        vrt_benchmark = os.path.join(self.BENCHMARK_DIR,
+                                     os.path.basename(ls_bandstack.vrt_name))
+        diff_cmd = ["diff",
+                    "-I",
+                    "[Ff]ilename",
+                    "%s" %vrt_benchmark,
+                    "%s" %ls_bandstack.vrt_name
+                    ]
+        result = cube_util.execute(diff_cmd, shell=False)
+        if result['stdout'] != '':
+            self.fail("Differences between vrt files:\n" + result['stdout'])
+        if result['stderr'] != '':
+            self.fail("Error in system diff command:\n" + result['stderr'])
 
     def tearDown(self):
         #

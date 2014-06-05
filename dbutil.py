@@ -516,6 +516,20 @@ def expected_directory(module, suite, version=None, user=None):
     return resources_directory(version, 'expected', module, suite)
 
 
+def temp_directory(module, suite, test_dir, version=None, user=None):
+    """Returns a path to a temp subdirectory, creating it if needed."""
+
+    version = version_or_user(version, user)
+    return resources_directory(version, test_dir, module, suite, 'temp')
+
+
+def tile_root_directory(module, suite, test_dir, version=None, user=None):
+    """Returns a path to a tile_root subdirectory, creating it if needed."""
+
+    version = version_or_user(version, user)
+    return resources_directory(version, test_dir, module, suite, 'tile_root')
+
+
 def update_config_file(dbname, input_dir, output_dir, config_file_name):
     """Creates a temporary datacube config file by updating the database name.
 
