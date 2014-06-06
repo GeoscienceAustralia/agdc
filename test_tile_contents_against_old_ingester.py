@@ -19,6 +19,12 @@ import ingest_test_data as TestIngest
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
+# Add a streamhandler to write output to console
+streamhandler = logging.StreamHandler(stream=sys.stdout)
+streamhandler.setLevel(logging.INFO)
+streamhandler.setFormatter(logging.Formatter('%(message)s'))
+LOGGER.addHandler(streamhandler)
+
 #
 # Constants
 #
@@ -40,27 +46,14 @@ class TestIngester(AbstractIngester):
 class TestTileContents(unittest.TestCase):
     """Unit tests for the TileContents class"""
     #pylint: disable=too-many-instance-attributes
-    ############################### User area #################################
     MODULE = 'tile_contents'
-    SUITE = 'TileContents'
-    # Set to true if we want to populate expected directory with results,
-    # without doing comparision. Set to False if we want to put (often
-    # a subset of) results in output directory and compare against the
-    # previously populated expected directory.
-    POPULATE_EXPECTED = True
-    ###########################################################################
-
+    SUITE = 'TileContents2'
 
     INPUT_DIR = dbutil.input_directory(MODULE, SUITE)
     OUTPUT_DIR = dbutil.output_directory(MODULE, SUITE)
     EXPECTED_DIR = dbutil.expected_directory(MODULE, SUITE)
 
-    if POPULATE_EXPECTED:
-        destination_dir = 'expected'
-    else:
-        destination_dir = 'output'
-    TEMP_DIR = dbutil.temp_directory(MODULE, SUITE, destination_dir)
-    TILE_ROOT_DIR = dbutil.tile_root_directory(MODULE, SUITE, destination_dir)
+    EXAMPLE_TILE = '/g/data/v10/test_resources/benchmark_results/gdalwarp/...'
 
     def setUp(self):
         #
@@ -84,16 +77,6 @@ class TestTileContents(unittest.TestCase):
         self.handler.setFormatter(logging.Formatter('%(message)s'))
         LOGGER.addHandler(self.handler)
 
-
-        # Add a streamhandler to write output to console
-        self.stream_handler = logging.StreamHandler(stream=sys.stdout)
-        self.stream_handler.setLevel(logging.INFO)
-        self.stream_handler.setFormatter(logging.Formatter('%(message)s'))
-        LOGGER.addHandler(self.stream_handler)
-
-        print 'LEN(LOGGER.HANDLERS)=%d' %len(LOGGER.handlers)
-
-
         # Create an empty database
         self.test_conn = None
         self.test_dbname = dbutil.random_name("test_tile_contents")
@@ -103,8 +86,8 @@ class TestTileContents(unittest.TestCase):
 
         # Set the datacube configuration file to point to the empty database
         configuration_dict = {'dbname': self.test_dbname,
-                              'temp_dir': self.TEMP_DIR,
-                              'tile_root': self.TILE_ROOT_DIR}
+                              'tile_root': os.path.join(self.OUTPUT_DIR,
+                                                        'tiles')}
         config_file_path = dbutil.update_config_file2(configuration_dict,
                                                      self.INPUT_DIR,
                                                      self.OUTPUT_DIR,
@@ -123,37 +106,12 @@ class TestTileContents(unittest.TestCase):
         # Flush the handler and remove it from the root logger.
         #
         self.handler.flush()
-        self.stream_handler.flush()
-        LOGGER.removeHandler(self.handler)
-        LOGGER.removeHandler(self.stream_handler)
+        streamhandler.flush()
+        root_logger = logging.getLogger()
+        root_logger.removeHandler(self.handler)
         if self.test_dbname:
-            if self.POPULATE_EXPECTED:
-                dbutil.TESTSERVER.save(self.test_dbname, self.EXPECTED_DIR,
-                            'hypercube_tile_contents.sql')
-            else:
-                #TODO: make dbase comaprision
-                kkk=-1
             LOGGER.info('About to drop %s', self.test_dbname)
             dbutil.TESTSERVER.drop(self.test_dbname)
-
-    @staticmethod
-    def swap_dir_in_path(fullpath, dir1, dir2):
-        """Given a pathname fullpath, replace right-most occurrence of dir1
-        with dir2 and return the result."""
-        dirname = fullpath
-        leaf = None
-        newpath_list = []
-        while leaf != '':
-            dirname, leaf = os.path.split(dirname)
-            if leaf == dir1:
-                newpath_list.append(dir2)
-                break
-            newpath_list.append(leaf)
-        newpath = dirname
-        newpath_list.reverse()
-        for subdirectory in newpath_list:
-            newpath = os.path.join(newpath, subdirectory)
-        return newpath
 
     @staticmethod
     def get_benchmark_footprints(dset_dict, benchmark_dir):
@@ -210,14 +168,15 @@ class TestTileContents(unittest.TestCase):
         # pylint: disable=too-many-locals
         #For each processing_level, and dataset keep record of those
         #tile footprints in the benchmark set.
+        bench_footprints = {}
         for iacquisition in range(len(TestIngest.DATASETS_TO_INGEST['PQA'])):
             for processing_level in ['PQA', 'NBAR', 'ORTHO']:
                 #Skip all but PQA and ORTHO for first dataset.
                 #TODO program this in as a paramter of the suite
-                #if iacquisition > 0:
-                #    continue
-                #if processing_level in ['NBAR']:
-                #    continue
+                if iacquisition > 0:
+                    continue
+                if processing_level in ['NBAR']:
+                    continue
                 dataset_path =  \
                     TestIngest.DATASETS_TO_INGEST[processing_level]\
                     [iacquisition]
@@ -232,47 +191,65 @@ class TestTileContents(unittest.TestCase):
                 acquisition = \
                     self.collection.create_acquisition_record(dset)
                 dset_record = acquisition.create_dataset_record(dset)
-
+                self.collection.commit_transaction()
+                # List the benchmark footprints associated with this datset
+                ftprints = \
+                    self.get_benchmark_footprints(dset_record.mdd,
+                                                  TestIngest.BENCHMARK_DIR)
+                bench_footprints.setdefault(processing_level, {})
+                bench_footprints[processing_level].setdefault(iacquisition, {})
+                bench_footprints[processing_level][iacquisition] = ftprints
+                LOGGER.info('bench_footprints=%s', str(ftprints))
                 # Get tile types
                 dummy_tile_type_list = dset_record.list_tile_types()
                 # Assume dataset has tile_type = 1 only:
                 tile_type_id = 1
                 dataset_bands_dict = dset_record.get_tile_bands(tile_type_id)
                 ls_bandstack = dset.stack_bands(dataset_bands_dict)
+                temp_dir = os.path.join(self.ingester.datacube.tile_root,
+                                    'ingest_temp')
                 # Form scene vrt
-                ls_bandstack.buildvrt(self.collection.
-                                      get_temp_tile_directory())
+                ls_bandstack.buildvrt(temp_dir)
                 # Reproject scene data onto selected tile coverage
                 tile_footprint_list = dset_record.get_coverage(tile_type_id)
                 LOGGER.info('coverage=%s', str(tile_footprint_list))
                 for tile_footprint in tile_footprint_list:
                     #Skip all but PQA and ORTHO for first dataset.
                     #TODO program this in as a paramter of the suite
-                    #if tile_footprint not in [(117, -35), (115, -34)]:
-                    #    continue
+                    if tile_footprint not in [(117, -35), (115, -34)]:
+                        continue
                     tile_contents = \
                         self.collection.create_tile_contents(tile_type_id,
                                                              tile_footprint,
                                                              ls_bandstack)
-                    LOGGER.info('reprojecting for %s tile %s...',
+                    LOGGER.info('reprojecting for %s tile %s',
                                 processing_level, str(tile_footprint))
                     tile_contents.reproject()
-                    LOGGER.info('...done')
-
-                    if self.POPULATE_EXPECTED:
-                        continue
-                    #Do comparision with expected results
-                    tile_benchmark = self.swap_dir_in_path(tile_contents.
-                                                           tile_output_path,
-                                                           'output',
-                                                           'expected')
+                    # Because date-time of PQA datasets is coming directly from
+                    # the PQA dataset, rather NBAR, match on ymd string of
+                    # datetime, rather than the micorseconds version in the
+                    # NBAR data.
+                    tile_benchmark = \
+                        self.get_benchmark_tile(dset_record.mdd,
+                                                TestIngest.BENCHMARK_DIR,
+                                                tile_footprint)
+                    LOGGER.info('tile_benchmark is %s', tile_benchmark)
                     if tile_contents.has_data():
                         LOGGER.info('Tile %s has data', str(tile_footprint))
-                        LOGGER.info("Comparing test output with benchmark:\n"\
-                                        "benchmark: %s\ntest output: %s",
-                                    tile_benchmark,
-                                    tile_contents.temp_tile_output_path)
-                        # Do comparision with expected directory
+                        # The tile might have data but, if PQA does not, then
+                        # the benchmark tile will not exist
+                        if tile_footprint not in bench_footprints \
+                                [processing_level][iacquisition]:
+                            assert tile_footprint not in \
+                            bench_footprints['PQA'][iacquisition], \
+                                "Old ingester found PQA tile and should have "\
+                                "found cooresponding tile for %s"\
+                                %processing_level
+
+                            LOGGER.info('%s tile %s has data in new ingester',
+                                        processing_level, str(tile_footprint))
+                            continue
+                        # Tile exists in old ingester and new ingester
                         LOGGER.info('Calling load and check ...')
                         ([data1, data2], dummy_nlayers) = \
                             TestLandsatTiler.load_and_check(
@@ -281,14 +258,17 @@ class TestTileContents(unittest.TestCase):
                             tile_contents.band_stack.band_dict,
                             tile_contents.band_stack.band_dict)
                         LOGGER.info('Checking arrays ...')
-                        if not (data1 == data2).all():
-                            self.fail("Reprojected tile differs " \
-                                          "from %s" %tile_benchmark)
+                        assert (data1 == data2).all(), \
+                            "Reprojected tile differs " \
+                            "from %s" %tile_benchmark
                         LOGGER.info('...OK')
                     else:
                         LOGGER.info('No data in %s', str(tile_footprint))
+                        assert tile_footprint not in \
+                            bench_footprints[processing_level][iacquisition], \
+                            "%s tile %s does not have data " \
+                            %(processing_level, str(tile_footprint))
                     LOGGER.info('-' * 80)
-                self.collection.commit_transaction()
 
 def the_suite():
     "Runs the tests"""

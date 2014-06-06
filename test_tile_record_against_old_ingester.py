@@ -22,6 +22,12 @@ from test_tile_contents import TestTileContents
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
+# Add a streamhandler to write output to console
+streamhandler = logging.StreamHandler(stream=sys.stdout)
+streamhandler.setLevel(logging.INFO)
+streamhandler.setFormatter(logging.Formatter('%(message)s'))
+LOGGER.addHandler(streamhandler)
+
 #
 # Constants
 #
@@ -43,26 +49,12 @@ class TestIngester(AbstractIngester):
 class TestTileRecord(unittest.TestCase):
     """Unit tests for the TileRecord class"""
     # pylint: disable=too-many-instance-attributes
-    ############################### User area #################################
     MODULE = 'tile_record'
-    SUITE = 'TileRecord'
-    # Set to true if we want to populate expected directory with results,
-    # without doing comparision. Set to False if we want to put (often
-    # a subset of) results in output directory and compare against the
-    # previously populated expected directory.
-    POPULATE_EXPECTED = True
-    ############################################
+    SUITE = 'TileRecord2'
 
     INPUT_DIR = dbutil.input_directory(MODULE, SUITE)
     OUTPUT_DIR = dbutil.output_directory(MODULE, SUITE)
     EXPECTED_DIR = dbutil.expected_directory(MODULE, SUITE)
-
-    if POPULATE_EXPECTED:
-        destination_dir = 'expected'
-    else:
-        destination_dir = 'output'
-    TEMP_DIR = dbutil.temp_directory(MODULE, SUITE, destination_dir)
-    TILE_ROOT_DIR = dbutil.tile_root_directory(MODULE, SUITE, destination_dir)
 
     def setUp(self):
         #
@@ -86,12 +78,6 @@ class TestTileRecord(unittest.TestCase):
         self.handler.setFormatter(logging.Formatter('%(message)s'))
         LOGGER.addHandler(self.handler)
 
-        # Add a streamhandler to write output to console
-        self.stream_handler = logging.StreamHandler(stream=sys.stdout)
-        self.stream_handler.setLevel(logging.INFO)
-        self.stream_handler.setFormatter(logging.Formatter('%(message)s'))
-        LOGGER.addHandler(self.stream_handler)
-
         # Create an empty database
         self.test_conn = None
         self.test_dbname = dbutil.random_name("test_tile_record")
@@ -101,8 +87,8 @@ class TestTileRecord(unittest.TestCase):
 
         # Set the datacube configuration file to point to the empty database
         configuration_dict = {'dbname': self.test_dbname,
-                              'temp_dir': self.TEMP_DIR,
-                              'tile_root': self.TILE_ROOT_DIR}
+                              'tile_root': os.path.join(self.OUTPUT_DIR,
+                                                        'tiles')}
         config_file_path = dbutil.update_config_file2(configuration_dict,
                                                      self.INPUT_DIR,
                                                      self.OUTPUT_DIR,
@@ -115,25 +101,23 @@ class TestTileRecord(unittest.TestCase):
         test_datacube = IngesterDataCube(test_args)
         self.ingester = TestIngester(datacube=test_datacube)
         self.collection = self.ingester.collection
-        
+
+        # Delete all rows of tile_footprint table:
+        #sql = "Delete from tile_footprint;"
+        #with self.collection.db.conn.cursor() as cur:
+        #    cur.execute(sql)
 
     def tearDown(self):
         #
         # Flush the handler and remove it from the root logger.
         #
         self.handler.flush()
-        self.stream_handler.flush()
-        LOGGER.removeHandler(self.handler)
-        LOGGER.removeHandler(self.stream_handler)
-        if self.test_dbname:
-            if self.POPULATE_EXPECTED:
-                dbutil.TESTSERVER.save(self.test_dbname, self.EXPECTED_DIR,
-                            'hypercube_tile_record.sql')
-            else:
-                #TODO: make dbase comaprision
-                kkk=-1
-            LOGGER.info('About to drop %s', self.test_dbname)
-            dbutil.TESTSERVER.drop(self.test_dbname)
+        streamhandler.flush()
+        root_logger = logging.getLogger()
+        root_logger.removeHandler(self.handler)
+        #if self.test_dbname:
+        #    LOGGER.info('About to drop %s', self.test_dbname)
+        #    dbutil.TESTSERVER.drop(self.test_dbname)
 
     def test_insert_tile_record(self):
         """Test the Landsat tiling process method by comparing output to a
@@ -153,6 +137,11 @@ class TestTileRecord(unittest.TestCase):
             self.collection.create_acquisition_record(dset)
         dset_record = acquisition.create_dataset_record(dset)
 
+        # List the benchmark footprints associated with this datset
+        ftprints = \
+            TestTileContents.get_benchmark_footprints(dset_record.mdd,
+                                                      TestIngest.BENCHMARK_DIR)
+        LOGGER.info('bench_footprints=%s', str(ftprints))
         # Get tile types
         dummy_tile_type_list = dset_record.list_tile_types()
         # Assume dataset has tile_type = 1 only:
@@ -162,7 +151,7 @@ class TestTileRecord(unittest.TestCase):
         temp_dir = os.path.join(self.ingester.datacube.tile_root,
                                 'ingest_temp')
         # Form scene vrt
-        ls_bandstack.buildvrt(self.collection.get_temp_tile_directory())
+        ls_bandstack.buildvrt(temp_dir)
         # Reproject scene data onto selected tile coverage
         tile_footprint_list = dset_record.get_coverage(tile_type_id)
         LOGGER.info('coverage=%s', str(tile_footprint_list))
@@ -179,7 +168,6 @@ class TestTileRecord(unittest.TestCase):
                 dummy_tile_record = \
                     dset_record.create_tile_record(tile_contents)
         self.collection.commit_transaction()
-        #TODO compare database with expected
 
     def test_make_mosaics(self):
         """Make mosaic tiles from two adjoining scenes."""
@@ -226,37 +214,42 @@ class TestTileRecord(unittest.TestCase):
                                 tile_contents.temp_tile_output_path)
                     tile_record = dset_record.create_tile_record(tile_contents)
                     mosaic_required = tile_record.make_mosaics()
+
                     if not mosaic_required:
                         continue
-
-                    # Test mosaic tiles against benchmark
-                    # At this stage, transaction for this dataset not yet
-                    # commited and so the tiles from this dataset, including
-                    # any mosaics are still in the temporary location.
-                    mosaic_benchmark = \
-                        TestTileContents.swap_dir_in_path(tile_contents
-                                              .mosaic_final_pathname,
-                                              'output',
-                                              'expected')
-                    mosaic_new = tile_contents.mosaic_temp_pathname
-                    LOGGER.info("Comparing test output with benchmark:\n"\
-                                    "benchmark: %s\ntest output: %s",
-                                mosaic_benchmark, mosaic_new)
+                    #Test mosaic tiles against benchmark
+                    mosaic_benchmark = TestTileContents.get_benchmark_tile(
+                        dset_record.mdd,
+                        os.path.join(TestIngest.BENCHMARK_DIR,
+                                     'mosaic_cache'),
+                        tile_ftprint)
+                    mosaic_new = TestTileContents.get_benchmark_tile(
+                        dset_record.mdd,
+                        os.path.join(os.path.dirname(
+                                tile_contents.temp_tile_output_path),
+                                     'mosaic_cache'),
+                        tile_ftprint)
+                    LOGGER.info("Calling load_and_check...")
+                    ([data1, data2], dummy_nlayers) = \
+                        TestLandsatTiler.load_and_check(
+                        mosaic_benchmark,
+                        mosaic_new,
+                        tile_contents.band_stack.band_dict,
+                        tile_contents.band_stack.band_dict)
+                    LOGGER.info('Checking arrays ...')
                     if dset_record.mdd['processing_level'] == 'PQA':
-                        LOGGER.info("For PQA mosaic, calling load_and_check...")
-                        ([data1, data2], dummy_nlayers) = \
-                            TestLandsatTiler.load_and_check(
-                            mosaic_benchmark,
-                            mosaic_new,
-                            tile_contents.band_stack.band_dict,
-                            tile_contents.band_stack.band_dict)
-                        LOGGER.info('Checking arrays ...')
-                        if ~(data1 == data2).all():
-                            self.fail("Difference in PQA mosaic "
-                                      "from expected result: %s and %s"
-                                      %(mosaic_benchmark, mosaic_new))
+                        ind = (data1 == data2)
                         # Check that differences are due to differing treatment
                         # of contiguity bit.
+                        data1_diff = data1[~ind]
+                        data2_diff = data2[~ind]
+                        contiguity_diff =  \
+                            np.logical_or(
+                            np.bitwise_and(data1_diff, 1 << 8) == 0,
+                            np.bitwise_and(data2_diff, 1 << 8) == 0)
+                        assert contiguity_diff.all(), \
+                            "mosaiced tile %s differs from benchmark %s" \
+                            %(mosaic_new, mosaic_benchmark)
                     else:
                         diff_cmd = ["diff",
                                     "-I",

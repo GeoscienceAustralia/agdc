@@ -400,7 +400,8 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
 
         sql = ("UPDATE dataset\n" +
                "SET " + assignments + "\n" +
-               "WHERE dataset_id = %(dataset_id)s;")
+               "WHERE dataset_id = %(dataset_id)s" + "\n" +
+               "RETURNING dataset_id;")
         self.execute_sql_single(sql, dataset_dict)
 
     def get_dataset_tile_ids(self, dataset_id, tile_class_filter=(1,)):
@@ -607,7 +608,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         for tile_dict in tile_dict_list:
             sql = ("UPDATE tile\n" +
                    "SET tile_class_id = %(tile_class_id)s\n" +
-                   "WHERE tile_id = %(tile_id)s" +
+                   "WHERE tile_id = %(tile_id)s\n" +
                    "RETURNING tile_id;")
             self.execute_sql_single(sql, tile_dict)
 

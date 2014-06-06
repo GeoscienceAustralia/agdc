@@ -173,11 +173,17 @@ def get_file_size_mb(path):
 def create_directory(dirname):
     """Create dirname, including any intermediate directories necessary to
     create the leaf directory."""
+    # Allow group permissions on the directory we are about to create
+    old_umask = os.umask(0o007)
     try:
         os.makedirs(dirname)
     except OSError, e:
         if e.errno != errno.EEXIST:
             raise DatasetError('Directory %s could not be created' %dirname)
+    finally:
+        # Put back the old umask
+        os.umask(old_umask)
+    
 
 #
 # Exceptions
