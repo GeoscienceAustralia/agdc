@@ -374,7 +374,8 @@ class TestServer(unittest.TestCase):
                                  self.SAVE_FILE)
 
         # Save the database to disk.
-        dbutil.TESTSERVER.save(self.dbname1, self.SAVE_DIR, self.filename1)
+        dbutil.TESTSERVER.save(self.dbname1, self.SAVE_DIR, self.filename1,
+                               'processing_level')
 
         # Now reload the file as a new database...
         self.dbname2 = dbutil.random_name('test_save_db_copy')
@@ -390,6 +391,77 @@ class TestServer(unittest.TestCase):
                             "does not seem to be there.")
         finally:
             maint_conn.close()
+
+    def test_table_exists(self):
+        """Test the table_exists method."""
+
+        self.dbname1 = dbutil.random_name('test_table_exists')
+
+        # Create the database
+        dbutil.TESTSERVER.create(self.dbname1,
+                                 self.SAVE_DIR,
+                                 self.SAVE_FILE)
+        conn = dbutil.TESTSERVER.connect(self.dbname1, superuser=True)
+
+        nonexistent_table = 'some_random_table_name'
+        existent_table = 'processing_level'
+
+        result = dbutil.TESTSERVER.table_exists(conn, nonexistent_table)
+        if result:
+            self.fail('Table name should not exist: ' + nonexistent_table)
+
+        result = dbutil.TESTSERVER.table_exists(conn, existent_table)
+        if not result:
+            self.fail('Table name should exist: ' + existent_table)
+
+    def test_copy_table_between_databases(self):
+        "Test copy of a table from one database to another database."
+
+        self.dbname1 = dbutil.random_name('test_copy_db')
+        self.dbname2 = dbutil.random_name('test_copy_db')
+        self.filename1 = self.dbname1 + ".sql"
+
+        # Create the databases.
+        dbutil.TESTSERVER.create(self.dbname1,
+                                 self.SAVE_DIR,
+                                 self.SAVE_FILE)
+
+        dbutil.TESTSERVER.create(self.dbname2,
+                                 self.SAVE_DIR,
+                                 self.SAVE_FILE)
+
+        # Connect to each database
+        conn1 = dbutil.TESTSERVER.connect(self.dbname1, superuser=True)
+        conn2 = dbutil.TESTSERVER.connect(self.dbname2, superuser=True)
+
+        # Create a dummy table in Database 1
+        table_name = 'some_dummy_table_name'
+        # Drop the processing level table from table 2.
+        sql = ("CREATE TABLE " + table_name + " AS " + "\n" +
+               "SELECT * FROM tile_type;")
+        with conn1.cursor() as cur:
+            cur.execute(sql)
+
+        # Verify that the table exists in Database 1.
+        exists = dbutil.TESTSERVER.table_exists(conn1, table_name)
+        if not exists:
+            self.fail('Table ' + table_name + ' should exist on Database 1')
+
+        # Verify that the table does not exist in Database 2.
+        exists = dbutil.TESTSERVER.table_exists(conn2, table_name)
+        if exists:
+            self.fail('Table ' + table_name + ' should not exist in Database 2')
+
+        # Copy the table from Database 1 to Database 2
+        dbutil.TESTSERVER.copy_table_between_databases(self.dbname1,
+                                                       self.dbname2,
+                                                       table_name)
+
+        #Verify that the table does exist in Database 2.
+        exists = dbutil.TESTSERVER.table_exists(conn2, table_name)
+        if not exists:
+            self.fail('Table ' + table_name + ' should exist')
+
 
     def tearDown(self):
         # Attempt to drop any test databases that may have been created.

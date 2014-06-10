@@ -47,7 +47,7 @@ class TestTileContents(unittest.TestCase):
     # without doing comparision. Set to False if we want to put (often
     # a subset of) results in output directory and compare against the
     # previously populated expected directory.
-    POPULATE_EXPECTED = True
+    POPULATE_EXPECTED = False
     ###########################################################################
 
 
@@ -79,19 +79,17 @@ class TestTileContents(unittest.TestCase):
         # Set up a handler to log to the logfile, and attach it to the
         # root logger.
         #
+
         self.handler = logging.FileHandler(self.logfile_path, mode='w')
         self.handler.setLevel(logging.INFO)
         self.handler.setFormatter(logging.Formatter('%(message)s'))
         LOGGER.addHandler(self.handler)
 
-
         # Add a streamhandler to write output to console
-        self.stream_handler = logging.StreamHandler(stream=sys.stdout)
-        self.stream_handler.setLevel(logging.INFO)
-        self.stream_handler.setFormatter(logging.Formatter('%(message)s'))
-        LOGGER.addHandler(self.stream_handler)
-
-        print 'LEN(LOGGER.HANDLERS)=%d' %len(LOGGER.handlers)
+        # self.stream_handler = logging.StreamHandler(stream=sys.stdout)
+        # self.stream_handler.setLevel(logging.INFO)
+        # self.stream_handler.setFormatter(logging.Formatter('%(message)s'))
+        # LOGGER.addHandler(self.stream_handler)
 
 
         # Create an empty database
@@ -123,9 +121,9 @@ class TestTileContents(unittest.TestCase):
         # Flush the handler and remove it from the root logger.
         #
         self.handler.flush()
-        self.stream_handler.flush()
+        # self.stream_handler.flush()
         LOGGER.removeHandler(self.handler)
-        LOGGER.removeHandler(self.stream_handler)
+        # LOGGER.removeHandler(self.stream_handler)
         if self.test_dbname:
             if self.POPULATE_EXPECTED:
                 dbutil.TESTSERVER.save(self.test_dbname, self.EXPECTED_DIR,

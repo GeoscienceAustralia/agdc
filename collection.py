@@ -98,7 +98,6 @@ class Collection(object):
         This writes tile contents to the tile store and commits
         database changes.
         """
-
         assert self.in_a_transaction
 
         for tile_pathname in self.tile_remove_list:
@@ -108,11 +107,13 @@ class Collection(object):
 
         for tile_contents in self.tile_create_list:
             tile_contents.make_permanent()
+
         self.tile_create_list = []
 
         self.db.commit()
 
         self.db.restore_commit_mode(self.previous_commit_mode)
+
         self.in_a_transaction = False
 
     def rollback_transaction(self):
@@ -154,8 +155,6 @@ class Collection(object):
         tile_type_info = self.datacube.tile_type_dict[tile_type_id]
         tile_contents = TileContents(self.datacube.tile_root, tile_type_info,
                                      tile_footprint, band_stack)
-        self.tile_create_list.append(tile_contents)
-
         return tile_contents
 
     def mark_tile_for_removal(self, tile_pathname):

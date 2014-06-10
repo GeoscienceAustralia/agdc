@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 
 """dbutil.py - PostgreSQL database utilities for testing.
 
@@ -142,7 +143,7 @@ class Server(object):
                 message = message + load_cmd[k]
             raise Exception(message)
 
-    def save(self, dbname, save_dir, save_file):
+    def save(self, dbname, save_dir, save_file, table=None):
         """Save the contents of a database to a file.
 
         This method calls the pg_dump command to do the save. This
@@ -155,9 +156,56 @@ class Server(object):
                     "--host=%s" % self.host,
                     "--port=%s" % self.port,
                     "--file=%s" % save_path]
+        if table:
+            save_cmd.append("--table=%s" % table)
 
         try:
             subprocess.check_output(save_cmd, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as err:
+            #Make sure error output is in the error message.
+            message = ("%s: problem calling %s:\n%s" %
+                       (__name__, err.cmd[0], err.output))
+            raise Exception(message)
+
+    def table_exists(self, conn, table_name):
+        """Determine whether Database connection contains table_name."""
+
+        exists = False
+        try:
+            sql = ("SELECT EXISTS(SELECT RELNAME FROM pg_class WHERE " + "\n" +
+                   "RELNAME = '" + table_name + "')")
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                exists = cur.fetchone()[0]
+        except psycopg2.Error as e:
+            print e
+        return exists
+
+
+    def copy_table_between_databases(self, dbname1, dbname2, table_name):
+        """Copy a table from one database to another on the same server.
+
+        This method pipes the output of pg_dump to psql."""
+        dump_cmd = ["pg_dump",
+                    "--dbname=%s" % dbname1,
+                    "--username=%s" % self.superuser,
+                    "--host=%s" % self.host,
+                    "--port=%s" % self.port,
+                    "--table=%s" % table_name]
+
+        load_cmd = ["psql",
+                    "--dbname=%s" % dbname2,
+                    "--username=%s" % self.superuser,
+                    "--host=%s" % self.host,
+                    "--port=%s" % self.port
+                    ]
+
+        try:
+            ps_dump = subprocess.Popen(dump_cmd, stdout=subprocess.PIPE,
+                                       stderr=subprocess.STDOUT)
+            output = subprocess.check_output(load_cmd, stdin=ps_dump.stdout,
+                                             stderr=subprocess.STDOUT)
+            ps_dump.wait()
         except subprocess.CalledProcessError as err:
             #Make sure error output is in the error message.
             message = ("%s: problem calling %s:\n%s" %

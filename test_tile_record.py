@@ -1,8 +1,11 @@
+
+
 """
     test_tile_record.py - tests for the TileRecord class
 """
 # pylint: disable=too-many-public-methods
 import re
+import random
 import os
 import numpy as np
 import cube_util
@@ -45,7 +48,7 @@ class TestTileRecord(unittest.TestCase):
     # pylint: disable=too-many-instance-attributes
     ############################### User area #################################
     MODULE = 'tile_record'
-    SUITE = 'TileRecord'
+    SUITE = 'TileRecord2'
     # Set to true if we want to populate expected directory with results,
     # without doing comparision. Set to False if we want to put (often
     # a subset of) results in output directory and compare against the
@@ -76,17 +79,20 @@ class TestTileRecord(unittest.TestCase):
         logfile_name = "%s.log" % name
         self.logfile_path = os.path.join(self.OUTPUT_DIR, logfile_name)
         self.expected_path = os.path.join(self.EXPECTED_DIR, logfile_name)
-
+        if self.POPULATE_EXPECTED:
+            self.logfile_path = os.path.join(self.EXPECTED_DIR, logfile_name)
         #
         # Set up a handler to log to the logfile, and attach it to the
         # root logger.
         #
+        #logging.basicConfig()
         self.handler = logging.FileHandler(self.logfile_path, mode='w')
         self.handler.setLevel(logging.INFO)
         self.handler.setFormatter(logging.Formatter('%(message)s'))
         LOGGER.addHandler(self.handler)
 
         # Add a streamhandler to write output to console
+        
         self.stream_handler = logging.StreamHandler(stream=sys.stdout)
         self.stream_handler.setLevel(logging.INFO)
         self.stream_handler.setFormatter(logging.Formatter('%(message)s'))
@@ -123,8 +129,6 @@ class TestTileRecord(unittest.TestCase):
         #
         self.handler.flush()
         self.stream_handler.flush()
-        LOGGER.removeHandler(self.handler)
-        LOGGER.removeHandler(self.stream_handler)
         if self.test_dbname:
             if self.POPULATE_EXPECTED:
                 dbutil.TESTSERVER.save(self.test_dbname, self.EXPECTED_DIR,
@@ -134,8 +138,10 @@ class TestTileRecord(unittest.TestCase):
                 kkk=-1
             LOGGER.info('About to drop %s', self.test_dbname)
             dbutil.TESTSERVER.drop(self.test_dbname)
+        LOGGER.removeHandler(self.handler)
+        LOGGER.removeHandler(self.stream_handler)
 
-    def test_insert_tile_record(self):
+    def xxxtest_insert_tile_record(self):
         """Test the Landsat tiling process method by comparing output to a
         file on disk."""
         # pylint: disable=too-many-locals
@@ -180,17 +186,29 @@ class TestTileRecord(unittest.TestCase):
                     dset_record.create_tile_record(tile_contents)
         self.collection.commit_transaction()
         #TODO compare database with expected
+        
+    def test_aaa(self):
+        pass
+
+    def test_bbb(self):
+        pass
 
     def test_make_mosaics(self):
         """Make mosaic tiles from two adjoining scenes."""
         # pylint: disable=too-many-locals
-        nbar1, nbar2 = TestIngest.MOSAIC_SOURCE_NBAR
-        ortho1, ortho2 = TestIngest.MOSAIC_SOURCE_ORTHO
-        pqa1, pqa2 = TestIngest.MOSAIC_SOURCE_PQA
-        # Set the list of datset paths which should result in mosaic tiles
-        dataset_list = [nbar1, nbar2, ortho1, ortho2, pqa1, pqa2]
-        dataset_list = [pqa1, pqa2]
+        dataset_list = \
+            [TestIngest.DATASETS_TO_INGEST[level][i] for i in range(6)
+             for level in ['PQA', 'NBAR', 'ORTHO']]
+        dataset_list.extend(TestIngest.MOSAIC_SOURCE_NBAR)
+        dataset_list.extend(TestIngest.MOSAIC_SOURCE_PQA)
+        dataset_list.extend(TestIngest.MOSAIC_SOURCE_ORTHO)
+        random.shuffle(dataset_list)
+        LOGGER.info("Ingesting following datasets:")
+        for dset in dataset_list:
+            LOGGER.info('%d) %s', dataset_list.index(dset), dset)
         for dataset_path in dataset_list:
+            LOGGER.info('Ingesting Dataset %d:\n%s',
+                        dataset_list.index(dataset_path), dataset_path)
             dset = LandsatDataset(dataset_path)
             self.collection.begin_transaction()
             acquisition = \
@@ -211,8 +229,8 @@ class TestTileRecord(unittest.TestCase):
             LOGGER.info('coverage=%s', str(tile_footprint_list))
             for tile_ftprint in tile_footprint_list:
                 #Only do that footprint for which we have benchmark mosaics
-                if tile_ftprint not in [(150, -26)]:
-                    continue
+                #if tile_ftprint not in [(150, -26)]:
+                #    continue
                 tile_contents = \
                     self.collection.create_tile_contents(tile_type_id,
                                                          tile_ftprint,
@@ -233,6 +251,9 @@ class TestTileRecord(unittest.TestCase):
                     # At this stage, transaction for this dataset not yet
                     # commited and so the tiles from this dataset, including
                     # any mosaics are still in the temporary location.
+                    if self.POPULATE_EXPECTED:
+                        continue
+
                     mosaic_benchmark = \
                         TestTileContents.swap_dir_in_path(tile_contents
                                               .mosaic_final_pathname,
@@ -273,8 +294,6 @@ class TestTileRecord(unittest.TestCase):
                     LOGGER.info('... tile has no data')
                     tile_contents.remove()
             self.collection.commit_transaction()
-
-
 
 def the_suite():
     "Runs the tests"""

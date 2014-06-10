@@ -81,7 +81,7 @@ class DatasetRecord(object):
 
         The created object will be resposible for inserting tile table records
         into the database for reprojected or mosaiced tiles."""
-
+        self.collection.tile_create_list.append(tile_contents)
         return TileRecord(self.collection, self, tile_contents)
 
     def mark_as_tiled(self):

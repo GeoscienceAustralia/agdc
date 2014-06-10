@@ -173,7 +173,8 @@ class TileContents(object):
         return False
 
     def remove(self):
-        """Remove tiles that were in coverage but have no data."""
+        """Remove tiles that were in coverage but have no data. Also remove
+        tiles if we are rolling back the transaction."""
         if os.path.isfile(self.temp_tile_output_path):
             os.remove(self.temp_tile_output_path)
 
@@ -186,7 +187,6 @@ class TileContents(object):
         # Move mosaic if necessary
         cube_util.create_directory(os.path.dirname(self.mosaic_final_pathname))
         shutil.move(self.mosaic_temp_pathname, self.mosaic_final_pathname)
-
 
     #
     #Methods that mosaic several tiles together
