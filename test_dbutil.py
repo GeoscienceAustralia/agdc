@@ -222,6 +222,36 @@ class TestUtilityFunctions(unittest.TestCase):
                 self.fail("Config file does not match expected result:\n" +
                           err.output)
 
+    def test_update_config_file2(self):
+        "Test config file update utility, version 2."
+
+        input_dir = dbutil.input_directory(self.MODULE, self.SUITE)
+        output_dir = dbutil.output_directory(self.MODULE, self.SUITE)
+        expected_dir = dbutil.expected_directory(self.MODULE, self.SUITE)
+
+        updates = {'dbname': 'TEST_DBNAME',
+                   'temp_dir': 'TEST_TEMP_DIR',
+                   'tile_root': 'TEST_TILE_ROOT'
+                   }
+        config_file_name = 'test_datacube.conf'
+        output_file_name = 'test2_datacube.conf'
+
+        output_path = dbutil.update_config_file2(updates,
+                                                 input_dir,
+                                                 output_dir,
+                                                 config_file_name,
+                                                 output_file_name)
+
+        expected_path = os.path.join(expected_dir, output_file_name)
+        if not os.path.isfile(expected_path):
+            self.skipTest("Expected config file not found.")
+        else:
+            try:
+                subprocess.check_output(['diff', output_path, expected_path])
+            except subprocess.CalledProcessError as err:
+                self.fail("Config file does not match expected result:\n" +
+                          err.output)
+
 
 class TestServer(unittest.TestCase):
     """Unit tests for Server class."""

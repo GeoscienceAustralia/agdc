@@ -23,7 +23,7 @@ import cube_util
 
 # Set up logger.
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.INFO)
+LOGGER.setLevel(logging.DEBUG)
 
 # pylint: disable=too-many-public-methods
 

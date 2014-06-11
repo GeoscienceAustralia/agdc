@@ -95,5 +95,10 @@ class LandsatIngester(AbstractIngester):
 
 # Start ingest process
 if __name__ == "__main__":
+
     ingester = LandsatIngester()
+
+    if ingester.args.debug:
+        logging.getLogger().setLevel(logging.DEBUG)
+
     ingester.ingest(ingester.args.source_dir)
