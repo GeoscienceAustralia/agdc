@@ -167,21 +167,6 @@ class Server(object):
                        (__name__, err.cmd[0], err.output))
             raise Exception(message)
 
-    def table_exists(self, conn, table_name):
-        """Determine whether Database connection contains table_name."""
-
-        exists = False
-        try:
-            sql = ("SELECT EXISTS(SELECT RELNAME FROM pg_class WHERE " + "\n" +
-                   "RELNAME = '" + table_name + "')")
-            with conn.cursor() as cur:
-                cur.execute(sql)
-                exists = cur.fetchone()[0]
-        except psycopg2.Error as e:
-            print e
-        return exists
-
-
     def copy_table_between_databases(self, dbname1, dbname2, table_name):
         """Copy a table from one database to another on the same server.
 
@@ -203,8 +188,9 @@ class Server(object):
         try:
             ps_dump = subprocess.Popen(dump_cmd, stdout=subprocess.PIPE,
                                        stderr=subprocess.STDOUT)
-            output = subprocess.check_output(load_cmd, stdin=ps_dump.stdout,
-                                             stderr=subprocess.STDOUT)
+            dummy_output = subprocess.check_output(load_cmd,
+                                                   stdin=ps_dump.stdout,
+                                                   stderr=subprocess.STDOUT)
             ps_dump.wait()
         except subprocess.CalledProcessError as err:
             #Make sure error output is in the error message.

@@ -6,8 +6,6 @@ import sys
 import logging
 import re
 import unittest
-import subprocess
-import psycopg2
 import dbutil
 import tilecompare
 
@@ -25,14 +23,14 @@ LOGGER.setLevel(logging.INFO)
 
 class TestTileCompare(unittest.TestCase):
     """Unit tests foe tilecompare functions."""
-
+    # pylint:disable=too-many-instance-attributes
     MODULE = 'tilecompare'
     SUITE = 'TileCompare'
-    
+
     INPUT_DIR = dbutil.input_directory(MODULE, SUITE)
     OUTPUT_DIR = dbutil.output_directory(MODULE, SUITE)
     EXPECTED_DIR = dbutil.expected_directory(MODULE, SUITE)
-    
+
     def setUp(self):
 
         match = re.search(r'\.([^\.]+)$', self.id())
@@ -85,13 +83,36 @@ class TestTileCompare(unittest.TestCase):
     #                              'hypercube_test_ingest.sql')
     #     self.conn1 = dbutil.TESTSERVER.connect(self.dbname1)
     #     self.conn2 = dbutil.TESTSERVER.connect(self.dbname2)
-        
+
     #     #LOGGER.info('About to create database from file')
     #     #dbutil.TESTSERVER.create(self.dbname, self.INPUT_DIR,
     #     #                         'hypercube_test_ingest.sql')
     #     #LOGGER.info('.done')
 
-    def test_create_tile_acqusition_info(self):
+    # def xxxtest_create_tile_acqusition_info(self):
+    #     "Test creation of tile_acquisition_info table."""
+    #     self.dbname1 = 'hypercube_test'
+    #     self.dbname2 = dbutil.random_name('test_tilecompare')
+    #     LOGGER.info('Creating database %s', self.dbname2)
+    #     dbutil.TESTSERVER.create(self.dbname2, self.INPUT_DIR,
+    #                              'hypercube_test_ingest.sql')
+    #     self.conn1 = dbutil.TESTSERVER.connect(self.dbname1, autocommit=False)
+    #     self.conn2 = dbutil.TESTSERVER.connect(self.dbname2, autocommit=False)
+    #     LOGGER.info('About to create comparision pair')
+    #     pair = tilecompare.TileComparisonPair(self.conn1, self.conn2,
+    #                                           'public', 'public')
+    #     LOGGER.info('About to create table from fresh ingest')
+    #     fresh_ingest_info_table = 'fresh_ingest_info'
+    #     comparison_table = 'ingest_comparison'
+    #     tilecompare._copy_ingest_tile_acquisition_info(pair,
+    #                                                    fresh_ingest_info_table)
+    #     LOGGER.info('About to create comparison table')
+    #     tilecompare._create_comparison_table(pair, fresh_ingest_info_table,
+    #                                          comparison_table)
+    #     LOGGER.info('About to compare the tile contents')
+    #     tilecompare._compare_tile_contents(pair, comparison_table)
+
+    def test_compare_tile_stores(self):
         "Test creation of tile_acquisition_info table."""
         self.dbname1 = 'hypercube_test'
         self.dbname2 = dbutil.random_name('test_tilecompare')
@@ -100,19 +121,25 @@ class TestTileCompare(unittest.TestCase):
                                  'hypercube_test_ingest.sql')
         self.conn1 = dbutil.TESTSERVER.connect(self.dbname1, autocommit=False)
         self.conn2 = dbutil.TESTSERVER.connect(self.dbname2, autocommit=False)
-        LOGGER.info('About to create comparision pair')
-        pair = tilecompare.TileComparisonPair(self.conn1, self.conn2,
-                                              'public', 'public')
-        LOGGER.info('About to create table from fresh ingest')
-        fresh_ingest_info_table = 'fresh_ingest_info'
-        comparison_table = 'ingest_comparison'
-        tilecompare._copy_ingest_tile_acquisition_info(pair,
-                                                       fresh_ingest_info_table)
-        LOGGER.info('About to create comparison table')
-        tilecompare._create_comparison_table(pair, fresh_ingest_info_table,
-                                             comparison_table)
-        
-        
+        LOGGER.info('About to call compare_tile_stores')
+        fout = open(os.path.join(self.OUTPUT_DIR,
+                                 'tile_comparison_output.txt'), 'w')
+        #fout = sys.stdout #temp
+        difference_pairs = tilecompare.compare_tile_stores(self.conn1,
+                                                           self.conn2,
+                                                           output=fout)
+        LOGGER.info('Finished calling compare_tile_stores')
+        if difference_pairs != []:
+            report_string = "Fresh ingest tile content differs from the " \
+                "benchmark:\n"
+            for pair in difference_pairs:
+                report_string = report_string + "Benchmark tile:\n%s\nFresh" \
+                    "Ingest tile:\n%s\n" %(pair[0], pair[1])
+            self.fail(report_string)
+        else:
+            print 'Everything passed'
+
+
 def the_suite():
     "Runs the tests"""
     test_classes = [TestTileCompare]
