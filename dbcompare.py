@@ -239,6 +239,14 @@ class ComparisonWrapper(dbutil.ConnectionWrapper):
 
         return pkey
 
+    def drop_table(self, table_name):
+        """Drops the named table from the database."""
+
+        drop_sql = "DROP TABLE IF EXISTS %s;" % table_name
+
+        with self.conn.cursor() as curs:
+            curs.execute(drop_sql)
+
 #
 # ComparisonPair Class
 #

@@ -48,7 +48,7 @@ class TestTileRecord(unittest.TestCase):
     # pylint: disable=too-many-instance-attributes
     ############################### User area #################################
     MODULE = 'tile_record'
-    SUITE = 'TileRecord2'
+    SUITE = 'TileRecord3'
     # Set to true if we want to populate expected directory with results,
     # without doing comparision. Set to False if we want to put (often
     # a subset of) results in output directory and compare against the
@@ -229,8 +229,8 @@ class TestTileRecord(unittest.TestCase):
             LOGGER.info('coverage=%s', str(tile_footprint_list))
             for tile_ftprint in tile_footprint_list:
                 #Only do that footprint for which we have benchmark mosaics
-                #if tile_ftprint not in [(150, -26)]:
-                #    continue
+                if tile_ftprint not in [(141, -38)]:
+                    continue
                 tile_contents = \
                     self.collection.create_tile_contents(tile_type_id,
                                                          tile_ftprint,

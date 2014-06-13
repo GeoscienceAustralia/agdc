@@ -114,13 +114,26 @@ class TestTileCompare(unittest.TestCase):
 
     def test_compare_tile_stores(self):
         "Test creation of tile_acquisition_info table."""
-        self.dbname1 = 'hypercube_test'
+        self.dbname1 = 'hypercube_test2_v0'
         self.dbname2 = dbutil.random_name('test_tilecompare')
         LOGGER.info('Creating database %s', self.dbname2)
         dbutil.TESTSERVER.create(self.dbname2, self.INPUT_DIR,
                                  'hypercube_test_ingest.sql')
+
+        #Temp
+        #print 'Loading production database %s' %self.dbname1
+        #dbutil.TESTSERVER.create(self.dbname1, '/g/data/v10/test_resources/databases',
+        #                         'hypercube_v0.sql')
+        #self.dbname1 = 'hypercube_test2_v0'
+        #print 'Loading production database %s' %self.dbname1
+        #dbutil.TESTSERVER.create(self.dbname1, '/g/data/v10/test_resources/databases',
+        #                         'hypercube_v0.sql')
+        #return
+        #Temp
+
         self.conn1 = dbutil.TESTSERVER.connect(self.dbname1, autocommit=False)
         self.conn2 = dbutil.TESTSERVER.connect(self.dbname2, autocommit=False)
+
         LOGGER.info('About to call compare_tile_stores')
         fout = open(os.path.join(self.OUTPUT_DIR,
                                  'tile_comparison_output.txt'), 'w')
