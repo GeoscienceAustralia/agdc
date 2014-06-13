@@ -244,8 +244,8 @@ select
   file_extension,
   format_options,
   tile_directory,
-  1.0 / x_pixels as x_pixel_size,
-  1.0 / y_pixels as y_pixel_size
+  x_size / x_pixels as x_pixel_size,
+  y_size / y_pixels as y_pixel_size
 from tile_type
 """ 
         log_multiline(logger.debug, sql, 'SQL', '\t')
