@@ -5,8 +5,13 @@ tilecompare.py - compare two sets of tiles.
 """
 
 import sys
+import os
+import re
 import dbutil
+from osgeo import gdal
+import numpy as np
 from dbcompare import ComparisonWrapper
+import cube_util
 # #
 # # TileComparisonPair class
 # #
@@ -117,7 +122,7 @@ def compare_tile_stores(db1, db2, schema1='public', schema2='public',
         c) The coverage method of the Fresh Ingest process will, very
         occasionally, pick up some new tiles.
 
-    Such anomalies are reported in the output stream.
+    Such anomalies are reported in the output stream with a "WARNING" prefix
 
     Preconditions: db1 and db2 are open database connections. These are
         assumed to be psycopg2 connections to PostgreSQL databases. Tables
@@ -139,55 +144,57 @@ def compare_tile_stores(db1, db2, schema1='public', schema2='public',
     """
 
     pair = TileComparisonPair(db1, db2, schema1, schema2)
-    #Drop the fresh_ingest_info and ingest_comparison tables
-    pair.db1.drop_table('fresh_ingest_info')
-    pair.db1.drop_table('production_tile_info')
-    pair.db1.drop_table('production_all')
-    pair.db1.drop_table('fresh_ingest_all')
 
     #TEMPORARY delete some tiles:
     _temp_delete_some_tiles(pair)
 
-    # Name of table to which information from fresh ingest will be written.
-    fresh_ingest_info_table = 'fresh_ingest_info'
+    # Create a random 9-digit string to append to tables"
+    random_suffix = dbutil.random_name("_")
 
-    # Name of table comparing fresh ingest with production ingest.
-    comparison_table = 'ingest_comparison'
+    # Name of table to which information from fresh ingest will be written.
+    test_ingest_table = 'test_ingest%s' %random_suffix
 
     # Create the table pertaining to the fresh ingest and copy it to the
     # production database.
-
-    _copy_fresh_ingest_info(pair, fresh_ingest_info_table)
+    _copy_fresh_ingest_info(pair, test_ingest_table)
 
     # Create tuple (list_both, list_db1_not_db2, list_db2_not_db1), where each
-    # list is a list of tuples (tile_class, level, path1, path2).
+    # list is a list of tuples:
+    # (level, tile_class_id1, tile_class_id2, path1, path2).
     (list_both, list_db1_not_db2, list_db2_not_db1) = \
-        create_comparison_table(pair, fresh_ingest_info_table,
-                                comparison_table)
+        _get_comparison_pairs(pair, test_ingest_table)
 
-    difference_pairs = _compare_tile_contents(pair, output, list_both,
-                                              list_db1_not_db2,
-                                              list_db2_not_db1)
+    # Output information for the edge cases of tiles being in only one database
+    tile_list = [p[3] for p in list_db1_not_db2]
+    _log_missing_tile_info(tile_list, pair.db1_name, pair.db2_name,
+                           output)
+    tile_list = [p[4] for p in list_db2_not_db1]
+    _log_missing_tile_info(tile_list, pair.db2_name, pair.db1_name,
+                           output)
+
+    output.writelines('There might be further mosaic tiles that are missing\n')
+
+    # Compare the tiles if they both exist
+    difference_pairs = _compare_tile_contents(list_both, output)
     return difference_pairs
 
 def _temp_delete_some_tiles(comparison_pair):
+    """Temporarily delete some files."""
     #TEMPORARY delete some tiles from tile table to test whether
     #we can detect that they are present on DB1 but not on DB2.
     sql = ("DELETE FROM tile WHERE x_index=116")
     with comparison_pair.db2.cursor() as cur:
         cur.execute(sql, {})
 
-def _copy_fresh_ingest_info(comparison_pair, table_name):
+def _copy_fresh_ingest_info(comparison_pair, test_ingest_info_table):
     """Given this database connection, collate the acquisition information
     for each tile into a table. Copy this table to the production database."""
-    sql = ("CREATE TABLE " + table_name + " AS" + "\n" +
-           "SELECT tile_id, x_index, y_index," + "\n" +
+    sql = ("CREATE TABLE " + test_ingest_info_table + " AS" + "\n" +
+           "SELECT tile_id, x_index, y_index, a.acquisition_id," + "\n" +
            "a.end_datetime - a.start_datetime as aq_len," + "\n" +
-           "tile_class_id, tile_pathname, level_name," + "\n" +
-           "satellite_id, sensor_id, x_ref," + "\n" +
-           "y_ref, a.start_datetime, a.end_datetime FROM tile t\n"
+           "tile_class_id, tile_pathname, level_id, satellite_id," + "\n" +
+           "sensor_id, a.start_datetime, a.end_datetime FROM tile t\n"
            "INNER JOIN dataset d on d.dataset_id=t.dataset_id" + "\n" +
-           "INNER JOIN processing_level p on p.level_id = d.level_id" + "\n" +
            "INNER JOIN acquisition a on d.acquisition_id=a.acquisition_id\n")
 
     with comparison_pair.db2.cursor() as cur:
@@ -195,106 +202,129 @@ def _copy_fresh_ingest_info(comparison_pair, table_name):
 
     dbutil.TESTSERVER.copy_table_between_databases(comparison_pair.db2_name,
                                                    comparison_pair.db1_name,
-                                                   table_name)
+                                                   test_ingest_info_table)
 
 
-def _create_comparison_table(comparison_pair, test_ingest_info,
-                             comparison_table):
-    """Given Database 2's tile acquisition info in table_name, find
-    corresponding records in Database 1."""
-    import re
-    FUZZY_MATCH_PERCENTAGE = 15.0/100.0
+def _get_comparison_pairs(db_pair, test_ingest_info):
+    """Given Database 2's information in test_ingest_info table, generate pairs
+    of corresponding tiles from Database 1 and Database 2.
 
-    # Generate table of all tile information on Database 1
-    temp_table = 'temporary_all_tile_info'
-    sql = ("CREATE TEMP TABLE " + temp_table + " AS" + "\n" +
-           "SELECT tile_id, x_index, y_index," + "\n" +
-           "a.end_datetime - a.start_datetime as aq_len," + "\n" +
-           "tile_class_id, tile_pathname, level_name," + "\n" +
-           "satellite_id, sensor_id, x_ref," + "\n" +
-           "y_ref, a.start_datetime, a.end_datetime FROM tile t\n"
-           "INNER JOIN dataset d on d.dataset_id=t.dataset_id" + "\n" +
-           "INNER JOIN processing_level p on p.level_id = d.level_id" + "\n" +
-           "INNER JOIN acquisition a on d.acquisition_id=a.acquisition_id\n"+
-           "WHERE tile_class_id<>2;")
+    Returns: 3 lists as follows:
+    1. production_and_test: those corresponding pairs which exist on Database 1
+       and Database 2.
+    2. production_not_test: the tiles found only on Database 1.
+    3. test_not_production: the tiles found only on Database 2.
 
-    # Generate table of production_tiles in Fresh acquisitions
-    production_tile_info = 'production_tile_info'
-    sqltemp = ("CREATE TEMP TABLE " + production_tile_info + " AS \n" +
-            "SELECT DISTINCT ON (t1.tile_id) t1.x_index, t1.y_index,\n" +
-            "t1.tile_pathname, t1.satellite_id, t1.sensor_id,\n" +
-            "t1.start_datetime, t1.end_datetime, t1.level_name\n FROM\n" +
-            temp_table + " t1 INNER JOIN " + test_ingest_info + " fi ON\n" +
-            "t1.level_name=fi.level_name AND\n"
-            "t1.satellite_id=fi.satellite_id AND\n" +
-            "t1.sensor_id=fi.sensor_id AND\n" +
-            "t1.start_datetime BETWEEN" + "\n" +
-            "    fi.start_datetime - " + str(FUZZY_MATCH_PERCENTAGE) +
-                                         "*fi.aq_len AND " + "\n" +
-            "    fi.start_datetime + " + str(FUZZY_MATCH_PERCENTAGE) +
-                                         "*fi.aq_len AND " + "\n" +
-            "t1.end_datetime BETWEEN" + "\n" +
-            "    fi.end_datetime - " + str(FUZZY_MATCH_PERCENTAGE) +
-                                         "*fi.aq_len AND " + "\n" +
-            "    fi.end_datetime + " + str(FUZZY_MATCH_PERCENTAGE) +
-                                         "*fi.aq_len;"
-            )
+    Each element of the above lists is a 5-tuple:
+    (level_name, tile_class_id on Database 1, tile_class_id on Database 2,
+     tile_pathname on Database 1, tile_pathname on Database 2)."""
+
+    fuzzy_match_percentage = 15
+
+    # Strip the random suffix from the test_ingest_info table and use it
+    # for other tables.
+    random_suffix = re.match(r'.+(_\d+)', test_ingest_info).groups(1)
+
+    # Match the datasets from Database 2 to those in Database 1
+    sql = (
+        "CREATE TEMPORARY TABLE datasets_join_info AS SELECT DISTINCT\n" +
+        "a.acquisition_id AS acquisition_id1, ti.acquisition_id AS\n" +
+        "acquisition_id2, level_id FROM acquisition a\n" +
+        "INNER JOIN " + test_ingest_info + " ti ON " +
+        "    a.satellite_id=ti.satellite_id AND " +
+        "    a.sensor_id=ti.sensor_id AND " +
+        "    a.start_datetime BETWEEN " +
+        "        ti.start_datetime - " + str(fuzzy_match_percentage/100.) +
+        "                                               *ti.aq_len AND\n" +
+        "        ti.start_datetime + " + str(fuzzy_match_percentage/100.) +
+        "                                               *ti.aq_len AND\n" +
+        "    a.end_datetime BETWEEN " +
+        "        ti.end_datetime - " + str(fuzzy_match_percentage/100.) +
+        "                                               *ti.aq_len AND\n" +
+        "        ti.end_datetime + " + str(fuzzy_match_percentage/100.) +
+        "                                               *ti.aq_len;"
+        )
+
+    # Find all tiles from Database 1 which appear in the datasets
+    sqltemp = (
+        "CREATE TEMPORARY TABLE tiles1 AS SELECT\n" +
+        "acquisition_id1, acquisition_id2, dji.level_id,\n" +
+        "tile_class_id AS tile_class_id1, tile_pathname AS path1,\n" +
+        "x_index, y_index FROM datasets_join_info dji\n" +
+        "INNER JOIN acquisition a ON a.acquisition_id=dji.acquisition_id1\n" +
+        "INNER JOIN dataset d on d.acquisition_id=a.acquisition_id AND\n" +
+        "                        d.level_id=dji.level_id\n" +
+        "INNER JOIN tile t ON t.dataset_id=d.dataset_id\n" +
+        "WHERE t.tile_class_id<>2;"
+        )
+
     sql = sql + sqltemp
 
-    # Generate table of tiles that are in Database 1 and, if the
-    # corresponding tile exists on Database 2, add its information
-    production_table = 'production_all'
-    sqltemp = ("CREATE TEMP TABLE " + production_table + " AS SELECT\n " +
-            "fi.tile_class_id,\n" +
-            "pt.tile_pathname as path1, fi.tile_pathname as path2,\n" +
-            "pt.level_name\n" +
-            "FROM " + production_tile_info + " pt LEFT OUTER JOIN\n" +
-             test_ingest_info + " fi ON\n" +
-            "pt.x_index=fi.x_index and pt.y_index=fi.y_index AND\n"
-            "pt.level_name=fi.level_name AND\n"
-            "pt.satellite_id=fi.satellite_id AND\n" +
-            "pt.sensor_id=fi.sensor_id AND\n" +
-            "pt.start_datetime BETWEEN" + "\n" +
-            "    fi.start_datetime - " + str(FUZZY_MATCH_PERCENTAGE) +
-                                         "*fi.aq_len AND " + "\n" +
-            "    fi.start_datetime + " + str(FUZZY_MATCH_PERCENTAGE) +
-                                         "*fi.aq_len AND " + "\n" +
-            "pt.end_datetime BETWEEN" + "\n" +
-            "    fi.end_datetime - " + str(FUZZY_MATCH_PERCENTAGE) +
-                                         "*fi.aq_len AND " + "\n" +
-            "    fi.end_datetime + " + str(FUZZY_MATCH_PERCENTAGE) +
-                                         "*fi.aq_len;"
-           )
+    # Find all tiles from test ingestion
+    sqltemp = (
+        "CREATE TEMPORARY TABLE tiles2 AS SELECT\n" +
+        "acquisition_id1, acquisition_id2, dji.level_id,\n" +
+        "tile_class_id AS tile_class_id2, tile_pathname AS path2,\n" +
+        "x_index, y_index FROM datasets_join_info dji\n" +
+        "INNER JOIN " + test_ingest_info + " ti ON \n" +
+        "                       ti.acquisition_id=dji.acquisition_id2 AND\n" +
+        "                       ti.level_id=dji.level_id;"
+        )
+
     sql = sql + sqltemp
 
+    # For each Database 1 tile found in the test ingest datasets, find the
+    # corresponding Database 2 tile if it exists.
+    production_all_tiles = 'tiles1_all%s' %random_suffix
+    test_ingest_all_tiles = 'tiles2_all%s' %random_suffix
+    sqltemp = (
+        "CREATE TABLE " + production_all_tiles + " AS SELECT\n" +
+        "level_name, tile_class_id1, tile_class_id2, path1, path2\n" +
+        "FROM tiles1 t1 LEFT OUTER JOIN tiles2 t2 ON\n" +
+        "t1.acquisition_id1=t2.acquisition_id1 AND\n" +
+        "t1.level_id=t2.level_id AND\n" +
+        "t1.x_index=t2.x_index AND t1.y_index=t2.y_index\n" +
+        "INNER JOIN processing_level p on p.level_id=t1.level_id;"
+        )
 
-    # Generate table of tiles that are in Database 2 and, if the
-    # corresponding tile exists on Database 1, add its information.
-    fresh_ingest_table = 'fresh_ingest_all'
-    sqltemp = re.sub(production_table, fresh_ingest_table, sqltemp)
-    sqltemp = re.sub("LEFT OUTER JOIN", "RIGHT OUTER JOIN", sqltemp)
     sql = sql + sqltemp
 
-    # Generate table of tiles in production and test.
-    sql_fetch_production_and_test = ("SELECT\n" +
-               "pt.tile_class_id, pt.level_name, pt.path1, pt.path2 FROM\n" +
-               production_table + " pt INNER JOIN " +
-               fresh_ingest_table + " fi ON\n" +
-               "pt.path1=fi.path1 AND pt.path2=fi.path2;")
+    # For each Database 2 tile found in the test ingest datasets, find the
+    # corresponding Database 1 tile if it exists.
+    sqltemp = (
+        "CREATE TABLE " + test_ingest_all_tiles + " AS SELECT\n" +
+        "level_name, tile_class_id1, tile_class_id2, path1, path2\n" +
+        "FROM tiles2 t2 LEFT OUTER JOIN tiles1 t1 ON\n" +
+        "t1.acquisition_id1=t2.acquisition_id1 AND\n" +
+        "t1.level_id=t2.level_id AND\n" +
+        "t1.x_index=t2.x_index AND t1.y_index=t2.y_index\n" +
+        "INNER JOIN processing_level p on p.level_id=t2.level_id; "
+        )
 
-    # Generate table of tiles in production, but not test.
+    sql = sql+sqltemp
+
+    # Generate list of tiles found in Database 1 and Database 2
+    sql_fetch_both = ("SELECT\n" +
+               "t1.level_name, t1.tile_class_id1, t2.tile_class_id2, \n" +
+               "t1.path1, t2.path2 FROM\n" +
+               production_all_tiles + " t1 INNER JOIN " +
+               test_ingest_all_tiles + " t2 ON\n" +
+               "t1.path1=t2.path1 AND t1.path2=t2.path2;")
+
+    # Generate list of tiles found in Database 1 but not Database 2
     sql_fetch_production_not_test = ("SELECT\n" +
-               "tile_class_id, level_name, path1, path2 FROM\n" +
-               production_table +  " WHERE path2 is NULL;") 
+               "level_name, tile_class_id1, tile_class_id2, \n" +
+               "path1, path2 FROM\n" +
+               production_all_tiles +  " WHERE path2 is NULL;")
 
-    # Generate table of tiles in test, but not production.
+    # Generate list of tiles found in Database 2 but not Database 1
     sql_fetch_test_not_production = ("SELECT\n" +
-               "tile_class_id, level_name, path1, path2 FROM\n" +
-               fresh_ingest_table +  " WHERE path1 is NULL;") 
+               "level_name, tile_class_id1, tile_class_id2,\n" +
+                                     "path1, path2 FROM\n" +
+               test_ingest_all_tiles +  " WHERE path1 is NULL;")
 
 
-    # Submit the queries to the database.
-    with comparison_pair.db1.cursor() as cur:
+    with db_pair.db1.cursor() as cur:
         cur.execute(sql, {})
         cur.execute(sql_fetch_both, {})
         production_and_test = cur.fetchall()
@@ -302,74 +332,101 @@ def _create_comparison_table(comparison_pair, test_ingest_info,
         production_not_test = cur.fetchall()
         cur.execute(sql_fetch_test_not_production, {})
         test_not_production = cur.fetchall()
+
+    db_pair.db1.drop_table(test_ingest_info)
+    db_pair.db1.drop_table(production_all_tiles)
+    db_pair.db1.drop_table(test_ingest_all_tiles)
+
     return (production_and_test, production_not_test, test_not_production)
 
-def _compare_tile_contents(output=sys.stdout,
-                           list_both, list_db1_not_db2, list_db2_not_db1):
+def _log_missing_tile_info(tile_list, dbname_present, dbname_missing, output):
+    """Log information from the edge case of tiles present on dbname_present,
+    but missing on dbname_missing."""
+    if tile_list:
+        if len(tile_list) == 1:
+            number_str = " is %d tile " %len(tile_list)
+        else:
+            number_str = " are %d tiles " %len(tile_list)
+        output.writelines('Given the datasets from the Test Ingest process, ' \
+                          'there are %s that are in the %s tile ' \
+                          'store that are not in the %s tile store:\n'\
+                          %(number_str, dbname_present, dbname_missing))
+    for tile in tile_list:
+        output.writelines('WARNING: Only in %s tilestore:' \
+                              '%s\n'%(dbname_present, tile))
+
+def _compare_tile_contents(list_both, output):
     """Compare the tile pairs contained in list_both. Additionally, report
     those tiles that are only in Database 1, or only in  Database 2.
-    Inputs: list_both: a list of tuples (tile_class_id, level, path1, path2)
-                       where
-                       tile_class_id is the class of the tile in Database 2,
-                       level is the processing_level,
-                       path1 is the path of the file in Database 1,
-                       path2 is the path of the file in Database 2.
-    Output: difference_pairs: the list of (path1, path2) where there are
-                              differences between the tiles."""
-    # pylint:disable=too-many-locals
-    # pylint:disable=too-many-branches
-    # pylint:disable=too-many-statements
-    from osgeo import gdal
-    import numpy as np
-    import os
-    import cube_util
-    gdal.UseExceptions()
-    rec_num = 0
+
+    Positional arguments: 3 lists as follows:
+    1. production_and_test: those corresponding pairs which exist on Database 1
+       and Database 2.
+    2. production_not_test: the tiles found only on Database 1.
+    3. test_not_production: the tiles found only on Database 2.
+    Each element of the above lists is a 5-tuple:
+    (level_name, tile_class_id on Database 1, tile_class_id on Database 2,
+     tile_pathname on Database 1, tile_pathname on Database 2).
+
+    Returns:
+    List of tile-path pairs (path1, path2) for which a difference has been
+    detected."""
+    #pylint:disable=too-many-locals
+
     # Define a list of tuples (path1, path2) where the contents differ
-    # Each 
+    # Each
+    rec_num = 0
     difference_pairs = []
     for tile_pair in list_both:
         rec_num += 1
-        tile_class_id, level, path1, path2 = tile_pair
-        sys.stdout.writelines('RECORD NUMBER %d tile_class_id2=%d level=%s\n'
-                              %(rec_num, tile_class_id2, level_name))
+        is_mosaic_vrt = False
+        level, tile_class_id1, tile_class_id2, path1, path2 = tile_pair
         output.writelines('RECORD NUMBER %d tile_class_id2=%d level=%s\n'
-                          %(rec_num, tile_class_id2, level_name))
-
+                          %(rec_num, tile_class_id2, level))
         # For a mosaic tile, the tile entry may not be on the database, so
         # look in mosaic_cache:
-        if tile_class_id2 == 4:
+        if tile_class_id2 in MOSAIC_CLASS_ID:
             path1 = os.path.join(os.path.dirname(path1), 'mosaic_cache',
                                  os.path.basename(path1))
-    
-        # Check the Geotransform, Projection and shape
-        data1, data2, msg  = _check_metadata(dset1, dset2)
-        sys.stdout.writelines(msg)
-        output.writelines(msg)
-        
+            # For non-PQA tiles, the benchmark mosaic will be .vrt extension
+            if level in ['NBAR', 'ORTHO']:
+                path1 = re.match(r'(.+)\.tif$', path1).groups(1)[0] + '.vrt'
+                is_mosaic_vrt = True
+
+        # Check the Geotransform, Projection and shape (unless it is a vrt)
+        if is_mosaic_vrt:
+            data1, data2, msg = (None, None, "")
+        else:
+            # Skip checking of metadata for a vrt mosaic since we will check
+            # with system diff command in _compare_data
+            data1, data2, msg = _check_tile_metadata(path1, path2)
+
+        if msg:
+            output.writelines(msg)
+
         # Compare the tile contents
-        are_different, msg = _compare_data(tile_class_id, level,
-                                              data1, data2)
+        are_different, msg = _compare_data(level,
+                                           tile_class_id1, tile_class_id2,
+                                           path1, path2, data1, data2)
         if are_different:
             difference_pairs.extend((path1, path2))
-        sys.stdout.writelines(msg)
-        output.writelines(msg)
-        #############################################################
+        if msg:
+            sys.stdout.writelines(msg)
+            output.writelines(msg)
 
-        dset1 = None
-        dset2 = None
-        data1 = None
-        data2 = None
     return difference_pairs
-
-
-
 
 def _check_tile_metadata(path1, path2):
     """Given two tile paths, check that the projections, geotransforms and
-    dimensions agree."""
-    
+    dimensions agree. Returns a message in string msg which, if empty,
+    indicates agreement on the metadata."""
+    # pylint:disable=too-many-branches
+    # pylint:disable=too-many-statements
+
+    gdal.UseExceptions()
     msg = ""
+    data1 = None
+    data2 = None
     # Open the tile files
     try:
         dset1 = gdal.Open(path1)
@@ -378,95 +435,121 @@ def _check_tile_metadata(path1, path2):
         msg += "ERROR:\tBenchmark tile %s does not exist\n"  %path1
         dset1 = None
         data1 = None
+
     try:
         dset2 = gdal.Open(path2)
         data2 = dset2.ReadAsArray()
     except RuntimeError:
-        msg += "ERROR:\tBenchmark tile %s does not exist\n"  %path1
+        msg += "ERROR:\tTest Ingest tile %s does not exist\n"  %path2
         dset2 = None
         data2 = None
-    
-    # Check the geotransforms
-    geotransform1 = dset1.GetGeoTransform() if dset1 else None
-    geotransform2 = dset2.GetGeoTransform() if dset2 else None
+
+    # Check geotransforms present
+    try:
+        geotransform1 = dset1.GetGeoTransform()
+    except RuntimeError:
+        if dset1:
+            # file exists but geotransform not present
+            msg += "\tError:\tGeotransform for %s not present\n" %path1
+        geotransform1 = None
+    try:
+        geotransform2 = dset2.GetGeoTransform()
+    except RuntimeError:
+        if dset2:
+            # file exists but geotransform not present
+            msg += "\tError:\tGeotransform for %s not present\n" %path2
+        geotransform2 = None
+
+    # Check geotransforms equal
     if geotransform1 and geotransform2:
         if geotransform1 != geotransform2:
-            msg += "\tError:\tGeotransforms disagree\n"
+            msg += "\tError:\tGeotransforms disagree for %s and %s\n"\
+                %(path1, path2)
 
-    if dset1 and not geotransform1:
-        msg += "\tError:\tGeotransform for %s not present\n" %path1
-    if dset2 and not geotransform2:
-        msg += "\tError:\tGeotransform for %s not present\n" %path2
+    # Check projections present
+    try:
+        projection1 = dset1.GetProjection()
+    except RuntimeError:
+        if dset1:
+            # file exists but projections not present
+            msg += "\tError:\tProjection for %s not present\n" %path1
+        projection1 = None
+    try:
+        projection2 = dset2.GetProjection()
+    except RuntimeError:
+        if dset2:
+            # file exists but projection not present
+            msg += "\tError:\tProjection for %s not present\n" %path2
+        projection2 = None
 
-    # Check the projections
-    projection1 = dset1.GetProjection() if dset1 else None
-    projection2 = dset2.GetProjection() if dset2 else None
+    # Check projections equal
     if projection1 and projection2:
         if projection1 != projection2:
-            msg += "\tError:\tGeotransforms disagree\n"
-
-    if dset1 and not projection1:
-        msg += "\tError:\tProjection for %s not present\n" %path1
-    if dset2 and not projection2:
-        msg += "\tError:\tProjection for %s not present\n" %path2
+            msg += "\tError:\tProjections disagree for %s and %s\n"\
+                %(path1, path2)
 
     # Check the dimensions of the arrays
     if dset1 and dset2:
         if data1.shape != data2.shape:
-            msg += "\tError:\tDimensions of arrays disagree\n"
-    if dset1 and not data1:
+            msg += "\tError:\tDimensions of arrays disagree for %s and %s\n" \
+                %(path1, path2)
+    if dset1 and data1 is None:
         msg += "\tError:\tArray data for %s not present\n" %path1
-    if dset2 and not data2:
+    if dset2 and data2 is None:
         msg += "\tError:\tArray data for %s not present\n" %path2
-    
+
     return (data1, data2, msg)
 
 
-def _compare_data(tile_class_id, level, data1, data2):
+def _compare_data(level, tile_class_id1, tile_class_id2, path1, path2,
+                  data1, data2):
     """Given two arrays and the level name, check that the data arrays agree.
     If the level is 'PQA' and the tile is a mosaic, then only compare mosaics
     at pixels where the contiguity bit is set in both versions of the mosaic
-    tile."""
+    tile. Returns a message in string msg which, if empty indicates agreement
+    on the tile data."""
+    # pylint:disable=too-many-arguments
+    # pylint:disable=too-many-locals
+    # pylint:disable=unused-argument
+
     different = False
     msg = ""
-    if tile_class_id not in MOSAIC_CLASS_ID :
+    if tile_class_id2 not in MOSAIC_CLASS_ID:
         if (data1 != data2).any():
-            msg += "For following tile from Fresh Ingest: %s\n," \
-                "data differs from benchmark\n"
+            msg += "Difference in Tile data: %s and %s\n" \
+                %(path1, path2)
+    else:
+        # mosaic tile
+        if level == 'PQA':
+            ind = (data1 == data2)
+            # Check that differences are due to differing treatment
+            # of contiguity bit.
+            data1_diff = data1[~ind].ravel()
+            data2_diff = data2[~ind].ravel()
+            contiguity_diff =  \
+                np.logical_or(
+                np.bitwise_and(data1_diff, 1 << 8) == 0,
+                np.bitwise_and(data2_diff, 1 << 8) == 0)
+            if not contiguity_diff.all():
+                msg += "On %d pixels, mosaiced tile benchmark %s differs"\
+                    "from Fresh Ingest %s\n"\
+                    %(np.count_nonzero(~contiguity_diff), path1, path2)
+            different = True
         else:
-            # mosaic tile
-            if level == 'PQA':
-                ind = (data1 == data2)
-                # Check that differences are due to differing treatment
-                # of contiguity bit.
-                data1_diff = data1[~ind].ravel()
-                data2_diff = data2[~ind].ravel()
-                contiguity_diff =  \
-                    np.logical_or(
-                    np.bitwise_and(data1_diff, 1 << 8) == 0,
-                    np.bitwise_and(data2_diff, 1 << 8) == 0)
-                if ~contiguity_diff.all():
-                    msg +=  "On %d pixels, mosaiced tile benchmark %s differs"\
-                            "from Fresh Ingest %s\n"\
-                            %(np.count_nonzero(~contiguity_diff),
-                              path1, path2)
-                    different = True
-            else:
-                #TODO: compare vrt mosaic
-                diff_cmd = ["diff",
-                            "-I",
-                            "[Ff]ilename",
-                            "%s" %path1,
-                            "%s" %path2
-                            ]
-                result = cube_util.execute(diff_cmd, shell=False)
-                if result['stdout'] != '':
-                    output.writelines("Differences between mosaic vrt " \
-                                          "files:\n" +result['stdout'])
-                    different = True
-                if result['stderr'] != '':
-                    output.writelines("Error in system diff command:\n" +
-                                      result['stderr'])
+            diff_cmd = ["diff",
+                        "-I",
+                        "[Ff]ilename",
+                        "%s" %path1,
+                        "%s" %path2
+                        ]
+            result = cube_util.execute(diff_cmd, shell=False)
+            if result['stdout'] != '':
+                msg += "Difference between mosaic vrt files:\n" + \
+                    result['stdout']
+                different = True
+            if result['stderr'] != '':
+                msg += "Error in system diff command:\n" + result['stderr']
+
     return (different, msg)
 
 

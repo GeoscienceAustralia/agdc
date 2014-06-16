@@ -74,43 +74,43 @@ class TestTileCompare(unittest.TestCase):
         LOGGER.removeHandler(self.handler)
         LOGGER.removeHandler(self.stream_handler)
 
-    # def xxxtest_create_database(self):
-    #     "Test random_name random database name generator."
-    #     self.dbname1 = 'hypercube_v0'
-    #     self.dbname2 = dbutil.random_name('test_create_database')
-    #     LOGGER.info('Creating database %s', self.dbname2)
-    #     dbutil.TESTSERVER.create(self.dbname2, self.INPUT_DIR,
-    #                              'hypercube_test_ingest.sql')
-    #     self.conn1 = dbutil.TESTSERVER.connect(self.dbname1)
-    #     self.conn2 = dbutil.TESTSERVER.connect(self.dbname2)
+    def xxxtest_create_database(self):
+        "Test random_name random database name generator."
+        self.dbname1 = 'hypercube_v0'
+        self.dbname2 = dbutil.random_name('test_create_database')
+        LOGGER.info('Creating database %s', self.dbname2)
+        dbutil.TESTSERVER.create(self.dbname2, self.INPUT_DIR,
+                                 'hypercube_test_ingest.sql')
+        self.conn1 = dbutil.TESTSERVER.connect(self.dbname1)
+        self.conn2 = dbutil.TESTSERVER.connect(self.dbname2)
 
-    #     #LOGGER.info('About to create database from file')
-    #     #dbutil.TESTSERVER.create(self.dbname, self.INPUT_DIR,
-    #     #                         'hypercube_test_ingest.sql')
-    #     #LOGGER.info('.done')
+        LOGGER.info('About to create database from file')
+        dbutil.TESTSERVER.create(self.dbname, self.INPUT_DIR,
+                                'hypercube_test_ingest.sql')
+        LOGGER.info('.done')
 
-    # def xxxtest_create_tile_acqusition_info(self):
-    #     "Test creation of tile_acquisition_info table."""
-    #     self.dbname1 = 'hypercube_test'
-    #     self.dbname2 = dbutil.random_name('test_tilecompare')
-    #     LOGGER.info('Creating database %s', self.dbname2)
-    #     dbutil.TESTSERVER.create(self.dbname2, self.INPUT_DIR,
-    #                              'hypercube_test_ingest.sql')
-    #     self.conn1 = dbutil.TESTSERVER.connect(self.dbname1, autocommit=False)
-    #     self.conn2 = dbutil.TESTSERVER.connect(self.dbname2, autocommit=False)
-    #     LOGGER.info('About to create comparision pair')
-    #     pair = tilecompare.TileComparisonPair(self.conn1, self.conn2,
-    #                                           'public', 'public')
-    #     LOGGER.info('About to create table from fresh ingest')
-    #     fresh_ingest_info_table = 'fresh_ingest_info'
-    #     comparison_table = 'ingest_comparison'
-    #     tilecompare._copy_ingest_tile_acquisition_info(pair,
-    #                                                    fresh_ingest_info_table)
-    #     LOGGER.info('About to create comparison table')
-    #     tilecompare._create_comparison_table(pair, fresh_ingest_info_table,
-    #                                          comparison_table)
-    #     LOGGER.info('About to compare the tile contents')
-    #     tilecompare._compare_tile_contents(pair, comparison_table)
+    def xxxtest_create_tile_acqusition_info(self):
+        "Test creation of tile_acquisition_info table."""
+        self.dbname1 = 'hypercube_test'
+        self.dbname2 = dbutil.random_name('test_tilecompare')
+        LOGGER.info('Creating database %s', self.dbname2)
+        dbutil.TESTSERVER.create(self.dbname2, self.INPUT_DIR,
+                                 'hypercube_test_ingest.sql')
+        self.conn1 = dbutil.TESTSERVER.connect(self.dbname1, autocommit=False)
+        self.conn2 = dbutil.TESTSERVER.connect(self.dbname2, autocommit=False)
+        LOGGER.info('About to create comparision pair')
+        pair = tilecompare.TileComparisonPair(self.conn1, self.conn2,
+                                              'public', 'public')
+        LOGGER.info('About to create table from fresh ingest')
+        fresh_ingest_info_table = 'fresh_ingest_info'
+        comparison_table = 'ingest_comparison'
+        tilecompare._copy_ingest_tile_acquisition_info(pair,
+                                                       fresh_ingest_info_table)
+        LOGGER.info('About to create comparison table')
+        tilecompare._create_comparison_table(pair, fresh_ingest_info_table,
+                                             comparison_table)
+        LOGGER.info('About to compare the tile contents')
+        tilecompare._compare_tile_contents(pair, comparison_table)
 
     def test_compare_tile_stores(self):
         "Test creation of tile_acquisition_info table."""
@@ -137,7 +137,7 @@ class TestTileCompare(unittest.TestCase):
         LOGGER.info('About to call compare_tile_stores')
         fout = open(os.path.join(self.OUTPUT_DIR,
                                  'tile_comparison_output.txt'), 'w')
-        #fout = sys.stdout #temp
+        fout = sys.stdout #temp
         difference_pairs = tilecompare.compare_tile_stores(self.conn1,
                                                            self.conn2,
                                                            output=fout)

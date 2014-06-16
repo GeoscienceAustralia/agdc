@@ -14,6 +14,7 @@ import os
 from ingest_db_wrapper import IngestDBWrapper
 import cube_util
 from cube_util import DatasetError
+import re
 
 # Set up logger.
 LOGGER = logging.getLogger(__name__)
@@ -130,6 +131,11 @@ class TileRecord(object):
             self.tile_contents.make_pqa_mosaic_tile(tile_dict_list,
                                                     mosaic_temp_pathname)
         else:
+            src_file_extn = self.tile_contents.tile_type_info['file_extension']
+            mosaic_temp_pathname = \
+                re.sub('%s$' %src_file_extn, '.vrt', mosaic_temp_pathname)
+            mosaic_final_pathname = \
+                re.sub('%s$' %src_file_extn, '.vrt', mosaic_final_pathname)
             self.tile_contents.make_mosaic_vrt(tile_dict_list,
                                                mosaic_temp_pathname)
 
