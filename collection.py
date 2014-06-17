@@ -239,7 +239,11 @@ class Collection(object):
         to the database) is missing.
         """
 
-        dataset_bands = self.new_bands[self.get_dataset_key(dataset)]
+        try:
+            dataset_bands = self.new_bands[self.get_dataset_key(dataset)]
+        except KeyError:
+            raise DatasetError('No tile types for this dataset.')
+
         for tile_type_bands in dataset_bands.values():
             for band_info in tile_type_bands.values():
                 dataset.find_band_file(band_info['file_pattern'])
