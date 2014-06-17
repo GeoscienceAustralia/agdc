@@ -9,7 +9,7 @@ from abc import ABCMeta, abstractmethod
 
 from datacube import DataCube
 from collection import Collection
-from cube_util import DatasetError
+from cube_util import DatasetError, parse_date_from_string
 
 #
 # Set up logger.
@@ -79,7 +79,7 @@ class AbstractIngester(object):
 
     #
     # parse_args method for command line arguments. This should be
-    # overridden if extra arguments (beyond --config and --debug)
+    # overridden if extra arguments, beyond those defined below,
     # are needed.
     #
 
@@ -99,13 +99,108 @@ class AbstractIngester(object):
         _arg_parser.add_argument('-C', '--config', dest='config_file',
                                  default=default_config,
                                  help='DataCube configuration file')
+
         _arg_parser.add_argument('-d', '--debug', dest='debug',
                                  default=False, action='store_const',
                                  const=True,
                                  help='Debug mode flag')
 
+        fast_filter_help = 'Filter datasets using filename patterns.'
+        _arg_parser.add_argument('--fastfilter', dest='fast_filter',
+                                 default=False, action='store_const',
+                                 const=True, help=fast_filter_help)
+
         args, dummy_unknown_args = _arg_parser.parse_known_args()
         return args
+
+    #
+    # Dataset filter methods.
+    #
+    # The accessor methods give access to the dataset filtering values in
+    # the config file via the datacube object. The filter function decides
+    # wheather to filter a dataset or not.
+    #
+
+    # pylint: disable=maybe-no-member
+    #
+    # Stop pylint flagging the magical datacube attributes stuffed in from
+    # the config file. Note that these are all checked for an attribute
+    # error, so the program will not fail if they are not there.
+
+    def get_date_range(self):
+        """Return the date range for the ingest as a (start, end) tuple.
+
+        If either value is not defined in the config file or cannot be
+        converted to a date it will be returned as None.
+        """
+
+        try:
+            start_date = parse_date_from_string(self.datacube.start_date)
+        except AttributeError:
+            start_date = None
+
+        try:
+            end_date = parse_date_from_string(self.datacube.end_date)
+        except AttributeError:
+            end_date = None
+
+        return (start_date, end_date)
+
+    def get_path_range(self):
+        """Return the path range for the ingest as a (min, max) tuple.
+
+        If either value is not defined in the config file or cannot
+        be converted to an integer it will be returned as None.
+        """
+
+        try:
+            min_path = int(self.datacube.min_path)
+        except (AttributeError, ValueError):
+            min_path = None
+
+        try:
+            max_path = int(self.datacube.max_path)
+        except (AttributeError, ValueError):
+            max_path = None
+
+        return (min_path, max_path)
+
+    def get_row_range(self):
+        """Return the row range for the ingest as a (min, max) tuple.
+
+        If either value is not defined in the config file or cannot
+        be converted to an integer it will be returned as None.
+        """
+
+        try:
+            min_row = int(self.datacube.min_row)
+        except (AttributeError, ValueError):
+            min_row = None
+
+        try:
+            max_row = int(self.datacube.max_row)
+        except (AttributeError, ValueError):
+            max_row = None
+
+        return (min_row, max_row)
+
+    # pylint: enable=maybe-no-member
+
+    def filter(self, path, row, date):
+        """Return True if the dataset should be included, False otherwise."""
+
+        (start_date, end_date) = self.get_date_range()
+        (min_path, max_path) = self.get_path_range()
+        (min_row, max_row) = self.get_row_range()
+
+        include = ((max_path is None or path is None or path <= max_path) and
+                   (min_path is None or path is None or path >= min_path) and
+                   (max_row is None or row is None or row <= max_row) and
+                   (min_row is None or row is None or row >= min_row) and
+                   (end_date is None or date is None or date <= end_date) and
+                   (start_date is None or date is None or date >= start_date))
+
+        return include
 
     #
     # Top level algorithm
@@ -138,19 +233,27 @@ class AbstractIngester(object):
             dataset = self.open_dataset(dataset_path)
 
             self.collection.check_metadata(dataset)
-            #dataset has metadata accessor methods
 
-            #check_metadata method will parse file name for sat, sensor,
-            #bands and check against values returned from dataset accessor
-            #methods?
+            self.filter_on_metadata(dataset)
 
             self.ingest_transaction(dataset)
 
-        except DatasetError:
-            self.log_dataset_skip(dataset_path)
+        except DatasetError as err:
+            self.log_dataset_skip(dataset_path, err)
 
         else:
             self.log_dataset_ingest_complete(dataset_path)
+
+    def filter_on_metadata(self, dataset):
+        """Raises a DatasetError unless the dataset passes the filter."""
+
+        path = dataset.get_x_ref()
+        row = dataset.get_y_ref()
+        dt = dataset.get_start_datetime()
+        date = dt.date() if dt is not None else None
+
+        if not self.filter(path, row, date):
+            raise DatasetError('Filtered by metadata.')
 
     def ingest_transaction(self, dataset):
         """Ingests a single dataset into the collection.
@@ -224,6 +327,10 @@ class AbstractIngester(object):
 
         This is an abstract method since the method of identifying a
         dataset may vary between dataset formats.
+
+        If fast filtering is turned on via the command line arguments it
+        is done here, that is datasets that are filtered out should not
+        be part of the list returned.
         """
 
         raise NotImplementedError
@@ -258,10 +365,11 @@ class AbstractIngester(object):
         LOGGER.info("Ingestion process complete for source directory " +
                     "'%s'." % source_dir)
 
-    def log_dataset_skip(self, dataset_path):
+    def log_dataset_skip(self, dataset_path, err):
 
         LOGGER.info("Ingestion skipped for dataset " +
                     "'%s':" % dataset_path)
+        LOGGER.info(str(err))
         LOGGER.debug("Exception info:", exc_info=True)
 
     def log_dataset_ingest_complete(self, dataset_path):

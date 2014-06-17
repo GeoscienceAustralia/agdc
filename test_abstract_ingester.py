@@ -305,6 +305,19 @@ class DummyDataset(object):
     def __str__(self):
         return "[Dataset %s]" % self.dataset_path
 
+    #pylint:disable=no-self-use
+
+    def get_x_ref(self):
+        return None
+
+    def get_y_ref(self):
+        return None
+
+    def get_start_datetime(self):
+        return None
+
+    #pylint:enable=no-self-use
+
     def stack_bands(self, band_list):
         LOGGER.info("%s: stack_bands:", self)
         LOGGER.info("    band_list = %s", band_list)

@@ -48,6 +48,9 @@ class TestLandsatDataset(unittest.TestCase):
     PQ8_DIR = 'dataset_testing/PQ/2014-03'
     PQ8_SCENE = 'LS8_OLI_TIRS_PQ_P55_GAPQ01-002_089_082_20140313'
 
+    FC8_DIR = 'dataset_testing/FC/2014-03'
+    FC8_SCENE = 'LS8_OLI_TIRS_FC_P54_GAFC01-002_089_082_20140313'
+
     METADATA_KEYS = ['dataset_path',
                      'satellite_tag',
                      'sensor_name',
@@ -281,6 +284,21 @@ class TestLandsatDataset(unittest.TestCase):
         self.check_file('fc_metadata.txt')
         self.check_file('fc_xml.xml')
 
+    def test_fc8_scene(self):
+        """Test for a Landsat 8 Fractional Cover scene."""
+
+        fc_ds = LandsatDataset(os.path.join(self.INPUT_DIR,
+                                            self.FC8_DIR,
+                                            self.FC8_SCENE))
+        mdd = fc_ds.metadata_dict
+
+        self.dump_metadata('fc8_metadata.txt', mdd, self.SMALL_METADATA_KEYS)
+        self.dump_string('fc8_xml.xml', mdd['xml_text'])
+        self.assertIsNone(mdd['mtl_text'])
+
+        self.check_file('fc8_metadata.txt')
+        self.check_file('fc8_xml.xml')
+
     def test_crosscheck_ortho_nbar(self):
         """Cross-check metadata between ortho and nbar datasets."""
 
@@ -291,6 +309,19 @@ class TestLandsatDataset(unittest.TestCase):
         nbar_ds = LandsatDataset(os.path.join(self.INPUT_DIR,
                                               self.NBAR_DIR,
                                               self.NBAR_SCENE))
+
+        self.cross_check(ortho_ds, nbar_ds, self.CROSSCHECK_KEYS_TWO)
+
+    def test_crosscheck_ortho8_nbar8(self):
+        """Cross-check metadata between Landsat 8 ortho and nbar datasets."""
+
+        ortho_ds = LandsatDataset(os.path.join(self.INPUT_DIR,
+                                               self.ORTHO8_DIR,
+                                               self.ORTHO8_SCENE))
+
+        nbar_ds = LandsatDataset(os.path.join(self.INPUT_DIR,
+                                              self.NBAR8_DIR,
+                                              self.NBAR8_SCENE))
 
         self.cross_check(ortho_ds, nbar_ds, self.CROSSCHECK_KEYS_TWO)
 
@@ -306,19 +337,6 @@ class TestLandsatDataset(unittest.TestCase):
                                             self.PQ_SCENE))
 
         self.cross_check(ortho_ds, pq_ds, self.CROSSCHECK_KEYS_TWO)
-
-    def test_crosscheck_ortho8_nbar8(self):
-        """Cross-check metadata between Landsat 8 ortho and nbar datasets."""
-
-        ortho_ds = LandsatDataset(os.path.join(self.INPUT_DIR,
-                                               self.ORTHO8_DIR,
-                                               self.ORTHO8_SCENE))
-
-        nbar_ds = LandsatDataset(os.path.join(self.INPUT_DIR,
-                                              self.NBAR8_DIR,
-                                              self.NBAR8_SCENE))
-
-        self.cross_check(ortho_ds, nbar_ds, self.CROSSCHECK_KEYS_TWO)
 
     def test_crosscheck_ortho8_pq8(self):
         """Cross-check metadata between Landsat 8 ortho and pq datasets."""
@@ -346,6 +364,19 @@ class TestLandsatDataset(unittest.TestCase):
 
         self.cross_check(ortho_ds, fc_ds, self.CROSSCHECK_KEYS_TWO)
 
+    def test_crosscheck_ortho8_fc8(self):
+        """Cross-check metadata between Landsat 8 ortho and fc datasets."""
+
+        ortho_ds = LandsatDataset(os.path.join(self.INPUT_DIR,
+                                               self.ORTHO8_DIR,
+                                               self.ORTHO8_SCENE))
+
+        fc_ds = LandsatDataset(os.path.join(self.INPUT_DIR,
+                                            self.FC8_DIR,
+                                            self.FC8_SCENE))
+
+        self.cross_check(ortho_ds, fc_ds, self.CROSSCHECK_KEYS_TWO)
+
     def test_crosscheck_pq_fc(self):
         """Cross-check metadata between pc and fc datasets."""
 
@@ -356,6 +387,19 @@ class TestLandsatDataset(unittest.TestCase):
         fc_ds = LandsatDataset(os.path.join(self.INPUT_DIR,
                                             self.FC_DIR,
                                             self.FC_SCENE))
+
+        self.cross_check(pq_ds, fc_ds, self.CROSSCHECK_KEYS_TWO)
+
+    def test_crosscheck_pq8_fc8(self):
+        """Cross-check metadata between Landsat 8 pc and fc datasets."""
+
+        pq_ds = LandsatDataset(os.path.join(self.INPUT_DIR,
+                                            self.PQ8_DIR,
+                                            self.PQ8_SCENE))
+
+        fc_ds = LandsatDataset(os.path.join(self.INPUT_DIR,
+                                            self.FC8_DIR,
+                                            self.FC8_SCENE))
 
         self.cross_check(pq_ds, fc_ds, self.CROSSCHECK_KEYS_TWO)
 

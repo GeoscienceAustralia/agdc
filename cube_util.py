@@ -5,6 +5,7 @@
 import os
 import subprocess
 import time
+import datetime
 import pdb
 import logging
 import pprint
@@ -21,6 +22,28 @@ LOGGER.setLevel(logging.INFO)
 # Utility Functions
 #
 
+def parse_date_from_string(date_string):
+    """Attempt to parse a date from a command line or config file argument.
+
+    This function tries a series of date formats, and returns a date
+    object if one of them works, None otherwise.
+    """
+
+    format_list = ['%Y%m%d',
+                   '%d/%m/%Y',
+                   '%Y-%m-%d'
+                   ]
+
+    # Try the formats in the order listed.
+    date = None
+    for date_format in format_list:
+        try:
+            date = datetime.datetime.strptime(date_string, date_format).date()
+            break
+        except ValueError:
+            pass
+
+    return date
 
 #
 # log_multiline utility function copied from ULA3
@@ -183,7 +206,55 @@ def create_directory(dirname):
     finally:
         # Put back the old umask
         os.umask(old_umask)
-    
+
+#
+# Utility classes
+#
+
+class Stopwatch(object):
+    """Timer for simple performance measurements."""
+
+    def __init__(self):
+        """Initial state."""
+        self.elapsed_time = 0.0
+        self.cpu_time = 0.0
+        self.start_elapsed_time = None
+        self.start_cpu_time = None
+        self.running = False
+
+    def start(self):
+        """Start the stopwatch."""
+        if not self.running:
+            self.start_elapsed_time = time.time()
+            self.start_cpu_time = time.clock()
+            self.running = True
+
+    def stop(self):
+        """Stop the stopwatch."""
+        if self.running:
+            self.elapsed_time += (time.time() - self.start_elapsed_time)
+            self.cpu_time += (time.clock() - self.start_cpu_time)
+            self.start_elapsed_time = None
+            self.start_cpu_time = None
+            self.running = False
+
+    def reset(self):
+        """Reset the stopwatch."""
+        self.__init__()
+
+    def read(self):
+        """Read the stopwatch. Returns a tuple (elapsed_time, cpu_time)."""
+
+        if self.running:
+            curr_time = time.time()
+            curr_clock = time.clock()
+
+            self.elapsed_time += (curr_time - self.start_elapsed_time)
+            self.cpu_time += (curr_clock - self.start_cpu_time)
+            self.start_elapsed_time = curr_time
+            self.start_cpu_time = curr_clock
+
+        return (self.elapsed_time, self.cpu_time)
 
 #
 # Exceptions
