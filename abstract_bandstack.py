@@ -34,7 +34,7 @@ class AbstractBandstack(object):
         the information for each source band."""
         raise NotImplementedError
 
-    def buildvrt(self. temporary_directory):
+    def buildvrt(self, temporary_directory):
         """This creates a virtual raster transform (VRT), which is a reference
         to the files containing the dataset's source bands. The VRT file is
         created in the temporary_directory. This is subsequently used in the
@@ -54,10 +54,10 @@ class AbstractBandstack(object):
         list of nodata values for use by add_metadata"""
         raise NotImplementedError
 
-        def get_vrt_name(self, vrt_dir):
+    def get_vrt_name(self, vrt_dir):
         """Use the dataset's metadata to form the vrt file name"""
         raise NotImplementedError
 
     def add_metadata(self, vrt_filename):
         """Add metadata to the VRT."""
-
+        raise NotImplementedError
