@@ -495,7 +495,7 @@ inner join tile nbar_tile using (x_index, y_index, tile_type_id)
 inner join tile pqa_tile using (x_index, y_index, tile_type_id)"""
         sql += """
 where tile_type_id = %(tile_type_id)s
-  and t.tile_class_id = 1 -- Select only valid tiles"""
+  and (t.tile_class_id = 1 or t.tile_class_id = 3) -- Select only valid tiles"""
         if disregard_incomplete_data:
             sql += """
   and l1t_dataset.level_id = 1
@@ -748,7 +748,7 @@ inner join processing_level using(level_id)
 inner join tile t using (dataset_id)
 inner join tile_footprint tf using (x_index, y_index, tile_type_id)
 where tile_type_id = %(tile_type_id)s
-  and tile_class_id = 1 -- Select only valid tiles
+  and (tile_class_id = 1 or tile_class_id = 3) -- Select only valid tiles
   and (%(level_name)s is null or level_name = %(level_name)s)
   and x_index = %(x_index)s
   and y_index = %(y_index)s
