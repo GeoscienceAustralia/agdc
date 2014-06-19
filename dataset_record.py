@@ -20,6 +20,13 @@ from math import floor
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
+#
+# Constants
+#
+# The list of tile_class_id values the dataset_record constructor must check
+# the creation time of in order to determine whether tiling is required.
+TILE_CLASS_LIST = [1, 3, 4]
+
 class DatasetRecord(object):
     """DatasetRecord database interface class."""
 
@@ -65,12 +72,11 @@ class DatasetRecord(object):
             self.dataset_id = self.db.insert_dataset_record(self.dataset_dict)
             self.dataset_dict['dataset_id'] = self.dataset_id
         else:
-            # check to see if the existing dataset is more recent
-            if (self.db.get_dataset_creation_datetime(self.dataset_id) >=
-                    self.dataset_dict['datetime_processed']):
+            if self.db.dataset_older_than_database(
+                self.dataset_id, self.dataset_dict['datetime_processed'],
+                tuple(TILE_CLASS_LIST)):
                 raise DatasetError("Dataset to be ingested is older than " +
                                    "the version in the database.")
-            # otherwise, remove the old tiles
             self.__remove_dataset_tiles()
             # and do the update
             self.dataset_dict['dataset_id'] = self.dataset_id
@@ -350,20 +356,6 @@ class DatasetRecord(object):
         if tparameter > 0 and tparameter < 1 and \
                 uparameter > 0 and uparameter < 1:
             return True
-
-    # def get_satellite_sensor_level(self):
-    #     """Use the dataset_record's metadata dictionary to return a tuple of
-    #     (satellite, sensor, processing_level), The purpose of this is to look
-    #     up the datacube.bands nested dictionaries. For bands of derived
-    #     products such as PQA and Fractional Cover, the (satellite, sensor) key
-    #     takes the value ('DERIVED', processing_level)"""
-    #     satellite = self.mdd['satellite_tag'].upper()
-    #     sensor = self.mdd['sensor_name'].upper()
-    #     processing_level = self.mdd['processing_level'].upper()
-    #     if processing_level in ['PQA', 'FC', 'DSM']:
-    #         satellite = 'DERIVED'
-    #         sensor = processing_level
-    #     return (satellite, sensor, processing_level)
 
     def __remove_dataset_tiles(self):
         """Remove the tiles associated with a dataset that is about to

@@ -62,8 +62,25 @@ PQA_DATASETS = [
                  'LS7_ETM_PQ_P55_GAPQ01-002_094_085_19991229'),
 ]
 
+LS8_NBAR_DATASETS = \
+    [os.path.join('/g/data/v10/test_resources/scenes/dataset_testing',
+                  'NBAR/2014-03',
+                  'LS8_OLI_TIRS_NBAR_P54_GANBAR01-002_089_082_20140313')]
+LS8_ORTHO_DATASETS = \
+    [os.path.join('/g/data/v10/test_resources/scenes/dataset_testing',
+                  'L1/2014-03',
+                  'LS8_OLITIRS_OTH_P51_GALPGS01-002_089_082_20140313')]
+LS8_PQA_DATASETS = \
+    [os.path.join('/g/data/v10/test_resources/scenes/dataset_testing',
+                  'PQ/2014-03',
+                  'LS8_OLI_TIRS_PQ_P55_GAPQ01-002_089_082_20140313')]
+
 DATASETS_TO_INGEST = dict(zip(['ORTHO', 'NBAR', 'PQA'],
                               [ORTHO_DATASETS, NBAR_DATASETS, PQA_DATASETS]))
+
+LS8_DATASETS_TO_INGEST = dict(zip(['ORTHO', 'NBAR', 'PQA'],
+                              [LS8_ORTHO_DATASETS, LS8_NBAR_DATASETS,
+                               LS8_PQA_DATASETS]))
 
 # Following directory contains tiles for above scenes from previous ingester
 BENCHMARK_DIR = os.path.join(os.path.sep, 'g', 'data', 'v10',

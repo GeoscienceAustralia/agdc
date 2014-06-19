@@ -20,6 +20,8 @@ from psycopg2.extensions import ISOLATION_LEVEL_READ_COMMITTED
 
 import dbutil
 import cube_util
+import datetime
+import pytz
 
 # Set up logger.
 LOGGER = logging.getLogger(__name__)
@@ -292,38 +294,41 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
 
         return dataset_id
 
-    def get_dataset_creation_datetime(self, dataset_id,
-                                      tile_class_filter=(1,)):
-        """Finds the creation date and time for a dataset.
-
-        Returns a datetime object representing the creation time for
-        the dataset, as recorded in the database. The dataset record
-        is identified by dataset_id.
-
-        The creation time is the earliest of either the datetime_processed
-        field from the dataset table or the earliest tile.ctime field for
-        the dataset's tiles. Tiles considered are restricted to those with
-        tile_class_ids listed in tile_class_filter.
-        """
-
+    def dataset_older_than_database(self, dataset_id,
+                                    disk_datetime_processed,
+                                    tile_class_filter=(1,)):
+        """Compares the datetime_processed of the dataset on disk with that on
+        the database. The database time is the earliest of either the
+        datetime_processed field from the dataset table or the earliest
+        tile.ctime field for the dataset's tiles. Tiles considered are
+        restricted to those with tile_class_ids listed in tile_class_filter."""
         sql_dtp = ("SELECT datetime_processed FROM dataset\n" +
                    "WHERE dataset_id = %s;")
         result = self.execute_sql_single(sql_dtp, (dataset_id,))
-        datetime_processed = result[0]
+        database_datetime_processed = result[0]
 
+        if database_datetime_processed < disk_datetime_processed:
+            return False
+        
+        # The database's dataset record is newer that what is on disk.
+        # Consider whether the tile record's are older than dataset on disk.
+        # Make the dataset's datetime_processed timezone-aware.
+        utc = pytz.timezone("UTC")
+        disk_datetime_processed = utc.localize(disk_datetime_processed)
+        
         sql_ctime = ("SELECT MIN(ctime) FROM tile\n" +
                      "WHERE dataset_id = %s" +
                      self.tile_class_filter_clause(tile_class_filter) + ";")
         result = self.execute_sql_single(sql_ctime, (dataset_id,))
         min_ctime = result[0]
 
-        if min_ctime:
-            creation_datetime = min(datetime_processed, min_ctime)
-        else:
-            creation_datetime = datetime_processed
+        if min_ctime < disk_datetime_processed:
+            return False
 
-        return creation_datetime
-
+        # The dataset on disk is more recent than the database records and
+        # should be re-ingested.
+        return True
+             
     def insert_dataset_record(self, dataset_dict):
         """Creates a new dataset record in the database.
 
@@ -436,7 +441,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
     def get_tile_pathname(self, tile_id):
         """Returns the pathname for a tile."""
 
-        sql = ("SELECT pathname FROM tile\n" +
+        sql = ("SELECT tile_pathname FROM tile\n" +
                "WHERE tile_id = %s;")
         result = self.execute_sql_single(sql, (tile_id,))
         tile_pathname = result[0]
