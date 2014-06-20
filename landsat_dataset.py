@@ -440,4 +440,3 @@ class LandsatDataset(AbstractDataset):
         bands into tiles.
         """
         return LandsatBandstack(self, band_dict)
-        #raise NotImplementedError

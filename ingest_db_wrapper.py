@@ -451,7 +451,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
     def remove_tile_record(self, tile_id):
         """Removes a tile record from the database."""
 
-        sql = "DELETE FROM tile WHERE tile_id = %s;"
+        sql = "DELETE FROM tile WHERE tile_id = %s RETURNING tile_id;"
         self.execute_sql_single(sql, (tile_id,))
 
     def get_tile_id(self, tile_dict):
