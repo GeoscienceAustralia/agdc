@@ -25,7 +25,13 @@ from ULA3.utils import log_multiline
 from datacube import DataCube
 
 PQA_NO_DATA_VALUE = 16127 # All ones except for contiguity (bit 8)
-            
+
+PQA_NO_DATA_BITMASK = 0x01FF
+# Contiguity and band saturation bits all one, others zero.
+
+PQA_NO_DATA_CHECK_VALUE = 0x00FF
+# Contiguity bit zero, band saturation bits all one.
+# For use with PQA data masked with the PQA_NO_DATA_BITMASK
 
 # Set top level standard output 
 console_handler = logging.StreamHandler(sys.stdout)
@@ -361,7 +367,10 @@ class Stacker(DataCube):
                     logger.debug('Opened %s', pqa_dataset_path)
                     
                     # Set all data-containing pixels to true in data_mask
-                    pqa_data_mask = (pqa_array != PQA_NO_DATA_VALUE) & (pqa_array != 0)
+                    pqa_bitmasked = pqa_array & PQA_NO_DATA_BITMASK
+                    pqa_data_mask = ((pqa_bitmasked != PQA_NO_DATA_CHECK_VALUE) &
+                                     (pqa_bitmasked != 0))
+                    # pqa_data_mask = (pqa_array != PQA_NO_DATA_VALUE) & (pqa_array != 0)
                     overall_data_mask = overall_data_mask | pqa_data_mask # Update overall_data_mask to true for all data-containing pixels
                     data_array[pqa_data_mask] = numpy.bitwise_and(data_array[pqa_data_mask], (pqa_array[pqa_data_mask])) # Set bits which are true in all source arrays
                     
