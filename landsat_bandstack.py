@@ -18,6 +18,8 @@ from collections import OrderedDict
 class LandsatBandstack(AbstractBandstack):
     """Landsat subclass of AbstractBandstack class"""
     def __init__(self, dataset, band_dict):
+        """The bandstack allows for the construction of a list, or stack, of
+        bands from the given dataset."""
         #Order the band_dict by the file number key
         self.dataset = dataset
         self.band_dict = \
@@ -101,7 +103,7 @@ class LandsatBandstack(AbstractBandstack):
         return os.path.join(vrt_dir, vrt_band_stack_basename)
 
     def add_metadata(self, vrt_filename):
-        """Add metadata and return the open band_stack"""
+        """Add metadata to the VRT."""
         band_stack_dataset = gdal.Open(vrt_filename)
         assert band_stack_dataset, 'Unable to open VRT %s' % vrt_filename
         band_stack_dataset.SetMetadata(
