@@ -33,6 +33,8 @@ PQA_NO_DATA_BITMASK = 0x01FF
 # Contiguity and band saturation bits all one, others zero.
 PQA_NO_DATA_CHECK_VALUE = 0x00FF
 
+PQA_CONTIGUITY = 0x0100
+
 class TileContents(object):
     """TileContents database interface class."""
     # pylint: disable=too-many-instance-attributes
@@ -227,10 +229,12 @@ class TileContents(object):
         mosaic_dataset.SetProjection(template_dataset.GetProjection())
 
         output_band = mosaic_dataset.GetRasterBand(1)
-        data_array = np.zeros(shape=(mosaic_dataset.RasterYSize,
-                                     mosaic_dataset.RasterXSize),
-                              dtype=numpy_dtype)
-        data_array[...] = -1 # Set all background values to FFFF
+        data_array = np.ones(shape=(mosaic_dataset.RasterYSize,
+                                    mosaic_dataset.RasterXSize),
+                             dtype=numpy_dtype) * (-1)
+        no_data_array = np.zeros(shape=(mosaic_dataset.RasterYSize,
+                                        mosaic_dataset.RasterXSize),
+                                 dtype=numpy_dtype)
 
         overall_data_mask = np.zeros(shape=(mosaic_dataset.RasterYSize,
                                             mosaic_dataset.RasterXSize),
@@ -246,26 +250,19 @@ class TileContents(object):
                 raise DatasetError('Unable to open %s' % pqa_dataset_path)
             pqa_array = pqa_dataset.ReadAsArray()
             del pqa_dataset
-            # Set all data-containing pixels to True in data_mask. A pixel has
-            # valid data if EITHER:
-            #     1. the contiguity bit is set to 1, OR
-            #     2. the contiguity bit is 0 and the saturation bits contain a
-            #        mix of 0 and 1.
-            # Note: In the case of 2, Bits 9-15 are still used in the
-            #       Bitwise And  operation of the mosaicking process.
-            pqa_bitmasked = pqa_array & PQA_NO_DATA_BITMASK
-            pqa_data_mask = ((pqa_bitmasked != PQA_NO_DATA_CHECK_VALUE) &
-                             (pqa_bitmasked != 0))
-            # Update overall_data_mask to true for all valid-data pixels
-            overall_data_mask = overall_data_mask | pqa_data_mask
-            # At those pixels where this source tile contains valid data,
-            # update the mosaiced array with this source tile's PQ results,
-            # setting the mosaic value to 0 if it is 0 in this source tile.
-            data_array[pqa_data_mask] = \
-                        np.bitwise_and(data_array[pqa_data_mask],
-                                       pqa_array[pqa_data_mask])
+
+            # Treat contiguous and non-contiguous pixels separately
+            # Set all contiguous pixels to true in data_mask
+            pqa_data_mask = (pqa_array & PQA_CONTIGUITY).astype(np.bool)
+            # Expand overall_data_mask to true for any contiguous pixels
+            overall_data_mask = overall_data_mask | pqa_data_mask 
+            # Perform bitwise-and on contiguous pixels in data_array
+            data_array[pqa_data_mask] &= pqa_array[pqa_data_mask] 
+            # Perform bitwise-or on non-contiguous pixels in no_data_array
+            no_data_array[~pqa_data_mask] |= pqa_array[~pqa_data_mask] 
+
         # Set all pixels which don't contain data to PQA_NO_DATA_VALUE
-        data_array[~overall_data_mask] = PQA_NODATA_VALUE
+        data_array[~overall_data_mask] = no_data_array[~overall_data_mask]
         output_band.WriteArray(data_array)
         mosaic_dataset.FlushCache()
 
