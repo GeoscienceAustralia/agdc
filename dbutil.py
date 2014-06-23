@@ -226,12 +226,19 @@ class Server(object):
         finally:
             maint_conn.close()
 
-    def create(self, dbname, save_dir, save_file):
+    def create(self, dbname, save_dir=None, save_file=None,
+               template_db=TEMPLATE_DB):
         """Creates and loads a database from a file.
 
         This method does a clean create and load of the named database
         from the file 'savefile'. It drops an old database of the same
         name if neccessary.
+
+        It uses template_db as the template database, which is copied
+        to create the new database.
+
+        If save_dir or save_file are None (or not specified), no
+        save file is loaded.
 
         Connections are closed explicitly with try/finally blocks,
         since they do not seem to be closed automatically in the
@@ -256,17 +263,21 @@ class Server(object):
                     if maint_conn.exists(dbname):
                         bouncer_conn.pause(dbname)
                         maint_conn.drop(dbname)
-                    maint_conn.create(dbname)
+                    # To be used as a template, template_db must have
+                    # no current connections.
+                    bouncer_conn.kill(template_db)
+                    maint_conn.create(dbname, template_db)
                     bouncer_conn.resume(dbname)
                 finally:
                     bouncer_conn.close()
             else:
                 if maint_conn.exists(dbname):
                     maint_conn.drop(dbname)
-                maint_conn.create(dbname)
+                maint_conn.create(dbname, template_db)
 
-            # Load the new database from the save file
-            self.load(dbname, save_dir, save_file)
+            # Load the new database from the save file if necessary
+            if save_file is not None or save_dir is not None:
+                self.load(dbname, save_dir, save_file)
 
             # Run ANALYSE on the newly loaded database
             db_conn = ConnectionWrapper(self.connect(dbname, superuser=True))
@@ -358,11 +369,11 @@ class MaintenanceWrapper(ConnectionWrapper):
         with self.conn.cursor() as curs:
             curs.execute(drop_sql)
 
-    def create(self, dbname):
+    def create(self, dbname, template_db=TEMPLATE_DB):
         """Creates the named database."""
 
         create_sql = ("CREATE DATABASE %s\n" % safe_name(dbname) +
-                      "TEMPLATE %s;" % TEMPLATE_DB)
+                      "TEMPLATE %s;" % template_db)
 
         with self.conn.cursor() as curs:
             curs.execute(create_sql)
@@ -391,6 +402,21 @@ class BouncerWrapper(ConnectionWrapper):
         with self.conn.cursor() as cur:
             try:
                 cur.execute(pause_sql)
+            except psycopg2.DatabaseError:
+                pass
+
+    def kill(self, dbname):
+        """Tells pgbouncer to kill its connections to the named database.
+
+        This should cause pgbouncer to disconnect from dbname without waiting
+        for any queries to complete.
+        """
+
+        kill_sql = "KILL %s;" % safe_name(dbname)
+
+        with self.conn.cursor() as cur:
+            try:
+                cur.execute(kill_sql)
             except psycopg2.DatabaseError:
                 pass
 
