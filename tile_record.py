@@ -136,6 +136,14 @@ class TileRecord(object):
                 re.sub('%s$' %src_file_extn, '.vrt', mosaic_temp_pathname)
             mosaic_final_pathname = \
                 re.sub('%s$' %src_file_extn, '.vrt', mosaic_final_pathname)
+
+            # The vrt should reference the final destination of the source tile
+            # from this dataset.
+            for tile_dict in tile_dict_list:
+                tile_dict['tile_class_id'] = 3
+                if tile_dict['dataset_id'] == self.dataset_record.dataset_id:
+                    tile_dict['tile_pathname'] =  \
+                        self.tile_contents.tile_output_path
             self.tile_contents.make_mosaic_vrt(tile_dict_list,
                                                mosaic_temp_pathname)
 
