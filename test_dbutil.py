@@ -258,6 +258,7 @@ class TestServer(unittest.TestCase):
 
     SAVE_DIR = dbutil.input_directory('dbutil', 'TestServer')
     SAVE_FILE = "test_create_db.sql"
+    TEST_TEMPLATE_DB = "hypercube_empty_template"
 
     MAINTENANCE_DB = "postgres"
     TEST_CONNECT_DB = "postgres"
@@ -320,6 +321,25 @@ class TestServer(unittest.TestCase):
 
         # Create a new database.
         dbutil.TESTSERVER.create(self.dbname1, self.SAVE_DIR, self.SAVE_FILE)
+
+        # Check if the newly created database exists.
+        maint_conn = dbutil.TESTSERVER.connect(self.MAINTENANCE_DB,
+                                               superuser=True)
+        try:
+            maint_conn = dbutil.MaintenanceWrapper(maint_conn)
+            self.assertTrue(maint_conn.exists(self.dbname1),
+                            "New database does not seem to be there.")
+        finally:
+            maint_conn.close()
+
+    def test_create_from_template(self):
+        "Test database creation from template"
+
+        self.dbname1 = dbutil.random_name('test_create_from_template_db')
+
+        # Create a new database.
+        dbutil.TESTSERVER.create(self.dbname1,
+                                 template_db=self.TEST_TEMPLATE_DB)
 
         # Check if the newly created database exists.
         maint_conn = dbutil.TESTSERVER.connect(self.MAINTENANCE_DB,
