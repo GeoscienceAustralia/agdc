@@ -13,7 +13,7 @@ import logging
 import os
 from ingest_db_wrapper import IngestDBWrapper
 import cube_util
-from cube_util import DatasetError
+from cube_util import MosaicError
 import re
 
 # Set up logger.
@@ -82,35 +82,66 @@ class TileRecord(object):
             # and its associated calls to methods in self.db.
             assert 1 == 2, "Should not be in tiling process"
         tile_dict['tile_id'] = self.tile_id
+        self.mosaicing_tile_info = (None, None, None)
 
-    def make_mosaics(self):
-        """Query the database to determine if this tile_record should be
-        mosaiced with tiles from previously ingested datasets."""
+
+    def make_mosaic_db_changes(self):
+        """Communicate to any other dataset transaction via the tile table when
+        performing  mosaicking."""
+
+        if self.db.get_tile_class_id(self.tile_id) == 3:
+            # another dataset transaction has marked me as overlap
+            return
         tile_record_tuples = \
             self.db.get_overlapping_tiles(self.tile_dict)
-
-        if len(tile_record_tuples) < 1:
-            raise DatasetError("Mosaic process for dataset_id=%d, x_index=%d,"\
-                               " y_index=%d did not find any tile records,"\
-                               " including current tile_record!"\
-                               %(self.dataset_record.dataset_id,
-                                 self.tile_dict['x_index'],
-                                 self.tile_dict['y_index']))
-
+        # If  there are no other overlapping tiles apart from this one:
         if len(tile_record_tuples) == 1:
-            return False
+            return
+        # Check whether another dataset has marked this tile as overlap while
+        # get_overlapping_tiles() was executing:
+        if self.db.get_tile_class_id(self.tile_id) == 3:
+            # another dataset transaction has marked me as overlap
+            return
+        overlaps_with_class_1 = tuple([t[0] for t in tile_record_tuples
+                                       if t[6] == 1])
+        self.db.update_tiles("tile_id", ("tile_class_id",),
+                             overlaps_with_class_1, (3,))
+        self.db.commit()
+        overlaps_with_class_4 = tuple([t[0] for t in tile_record_tuples
+                                       if t[6] == 4])
+        if len(overlaps_with_class_4) > 1:
+            tile_id_str = \
+                "%d, " * len(overlaps_with_class_4) % overlaps_with_class_4
+            raise MosaicError("More than one mosaic record: tile_ids = %s" \
+                                  %tile_id_str)
+        if len(overlaps_with_class_4) == 0:
+            # Create the mosaic tile record and return it along with the
+            # overlapping tile information,
+            mosaic_tile_dict = dict(zip(self.TILE_METADATA_FIELDS,
+                                   tile_record_tuples[0]))
+            mosaic_tile_dict['tile_class_id'] = 4
+            mosaic_tile_dict['tile_pathname'] += '_placeholder_pathname'
+            mosaic_tile_id = \
+                self.db.insert_tile_record(mosaic_tile_dict)
+            self.db.commit()
+            delete_on_rollback = True
+        else:
+            mosaic_tile_id = overlaps_with_class_4[0]
+            delete_on_rollback = False
+        self.mosaicing_tile_info = \
+            (tile_record_tuples, mosaic_tile_id, delete_on_rollback)
 
+    def make_mosaic_tiles(self):
+        """Query the database to determine if this tile_record should be
+        mosaiced with tiles from previously ingested datasets."""
+
+        # Check the database to see if the overlapping dataset has is already
+        # creating the
         tile_dict_list = []
+        tile_record_tuples, mosaic_tile_id, dummy_delete_on_rollback = \
+            self.mosaicing_tile_info
         for tile_tuple in tile_record_tuples:
             tile_record = list(tile_tuple)
-
-            # Following can probably be deleted since we are now finalizing
-            # tiling before making mosaics
-            # if tile_record[4] == self.dataset_record.dataset_id:
-            #     #For the constituent tile deriving from the current dataset id,
-            #     #we need to change its location to the value stored in the
-            #     #tile_contents object.
-            #     tile_record[5] = self.tile_contents.temp_tile_output_path
             tile_dict_list.append(dict(zip(self.TILE_METADATA_FIELDS,
                                            tile_record)))
         tile_record_tuples = None
@@ -154,26 +185,28 @@ class TileRecord(object):
             self.tile_contents.make_mosaic_vrt(tile_dict_list,
                                                mosaic_temp_pathname)
 
-        # Update the tile table by changing the tile_class_id on the source
-        # tiles and adding a record for the mosaic tile.
-        # First change the pathname of tile deriving from this dataset_id back
-        # to the permanent location.
-        for tile_dict in tile_dict_list:
-            tile_dict['tile_class_id'] = 3
-            # Following can be deleted since we finalize source tiles before
-            # doing mosaics.
-            # if tile_dict['dataset_id'] == self.dataset_record.dataset_id:
-            #     tile_dict['tile_pathname'] =  \
-            #         self.tile_contents.tile_output_path
+        # TODO: delete following since redundant
+        # # Update the tile table by changing the tile_class_id on the source
+        # # tiles and adding a record for the mosaic tile.
+        # # First change the pathname of tile deriving from this dataset_id back
+        # # to the permanent location.
+        # for tile_dict in tile_dict_list:
+        #     tile_dict['tile_class_id'] = 3
+        #     # Following can be deleted since we finalize source tiles before
+        #     # doing mosaics.
+        #     # if tile_dict['dataset_id'] == self.dataset_record.dataset_id:
+        #     #     tile_dict['tile_pathname'] =  \
+        #     #         self.tile_contents.tile_output_path
 
         # Set a dictionary of parameters for the mosaic.
         mosaic_dict = dict(tile_dict_list[0])
+        mosaic_dict['tile_id'] = mosaic_tile_id
         mosaic_dict['tile_pathname'] = mosaic_final_pathname
         mosaic_dict['tile_class_id'] = 4
         mosaic_dict['tile_size'] = \
             cube_util.get_file_size_mb(mosaic_temp_pathname)
 
-        self.db.update_tile_records_post_mosaic(tile_dict_list, mosaic_dict)
+        self.db.update_tile_record(mosaic_dict)
         # Set the temp and final locations so that the move may be done during
         # commit of this transaction
         self.tile_contents.mosaic_temp_pathname = mosaic_temp_pathname

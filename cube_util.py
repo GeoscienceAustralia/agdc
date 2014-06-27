@@ -350,3 +350,12 @@ class DatasetError(Exception):
     """
 
     pass
+
+class MosaicError(Exception):
+    """
+    A problem specific to a the mosaicking process. If raised it will cause the
+    mosaicing process to skip for the given dataset. Note: the acquisition,
+    dataset and tile records will still persist.
+    """
+
+    pass

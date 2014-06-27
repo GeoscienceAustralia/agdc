@@ -60,7 +60,6 @@ class Systest(object):
 
 
             self.dbname = dbutil.random_name(test_name)
-            # self.dbname = 'hypercube_with_LS8_test'
             self.load_initial_database(test_name, config)
             self.make_datacube_config(test_name, config)
 

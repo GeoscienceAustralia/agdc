@@ -319,9 +319,13 @@ class AbstractIngester(object):
     def mosaic_dataset(tile_record_list):
         """Mosaics the tiles of this dataset with any overlapping tiles that it
         finds on the database."""
-        for tile_record in tile_record_list:
-            tile_record.make_mosaics()
 
+        for tile_record in tile_record_list:
+            tile_record.make_mosaic_db_changes()
+
+        for tile_record in tile_record_list:
+            if tile_record.mosaicing_tile_info[0] is not None:
+                tile_record.make_mosaic_tiles()
 
     def make_one_tile(self, dataset_record, tile_type_id,
                       tile_footprint, band_stack):

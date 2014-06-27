@@ -20,7 +20,6 @@ from psycopg2.extensions import ISOLATION_LEVEL_READ_COMMITTED
 
 import dbutil
 import cube_util
-import datetime
 import pytz
 
 # Set up logger.
@@ -309,19 +308,19 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
 
         if database_datetime_processed < disk_datetime_processed:
             return False
-        
+
         # The database's dataset record is newer that what is on disk.
         # Consider whether the tile record's are older than dataset on disk.
         # Make the dataset's datetime_processed timezone-aware.
         utc = pytz.timezone("UTC")
         disk_datetime_processed = utc.localize(disk_datetime_processed)
-        
+
         sql_ctime = ("SELECT MIN(ctime) FROM tile\n" +
                      "WHERE dataset_id = %s" +
                      self.tile_class_filter_clause(tile_class_filter) + ";")
         result = self.execute_sql_single(sql_ctime, (dataset_id,))
         min_ctime = result[0]
-        
+
         if min_ctime is None:
             return False
 
@@ -331,7 +330,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         # The dataset on disk is more recent than the database records and
         # should be re-ingested.
         return True
-             
+
     def insert_dataset_record(self, dataset_dict):
         """Creates a new dataset record in the database.
 
@@ -603,8 +602,73 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         result = self.execute_sql_multi(sql, tile_dict)
         return result
 
+    def get_tile_class_id(self, tile_id):
+        """Given a tile_id, return corresponding tile_class_id."""
+        sql = ("SELECT tile_class_id FROM tile WHERE \n" +
+              "tile_id = %s\n;")
+        params = (tile_id,)
 
-    def update_tile_records_post_mosaic(self, tile_dict_list, mosaic_dict):
+        self.execute_sql_single(sql, params)
+
+    def update_tiles(self, id_column, columns_tup, ids_tup, values_tup):
+        """For records with particular values in id_column, update the
+        columns to new_values."""
+
+        value_string_list = [str(v) for v in values_tup]
+        columns = "(" + ",\n".join(columns_tup) + ")"
+        values = "(" + ",\n".join(value_string_list) + ")"
+
+        sql = ("UPDATE tile SET \n" +
+               columns + "=\n" +
+               values + "\n" +
+               "WHERE " + id_column + " IN %s\n" +
+               "RETURNING tile_id;")
+        params = (ids_tup,)
+
+        self.execute_sql_single(sql, params)
+
+
+    def update_tile_record(self, mosaic_dict):
+        """Update the database tile table to reflect the changes to the
+        Tile Store resulting from the mosacing process.
+
+        The constituent tiles in tile_dict_list have their tile_class_id
+        changed from 1 to 3. Also insert a record for the mosaiced tile,
+        with a tile_class_id of 4. The setting of these values in via a
+        parameter dictionary passed in by the calling method."""
+        # Insert record for mosaiced tile
+        column_list = ['tile_id',
+                       'x_index',
+                       'y_index',
+                       'tile_type_id',
+                       'dataset_id',
+                       'tile_pathname',
+                       'tile_class_id',
+                       'tile_size',
+                       'ctime']
+        columns = "(" + ",\n".join(column_list) + ")"
+
+        # Values are taken from the tile_dict, with keys the same
+        # as the column name, except for tile_id, which is the next
+        # value in the dataset_id_seq sequence.
+        value_list = []
+        for column in column_list:
+            if column == 'tile_id':
+                value_list.append("nextval('tile_id_seq')")
+            elif column == 'ctime':
+                value_list.append('now()')
+            else:
+                value_list.append("%(" + column + ")s")
+        values = "(" + ",\n".join(value_list) + ")"
+
+        sql = ("UPDATE tile SET" + columns + "=\n" +
+               values + "\n" +
+               "WHERE tile_id=%(tile_id)s " +
+               "RETURNING tile_id;")
+
+        self.execute_sql_single(sql, mosaic_dict)
+
+    def update_tile_records_post_mosaic_old(self, tile_dict_list, mosaic_dict):
         """Update the database tile table to reflect the changes to the
         Tile Store resulting from the mosacing process.
 
