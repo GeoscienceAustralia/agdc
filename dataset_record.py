@@ -85,7 +85,7 @@ class DatasetRecord(object):
     def create_tile_record(self, tile_contents):
         """Factory method to create an instance of the TileRecord class.
 
-        The created object will be resposible for inserting tile table records
+        The created object will be responsible for inserting tile table records
         into the database for reprojected or mosaiced tiles."""
         self.collection.tile_create_list.append(tile_contents)
         return TileRecord(self.collection, self, tile_contents)
@@ -338,8 +338,8 @@ class DatasetRecord(object):
     @staticmethod
     def check_intersection(xpts, ypts):
         """Determines if the line segments
-        (xpts[0], xpts[0]) to (xpts[1], xpts[1]) and
-        (xpts[2], xpts[2]) to (xpts[3], xpts[3]) intersect"""
+        (xpts[0], ypts[0]) to (xpts[1], ypts[1]) and
+        (xpts[2], ypts[2]) to (xpts[3], ypts[3]) intersect"""
         pvec = (xpts[0], ypts[0])
         qvec = (xpts[2], ypts[2])
         rvec = (xpts[1] - xpts[0], ypts[1] - ypts[0])

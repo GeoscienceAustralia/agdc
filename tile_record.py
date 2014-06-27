@@ -71,6 +71,7 @@ class TileRecord(object):
                               'y_max': tile_contents.tile_extents[3],
                               'bbox': 'Populate this within sql query?'}
             self.db.insert_tile_footprint(footprint_dict)
+            self.collection.commit_tile_footprint()
         # Make the tile record entry on the database:
         self.tile_id = self.db.get_tile_id(tile_dict)
         if self.tile_id  is None:
@@ -102,11 +103,14 @@ class TileRecord(object):
         tile_dict_list = []
         for tile_tuple in tile_record_tuples:
             tile_record = list(tile_tuple)
-            if tile_record[4] == self.dataset_record.dataset_id:
-                #For the constituent tile deriving from the current dataset id,
-                #we need to change its location to the value stored in the
-                #tile_contents object.
-                tile_record[5] = self.tile_contents.temp_tile_output_path
+
+            # Following can probably be deleted since we are now finalizing
+            # tiling before making mosaics
+            # if tile_record[4] == self.dataset_record.dataset_id:
+            #     #For the constituent tile deriving from the current dataset id,
+            #     #we need to change its location to the value stored in the
+            #     #tile_contents object.
+            #     tile_record[5] = self.tile_contents.temp_tile_output_path
             tile_dict_list.append(dict(zip(self.TILE_METADATA_FIELDS,
                                            tile_record)))
         tile_record_tuples = None
@@ -130,6 +134,9 @@ class TileRecord(object):
         if self.dataset_record.mdd['processing_level'] == 'PQA':
             self.tile_contents.make_pqa_mosaic_tile(tile_dict_list,
                                                     mosaic_temp_pathname)
+            print 'mosaic_temp_pathname'
+            print mosaic_temp_pathname
+            print cube_util.get_file_size_mb(mosaic_temp_pathname)
         else:
             src_file_extn = self.tile_contents.tile_type_info['file_extension']
             mosaic_temp_pathname = \
@@ -153,9 +160,11 @@ class TileRecord(object):
         # to the permanent location.
         for tile_dict in tile_dict_list:
             tile_dict['tile_class_id'] = 3
-            if tile_dict['dataset_id'] == self.dataset_record.dataset_id:
-                tile_dict['tile_pathname'] =  \
-                    self.tile_contents.tile_output_path
+            # Following can be deleted since we finalize source tiles before
+            # doing mosaics.
+            # if tile_dict['dataset_id'] == self.dataset_record.dataset_id:
+            #     tile_dict['tile_pathname'] =  \
+            #         self.tile_contents.tile_output_path
 
         # Set a dictionary of parameters for the mosaic.
         mosaic_dict = dict(tile_dict_list[0])

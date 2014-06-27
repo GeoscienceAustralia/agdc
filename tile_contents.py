@@ -184,15 +184,20 @@ class TileContents(object):
         if os.path.isfile(self.temp_tile_output_path):
             os.remove(self.temp_tile_output_path)
 
-    def make_permanent(self):
-        """Move tile contents to permanent location."""
-        cube_util.create_directory(os.path.dirname(self.tile_output_path))
-        shutil.move(self.temp_tile_output_path, self.tile_output_path)
-        if not self.mosaic_temp_pathname:
-            return
-        # Move mosaic if necessary
-        cube_util.create_directory(os.path.dirname(self.mosaic_final_pathname))
-        shutil.move(self.mosaic_temp_pathname, self.mosaic_final_pathname)
+    def make_permanent(self, tile_class_desc):
+        """Depending on tile_class_desc, Move pre-mosaic tile contents or
+        mosaic tile contents to permanent location."""
+        if tile_class_desc == 'pre-mosaic tiles':
+            cube_util.create_directory(os.path.dirname(self.tile_output_path))
+            shutil.move(self.temp_tile_output_path, self.tile_output_path)
+        else:
+            if not self.mosaic_temp_pathname:
+                return
+            # Move mosaic if necessary
+            cube_util.create_directory(os.path.dirname(
+                    self.mosaic_final_pathname))
+            shutil.move(self.mosaic_temp_pathname, self.mosaic_final_pathname)
+
 
     #
     #Methods that mosaic several tiles together
@@ -255,11 +260,11 @@ class TileContents(object):
             # Set all contiguous pixels to true in data_mask
             pqa_data_mask = (pqa_array & PQA_CONTIGUITY).astype(np.bool)
             # Expand overall_data_mask to true for any contiguous pixels
-            overall_data_mask = overall_data_mask | pqa_data_mask 
+            overall_data_mask = overall_data_mask | pqa_data_mask
             # Perform bitwise-and on contiguous pixels in data_array
-            data_array[pqa_data_mask] &= pqa_array[pqa_data_mask] 
+            data_array[pqa_data_mask] &= pqa_array[pqa_data_mask]
             # Perform bitwise-or on non-contiguous pixels in no_data_array
-            no_data_array[~pqa_data_mask] |= pqa_array[~pqa_data_mask] 
+            no_data_array[~pqa_data_mask] |= pqa_array[~pqa_data_mask]
 
         # Set all pixels which don't contain data to PQA_NO_DATA_VALUE
         data_array[~overall_data_mask] = no_data_array[~overall_data_mask]

@@ -321,6 +321,9 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
                      self.tile_class_filter_clause(tile_class_filter) + ";")
         result = self.execute_sql_single(sql_ctime, (dataset_id,))
         min_ctime = result[0]
+        
+        if min_ctime is None:
+            return False
 
         if min_ctime < disk_datetime_processed:
             return False

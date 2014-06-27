@@ -30,7 +30,7 @@ DEFAULT_DATACUBE_CONFIG_NAME = 'datacube.conf'
 
 class Systest(object):
     """Class for a system test case."""
-
+    # pylint: disable=too-many-instance-attributes
     def __init__(self, test_name, config):
 
         self.test_name = test_name
@@ -43,18 +43,33 @@ class Systest(object):
             self.scenes_dir = self.create_dir(self.test_dir, 'scenes')
             self.remove_old_links()
             if config.has_option(test_name, 'scenes'):
-                self.link_scenes(test_name, config)
+                scene_list = self.link_scenes(test_name, config)
+            else:
+                scene_list = None
+
+            # export the list of scenes as environment variables for use by
+            # called shell script
+            for iscene in range(len(scene_list)):
+                os.environ['SCENE_DIR%d' %iscene] = scene_list[iscene]
+            os.environ['Nscenes'] = str(len(scene_list))
+
+            os.environ['SYSTEST_DIR'] = self.test_dir
 
             self.temp_dir = self.create_dir(self.test_dir, 'temp')
             self.tile_dir = self.create_dir(self.test_dir, 'tiles')
-            self.dbname = dbutil.random_name(test_name)
-            self.make_datacube_config(test_name, config)
 
+
+            self.dbname = dbutil.random_name(test_name)
+            # self.dbname = 'hypercube_with_LS8_test'
             self.load_initial_database(test_name, config)
+            self.make_datacube_config(test_name, config)
 
             self.command = None
             if config.has_option(test_name, 'command'):
                 self.command = config.get(test_name, 'command')
+
+            os.environ['DATACUBE_ROOT'] = \
+                config.get(test_name, 'datacube_root')
 
             self.logfile = self.open_logfile(test_name)
 
@@ -106,6 +121,7 @@ class Systest(object):
             except IOError as e:
                 raise AssertionError('Unable to make link to scene %s: %s' %
                                      (scene_path, e.strerror))
+        return scene_list
 
     def make_datacube_config(self, test_name, config):
         """Make a datacube config file using a template and test info."""
@@ -121,14 +137,30 @@ class Systest(object):
                        'tile_root': self.tile_dir}
             dbutil.update_config_file2(updates, template_dir, self.test_dir,
                                        template_name, output_name)
+
         except IOError as e:
             raise AssertionError('Unable to update datacube config file: %s' %
                                  e.strerror)
 
     def load_initial_database(self, test_name, config):
-        """Create and load the initial database from an sql dump file."""
+        """Depending on the value of initial_database in the system test config
+        file, this method does one of two things:
+        1. If the config file's initial_database value has suffix ".sql" then
+        a database named self.dbname is created from the named .sql file of
+        psql commands.
+        2. If the config file's initial_database value does not have suffix
+        ".sql" then it is taken to be the name of an existing database on to
+        which test datasets are loaded."""
 
         initial_database = config.get(test_name, 'initial_database')
+
+        # initial_database in config file can be an existing database, rather
+        # than a file of sql commands from which to create the database
+        m = re.match(r'.+\.sql', initial_database)
+        if m is None:
+            self.dbname = initial_database
+            return
+
         (save_dir, save_file) = os.path.split(initial_database)
 
         try:
@@ -136,8 +168,8 @@ class Systest(object):
         except psycopg2.Error as e:
             raise AssertionError('Unable to create initial database: %s' %
                                  e.pgerror)
-
-    def open_logfile(self, test_name):
+    @staticmethod
+    def open_logfile(test_name):
         """Open and return a logfile for the test."""
 
         logfile_path = os.path.join(test_name, test_name + '.log')

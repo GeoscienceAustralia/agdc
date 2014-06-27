@@ -92,7 +92,7 @@ class Collection(object):
         self.previous_commit_mode = self.db.turn_off_autocommit()
         self.in_a_transaction = True
 
-    def commit_transaction(self):
+    def commit_transaction(self, tile_class_desc):
         """Commit the transaction.
 
         This writes tile contents to the tile store and commits
@@ -103,17 +103,27 @@ class Collection(object):
         for tile_pathname in self.tile_remove_list:
             if os.path.isfile(tile_pathname):
                 os.remove(tile_pathname)
-        self.tile_remove_list = None
+
+        # If tile_class_id == 'pre-mosaic tiles', then reset tile_remove_list
+        # so that, during subsequent call with
+        # tile_class_desc == 'mosaic tiles', no removal will be attempted.
+        self.tile_remove_list = []
 
         for tile_contents in self.tile_create_list:
-            tile_contents.make_permanent()
+            tile_contents.make_permanent(tile_class_desc) 
 
-        self.tile_create_list = []
+        # This method is called twice per dataset, once to commit the
+        # pre-mosaic tiles and once for the mosaic tiles. Both calls need the
+        # tile_create_list. The initialisation of this list for the next
+        # dataset will happen on that dataset's call to begin_transaction().
+
 
         self.db.commit()
 
         self.db.restore_commit_mode(self.previous_commit_mode)
-        self.in_a_transaction = False
+
+        if tile_class_desc == 'mosaic tiles':
+            self.in_a_transaction = False
 
     def rollback_transaction(self):
         """Rollback the transaction.
@@ -134,6 +144,10 @@ class Collection(object):
         self.db.restore_commit_mode(self.previous_commit_mode)
         self.in_a_transaction = False
 
+        # The acquisition record created for this dataset is left in the
+        # database, since it might be used by other datasets. Also the dataset
+        # record is left in the database.
+
     def create_acquisition_record(self, dataset):
         """Factory method to create an instance of the AcquisitonRecord class.
 
@@ -144,6 +158,27 @@ class Collection(object):
         assert self.in_a_transaction
 
         return AcquisitionRecord(self, dataset)
+
+    def commit_acquisition_and_dataset(self):
+
+        assert self.in_a_transaction
+
+        self.db.commit()
+        self.previous_commit_mode = self.db.turn_off_autocommit()
+
+    def commit_tile_records(self):
+
+        assert self.in_a_transaction
+
+        self.db.commit()
+        self.previous_commit_mode = self.db.turn_off_autocommit()
+
+    def commit_tile_footprint(self):
+
+        assert self.in_a_transaction
+
+        self.db.commit()
+        self.previous_commit_mode = self.db.turn_off_autocommit()
 
     def create_tile_contents(self, tile_type_id, tile_footprint,
                              band_stack):

@@ -47,7 +47,7 @@ class LandsatIngester(AbstractIngester):
         """
         LOGGER.debug('  Calling parse_args()')
 
-        _arg_parser = argparse.ArgumentParser('dbupdater')
+        _arg_parser = argparse.ArgumentParser()
 
         _arg_parser.add_argument('-C', '--config', dest='config_file',
             default=os.path.join(os.path.dirname(__file__), 'datacube.conf'),

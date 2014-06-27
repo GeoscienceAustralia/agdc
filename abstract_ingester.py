@@ -60,7 +60,6 @@ class AbstractIngester(object):
             if this is None the Ingeseter will set up its own collection
             using self.datacube.
         """
-
         self.args = self.parse_args()
 
         if self.args.debug:
@@ -270,32 +269,59 @@ class AbstractIngester(object):
 
             dataset_record = acquisition_record.create_dataset_record(dataset)
 
-            self.tile_dataset(dataset_record, dataset)
+            self.collection.commit_acquisition_and_dataset()
+
+            tile_record_list = self.tile_dataset(dataset_record, dataset)
+
+
+            self.collection.commit_transaction('pre-mosaic tiles')
+
             dataset_record.mark_as_tiled()
+
+            self.mosaic_dataset(tile_record_list)
 
         except:
             self.collection.rollback_transaction()
             raise
 
         else:
-            self.collection.commit_transaction()
+            self.collection.commit_transaction('mosaic tiles')
 
     def tile_dataset(self, dataset_record, dataset):
         """Tiles a dataset.
 
-        The database entry is identified by dataset_record.
+        The database entry is identified by dataset_record. This method returns
+        a list of tile_record objects that contain data. These will be used to
+        perform any required mosaicing.
         """
-
+        # Initialise a list of tile_record objects
+        tile_record_list = []
         tile_type_list = dataset_record.list_tile_types()
+
         for tile_type_id in tile_type_list:
+            # TODO: Is there a way of configuring .conf file to restrict to
+            # certain tile_type_id?
+            if tile_type_id != 1:
+                continue
             tile_bands = dataset_record.get_tile_bands(tile_type_id)
             band_stack = dataset.stack_bands(tile_bands)
             band_stack.buildvrt(self.collection.get_temp_tile_directory())
 
             tile_footprint_list = dataset_record.get_coverage(tile_type_id)
             for tile_footprint in tile_footprint_list:
-                self.make_one_tile(dataset_record, tile_type_id,
-                                   tile_footprint, band_stack)
+                tile_record = self.make_one_tile(dataset_record, tile_type_id,
+                                                 tile_footprint, band_stack)
+                if tile_record is not None:
+                    tile_record_list.append(tile_record)
+        return tile_record_list
+
+    @staticmethod
+    def mosaic_dataset(tile_record_list):
+        """Mosaics the tiles of this dataset with any overlapping tiles that it
+        finds on the database."""
+        for tile_record in tile_record_list:
+            tile_record.make_mosaics()
+
 
     def make_one_tile(self, dataset_record, tile_type_id,
                       tile_footprint, band_stack):
@@ -306,9 +332,12 @@ class AbstractIngester(object):
         tile_contents.reproject()
         if tile_contents.has_data():
             tile_record = dataset_record.create_tile_record(tile_contents)
-            tile_record.make_mosaics()
+            return tile_record
+            # tile_record.make_mosaics()
         else:
             tile_contents.remove()
+            return None
+
 
     #
     # Abstract methods
