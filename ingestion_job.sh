@@ -27,9 +27,9 @@ export path=($path $CODE_PATH)
 echo SYSTEST_DIR=$SYSTEST_DIR
 echo SCENE_DIR=$SCENE_DIR
 
-## python ${DATACUBE_ROOT}/landsat_ingester.py --config $SYSTEST_DIR/datacube.conf --source $SCENE_DIR --followsymlinks --synctime $SYNCHRONIZE_TIME
+python ${DATACUBE_ROOT}/landsat_ingester.py --config $SYSTEST_DIR/datacube.conf --source $SCENE_DIR --followsymlinks --synctime $SYNCHRONIZE_TIME
  
-python ${DATACUBE_ROOT}/landsat_ingester.py --config $SYSTEST_DIR/datacube.conf --source $SCENE_DIR --followsymlinks
+
 
 
 
