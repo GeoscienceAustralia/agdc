@@ -73,6 +73,11 @@ class LandsatIngester(AbstractIngester):
                                  default=False, action='store_const',
                                  const=True, help=fast_filter_help)
 
+        sync_time_help = 'Synchronize parallel ingestions at the given time'\
+            ' in seconds after 01/01/1970'
+        _arg_parser.add_argument('--synctime', dest='sync_time',
+                                 default=None, help=sync_time_help)
+
         return _arg_parser.parse_args()
 
     def find_datasets(self, source_dir):

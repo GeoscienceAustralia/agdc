@@ -605,10 +605,12 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
     def get_tile_class_id(self, tile_id):
         """Given a tile_id, return corresponding tile_class_id."""
         sql = ("SELECT tile_class_id FROM tile WHERE \n" +
-              "tile_id = %s\n;")
+               "tile_id = %s\n;")
         params = (tile_id,)
 
-        self.execute_sql_single(sql, params)
+        result = self.execute_sql_single(sql, params)
+        tile_class_id = result[0]
+        return tile_class_id
 
     def update_tiles(self, id_column, columns_tup, ids_tup, values_tup):
         """For records with particular values in id_column, update the

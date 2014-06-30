@@ -1,3 +1,6 @@
+TIME=`date +%s`
+let SYNCHRONIZE_TIME=$TIME+60
+echo SYNCHRONIZE_TIME=$SYNCHRONIZE_TIME
 let iscene=0
 while [ $iscene -ne $Nscenes ]; do
     export THIS_SCENE=SCENE_DIR$iscene
@@ -6,6 +9,14 @@ while [ $iscene -ne $Nscenes ]; do
     if [ -z $THIS_SCENE ]; then
         break
     fi
-    qsub -lncpus=1 -v DATACUBE_ROOT=$DATACUBE_ROOT,SYSTEST_DIR=$SYSTEST_DIR,SCENE_DIR=$THIS_SCENE $DATACUBE_ROOT/ingestion_job.sh
+    qsub -lncpus=1 -v DATACUBE_ROOT=$DATACUBE_ROOT,SYSTEST_DIR=$SYSTEST_DIR,SCENE_DIR=$THIS_SCENE,SYNCHRONIZE_TIME=$SYNCHRONIZE_TIME $DATACUBE_ROOT/ingestion_job.sh
     let iscene=iscene+1
 done
+
+
+
+
+
+
+
+

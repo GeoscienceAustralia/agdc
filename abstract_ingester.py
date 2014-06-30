@@ -9,7 +9,8 @@ from abc import ABCMeta, abstractmethod
 
 from datacube import DataCube
 from collection import Collection
-from cube_util import DatasetError, parse_date_from_string
+from cube_util import DatasetError, parse_date_from_string, synchronize
+import time
 
 #
 # Set up logger.
@@ -277,7 +278,14 @@ class AbstractIngester(object):
             self.collection.commit_transaction('pre-mosaic tiles')
 
             dataset_record.mark_as_tiled()
-
+            
+            #TODO: remove the print statements
+            print 'sync_time'
+            print self.args.sync_time
+            print 'Before synchronize %f' %time.time()
+            synchronize(self.args.sync_time)
+            print 'After synchronize %f' %time.time()
+            print 'Returned from synchronize at %f' %time.time()
             self.mosaic_dataset(tile_record_list)
 
         except:

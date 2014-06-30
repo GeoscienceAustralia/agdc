@@ -289,6 +289,17 @@ def create_directory(dirname):
         # Put back the old umask
         os.umask(old_umask)
 
+def synchronize(sync_time):
+    """Pause the execution until sync_time, where sync_time is the seconds
+    since 01/01/1970."""
+    if sync_time is None:
+        return
+
+    float_sync_time = float(sync_time)
+    while time.time() < float_sync_time:
+        continue
+
+
 #
 # Utility classes
 #

@@ -15,6 +15,7 @@ from ingest_db_wrapper import IngestDBWrapper
 import cube_util
 from cube_util import MosaicError
 import re
+import time
 
 # Set up logger.
 LOGGER = logging.getLogger(__name__)
@@ -89,24 +90,33 @@ class TileRecord(object):
         """Communicate to any other dataset transaction via the tile table when
         performing  mosaicking."""
 
+#        print '%f checking my tile class' %time.time()
         if self.db.get_tile_class_id(self.tile_id) == 3:
             # another dataset transaction has marked me as overlap
+#            print '%f My tile class is 3' %time.time()
             return
+#        print '%f Checking for overlaps on %s' %(time.time(), self.tile_footprint)
         tile_record_tuples = \
             self.db.get_overlapping_tiles(self.tile_dict)
+#        print '%f done' %time.time()
         # If  there are no other overlapping tiles apart from this one:
         if len(tile_record_tuples) == 1:
             return
         # Check whether another dataset has marked this tile as overlap while
         # get_overlapping_tiles() was executing:
+#        print '%f checking my tile class' %time.time()
         if self.db.get_tile_class_id(self.tile_id) == 3:
             # another dataset transaction has marked me as overlap
             return
+#        print self.db.get_tile_class_id(self.tile_id)
         overlaps_with_class_1 = tuple([t[0] for t in tile_record_tuples
                                        if t[6] == 1])
+#        print '%f updating overlapping tiles with tile_class_id=3' %time.time()
         self.db.update_tiles("tile_id", ("tile_class_id",),
                              overlaps_with_class_1, (3,))
+#        print '%f done' %time.time()
         self.db.commit()
+#        print '%f commited' %time.time()
         overlaps_with_class_4 = tuple([t[0] for t in tile_record_tuples
                                        if t[6] == 4])
         if len(overlaps_with_class_4) > 1:
