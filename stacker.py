@@ -479,7 +479,7 @@ inner join tile nbar_tile using (x_index, y_index, tile_type_id)
 inner join tile pqa_tile using (x_index, y_index, tile_type_id)"""
         sql += """
 where tile_type_id = %(tile_type_id)s
-  and t.tile_class_id = 1 -- Select only valid tiles"""
+  and (t.tile_class_id = 1 or t.tile_class_id = 3) -- Select only valid, non-mosaic source tiles"""
         if disregard_incomplete_data:
             sql += """
   and l1t_dataset.level_id = 1
