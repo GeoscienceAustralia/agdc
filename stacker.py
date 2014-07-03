@@ -24,8 +24,7 @@ from ULA3.utils import log_multiline
 
 from datacube import DataCube
 
-PQA_NO_DATA_VALUE = 16127 # All ones except for contiguity (bit 8)
-            
+PQA_CONTIGUITY = 256 # contiguity = bit 8
 
 # Set top level standard output 
 console_handler = logging.StreamHandler(sys.stdout)
@@ -321,8 +320,10 @@ class Stacker(DataCube):
                 mosaic_dataset = gdal.Open(mosaic_dataset_path, gdalconst.GA_Update)
                 assert mosaic_dataset, 'Unable to copy %s to %s' % (mosaic_file_list[0], mosaic_dataset_path)
                 output_band = mosaic_dataset.GetRasterBand(1)
-                data_array = output_band.ReadAsArray()
-                data_array[...] = -1 # Set all background values to FFFF (i.e. all ones)
+                # Set all background values of data_array to FFFF (i.e. all ones)
+                data_array=numpy.ones(shape=(template_dataset.RasterYSize, template_dataset.RasterXSize),dtype=numpy_dtype) * -1
+                # Set all background values of no_data_array to 0 (i.e. all zeroes) 
+                no_data_array=numpy.zeros(shape=(template_dataset.RasterYSize, template_dataset.RasterXSize),dtype=numpy_dtype)
                 
                 overall_data_mask = numpy.zeros((mosaic_dataset.RasterXSize, 
                                                mosaic_dataset.RasterYSize), 
@@ -337,20 +338,26 @@ class Stacker(DataCube):
                     del pqa_dataset
                     logger.debug('Opened %s', pqa_dataset_path)
                     
-                    # Set all data-containing pixels to true in data_mask
-                    pqa_data_mask = (pqa_array != PQA_NO_DATA_VALUE) & (pqa_array != 0)
-                    overall_data_mask = overall_data_mask | pqa_data_mask # Update overall_data_mask to true for all data-containing pixels
-                    data_array[pqa_data_mask] = numpy.bitwise_and(data_array[pqa_data_mask], (pqa_array[pqa_data_mask])) # Set bits which are true in all source arrays
+                    # Treat contiguous and non-contiguous pixels separately
+                    # Set all contiguous pixels to true in data_mask
+                    pqa_data_mask = (pqa_array & PQA_CONTIGUITY).astype(numpy.bool)
+                    # Expand overall_data_mask to true for any contiguous pixels
+                    overall_data_mask = overall_data_mask | pqa_data_mask 
+                    # Perform bitwise-and on contiguous pixels in data_array
+                    data_array[pqa_data_mask] &= pqa_array[pqa_data_mask] 
+                    # Perform bitwise-or on non-contiguous pixels in no_data_array
+                    no_data_array[~pqa_data_mask] |= pqa_array[~pqa_data_mask] 
                     
-                    #===========================================================
-                    # log_multiline(logger.debug, pqa_array, 'pqa_array', '\t')
-                    # log_multiline(logger.debug, pqa_data_mask, 'pqa_data_mask', '\t')
-                    # log_multiline(logger.debug, overall_data_mask, 'overall_data_mask', '\t')
-                    # log_multiline(logger.debug, data_array, 'data_array', '\t')
-                    #===========================================================
+                    log_multiline(logger.debug, pqa_array, 'pqa_array', '\t')
+                    log_multiline(logger.debug, pqa_data_mask, 'pqa_data_mask', '\t')
+                    log_multiline(logger.debug, overall_data_mask, 'overall_data_mask', '\t')
+                    log_multiline(logger.debug, data_array, 'data_array', '\t')
+                    log_multiline(logger.debug, no_data_array, 'no_data_array', '\t')
 
-                data_array[~overall_data_mask] = PQA_NO_DATA_VALUE # Set all pixels which don't contain data to PQA_NO_DATA_VALUE
-#                log_multiline(logger.debug, data_array, 'data_array', '\t')
+                # Set all pixels which don't contain data to combined no-data values (should be same as original no-data values)
+                data_array[~overall_data_mask] = no_data_array[~overall_data_mask] 
+                
+                log_multiline(logger.debug, data_array, 'FINAL data_array', '\t')
                 
                 output_band.WriteArray(data_array)  
                 mosaic_dataset.FlushCache()  
@@ -472,7 +479,7 @@ inner join tile nbar_tile using (x_index, y_index, tile_type_id)
 inner join tile pqa_tile using (x_index, y_index, tile_type_id)"""
         sql += """
 where tile_type_id = %(tile_type_id)s
-  and t.tile_class_id = 1 -- Select only valid tiles"""
+  and (t.tile_class_id = 1 or t.tile_class_id = 3) -- Select only valid, non-mosaic source tiles"""
         if disregard_incomplete_data:
             sql += """
   and l1t_dataset.level_id = 1
