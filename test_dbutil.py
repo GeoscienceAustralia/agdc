@@ -6,6 +6,7 @@ import unittest
 import subprocess
 import psycopg2
 import dbutil
+import dbcompare
 
 #
 # Test cases
@@ -221,12 +222,43 @@ class TestUtilityFunctions(unittest.TestCase):
                 self.fail("Config file does not match expected result:\n" +
                           err.output)
 
+    def test_update_config_file2(self):
+        "Test config file update utility, version 2."
+
+        input_dir = dbutil.input_directory(self.MODULE, self.SUITE)
+        output_dir = dbutil.output_directory(self.MODULE, self.SUITE)
+        expected_dir = dbutil.expected_directory(self.MODULE, self.SUITE)
+
+        updates = {'dbname': 'TEST_DBNAME',
+                   'temp_dir': 'TEST_TEMP_DIR',
+                   'tile_root': 'TEST_TILE_ROOT'
+                   }
+        config_file_name = 'test_datacube.conf'
+        output_file_name = 'test2_datacube.conf'
+
+        output_path = dbutil.update_config_file2(updates,
+                                                 input_dir,
+                                                 output_dir,
+                                                 config_file_name,
+                                                 output_file_name)
+
+        expected_path = os.path.join(expected_dir, output_file_name)
+        if not os.path.isfile(expected_path):
+            self.skipTest("Expected config file not found.")
+        else:
+            try:
+                subprocess.check_output(['diff', output_path, expected_path])
+            except subprocess.CalledProcessError as err:
+                self.fail("Config file does not match expected result:\n" +
+                          err.output)
+
 
 class TestServer(unittest.TestCase):
     """Unit tests for Server class."""
 
     SAVE_DIR = dbutil.input_directory('dbutil', 'TestServer')
     SAVE_FILE = "test_create_db.sql"
+    TEST_TEMPLATE_DB = "hypercube_empty_template"
 
     MAINTENANCE_DB = "postgres"
     TEST_CONNECT_DB = "postgres"
@@ -273,6 +305,15 @@ class TestServer(unittest.TestCase):
                          "Dummy database '%s' reported as existing." %
                          dummy_dbname)
 
+    def test_dblist(self):
+        "Test database list."
+
+        db_list = dbutil.TESTSERVER.dblist()
+
+        self.assertIn(self.MAINTENANCE_DB, db_list,
+                      "Unable to find the maintenance database " +
+                      "in the list of databases.")
+
     def test_create(self):
         "Test database creation and loading"
 
@@ -280,6 +321,25 @@ class TestServer(unittest.TestCase):
 
         # Create a new database.
         dbutil.TESTSERVER.create(self.dbname1, self.SAVE_DIR, self.SAVE_FILE)
+
+        # Check if the newly created database exists.
+        maint_conn = dbutil.TESTSERVER.connect(self.MAINTENANCE_DB,
+                                               superuser=True)
+        try:
+            maint_conn = dbutil.MaintenanceWrapper(maint_conn)
+            self.assertTrue(maint_conn.exists(self.dbname1),
+                            "New database does not seem to be there.")
+        finally:
+            maint_conn.close()
+
+    def test_create_from_template(self):
+        "Test database creation from template"
+
+        self.dbname1 = dbutil.random_name('test_create_from_template_db')
+
+        # Create a new database.
+        dbutil.TESTSERVER.create(self.dbname1,
+                                 template_db=self.TEST_TEMPLATE_DB)
 
         # Check if the newly created database exists.
         maint_conn = dbutil.TESTSERVER.connect(self.MAINTENANCE_DB,
@@ -365,7 +425,8 @@ class TestServer(unittest.TestCase):
                                  self.SAVE_FILE)
 
         # Save the database to disk.
-        dbutil.TESTSERVER.save(self.dbname1, self.SAVE_DIR, self.filename1)
+        dbutil.TESTSERVER.save(self.dbname1, self.SAVE_DIR, self.filename1,
+                               'processing_level')
 
         # Now reload the file as a new database...
         self.dbname2 = dbutil.random_name('test_save_db_copy')
@@ -381,6 +442,57 @@ class TestServer(unittest.TestCase):
                             "does not seem to be there.")
         finally:
             maint_conn.close()
+
+    def test_copy_table_between_databases(self):
+        "Test copy of a table from one database to another database."
+
+        self.dbname1 = dbutil.random_name('test_copy_db')
+        self.dbname2 = dbutil.random_name('test_copy_db')
+        self.filename1 = self.dbname1 + ".sql"
+
+        # Create the databases.
+        dbutil.TESTSERVER.create(self.dbname1,
+                                 self.SAVE_DIR,
+                                 self.SAVE_FILE)
+
+        dbutil.TESTSERVER.create(self.dbname2,
+                                 self.SAVE_DIR,
+                                 self.SAVE_FILE)
+
+        # Connect to each database
+        conn1 = dbutil.TESTSERVER.connect(self.dbname1, superuser=True)
+        conn2 = dbutil.TESTSERVER.connect(self.dbname2, superuser=True)
+        conn1 = dbcompare.ComparisonWrapper(conn1)
+        conn2 = dbcompare.ComparisonWrapper(conn2)
+
+        # Create a dummy table in Database 1
+        table_name = 'some_dummy_table_name'
+        sql = ("CREATE TABLE " + table_name + " AS " + "\n" +
+               "SELECT * FROM tile_type;")
+        with conn1.cursor() as cur:
+            cur.execute(sql)
+
+        # Verify that the table exists in Database 1.
+        exists = conn1.table_exists(table_name)
+        if not exists:
+            self.fail('Table ' + table_name + ' should exist on Database 1')
+
+        # Verify that the table does not exist in Database 2.
+        exists = conn2.table_exists(table_name)
+        if exists:
+            self.fail('Table ' + table_name +
+                      ' should not exist in Database 2')
+
+        # Copy the table from Database 1 to Database 2
+        dbutil.TESTSERVER.copy_table_between_databases(self.dbname1,
+                                                       self.dbname2,
+                                                       table_name)
+
+        #Verify that the table does exist in Database 2.
+        exists = conn2.table_exists(table_name)
+        if not exists:
+            self.fail('Table ' + table_name + ' should exist')
+
 
     def tearDown(self):
         # Attempt to drop any test databases that may have been created.

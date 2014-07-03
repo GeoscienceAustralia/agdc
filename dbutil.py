@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 
 """dbutil.py - PostgreSQL database utilities for testing.
 
@@ -10,7 +11,6 @@ implement utility queries as methods.
 import os
 import sys
 import logging
-import pprint
 import random
 import subprocess
 import re
@@ -107,6 +107,18 @@ class Server(object):
 
         return result
 
+    def dblist(self):
+        """Returns a list of the databases on the server."""
+
+        maint_conn = MaintenanceWrapper(
+            self.connect(MAINTENANCE_DB, superuser=True))
+        try:
+            result = maint_conn.dblist()
+        finally:
+            maint_conn.close()
+
+        return result
+
     def load(self, dbname, save_dir, save_file):
         """Load the contents of a database from a file.
 
@@ -129,9 +141,9 @@ class Server(object):
                        (__name__, err.cmd[0], err.output))
             for k in range(len(load_cmd)):
                 message = message + load_cmd[k]
-            raise Exception(message)
+            raise AssertionError(message)
 
-    def save(self, dbname, save_dir, save_file):
+    def save(self, dbname, save_dir, save_file, table=None):
         """Save the contents of a database to a file.
 
         This method calls the pg_dump command to do the save. This
@@ -144,6 +156,8 @@ class Server(object):
                     "--host=%s" % self.host,
                     "--port=%s" % self.port,
                     "--file=%s" % save_path]
+        if table:
+            save_cmd.append("--table=%s" % table)
 
         try:
             subprocess.check_output(save_cmd, stderr=subprocess.STDOUT)
@@ -151,7 +165,38 @@ class Server(object):
             #Make sure error output is in the error message.
             message = ("%s: problem calling %s:\n%s" %
                        (__name__, err.cmd[0], err.output))
-            raise Exception(message)
+            raise AssertionError(message)
+
+    def copy_table_between_databases(self, dbname1, dbname2, table_name):
+        """Copy a table from one database to another on the same server.
+
+        This method pipes the output of pg_dump to psql."""
+        dump_cmd = ["pg_dump",
+                    "--dbname=%s" % dbname1,
+                    "--username=%s" % self.superuser,
+                    "--host=%s" % self.host,
+                    "--port=%s" % self.port,
+                    "--table=%s" % table_name]
+
+        load_cmd = ["psql",
+                    "--dbname=%s" % dbname2,
+                    "--username=%s" % self.superuser,
+                    "--host=%s" % self.host,
+                    "--port=%s" % self.port
+                    ]
+
+        try:
+            ps_dump = subprocess.Popen(dump_cmd, stdout=subprocess.PIPE,
+                                       stderr=subprocess.STDOUT)
+            dummy_output = subprocess.check_output(load_cmd,
+                                                   stdin=ps_dump.stdout,
+                                                   stderr=subprocess.STDOUT)
+            ps_dump.wait()
+        except subprocess.CalledProcessError as err:
+            #Make sure error output is in the error message.
+            message = ("%s: problem calling %s:\n%s" %
+                       (__name__, err.cmd[0], err.output))
+            raise AssertionError(message)
 
     def drop(self, dbname):
         """Drop the named database.
@@ -181,12 +226,19 @@ class Server(object):
         finally:
             maint_conn.close()
 
-    def create(self, dbname, save_dir, save_file):
+    def create(self, dbname, save_dir=None, save_file=None,
+               template_db=TEMPLATE_DB):
         """Creates and loads a database from a file.
 
         This method does a clean create and load of the named database
         from the file 'savefile'. It drops an old database of the same
         name if neccessary.
+
+        It uses template_db as the template database, which is copied
+        to create the new database.
+
+        If save_dir or save_file are None (or not specified), no
+        save file is loaded.
 
         Connections are closed explicitly with try/finally blocks,
         since they do not seem to be closed automatically in the
@@ -211,17 +263,21 @@ class Server(object):
                     if maint_conn.exists(dbname):
                         bouncer_conn.pause(dbname)
                         maint_conn.drop(dbname)
-                    maint_conn.create(dbname)
+                    # To be used as a template, template_db must have
+                    # no current connections.
+                    bouncer_conn.kill(template_db)
+                    maint_conn.create(dbname, template_db)
                     bouncer_conn.resume(dbname)
                 finally:
                     bouncer_conn.close()
             else:
                 if maint_conn.exists(dbname):
                     maint_conn.drop(dbname)
-                maint_conn.create(dbname)
+                maint_conn.create(dbname, template_db)
 
-            # Load the new database from the save file
-            self.load(dbname, save_dir, save_file)
+            # Load the new database from the save file if necessary
+            if save_file is not None or save_dir is not None:
+                self.load(dbname, save_dir, save_file)
 
             # Run ANALYSE on the newly loaded database
             db_conn = ConnectionWrapper(self.connect(dbname, superuser=True))
@@ -294,6 +350,17 @@ class MaintenanceWrapper(ConnectionWrapper):
 
         return db_found
 
+    def dblist(self):
+        """Returns a list of the databases on the server."""
+
+        dblist_sql = "SELECT datname FROM pg_database;"
+
+        with self.conn.cursor() as curs:
+            curs.execute(dblist_sql)
+            result = [tup[0] for tup in curs.fetchall()]
+
+        return result
+
     def drop(self, dbname):
         """Drops the named database."""
 
@@ -302,11 +369,11 @@ class MaintenanceWrapper(ConnectionWrapper):
         with self.conn.cursor() as curs:
             curs.execute(drop_sql)
 
-    def create(self, dbname):
+    def create(self, dbname, template_db=TEMPLATE_DB):
         """Creates the named database."""
 
         create_sql = ("CREATE DATABASE %s\n" % safe_name(dbname) +
-                      "TEMPLATE %s;" % TEMPLATE_DB)
+                      "TEMPLATE %s;" % template_db)
 
         with self.conn.cursor() as curs:
             curs.execute(create_sql)
@@ -335,6 +402,21 @@ class BouncerWrapper(ConnectionWrapper):
         with self.conn.cursor() as cur:
             try:
                 cur.execute(pause_sql)
+            except psycopg2.DatabaseError:
+                pass
+
+    def kill(self, dbname):
+        """Tells pgbouncer to kill its connections to the named database.
+
+        This should cause pgbouncer to disconnect from dbname without waiting
+        for any queries to complete.
+        """
+
+        kill_sql = "KILL %s;" % safe_name(dbname)
+
+        with self.conn.cursor() as cur:
+            try:
+                cur.execute(kill_sql)
             except psycopg2.DatabaseError:
                 pass
 
@@ -494,7 +576,22 @@ def expected_directory(module, suite, version=None, user=None):
     return resources_directory(version, 'expected', module, suite)
 
 
-def update_config_file(dbname, input_dir, output_dir, config_file_name):
+def temp_directory(module, suite, test_dir, version=None, user=None):
+    """Returns a path to a temp subdirectory, creating it if needed."""
+
+    version = version_or_user(version, user)
+    return resources_directory(version, test_dir, module, suite, 'temp')
+
+
+def tile_root_directory(module, suite, test_dir, version=None, user=None):
+    """Returns a path to a tile_root subdirectory, creating it if needed."""
+
+    version = version_or_user(version, user)
+    return resources_directory(version, test_dir, module, suite, 'tile_root')
+
+
+def update_config_file(dbname, input_dir, output_dir, config_file_name,
+                       output_file_name=None):
     """Creates a temporary datacube config file by updating the database name.
 
     This function returns the path to the updated config file.
@@ -503,25 +600,16 @@ def update_config_file(dbname, input_dir, output_dir, config_file_name):
     input_dir: the directory containing the config file template.
     output_dir: the directory in which the updated config file will be written.
     config_file_name: the name of the config file (template and updated).
+    output_file_name: the name of the updated config file - if this is not
+        specified, it is taken to be the same as the config_file_name.
     """
 
-    template_path = os.path.join(input_dir, config_file_name)
-    update_path = os.path.join(output_dir, config_file_name)
-
-    with open(template_path) as template:
-        template_str = template.read()
-
-    update_str = re.sub(r'^\s*dbname\s*=\s*.*$', "dbname = " + dbname,
-                        template_str, flags=re.MULTILINE)
-
-    with open(update_path, 'w') as update:
-        update.write(update_str)
-
-    return update_path
+    return update_config_file2({'dbname': dbname}, input_dir, output_dir,
+                               config_file_name, output_file_name)
 
 
 def update_config_file2(parameter_values_dict, input_dir, output_dir,
-                        config_file_name):
+                        config_file_name, output_file_name=None):
     """Creates a temporary datacube config file by updating those attributes
     according to the dictionary parameter_values.
 
@@ -531,18 +619,24 @@ def update_config_file2(parameter_values_dict, input_dir, output_dir,
         into the template config file
     input_dir: the directory containing the config file template.
     output_dir: the directory in which the updated config file will be written.
-    config_file_name: the name of the config file (template and updated).
+    config_file_name: the name of the config template file.
+    output_file_name: the name of the updated config file - if this is not
+        specified, it is taken to be the same as the config_file_name.
     """
+
     template_path = os.path.join(input_dir, config_file_name)
-    update_path = os.path.join(output_dir, config_file_name)
+    if output_file_name:
+        update_path = os.path.join(output_dir, output_file_name)
+    else:
+        update_path = os.path.join(output_dir, config_file_name)
 
     with open(template_path) as template:
         template_str = template.read()
 
     update_str = template_str
     for param, value in parameter_values_dict.items():
-        update_str = re.sub(r'^\s*%s\s*=\s*.*$' % param,
-                            "%s = %s" % (param, value),
+        update_str = re.sub(r'^\s*%s\s*=[^\n\r]*(\r?)$' % param,
+                            r'%s = %s\1' % (param, value),
                             update_str, flags=re.MULTILINE)
 
     with open(update_path, 'w') as update:
@@ -577,43 +671,6 @@ def create_logger(name, logfile_path=None):
         logger.addHandler(console_handler)
 
     return logger
-
-
-def log_multiline(log_function, log_text, title=None, prefix=''):
-    """Function to log multi-line text.
-
-    This is a clone of the log_multiline function from the ULA3 package.
-    It is repeated here to reduce cross-repository dependancies.
-    """
-
-    LOGGER.debug('log_multiline(%s, %s, %s, %s) called',
-                 log_function, repr(log_text), repr(title), repr(prefix))
-
-    if type(log_text) == str:
-        LOGGER.debug('log_text is type str')
-        log_list = log_text.splitlines()
-    elif type(log_text) == list and type(log_text[0]) == str:
-        LOGGER.debug('log_text is type list with first element of type text')
-        log_list = log_text
-    else:
-        LOGGER.debug('log_text is type ' + type(log_text).__name__)
-        log_list = pprint.pformat(log_text).splitlines()
-
-    log_function(prefix + '=' * 80)
-    if title:
-        log_function(prefix + title)
-        log_function(prefix + '-' * 80)
-
-    for line in log_list:
-        log_function(prefix + line)
-
-    log_function(prefix + '=' * 80)
-
-#
-# Module logger object
-#
-
-LOGGER = create_logger(__name__)
 
 #
 # Test server instance:

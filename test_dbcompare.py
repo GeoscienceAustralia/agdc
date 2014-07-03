@@ -299,6 +299,14 @@ class TestCompareFunctions(unittest.TestCase):
         self.assertTrue(result, "Identical empty databases are " +
                         "not comparing as equal.")
 
+    def test_compare_equal_tables(self):
+        "Compare two equal tables."
+
+        result = dbcompare.compare_tables(self.conn[0], self.conn[2],
+                                          'band_source', verbosity=2)
+        self.assertTrue(result, "Identical tables are not comparing " +
+                        "as equal.")
+
     def test_compare_different(self):
         "Compare two databases with differences."
 
@@ -314,6 +322,31 @@ class TestCompareFunctions(unittest.TestCase):
 
         self.assertFalse(result, "Databases with differences are " +
                          "comparing as equal.")
+
+        expected_file_path = os.path.join(self.EXPECTED_DIR, file_name)
+        if os.path.isfile(expected_file_path):
+            with open(expected_file_path) as expected_file:
+                expected_str = expected_file.read()
+            self.assertEqual(output.getvalue(), expected_str)
+        else:
+            self.skipTest("expected output file not found.")
+
+    def test_compare_unequal_tables(self):
+        "Compare two tables with differences."
+
+        file_name = 'test_compare_unequal_tables_v3.txt'
+
+        output = StringIO.StringIO()
+        result = dbcompare.compare_tables(self.conn[0], self.conn[2],
+                                          'dataset', verbosity=3,
+                                          output=output)
+
+        output_file_path = os.path.join(self.OUTPUT_DIR, file_name)
+        with open(output_file_path, 'w') as output_file:
+            output_file.write(output.getvalue())
+
+        self.assertFalse(result, "Tables with differences are comparing " +
+                         "as equal.")
 
         expected_file_path = os.path.join(self.EXPECTED_DIR, file_name)
         if os.path.isfile(expected_file_path):

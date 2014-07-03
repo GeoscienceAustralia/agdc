@@ -239,27 +239,47 @@ class ComparisonWrapper(dbutil.ConnectionWrapper):
 
         return pkey
 
+    def drop_table(self, table_name):
+        """Drops the named table from the database."""
+
+        drop_sql = "DROP TABLE IF EXISTS %s;" % table_name
+
+        with self.conn.cursor() as curs:
+            curs.execute(drop_sql)
+
 #
-# ComparisonPair Class
+# Comparison class
 #
 
+class Comparison(object):
+    """A comparison between two databases.
 
-class ComparisonPair(object):
-    """A pair of databases to be compared.
-
-    Note that creating a comparison pair sets autocommit to True on
+    Note that creating a comparison sets autocommit to True on
     the database connections given to the constructor. The original
     state can be restored by calling the restore_autocommit method.
     """
 
-    def __init__(self, db1, db2, schema1, schema2):
+    def __init__(self, db1, db2, schema1='public', schema2='public',
+                 verbosity=0, output=sys.stdout):
         """
         Positional Arguments:
             db1, db2: Connections to the databases to be compared.
 
         Keyword Arguments:
-            schema1: The schema to be used for the first database (db1)
-            schema2: The schema to be used for the second database (db2)
+            schema1: The schema to be used for the first database (db1),
+                defaults to 'public'.
+            schema2: The schema to be used for the second database (db2),
+                defaults to 'public'.
+            verbosity: Amount of output generated if a difference is detected.
+                0 -- No output, just the return value.
+                1 -- Missing columns, mismatched primary keys,
+                     one line notification of table content differences.
+                2 -- As above, but prints the details of the first
+                     MAX_DIFFERENCES content differences in each table.
+                3 -- As above, but prints the details of all differences.
+                     Defaults to 0.
+            output: Where the output goes. This is assumed to be a file object.
+                Defaults to sys.stdout.
         """
 
         # Set autocommit mode on the connections; retain the old settings.
@@ -285,12 +305,16 @@ class ComparisonPair(object):
         if self.schema2 != 'public':
             self.db2_name = self.schema2 + '.' + self.db2_name
 
+        self.report = Reporter(self.db1_name, self.db2_name,
+                               verbosity, output)
+
     def restore_autocommit(self):
         """Restore the autocommit status of the underlying connections.
 
-        The comparison pair should not be used after calling this, in
+        The comparison should not be used after calling this, in
         case the connections have been reset to autocommit=False. The
-        method sets the database attributes to None to enforce this."""
+        method sets the database attributes to None to enforce
+        this."""
 
         self.db1.conn.autocommit = self.old_autocommit[0]
         self.db2.conn.autocommit = self.old_autocommit[1]
@@ -298,191 +322,173 @@ class ComparisonPair(object):
         self.db1 = None
         self.db2 = None
 
-#
-# Local Functions
-#
+    @staticmethod
+    def __keys_equal(row1, row2, column_list, key_set):
+        """Return True if the keys of row1 and row2 are equal."""
 
-
-def _pkey_equal(row1, row2, column_list, pkey_set):
-    """Return True if the pkeys of row1 and row2 are equal."""
-
-    if row1 is None or row2 is None:
-        return False
-    else:
-        equal_so_far = True
-        for (val1, val2, col) in zip(row1, row2, column_list):
-            if (col in pkey_set) and (val1 != val2):
-                equal_so_far = False
-                break
-        return equal_so_far
-
-
-def _pkey_less(row1, row2, column_list, pkey_list):
-    """Return True if the pkey of row1 is sorted earlier than that for row2."""
-
-    if row1 is None:
-        return False
-    elif row2 is None:
-        return True
-    else:
-        row1_less = False
-        pkey_cmp = {}
-        for (val1, val2, col) in zip(row1, row2, column_list):
-            if col in pkey_list:
-                pkey_cmp[col] = cmp(val1, val2)
-
-        # Note: order of columns in primary key is not necessarily the
-        #     same as the order of columns in the table.
-        for col in pkey_list:
-            if pkey_cmp[col] < 0:
-                row1_less = True
-                break
-            elif pkey_cmp[col] > 0:
-                break
-        return row1_less
-
-
-# pylint: disable=too-many-locals
-#
-# REFACTOR: pylint is recommending simplifing this function.
-#
-
-def _compare_content(pair, report, table, pkey_list, column_list):
-    """Compare the content of a table between the two databases.
-
-    Returns True if the content is identical for the columns in column_list."""
-
-    pkey_set = set(pkey_list)
-    column_set = set(column_list)
-    extra_columns = pkey_set - column_set
-    combined_columns = column_list + sorted(extra_columns)
-
-    column_str = ', '.join(combined_columns)
-    table_str1 = pair.schema1 + '.' + table
-    table_str2 = pair.schema2 + '.' + table
-    pkey_str = ', '.join(pkey_list)
-
-    table_dump = "SELECT %s FROM %s ORDER BY %s;"
-
-    cur1 = pair.db1.cursor()
-    cur1.execute(table_dump % (column_str, table_str1, pkey_str))
-
-    cur2 = pair.db2.cursor()
-    cur2.execute(table_dump % (column_str, table_str2, pkey_str))
-
-    row1 = cur1.fetchone()
-    row2 = cur2.fetchone()
-
-    report.new_table(table, combined_columns)
-    differences_found = False
-
-    while row1 or row2:
-        if row1 == row2:
-            row1 = cur1.fetchone()
-            row2 = cur2.fetchone()
-
-        elif _pkey_equal(row1, row2, combined_columns, pkey_set):
-            differences_found = True
-            report.add_difference(1, row1)
-            report.add_difference(2, row2)
-            row1 = cur1.fetchone()
-            row2 = cur2.fetchone()
-
-        elif _pkey_less(row1, row2, combined_columns, pkey_list):
-            differences_found = True
-            report.add_difference(1, row1)
-            row1 = cur1.fetchone()
-
+        if row1 is None or row2 is None:
+            return False
         else:
-            differences_found = True
-            report.add_difference(2, row2)
-            row2 = cur2.fetchone()
+            for (val1, val2, col) in zip(row1, row2, column_list):
+                if col in key_set and val1 != val2:
+                    return False
+            return True
 
-        if differences_found and report.stop_adding_differences():
-            break
+    @staticmethod
+    def __key_less(row1, row2, column_list, key_list):
+        """Return True if the key of row1 is less than that for row2."""
 
-    if differences_found:
-        report.content_differences()
-
-    return not differences_found
-
-# pylint: enable=too-many-locals
-
-
-def _filter_list(the_list, filter_set):
-    """Returns a list filtered by a set of items.
-
-    This is used to preserve the order of a list while
-    removing items."""
-
-    return [val for val in the_list if val in filter_set]
-
-
-def _dequalify_columns_for_table(table, columns):
-    """Returns a list of columns with the qualifying table name removed.
-
-    Columns qualified with a *different* table name are excluded.
-    Unqualified columns are included."""
-
-    dq_columns = []
-    for col in columns:
-        match = re.match(r"^(\w+)\.(\w+)$", col)
-        if match:
-            if match.group(1) == table:
-                dq_columns.append(match.group(2))
-        elif re.match(r"^\w+$", col):
-            dq_columns.append(col)
+        if row1 is None:
+            return False
+        elif row2 is None:
+            return True
         else:
-            raise AssertionError("Badly formed column name '%s'." % col)
-    return dq_columns
+            key_cmp = {}
+            for (val1, val2, col) in zip(row1, row2, column_list):
+                if col in key_list:
+                    key_cmp[col] = cmp(val1, val2)
 
+            # Note that the order of columns in the key is not necessarily
+            # the same as the order of columns in the table.
 
-# pylint: disable=too-many-locals
-#
-# REFACTOR: pylint is recommending simplifing this function.
-#
+            for col in key_list:
+                if key_cmp[col] < 0:
+                    return True
+                elif key_cmp[col] > 0:
+                    return False
+            return False # Keys are equal
 
-def _compare_tables(pair, report, table, ignore_columns):
-    """Implements the compare_tables function."""
+    @staticmethod
+    def __filter_list(the_list, filter_set):
+        """Returns a list filtered by a set of items.
 
-    ignore_set = set(_dequalify_columns_for_table(table, ignore_columns))
+        This is used to preserve the order of a list while
+        removing items."""
 
-    column_list1 = pair.db1.column_list(table)
-    column_list2 = pair.db2.column_list(table)
+        return [val for val in the_list if val in filter_set]
 
-    column_set1 = set(column_list1) - ignore_set
-    column_set2 = set(column_list2) - ignore_set
+    @staticmethod
+    def __dequalify_columns_for_table(table, columns):
+        """Returns a list of columns with the qualifying table name removed.
 
-    # Use _filter_list to preserve column ordering (for output).
-    only_in_db1 = _filter_list(column_list1, column_set1 - column_set2)
-    only_in_db2 = _filter_list(column_list2, column_set2 - column_set1)
-    column_in_both = _filter_list(column_list1, column_set1 & column_set2)
+        Columns qualified with a *different* table name are excluded.
+        Unqualified columns are included."""
 
-    identical_so_far = True
+        dq_columns = []
+        for col in columns:
+            match = re.match(r"^(\w+)\.(\w+)$", col)
+            if match:
+                if match.group(1) == table:
+                    dq_columns.append(match.group(2))
+            elif re.match(r"^\w+$", col):
+                dq_columns.append(col)
+            else:
+                raise AssertionError("Badly formed column name '%s'." % col)
+        return dq_columns
 
-    if len(only_in_db1) > 0:
-        identical_so_far = False
-        for column in only_in_db1:
-            report.column_only_in(1, table, column)
+    def __compare_content(self, table, key_list, column_list):
+        """Compare the content of a table between the two databases.
 
-    if len(only_in_db2) > 0:
-        identical_so_far = False
-        for column in only_in_db2:
-            report.column_only_in(2, table, column)
+        Returns True if the content is identical for the columns in
+        column_list.
+        """
 
-    pkey1 = pair.db1.primary_key(table)
-    pkey2 = pair.db2.primary_key(table)
+        key_set = set(key_list)
+        column_set = set(column_list)
+        extra_columns = key_set - column_set
+        combined_columns = column_list + sorted(extra_columns)
 
-    if pkey1 == pkey2:
-        content_matches = _compare_content(pair, report,
-                                           table, pkey1, column_in_both)
-    else:
-        content_matches = False
-        report.primary_keys_differ(table)
+        column_str = ', '.join(combined_columns)
+        table_str1 = self.schema1 + '.' + table
+        table_str2 = self.schema2 + '.' + table
+        key_str = ', '.join(key_list)
 
-    return identical_so_far and content_matches
+        table_dump = "SELECT %s FROM %s ORDER BY %s;"
 
-# pylint: enable=too-many-locals
+        cur1 = self.db1.cursor()
+        cur1.execute(table_dump % (column_str, table_str1, key_str))
+
+        cur2 = self.db2.cursor()
+        cur2.execute(table_dump % (column_str, table_str2, key_str))
+
+        row1 = cur1.fetchone()
+        row2 = cur2.fetchone()
+
+        self.report.new_table(table, combined_columns)
+        differences_found = False
+
+        while row1 or row2:
+            if row1 == row2:
+                row1 = cur1.fetchone()
+                row2 = cur2.fetchone()
+
+            elif self.__keys_equal(row1, row2, combined_columns, key_set):
+                differences_found = True
+                self.report.add_difference(1, row1)
+                self.report.add_difference(2, row2)
+                row1 = cur1.fetchone()
+                row2 = cur2.fetchone()
+
+            elif self.__key_less(row1, row2, combined_columns, key_list):
+                differences_found = True
+                self.report.add_difference(1, row1)
+                row1 = cur1.fetchone()
+
+            else:
+                differences_found = True
+                self.report.add_difference(2, row2)
+                row2 = cur2.fetchone()
+
+            if differences_found and self.report.stop_adding_differences():
+                break
+
+        if differences_found:
+            self.report.content_differences()
+
+        return not differences_found
+
+    def compare_tables(self, table, ignore_columns):
+        """Implements the compare_tables function."""
+
+        ignore_set = \
+            set(self.__dequalify_columns_for_table(table, ignore_columns))
+
+        column_list1 = self.db1.column_list(table)
+        column_list2 = self.db2.column_list(table)
+
+        column_set1 = set(column_list1) - ignore_set
+        column_set2 = set(column_list2) - ignore_set
+
+        # Use filter_list to preserve column ordering (for output).
+        only_in_db1 = self.__filter_list(column_list1,
+                                         column_set1 - column_set2)
+        only_in_db2 = self.__filter_list(column_list2,
+                                         column_set2 - column_set1)
+        column_in_both = self.__filter_list(column_list1,
+                                            column_set1 & column_set2)
+
+        identical_so_far = True
+        if len(only_in_db1) > 0:
+            identical_so_far = False
+            for column in only_in_db1:
+                self.report.column_only_in(1, table, column)
+
+        if len(only_in_db2) > 0:
+            identical_so_far = False
+            for column in only_in_db2:
+                self.report.column_only_in(2, table, column)
+
+        pkey1 = self.db1.primary_key(table)
+        pkey2 = self.db2.primary_key(table)
+
+        if pkey1 == pkey2:
+            content_matches = self.__compare_content(table, pkey1,
+                                                     column_in_both)
+        else:
+            content_matches = False
+            self.report.primary_keys_differ(table)
+
+        return identical_so_far and content_matches
 
 #
 # Interface Functions
@@ -564,14 +570,13 @@ def compare_databases(db1, db2, schema1='public', schema2='public',
     if ignore_columns is None:
         ignore_columns = []
 
-    pair = ComparisonPair(db1, db2, schema1, schema2)
-
-    report = Reporter(pair.db1_name, pair.db2_name, verbosity, output)
+    comparison = Comparison(db1, db2, schema1=schema1, schema2=schema2,
+                            verbosity=verbosity, output=output)
 
     ignore_set = set(ignore_tables)
 
-    table_set1 = set(pair.db1.table_list()) - ignore_set
-    table_set2 = set(pair.db2.table_list()) - ignore_set
+    table_set1 = set(comparison.db1.table_list()) - ignore_set
+    table_set2 = set(comparison.db2.table_list()) - ignore_set
 
     only_in_db1 = table_set1 - table_set2
     only_in_db2 = table_set2 - table_set1
@@ -582,19 +587,19 @@ def compare_databases(db1, db2, schema1='public', schema2='public',
     if len(only_in_db1) > 0:
         identical_so_far = False
         for table in sorted(only_in_db1):
-            report.table_only_in(1, table)
+            comparison.report.table_only_in(1, table)
 
     if len(only_in_db2) > 0:
         identical_so_far = False
         for table in sorted(only_in_db2):
-            report.table_only_in(2, table)
+            comparison.report.table_only_in(2, table)
 
     for table in sorted(table_in_both):
-        tables_match = _compare_tables(pair, report, table, ignore_columns)
+        tables_match = comparison.compare_tables(table, ignore_columns)
         if not tables_match:
             identical_so_far = False
 
-    pair.restore_autocommit()
+    comparison.restore_autocommit()
 
     return identical_so_far
 
@@ -668,18 +673,19 @@ def compare_tables(db1, db2, table, schema1='public', schema2='public',
 
     table = dbutil.safe_name(table)
 
-    pair = ComparisonPair(db1, db2, schema1, schema2)
+    comparison = Comparison(db1, db2, schema1=schema1, schema2=schema2,
+                            verbosity=verbosity, output=output)
 
-    report = Reporter(pair.db1_name, pair.db2_name, verbosity, output)
+    assert comparison.db1.table_exists(table), \
+        ("Could not find table '%s' in database '%s'." %
+         (table, comparison.db1_name))
+    assert comparison.db2.table_exists(table), \
+        ("Could not find table '%s' in database '%s'." %
+         (table, comparison.db2_name))
 
-    assert pair.db1.table_exists(table), \
-        "Could not find table '%s' in database '%s'." % (table, pair.db1_name)
-    assert pair.db2.table_exists(table), \
-        "Could not find table '%s' in database '%s'." % (table, pair.db2_name)
+    tables_match = comparison.compare_tables(table, ignore_columns)
 
-    tables_match = _compare_tables(pair, report, table, ignore_columns)
-
-    pair.restore_autocommit()
+    comparison.restore_autocommit()
 
     return tables_match
 

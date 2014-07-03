@@ -482,7 +482,7 @@ def get_pixel_provenance(input_dataset, output_dataset, median_index_layer=11, d
     def seconds_since_epoch(dt):
         return (dt - datetime.utcfromtimestamp(0)).total_seconds()
         
-    satellite_id_lookup = {'LS5': 5, 'LS7': 7}   
+    satellite_id_lookup = {'LS5': 5, 'LS7': 7, 'LS8': 8}   
     
     median_index_array = output_dataset.GetRasterBand(median_index_layer).ReadAsArray()
         

@@ -33,44 +33,39 @@ import re
 
 class TestLandsatTiler(unittest.TestCase):
     """Unit tests for the dbupdater.py script"""
+    def process_args(self):
+        MODULE = 'new_ingest_benchmark'
+        SUITE = 'benchmark'
 
-    MODULE = 'landsat_tiler'
-    SUITE = 'old_then_new'
-
-    INPUT_DIR = dbutil.input_directory(MODULE, SUITE)
-    OUTPUT_DIR = dbutil.output_directory(MODULE, SUITE)
-    EXPECTED_DIR = dbutil.expected_directory(MODULE, SUITE)
-    #define three modes of execution
-    mode_desc_dict = {0: 'Initialise benchmark data in the expected directory',
-                      1: 'Do not do ingestion. Compare existing ingestion ' \
+        self.INPUT_DIR = dbutil.input_directory(MODULE, SUITE)
+        self.OUTPUT_DIR = dbutil.output_directory(MODULE, SUITE)
+        self.EXPECTED_DIR = dbutil.expected_directory(MODULE, SUITE)
+        #define three modes of execution
+        mode_desc_dict = {0: 'Initialise benchmark data in the expected directory',
+                          1: 'Do not do ingestion. Compare existing ingestion ' \
                           'in\n %s\n with benchmark\n %s\n' \
-                          %(OUTPUT_DIR, EXPECTED_DIR),
-                      2: 'Compare  from this run with ' \
+                          %(self.OUTPUT_DIR, self.EXPECTED_DIR),
+                          2: 'Compare  from this run with ' \
                           'expected benchmark database exiting if ' \
                           'they are different',
-                      3: 'Compare databases and also compare tiles, even if ' \
+                          3: 'Compare databases and also compare tiles, even if ' \
                           'the databases are different'}
-    if len(sys.argv) < 2:
-        mode = -1
-    else:
-        try:
-            mode = int(sys.argv[1])
-        except ValueError:
+        if len(sys.argv) < 2:
             mode = -1
-    if mode not in [0, 1, 2, 3]:
-        print 'Please specify a mode as follows:'
-        for mode, desc in mode_desc_dict.items():
-            print 'python test_landsat_tiler.py %d:\t%s\n' %(mode, desc)
-        sys.exit()
-
-    print 'mode=', mode
-    if mode == 0:
-        OUTPUT_DIR = EXPECTED_DIR
-    print 'OUTPUT_DIR =%s' %OUTPUT_DIR
-
-    PQA_CONTIGUITY_BIT = 8
+        else:
+            try:
+                mode = int(sys.argv[1])
+            except ValueError:
+                mode = -1
+        msg = ''
+        if mode not in [0, 1, 2, 3]:
+            msg =  'Please specify a mode as follows:\n'
+            for mode_num, desc in mode_desc_dict.items():
+                msg = msg + 'python test_landsat_tiler.py %d:\t%s\n' %(mode_num, desc)
+        return mode, msg
 
     def setUp(self):
+        self.PQA_CONTIGUITY_BIT = 8
         self.test_dbname = None
         self.expected_dbname = None
 
@@ -80,8 +75,12 @@ class TestLandsatTiler(unittest.TestCase):
         self.logfile = None
         self.bands_expected = None
         self.bands_output = None
-
+        self.mode, self.msg = self.process_args()
+        if self.mode == 0:
+            self.OUTPUT_DIR = self.EXPECTED_DIR
         print 'OUTPUT_DIR =%s' %self.OUTPUT_DIR
+        print self.mode
+        print self.msg
 
     def test_landsat_tiler(self):
         """Test the cataloging and tiling of Landsat scences and compare
@@ -89,6 +88,8 @@ class TestLandsatTiler(unittest.TestCase):
         # This test is intended as an example, and so is extensively
         # commented.
         # Open a log file
+        if self.mode not in [0, 1, 2, 3]:
+            self.skipTest('Skipping test_landsat_tiler since flag is not in [0, 1, 2, 3]')
         logfile_path = os.path.join(self.OUTPUT_DIR, "test_landsat_tiler.log")
         self.logfile = open(logfile_path, "w")
 
@@ -109,7 +110,6 @@ class TestLandsatTiler(unittest.TestCase):
         #
         # Run dbupdater on the test database and save the result
         #
-
         # Create updated datacube_conf file with the new dbname and tile_root
         tile_root = os.path.join(self.OUTPUT_DIR, "tiles")
         configuration_dict = {'dbname': self.test_dbname,
@@ -118,7 +118,6 @@ class TestLandsatTiler(unittest.TestCase):
                                                      self.INPUT_DIR,
                                                      self.OUTPUT_DIR,
                                                      "test_datacube.conf")
-
         # Run dbupdater
 
         ingest_dir = os.path.join(self.INPUT_DIR, 'tiler_testing')
@@ -453,7 +452,8 @@ class TestLandsatTiler(unittest.TestCase):
                                           %(bin_no, difference_count[bin_no]))
             fp.close()
         else:
-            self.skipTest("Expected database save file not found.")
+            if self.mode > 0:
+                self.skipTest("Expected database save file not found.")
     def tearDown(self):
         # Remove any tempoary databases that have been created.
         if self.test_conn:

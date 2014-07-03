@@ -270,7 +270,7 @@ class LandsatTiler(DataCube):
                             touched_tiles.append([itile, jtile])
                             continue
                         #For each tile in the outer rectangle but not in the inner rectangle
-                        #define the upper-left vertex
+                        #define the upper-left vertexx
                         (x0, y0) = (tile_type_info['x_origin'] + itile * tile_type_info['x_size'],
                                     tile_type_info['y_origin'] + (jtile + 1) * tile_type_info['y_size']) 
                         tile_bbox = [(x0, y0), (x0 + tile_type_info['x_size'], y0), 
@@ -781,8 +781,8 @@ where (%(x_index)s is null or x_index = %(x_index)s)
                         #end loop over all tiles touched by acquisiton      
                 self.unlock_object(work_directory)
     
-                if not self.debug:
-                    shutil.rmtree(work_directory)
+                #if not self.debug:
+                #    shutil.rmtree(work_directory)
                     
                 result = True
                 self.db_connection.commit()  
