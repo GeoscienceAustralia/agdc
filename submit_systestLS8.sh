@@ -18,7 +18,7 @@ NCPUS_PER_JOB=1
 MAX_USER_JOBS_QUEUED=100
 MAX_GROUP_JOBS_QUEUED=180
 
-START_LINE=47
+START_LINE=1
 
 DATASETS_TO_INGEST=/g/data/v10/test_resources/scenes/dataset_testing/LS8_datasets_to_ingest_sorted
 

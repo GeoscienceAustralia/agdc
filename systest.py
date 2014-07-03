@@ -239,7 +239,8 @@ def read_config(args):
         }
 
     config = ConfigParser.SafeConfigParser(defaults)
-    config.read(args.config_file)
+    with open(args.config_file) as fp:
+        config.readfp(fp)
 
     return config
 
