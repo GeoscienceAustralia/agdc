@@ -25,6 +25,7 @@ LOGGER.setLevel(logging.INFO)
 #
 # The list of tile_class_id values the dataset_record constructor must check
 # the creation time of in order to determine whether tiling is required.
+
 TILE_CLASS_LIST = [1, 3, 4]
 
 class DatasetRecord(object):
@@ -66,21 +67,60 @@ class DatasetRecord(object):
         self.dataset_dict['level_id'] = \
             self.db.get_level_id(self.dataset_dict['level_name'])
 
-        self.dataset_id = self.db.get_dataset_id(self.dataset_dict)
-        if self.dataset_id is None:
+        self.dataset_dict['dataset_id'] = \
+            self.db.get_dataset_id(self.dataset_dict)
+        if self.dataset_dict['dataset_id'] is None:
             # create a new dataset record in the database
-            self.dataset_id = self.db.insert_dataset_record(self.dataset_dict)
-            self.dataset_dict['dataset_id'] = self.dataset_id
+            self.dataset_dict['dataset_id'] = \
+                self.db.insert_dataset_record(self.dataset_dict)
+            self.needs_update = False
         else:
-            if self.db.dataset_older_than_database(
-                self.dataset_id, self.dataset_dict['datetime_processed'],
+            # check that the old dataset record can be updated
+            self.check_update_ok()
+            self.needs_update = True
+
+    def check_update_ok(self):
+        """Checks if an update is possible, raises a DatasetError otherwise."""
+
+        if self.db.dataset_older_than_database(
+                self.dataset_dict['dataset_id'],
+                self.dataset_dict['datetime_processed'],
                 tuple(TILE_CLASS_LIST)):
-                raise DatasetError("Dataset to be ingested is older than " +
-                                   "the version in the database.")
-            self.__remove_dataset_tiles()
-            # and do the update
-            self.dataset_dict['dataset_id'] = self.dataset_id
-            self.db.update_dataset_record(self.dataset_dict)
+            raise DatasetError("Dataset to be ingested is older than " +
+                               "the version in the database.")
+
+    def update(self):
+        """Update the dataset record in the database.
+
+        This first checks that the new dataset is more recent than
+        the record in the database. If not it raises a dataset error.
+
+        It also removes the tiles associated with the dataset, as these
+        are out of date following the update.
+        """
+
+        self.check_update_ok()
+        self.db.update_dataset_record(self.dataset_dict)
+
+    def remove_tiles(self):
+        """Remove the tiles associated with the dataset."""
+
+        tile_class_filter = (1, 3, 4)
+        for tile_id in self.db.get_dataset_tile_ids(
+                self.dataset_dict['dataset_id'],
+                tile_class_filter):
+            tile_pathname = self.db.get_tile_pathname(tile_id)
+            self.db.remove_tile_record(tile_id)
+            self.collection.mark_tile_for_removal(tile_pathname)
+
+    def get_overlapping_datasets(self):
+        """Returns a list of overlapping dataset ids, including this dataset.
+
+        A dataset is overlapping if it contains tiles that overlap with
+        tiles belonging to this dataset.
+        """
+
+        raise NotImplementedError()
 
     def create_tile_record(self, tile_contents):
         """Factory method to create an instance of the TileRecord class.
@@ -356,15 +396,3 @@ class DatasetRecord(object):
         if tparameter > 0 and tparameter < 1 and \
                 uparameter > 0 and uparameter < 1:
             return True
-
-    def __remove_dataset_tiles(self):
-        """Remove the tiles associated with a dataset that is about to
-        be updated."""
-        # In future will also want to delete a mosiac tile (tile_class_id == 4)
-        # and its source tiles (tile_class_id == 3).
-        tile_class_filter = (1, 3, 4)
-        for tile_id in self.db.get_dataset_tile_ids(self.dataset_id,
-                                                    tile_class_filter):
-            tile_pathname = self.db.get_tile_pathname(tile_id)
-            self.db.remove_tile_record(tile_id)
-            self.collection.mark_tile_for_removal(tile_pathname)

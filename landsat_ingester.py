@@ -78,6 +78,11 @@ class LandsatIngester(AbstractIngester):
         _arg_parser.add_argument('--synctime', dest='sync_time',
                                  default=None, help=sync_time_help)
 
+        sync_type_help = 'Type of transaction to syncronize with synctime,'\
+            + ' one of "cataloging", "tiling", or "mosaicking".'
+        _arg_parser.add_argument('--synctype', dest='sync_type',
+                                 default=None, help=sync_type_help)
+
         return _arg_parser.parse_args()
 
     def find_datasets(self, source_dir):

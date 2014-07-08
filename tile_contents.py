@@ -184,13 +184,25 @@ class TileContents(object):
         if os.path.isfile(self.temp_tile_output_path):
             os.remove(self.temp_tile_output_path)
 
-    def make_permanent(self, tile_class_desc):
+    def make_permanent(self, tile_class_desc=None):
         """Depending on tile_class_desc, Move pre-mosaic tile contents or
         mosaic tile contents to permanent location."""
+
+        if tile_class_desc is None:
+            cube_util.create_directory(os.path.dirname(self.tile_output_path))
+            shutil.move(self.temp_tile_output_path, self.tile_output_path)
+            # Move mosaic if necessary
+            if self.mosaic_temp_pathname:
+                cube_util.create_directory(os.path.dirname(
+                        self.mosaic_final_pathname))
+                shutil.move(self.mosaic_temp_pathname,
+                            self.mosaic_final_pathname)
+
         if tile_class_desc == 'pre-mosaic tiles':
             cube_util.create_directory(os.path.dirname(self.tile_output_path))
             shutil.move(self.temp_tile_output_path, self.tile_output_path)
-        else:
+
+        elif tile_class_desc == 'mosaic tiles':
             if not self.mosaic_temp_pathname:
                 return
             # Move mosaic if necessary
@@ -198,6 +210,9 @@ class TileContents(object):
                     self.mosaic_final_pathname))
             shutil.move(self.mosaic_temp_pathname, self.mosaic_final_pathname)
 
+        else:
+            raise AssertionError('Unknown tile_class_desc in ' +
+                                 'TileContents.make_permanent')
 
     #
     #Methods that mosaic several tiles together

@@ -6,6 +6,7 @@ import os
 import logging
 import argparse
 from abc import ABCMeta, abstractmethod
+import psycopg2
 
 from datacube import DataCube
 from collection import Collection
@@ -48,6 +49,16 @@ class AbstractIngester(object):
     # abstractmethod decorator.
     #
     __metaclass__ = ABCMeta
+
+    #
+    # Constants
+    #
+
+    CATALOG_MAX_TRIES = 3 # Max number of attempts for the catalog transaction.
+
+    #
+    # Constructor
+    #
 
     def __init__(self, datacube=None, collection=None):
         """Set up the ingester object.
@@ -110,97 +121,18 @@ class AbstractIngester(object):
                                  default=False, action='store_const',
                                  const=True, help=fast_filter_help)
 
+        sync_time_help = 'Synchronize parallel ingestions at the given time'\
+            ' in seconds after 01/01/1970'
+        _arg_parser.add_argument('--synctime', dest='sync_time',
+                                 default=None, help=sync_time_help)
+
+        sync_type_help = 'Type of transaction to syncronize with synctime,'\
+            + ' one of "cataloging", "tiling", or "mosaicking".'
+        _arg_parser.add_argument('--synctype', dest='sync_type',
+                                 default=None, help=sync_type_help)
+
         args, dummy_unknown_args = _arg_parser.parse_known_args()
         return args
-
-    #
-    # Dataset filter methods.
-    #
-    # The accessor methods give access to the dataset filtering values in
-    # the config file via the datacube object. The filter function decides
-    # wheather to filter a dataset or not.
-    #
-
-    # pylint: disable=maybe-no-member
-    #
-    # Stop pylint flagging the magical datacube attributes stuffed in from
-    # the config file. Note that these are all checked for an attribute
-    # error, so the program will not fail if they are not there.
-
-    def get_date_range(self):
-        """Return the date range for the ingest as a (start, end) tuple.
-
-        If either value is not defined in the config file or cannot be
-        converted to a date it will be returned as None.
-        """
-
-        try:
-            start_date = parse_date_from_string(self.datacube.start_date)
-        except AttributeError:
-            start_date = None
-
-        try:
-            end_date = parse_date_from_string(self.datacube.end_date)
-        except AttributeError:
-            end_date = None
-
-        return (start_date, end_date)
-
-    def get_path_range(self):
-        """Return the path range for the ingest as a (min, max) tuple.
-
-        If either value is not defined in the config file or cannot
-        be converted to an integer it will be returned as None.
-        """
-
-        try:
-            min_path = int(self.datacube.min_path)
-        except (AttributeError, ValueError):
-            min_path = None
-
-        try:
-            max_path = int(self.datacube.max_path)
-        except (AttributeError, ValueError):
-            max_path = None
-
-        return (min_path, max_path)
-
-    def get_row_range(self):
-        """Return the row range for the ingest as a (min, max) tuple.
-
-        If either value is not defined in the config file or cannot
-        be converted to an integer it will be returned as None.
-        """
-
-        try:
-            min_row = int(self.datacube.min_row)
-        except (AttributeError, ValueError):
-            min_row = None
-
-        try:
-            max_row = int(self.datacube.max_row)
-        except (AttributeError, ValueError):
-            max_row = None
-
-        return (min_row, max_row)
-
-    # pylint: enable=maybe-no-member
-
-    def filter(self, path, row, date):
-        """Return True if the dataset should be included, False otherwise."""
-
-        (start_date, end_date) = self.get_date_range()
-        (min_path, max_path) = self.get_path_range()
-        (min_row, max_row) = self.get_row_range()
-
-        include = ((max_path is None or path is None or path <= max_path) and
-                   (min_path is None or path is None or path >= min_path) and
-                   (max_row is None or row is None or row <= max_row) and
-                   (min_row is None or row is None or row >= min_row) and
-                   (end_date is None or date is None or date <= end_date) and
-                   (start_date is None or date is None or date >= start_date))
-
-        return include
 
     #
     # Top level algorithm
@@ -236,7 +168,11 @@ class AbstractIngester(object):
 
             self.filter_on_metadata(dataset)
 
-            self.ingest_transaction(dataset)
+            dataset_record = self.catalog(dataset)
+
+            self.tile(dataset, dataset_record)
+
+            self.mosaic(dataset)
 
         except DatasetError as err:
             self.log_dataset_skip(dataset_path, err)
@@ -254,6 +190,42 @@ class AbstractIngester(object):
 
         if not self.filter(path, row, date):
             raise DatasetError('Filtered by metadata.')
+
+    def catalog(self, dataset):
+        """Catalogs a single dataset into the collection."""
+
+        # Create or locate the acquisition and dataset_record for
+        # the dataset we are ingesting. Simultanious attempts to
+        # create the records may cause an IntegerityError - a retry
+        # of the transaction should fix this.
+        tries = 0
+        while tries < CATALOG_MAX_TRIES
+            try:
+                with self.collection.transaction():
+                    acquisition_record = \
+                        self.collection.create_acquisition_record(dataset)
+                    dataset_record = \
+                        acquisition_record.create_dataset_record(dataset)
+                    break
+            except psycopg2.IntegrityError:
+                tries = tries + 1
+        else:
+            raise DatasetError('Unable to catalog: persistant integrity error.')
+
+        # Update the dataset and remove tiles if we are replacing an
+        # existing dataset.
+        if dataset_record.needs_update:
+            dataset_list = dataset_record.get_overlapping_datasets()
+            lock_list = [str(dataset_id) for dataset_id in dataset_list]
+            with self.collection.lock(lock_list):
+                with self.collction.transaction() as tr:
+                    dataset_record.update()
+                    dataset_record.remove_tiles()
+
+    def tile(self, dataset, dataset_record):
+        """Tiles a newly created or updated dataset."""
+
+        
 
     def ingest_transaction(self, dataset):
         """Ingests a single dataset into the collection.
@@ -278,7 +250,7 @@ class AbstractIngester(object):
             self.collection.commit_transaction('pre-mosaic tiles')
 
             dataset_record.mark_as_tiled()
-            
+
             #TODO: remove the print statements
             print 'sync_time'
             print self.args.sync_time
@@ -389,6 +361,95 @@ class AbstractIngester(object):
         """
 
         raise NotImplementedError
+
+    #
+    # Dataset filter methods.
+    #
+    # The accessor methods give access to the dataset filtering values in
+    # the config file via the datacube object. The filter function decides
+    # wheather to filter a dataset or not.
+    #
+
+    # pylint: disable=maybe-no-member
+    #
+    # Stop pylint flagging the magical datacube attributes stuffed in from
+    # the config file. Note that these are all checked for an attribute
+    # error, so the program will not fail if they are not there.
+
+    def get_date_range(self):
+        """Return the date range for the ingest as a (start, end) tuple.
+
+        If either value is not defined in the config file or cannot be
+        converted to a date it will be returned as None.
+        """
+
+        try:
+            start_date = parse_date_from_string(self.datacube.start_date)
+        except AttributeError:
+            start_date = None
+
+        try:
+            end_date = parse_date_from_string(self.datacube.end_date)
+        except AttributeError:
+            end_date = None
+
+        return (start_date, end_date)
+
+    def get_path_range(self):
+        """Return the path range for the ingest as a (min, max) tuple.
+
+        If either value is not defined in the config file or cannot
+        be converted to an integer it will be returned as None.
+        """
+
+        try:
+            min_path = int(self.datacube.min_path)
+        except (AttributeError, ValueError):
+            min_path = None
+
+        try:
+            max_path = int(self.datacube.max_path)
+        except (AttributeError, ValueError):
+            max_path = None
+
+        return (min_path, max_path)
+
+    def get_row_range(self):
+        """Return the row range for the ingest as a (min, max) tuple.
+
+        If either value is not defined in the config file or cannot
+        be converted to an integer it will be returned as None.
+        """
+
+        try:
+            min_row = int(self.datacube.min_row)
+        except (AttributeError, ValueError):
+            min_row = None
+
+        try:
+            max_row = int(self.datacube.max_row)
+        except (AttributeError, ValueError):
+            max_row = None
+
+        return (min_row, max_row)
+
+    # pylint: enable=maybe-no-member
+
+    def filter(self, path, row, date):
+        """Return True if the dataset should be included, False otherwise."""
+
+        (start_date, end_date) = self.get_date_range()
+        (min_path, max_path) = self.get_path_range()
+        (min_row, max_row) = self.get_row_range()
+
+        include = ((max_path is None or path is None or path <= max_path) and
+                   (min_path is None or path is None or path >= min_path) and
+                   (max_row is None or row is None or row <= max_row) and
+                   (min_row is None or row is None or row >= min_row) and
+                   (end_date is None or date is None or date <= end_date) and
+                   (start_date is None or date is None or date >= start_date))
+
+        return include
 
     #
     # Log messages
