@@ -87,15 +87,18 @@ class Collection(object):
         self.current_transaction = Transaction(self.db)
         return self.current_transaction
 
-    def lock(self, lock_list):
+    def lock_datasets(self, dataset_list):
         """Returns a Lock context manager object.
 
-        lock_list is a list of the objects (strings) to be locked.
+        dataset_list is a list of dataset ids for the datasets to be
+        locked.
 
         This is for use in a 'with' statement. It uses the Collection's
         datacube object to manage the individual locks.
         """
 
+        lock_list = ['Dataset-' + str(dataset_id)
+                     for dataset_id in dataset_list]
         return Lock(self.datacube, lock_list)
 
     def create_acquisition_record(self, dataset):

@@ -10,8 +10,11 @@ import psycopg2
 
 from datacube import DataCube
 from collection import Collection
-from cube_util import DatasetError, parse_date_from_string, synchronize
-import time
+from cube_util import DatasetError, parse_date_from_string
+from ingest_db_wrapper import TC_PENDING, TC_SINGLE_SCENE, TC_SUPERSEDED
+from ingest_db_wrapper import TC_MOSAIC
+#from cube_util import synchronize
+#import time
 
 #
 # Set up logger.
@@ -170,9 +173,9 @@ class AbstractIngester(object):
 
             dataset_record = self.catalog(dataset)
 
-            self.tile(dataset, dataset_record)
+            self.tile(dataset_record)
 
-            self.mosaic(dataset)
+            self.mosaic(dataset_record)
 
         except DatasetError as err:
             self.log_dataset_skip(dataset_path, err)
@@ -199,7 +202,7 @@ class AbstractIngester(object):
         # create the records may cause an IntegerityError - a retry
         # of the transaction should fix this.
         tries = 0
-        while tries < CATALOG_MAX_TRIES
+        while tries < self.CATALOG_MAX_TRIES:
             try:
                 with self.collection.transaction():
                     acquisition_record = \
@@ -210,62 +213,66 @@ class AbstractIngester(object):
             except psycopg2.IntegrityError:
                 tries = tries + 1
         else:
-            raise DatasetError('Unable to catalog: persistant integrity error.')
+            raise DatasetError('Unable to catalog: ' +
+                               'persistent integrity error.')
 
-        # Update the dataset and remove tiles if we are replacing an
-        # existing dataset.
+        # Update the dataset and remove tiles if necessary.
         if dataset_record.needs_update:
-            dataset_list = dataset_record.get_overlapping_datasets()
-            lock_list = [str(dataset_id) for dataset_id in dataset_list]
-            with self.collection.lock(lock_list):
-                with self.collction.transaction() as tr:
+            dataset_list = dataset_record.get_overlapping_datasets(
+                tile_class_filter=(TC_SINGLE_SCENE, TC_SUPERSEDED))
+            with self.collection.lock_datasets(dataset_list):
+                with self.collection.transaction():
                     dataset_record.update()
                     dataset_record.remove_tiles()
 
-    def tile(self, dataset, dataset_record):
+    def tile(self, dataset_record):
         """Tiles a newly created or updated dataset."""
+        pass
 
-        
+    def mosaic(self, dataset_record):
+        """Creates mosaics for a newly tiled dataset."""
+        pass
 
-    def ingest_transaction(self, dataset):
-        """Ingests a single dataset into the collection.
+    # def ingest_transaction(self, dataset):
+    #     """Ingests a single dataset into the collection.
 
-        This is done in a single transaction: if anything goes wrong
-        the transaction is rolled back and no changes are made, then
-        the error is propagated.
-        """
+    #     This is done in a single transaction: if anything goes wrong
+    #     the transaction is rolled back and no changes are made, then
+    #     the error is propagated.
+    #     """
 
-        self.collection.begin_transaction()
-        try:
-            acquisition_record = \
-                self.collection.create_acquisition_record(dataset)
+    #     self.collection.begin_transaction()
+    #     try:
+    #         acquisition_record = \
+    #             self.collection.create_acquisition_record(dataset)
 
-            dataset_record = acquisition_record.create_dataset_record(dataset)
+    #         dataset_record = \
+    #             acquisition_record.create_dataset_record(dataset)
 
-            self.collection.commit_acquisition_and_dataset()
+    #         self.collection.commit_acquisition_and_dataset()
 
-            tile_record_list = self.tile_dataset(dataset_record, dataset)
+    #         tile_record_list = self.tile_dataset(dataset_record, dataset)
 
 
-            self.collection.commit_transaction('pre-mosaic tiles')
+    #         self.collection.commit_transaction('pre-mosaic tiles')
 
-            dataset_record.mark_as_tiled()
+    #         dataset_record.mark_as_tiled()
 
-            #TODO: remove the print statements
-            print 'sync_time'
-            print self.args.sync_time
-            print 'Before synchronize %f' %time.time()
-            synchronize(self.args.sync_time)
-            print 'After synchronize %f' %time.time()
-            print 'Returned from synchronize at %f' %time.time()
-            self.mosaic_dataset(tile_record_list)
+    #         #TODO: remove the print statements
+    #         print 'sync_time'
+    #         print self.args.sync_time
+    #         print 'Before synchronize %f' %time.time()
+    #         synchronize(self.args.sync_time)
+    #         print 'After synchronize %f' %time.time()
+    #         print 'Returned from synchronize at %f' %time.time()
+    #         self.mosaic_dataset(tile_record_list)
 
-        except:
-            self.collection.rollback_transaction()
-            raise
+    #     except:
+    #         self.collection.rollback_transaction()
+    #         raise
 
-        else:
-            self.collection.commit_transaction('mosaic tiles')
+    #     else:
+    #         self.collection.commit_transaction('mosaic tiles')
 
     def tile_dataset(self, dataset_record, dataset):
         """Tiles a dataset.

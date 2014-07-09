@@ -15,6 +15,7 @@ meaningfully named method calls.
 """
 
 import logging
+import datetime
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from psycopg2.extensions import ISOLATION_LEVEL_READ_COMMITTED
 
@@ -25,6 +26,22 @@ import pytz
 # Set up logger.
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
+
+#
+# Module level constants
+#
+
+ONE_HOUR = datetime.timedelta(0, 3600)
+
+#
+# Symbolic names for tile classes
+#
+
+TC_PENDING = 0
+TC_SINGLE_SCENE = 1
+TC_DELETED = 2
+TC_SUPERSEDED = 3
+TC_MOSAIC = 4
 
 # pylint: disable=too-many-public-methods
 
@@ -558,6 +575,61 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         result = self.execute_sql_single(sql, tile_dict)
         tile_id = result[0]
         return tile_id
+
+    def get_overlapping_dataset_ids(self,
+                                    dataset_id,
+                                    delta_t=ONE_HOUR,
+                                    tile_class_filter=(1, 3)):
+        """Return dataset ids for overlapping datasets (incuding this dataset)
+
+        Given an original dataset specified by 'dataset_id', return the list
+        of dataset_ids for datasets that overlap this one. An overlap occurs
+        when a tile belonging to a target dataset overlaps in space and
+        time with one from the orignal dataset. 'delta_t' sets the tolerance
+        for detecting time overlaps. It should be a python datetime.timedelta
+        object (obtainable by constructor or by subtracting two datetimes).
+
+        Only tiles of a class present in the tuple 'tile_class_filter' are
+        considered. Note that if the original dataset has no tiles of the
+        relevent types an empty list will be returned. Otherwise the list
+        will contain at least the original dataset id.
+        """
+
+        sql = ("SELECT DISTINCT od.dataset_id\n" +
+               "FROM dataset d\n" +
+               "INNER JOIN tile t USING (dataset_id)\n" +
+               "INNER JOIN acquisition a USING (acquisition_id)\n" +
+               "INNER JOIN tile o ON\n" +
+               "    o.x_index = t.x_index AND\n" +
+               "    o.y_index = t.y_index AND\n" +
+               "    o.tile_type_id = t.tile_type_id\n" +
+               "INNER JOIN dataset od ON\n" +
+               "    od.dataset_id = o.dataset_id AND\n" +
+               "    od.level_id = d.level_id\n" +
+               "INNER JOIN acquisition oa ON\n" +
+               "    oa.acquisition_id = od.acquisition_id AND\n" +
+               "    oa.satellite_id = a.satellite_id\n" +
+               "WHERE\n" +
+               "    d.dataset_id = %(dataset_id)s AND\n" +
+               "    t.tile_class_id IN %(tile_class_filter)s AND\n" +
+               "    o.tile_class_id IN %(tile_class_filter)s AND\n" +
+               "    (\n" +
+               "        (oa.start_datetime BETWEEN\n" +
+               "         a.start_datetime - %(delta_t)s AND\n" +
+               "         a.end_datetime + %(delta_t)s)\n" +
+               "     OR\n" +
+               "        (oa.end_datetime BETWEEN\n" +
+               "         a.start_datetime - %(delta_t)s AND\n" +
+               "         a.end_datetime + %(delta_t)s)\n" +
+               "    );\n" +
+               "ORDER BY od.dataset_id;")
+
+        params = {'dataset_id': dataset_id,
+                  'delta_t': delta_t,
+                  'tile_class_filter': tile_class_filter
+                  }
+        result = self.execute_sql_multi(sql, params)
+        return result
 
     def get_overlapping_tiles(self, tile_dict):
         """Return tile records for a given footprint for the mosaicing process.

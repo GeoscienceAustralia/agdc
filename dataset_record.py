@@ -57,6 +57,9 @@ class DatasetRecord(object):
         self.dataset_bands = collection.new_bands[dataset_key]
 
         self.mdd = dataset.metadata_dict
+        self.dataset = dataset
+        self.dataset_id = None
+
         self.dataset_dict = {}
         for field in self.DATASET_METADATA_FIELDS:
             self.dataset_dict[field] = self.mdd[field]
@@ -78,6 +81,8 @@ class DatasetRecord(object):
             # check that the old dataset record can be updated
             self.check_update_ok()
             self.needs_update = True
+
+        self.dataset_id = self.dataset_dict['dataset_id']
 
     def check_update_ok(self):
         """Checks if an update is possible, raises a DatasetError otherwise."""
@@ -113,14 +118,22 @@ class DatasetRecord(object):
             self.db.remove_tile_record(tile_id)
             self.collection.mark_tile_for_removal(tile_pathname)
 
-    def get_overlapping_datasets(self):
+    def get_overlapping_datasets(self, tile_class_filter):
         """Returns a list of overlapping dataset ids, including this dataset.
 
         A dataset is overlapping if it contains tiles that overlap with
-        tiles belonging to this dataset.
+        tiles belonging to this dataset. Only tiles in the tile_class_filter
+        are considered.
         """
 
-        raise NotImplementedError()
+        dataset_list = self.db.get_overlapping_dataset_ids(
+            self.dataset_dict['dataset_id'],
+            tile_class_filter=tile_class_filter)
+
+        if not dataset_list:
+            dataset_list = [self.dataset_dict['dataset_id']]
+
+        return dataset_list
 
     def create_tile_record(self, tile_contents):
         """Factory method to create an instance of the TileRecord class.
