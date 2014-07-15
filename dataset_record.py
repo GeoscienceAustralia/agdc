@@ -10,9 +10,13 @@ format changes.
 """
 
 import logging
+import os
+import re
 from osgeo import osr
 from cube_util import DatasetError
 from ingest_db_wrapper import IngestDBWrapper
+from ingest_db_wrapper import TC_PENDING, TC_SINGLE_SCENE, TC_SUPERSEDED
+from ingest_db_wrapper import TC_MOSAIC
 from tile_record import TileRecord
 from math import floor
 
@@ -20,13 +24,6 @@ from math import floor
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
-#
-# Constants
-#
-# The list of tile_class_id values the dataset_record constructor must check
-# the creation time of in order to determine whether tiling is required.
-
-TILE_CLASS_LIST = [1, 3, 4]
 
 class DatasetRecord(object):
     """DatasetRecord database interface class."""
@@ -45,7 +42,7 @@ class DatasetRecord(object):
                                'x_pixels',
                                'y_pixels',
                                'xml_text'
-                                ]
+                               ]
 
     def __init__(self, collection, acquisition, dataset):
 
@@ -56,9 +53,8 @@ class DatasetRecord(object):
         dataset_key = collection.get_dataset_key(dataset)
         self.dataset_bands = collection.new_bands[dataset_key]
 
-        self.mdd = dataset.metadata_dict
         self.dataset = dataset
-        self.dataset_id = None
+        self.mdd = dataset.metadata_dict
 
         self.dataset_dict = {}
         for field in self.DATASET_METADATA_FIELDS:
@@ -87,38 +83,131 @@ class DatasetRecord(object):
     def check_update_ok(self):
         """Checks if an update is possible, raises a DatasetError otherwise."""
 
+        tile_class_filter = (TC_SINGLE_SCENE,
+                             TC_SUPERSEDED)
         if self.db.dataset_older_than_database(
-                self.dataset_dict['dataset_id'],
+                self.dataset_id,
                 self.dataset_dict['datetime_processed'],
-                tuple(TILE_CLASS_LIST)):
+                tile_class_filter):
             raise DatasetError("Dataset to be ingested is older than " +
                                "the version in the database.")
+
+    def remove_mosaics(self, dataset_filter):
+        """Remove mosaics associated with the dataset.
+
+        This will mark mosaic files for removal, delete mosaic database
+        records if they exist, and update the tile class of overlapping
+        tiles (from other datasets) to reflect the lack of a mosaic. The
+        'dataset_filter' is a list of dataset_ids to filter on. It should
+        be the list of dataset_ids that have been locked (including this
+        dataset). It is used to avoid operating on the tiles of an
+        unlocked dataset.
+        """
+
+        # remove new mosaics (those with database records)
+        overlap_dict = self.db.get_overlapping_tiles_for_dataset(
+            self.dataset_id,
+            input_tile_class_filter=(TC_SINGLE_SCENE,
+                                     TC_SUPERSEDED,
+                                     TC_MOSAIC),
+            output_tile_class_filter=(TC_MOSAIC),
+            dataset_filter=dataset_filter
+            )
+
+        for tile_record_list in overlap_dict.values():
+            for tr in tile_record_list:
+                self.db.remove_tile_record(tr['tile_id'])
+                self.collection.mark_tile_for_removal(tr['tile_pathname'])
+
+        # build a dictionary of overlaps (ignoring mosaics)
+        overlap_dict = self.db.get_overlapping_tiles_for_dataset(
+            self.dataset_id,
+            input_tile_class_filter=(TC_SINGLE_SCENE,
+                                     TC_SUPERSEDED),
+            output_tile_class_filter=(TC_SINGLE_SCENE,
+                                      TC_SUPERSEDED),
+            dataset_filter=dataset_filter
+            )
+
+        # update tile classes for overlap tiles from other datasets
+        for tile_record_list in overlap_dict.values():
+            if len(tile_record_list) > 2:
+                raise DatasetError("Attempt to update a mosaic of three or " +
+                                   "more datasets. Handling for this case " +
+                                   "is not yet implemented.")
+            for tr in tile_record_list:
+                if tr['dataset_id'] != self.dataset_id:
+                    self.db.update_tile_class(tr['tile_id'], TC_SINGLE_SCENE)
+
+        # remove old mosaics (those without database records)
+        for tile_record_list in overlap_dict.values():
+            if len(tile_record_list) > 1:
+                # tile_record_list is sorted by acquisition start time, so
+                # the first record should be the one the mosaic filename is
+                # based on.
+                tr = tile_record_list[0]
+                mosaic_pathname = \
+                    self.make_mosaic_pathname(tr['tile_pathname'])
+                if os.path.isfile(mosaic_pathname):
+                    self.collection.mark_tile_for_removal(mosaic_pathname)
+
+    def remove_tiles(self):
+        """Remove the tiles associated with the dataset.
+
+        This will remove ALL the tiles belonging to this dataset, deleting
+        database records and marking tile files for removal on commit. Mosaics
+        should be removed BEFORE calling this (as it will delete the tiles
+        needed to figure out the overlaps, but may not delete all the mosaics).
+        """
+
+        tile_list = self.db.get_dataset_tile_ids(self.dataset_id)
+
+        for tile_id in tile_list:
+            tile_pathname = self.db.get_tile_pathname(tile_id)
+            self.db.remove_tile_record(tile_id)
+            self.collection.mark_tile_for_removal(tile_pathname)
 
     def update(self):
         """Update the dataset record in the database.
 
         This first checks that the new dataset is more recent than
         the record in the database. If not it raises a dataset error.
-
-        It also removes the tiles associated with the dataset, as these
-        are out of date following the update.
         """
 
         self.check_update_ok()
         self.db.update_dataset_record(self.dataset_dict)
 
-    def remove_tiles(self):
-        """Remove the tiles associated with the dataset."""
+    @staticmethod
+    def make_mosaic_pathname(tile_pathname):
+        """Return the pathname of the mosaic corrisponding to a tile."""
 
-        tile_class_filter = (1, 3, 4)
-        for tile_id in self.db.get_dataset_tile_ids(
-                self.dataset_dict['dataset_id'],
-                tile_class_filter):
-            tile_pathname = self.db.get_tile_pathname(tile_id)
-            self.db.remove_tile_record(tile_id)
-            self.collection.mark_tile_for_removal(tile_pathname)
+        (tile_dir, tile_basename) = os.path.split(tile_pathname)
 
-    def get_overlapping_datasets(self, tile_class_filter):
+        mosaic_dir = os.path.join(tile_dir, 'mosaic_cache')
+        if re.search(r'PQA', tile_basename):
+            mosaic_basename = tile_basename
+        else:
+            mosaic_basename = re.sub(r'\.\w+$', '.vrt', tile_basename)
+
+        return os.path.join(mosaic_dir, mosaic_basename)
+
+    def get_removal_overlaps(self):
+        """Returns a list of overlapping dataset ids, for mosaic removal."""
+
+        tile_class_filter = (TC_SINGLE_SCENE,
+                             TC_SUPERSEDED,
+                             TC_MOSAIC)
+        return self.get_overlaps(tile_class_filter)
+
+    def get_creation_overlaps(self):
+        """Returns a list of overlapping dataset_ids for mosaic creation."""
+
+        tile_class_filter = (TC_PENDING,
+                             TC_SINGLE_SCENE,
+                             TC_SUPERSEDED)
+        return self.get_overlaps(tile_class_filter)
+
+    def get_overlaps(self, tile_class_filter):
         """Returns a list of overlapping dataset ids, including this dataset.
 
         A dataset is overlapping if it contains tiles that overlap with
@@ -127,11 +216,12 @@ class DatasetRecord(object):
         """
 
         dataset_list = self.db.get_overlapping_dataset_ids(
-            self.dataset_dict['dataset_id'],
-            tile_class_filter=tile_class_filter)
+            self.dataset_id,
+            tile_class_filter=tile_class_filter
+            )
 
         if not dataset_list:
-            dataset_list = [self.dataset_dict['dataset_id']]
+            dataset_list = [self.dataset_id]
 
         return dataset_list
 
@@ -197,30 +287,30 @@ class DatasetRecord(object):
         try:
             dataset_spatial_reference = self.create_spatial_ref(dataset_crs)
             tile_spatial_reference = self.create_spatial_ref(tile_crs)
-            if dataset_spatial_reference == None:
-                raise DatasetError('Unknown projecton %s' \
-                                       % str(dataset_crs))
-            if tile_spatial_reference == None:
-                raise DatasetError('Unknown projecton %s' \
-                                       % str(tile_crs))
+            if dataset_spatial_reference is None:
+                raise DatasetError('Unknown projecton %s'
+                                   % str(dataset_crs))
+            if tile_spatial_reference is None:
+                raise DatasetError('Unknown projecton %s'
+                                   % str(tile_crs))
             return osr.CoordinateTransformation(dataset_spatial_reference,
                                                 tile_spatial_reference)
         except Exception:
-            raise DatasetError('Coordinate transoformation error ' \
-                                   'for transforming %s to %s' \
-                                   %(str(dataset_crs), str(tile_crs)))
+            raise DatasetError('Coordinate transoformation error ' +
+                               'for transforming %s to %s' +
+                               %(str(dataset_crs), str(tile_crs)))
 
     @staticmethod
     def create_spatial_ref(crs):
         """Create a spatial reference system for projecton crs.
         Called by define_transformation()"""
         # pylint: disable=broad-except
-        import re
+
         osr.UseExceptions()
         try:
             spatial_ref = osr.SpatialReference()
         except Exception:
-            raise DatasetError('No spatial reference done for %s' %str(crs))
+            raise DatasetError('No spatial reference done for %s' % str(crs))
         try:
             spatial_ref.ImportFromWkt(crs)
             return spatial_ref
@@ -248,8 +338,8 @@ class DatasetRecord(object):
                                      geotrans[3] + geotrans[5] * lines, 0)
         xlr, ylr, dummy_z = \
             transform.TransformPoint(
-            geotrans[0] + geotrans[1] * pixels + geotrans[2] * lines,
-            geotrans[3] + geotrans[4] * pixels + geotrans[5] * lines, 0)
+                geotrans[0] + geotrans[1] * pixels + geotrans[2] * lines,
+                geotrans[3] + geotrans[4] * pixels + geotrans[5] * lines, 0)
         return [(xul, yul), (xur, yur), (xlr, ylr), (xll, yll)]
 
     def get_touched_tiles(self, dataset_bbox, cube_origin, cube_tile_size):
@@ -269,7 +359,7 @@ class DatasetRecord(object):
         #Otherwise the tile might be wholly contained in the dataset bbox
         contained_tiles = \
             self.get_contained_tiles(possible_tiles, dataset_bbox,
-                                              cube_origin, cube_tile_size)
+                                     cube_origin, cube_tile_size)
         coverage_set = coverage_set.union(contained_tiles)
         return coverage_set
 
@@ -299,8 +389,8 @@ class DatasetRecord(object):
         ymin_index = int(floor((ymin - yorigin) / ysize))
         ymax_index = int(floor((ymax - yorigin) / ysize))
         definite_tiles = set([(itile, jtile)
-                          for itile in range(xmin_index, xmax_index + 1)
-                          for jtile in range(ymin_index, ymax_index + 1)])
+                              for itile in range(xmin_index, xmax_index + 1)
+                              for jtile in range(ymin_index, ymax_index + 1)])
         #Define the smallest rectangle which is guaranteed to include all tiles
         #in the foorprint.
         xmin = min(xll, xul)
@@ -312,11 +402,10 @@ class DatasetRecord(object):
         ymin_index = int(floor((ymin - yorigin) / ysize))
         ymax_index = int(floor((ymax - yorigin) / ysize))
         possible_tiles = set([(itile, jtile)
-                          for itile in range(xmin_index, xmax_index + 1)
-                          for jtile in range(ymin_index, ymax_index + 1)]) \
-                          .difference(definite_tiles)
+                              for itile in range(xmin_index, xmax_index + 1)
+                              for jtile in range(ymin_index, ymax_index + 1)
+                              ]).difference(definite_tiles)
         return (definite_tiles, possible_tiles)
-
 
     def get_intersected_tiles(self, candidate_tiles, dset_bbox,
                               cube_origin, cube_tile_size):
@@ -383,9 +472,9 @@ class DatasetRecord(object):
             if tile_vtx_inside.count(True) == len(tile_bbox):
                 keep_list.append((itile, jtile))
             assert tile_vtx_inside.count(True) == 4 or \
-                   tile_vtx_inside.count(True) == 0, \
-                   "Tile partially inside dataset bounding box but has" \
-                       "no intersection"
+                tile_vtx_inside.count(True) == 0, \
+                "Tile partially inside dataset bounding box but has" \
+                "no intersection"
         return set(keep_list)
 
     @staticmethod

@@ -11,8 +11,6 @@ import psycopg2
 from datacube import DataCube
 from collection import Collection
 from cube_util import DatasetError, parse_date_from_string
-from ingest_db_wrapper import TC_PENDING, TC_SINGLE_SCENE, TC_SUPERSEDED
-from ingest_db_wrapper import TC_MOSAIC
 #from cube_util import synchronize
 #import time
 
@@ -195,7 +193,7 @@ class AbstractIngester(object):
             raise DatasetError('Filtered by metadata.')
 
     def catalog(self, dataset):
-        """Catalogs a single dataset into the collection."""
+        """Catalog a single dataset into the collection."""
 
         # Create or locate the acquisition and dataset_record for
         # the dataset we are ingesting. Simultanious attempts to
@@ -209,7 +207,7 @@ class AbstractIngester(object):
                         self.collection.create_acquisition_record(dataset)
                     dataset_record = \
                         acquisition_record.create_dataset_record(dataset)
-                    break
+                break
             except psycopg2.IntegrityError:
                 tries = tries + 1
         else:
@@ -218,20 +216,31 @@ class AbstractIngester(object):
 
         # Update the dataset and remove tiles if necessary.
         if dataset_record.needs_update:
-            dataset_list = dataset_record.get_overlapping_datasets(
-                tile_class_filter=(TC_SINGLE_SCENE, TC_SUPERSEDED))
-            with self.collection.lock_datasets(dataset_list):
+            overlap_list = dataset_record.get_removal_overlaps()
+            with self.collection.lock_datasets(overlap_list):
                 with self.collection.transaction():
-                    dataset_record.update()
+                    dataset_record.remove_mosaics(overlap_list)
                     dataset_record.remove_tiles()
+                    dataset_record.update()
 
     def tile(self, dataset_record):
-        """Tiles a newly created or updated dataset."""
-        pass
+        """Create tiles a newly created or updated dataset."""
+
+        tile_list = dataset_record.make_tiles()
+
+        with self.collection.lock_datasets([self.dataset_id]):
+            with self.collection.transaction():
+                dataset_record.update_tiles(tile_list)
 
     def mosaic(self, dataset_record):
-        """Creates mosaics for a newly tiled dataset."""
-        pass
+        """Create mosaics for a newly tiled dataset."""
+
+        overlap_list = dataset_record.get_creation_overlaps()
+
+        with self.collection.lock_datasets(overlap_list):
+            with self.collection.transaction():
+                dataset_record.create_mosaics(overlap_list)
+
 
     # def ingest_transaction(self, dataset):
     #     """Ingests a single dataset into the collection.

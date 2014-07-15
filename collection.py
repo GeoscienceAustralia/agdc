@@ -235,9 +235,9 @@ class Transaction(object):
         db is the database connection to use.
         tile_remove_list is the list of tile files to remove on commit.
         tile_create_list is the list of tile contents to create on commit
-            (or cleanup on roll back).
+        (or cleanup on roll back).
         previous_commit_mode holds the previous state of the connection
-            so that it can be restored when the transaction is finished.
+        so that it can be restored when the transaction is finished.
 
         Note that tile_create_list is a list of TileContent objects,
         while tile_remove_list is a list of pathnames.
@@ -249,11 +249,14 @@ class Transaction(object):
         self.previous_commit_mode = None
 
     def __enter__(self):
-        """Auto called on transaction (with statement) entry.
+        """Auto-called on transaction (with statement) entry.
 
         Clears the tile lists and sets the commit mode (saving the old one).
         Returns 'self' so that the other methods are available via an
         'as' clause.
+
+        Note that tile_create_list is a list of TileContent objects,
+        while tile_remove_list is a list of pathnames.
         """
 
         self.tile_remove_list = []
@@ -269,7 +272,7 @@ class Transaction(object):
         in which case it rolls back the transaction. Restores the
         old commit mode to the database connection.
 
-        This (implicitly) returns None which causes any exception
+        This implicitly returns None which causes any exception
         to be re-raised.
         """
 
@@ -302,10 +305,10 @@ class Transaction(object):
         #
         # The tile remove list is filtered against the tile create list
         # to avoid removing a file that has just been re-created. It is
-        # a bad idea to overwrite a tile file in a single transaction,
-        # because it will be overwritten just before the commit (above)
-        # and the wrong file will be in place if the transaction is
-        # rolled back.
+        # a bad idea to overwrite a tile file in this way (in a single
+        # transaction), because it will be overwritten just before the
+        # commit (above) and the wrong file will be in place if the
+        # transaction is rolled back.
 
         tile_create_set = {t.tile_output_path
                            for t in self.tile_create_list}
@@ -331,7 +334,8 @@ class Transaction(object):
         but not if it is rolled back.
         """
 
-        self.tile_remove_list.append(tile_pathname)
+        if tile_pathname not in self.tile_remove_list:
+            self.tile_remove_list.append(tile_pathname)
 
     def mark_tile_for_creation(self, tile_contents):
         """Mark a tile file for creation on transaction commit.
@@ -387,21 +391,21 @@ class Lock(object):
 
         self.datacube = datacube
         # Sort the list so that locks are always acquired in the same order.
-        # This avoids mini-deadlocks and resulting retries when aquiring
+        # This avoids mini-deadlocks and resulting retries when acquiring
         # multiple locks.
         self.lock_list = sorted(lock_list)
         self.wait = wait
         self.retries = retries
 
     def __enter__(self):
-        """Auto called on 'with' statement entry.
+        """Auto-called on 'with' statement entry.
 
         This acquires the locks or raises a LockError if it cannot
         do so (after the maximum number of tries). Note that LockError
         is a subclass of DatasetError, so it will cause a dataset skip.
 
         Returns 'self' so that other methods are available via an 'as'
-        clause, though there are no interface methods at the moment.
+        clause (though there are no interface methods at the moment).
         """
 
         for dummy_tries in range(self.retries + 1):
@@ -418,7 +422,7 @@ class Lock(object):
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        """Auto called on 'with' statement exit.
+        """Auto-called on 'with' statement exit.
 
         Releases the locks whether or not there has been an
         exception. Implicitly returns None which causes any
@@ -435,14 +439,26 @@ class Lock(object):
         LockError and releases all the locks obtained so far.
         """
 
+        # Recursive algorithm.
+        #
+        # If the list is empty do nothing, otherwise ...
         if lock_list:
+            # See if we can lock the object at the head of the list ...
             if self.datacube.lock_object(lock_list[0]):
+                # If yes, then attempt to lock the rest (tail) of the list
+                # using a recursive call ...
                 try:
                     self.__acquire_locks(lock_list[1:])
                 except:
+                    # If locking the tail does not work then release the
+                    # lock we have on the head, and re-raise the exception.
                     self.datacube.unlock_object(lock_list[0])
                     raise
             else:
+                # If we cannot lock the head then raise an exception
+                # (which will cause all previous calls in the chain to
+                # release their locks and re-raise the exception, in reverse
+                # order).
                 raise LockError()
 
 #

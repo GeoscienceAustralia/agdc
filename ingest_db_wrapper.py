@@ -45,6 +45,7 @@ TC_MOSAIC = 4
 
 # pylint: disable=too-many-public-methods
 
+
 class IngestDBWrapper(dbutil.ConnectionWrapper):
     """IngestDBWrapper: low-level database commands for the ingest process.
     """
@@ -312,12 +313,14 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
 
     def dataset_older_than_database(self, dataset_id,
                                     disk_datetime_processed,
-                                    tile_class_filter=(1,)):
+                                    tile_class_filter=None):
         """Compares the datetime_processed of the dataset on disk with that on
         the database. The database time is the earliest of either the
         datetime_processed field from the dataset table or the earliest
         tile.ctime field for the dataset's tiles. Tiles considered are
-        restricted to those with tile_class_ids listed in tile_class_filter."""
+        restricted to those with tile_class_ids listed in tile_class_filter
+        if it is non-empty.
+        """
         sql_dtp = ("SELECT datetime_processed FROM dataset\n" +
                    "WHERE dataset_id = %s;")
         result = self.execute_sql_single(sql_dtp, (dataset_id,))
@@ -333,9 +336,15 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         disk_datetime_processed = utc.localize(disk_datetime_processed)
 
         sql_ctime = ("SELECT MIN(ctime) FROM tile\n" +
-                     "WHERE dataset_id = %s" +
-                     self.tile_class_filter_clause(tile_class_filter) + ";")
-        result = self.execute_sql_single(sql_ctime, (dataset_id,))
+                     "WHERE dataset_id = %(dataset_id)s\n" +
+                     ("AND tile_class_id IN %(tile_class_filter)s\n" if
+                      tile_class_filter else "") +
+                     ";"
+                     )
+        params = {'dataset_id': dataset_id,
+                  'tile_class_filter': tile_class_filter
+                  }
+        result = self.execute_sql_single(sql_ctime, params)
         min_ctime = result[0]
 
         if min_ctime is None:
@@ -428,34 +437,27 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
                "RETURNING dataset_id;")
         self.execute_sql_single(sql, dataset_dict)
 
-    def get_dataset_tile_ids(self, dataset_id, tile_class_filter=(1,)):
+    def get_dataset_tile_ids(self, dataset_id, tile_class_filter=None):
         """Returns a list of tile_ids associated with a dataset.
 
-        The tile_ids returned are restricted to those with tile_class_ids
-        that match the tile_class_filter."""
+        If tile_class_filter is not None then the tile_ids returned are
+        restricted to those with tile_class_ids that that match the
+        tile_class_filter. Otherwise all tile_ids for the dataset are
+        returned."""
 
         sql = ("SELECT tile_id FROM tile\n" +
-               "WHERE dataset_id = %s" +
-               self.tile_class_filter_clause(tile_class_filter) + ";")
-        result = self.execute_sql_multi(sql, (dataset_id,))
+               "WHERE dataset_id = %(dataset_id)s\n" +
+               ("AND tile_class_id IN %(tile_class_filter)s\n" if
+                tile_class_filter else "") +
+               "ORDER By tile_id;"
+               )
+        params = {'dataset_id': dataset_id,
+                  'tile_class_filter': tile_class_filter
+                  }
+        result = self.execute_sql_multi(sql, params)
         tile_id_list = [tup[0] for tup in result]
 
         return tile_id_list
-
-    @staticmethod
-    def tile_class_filter_clause(tile_class_filter):
-        """Returns an sql clause to filter by tile_class_ids."""
-
-        if tile_class_filter:
-            compare_list = ["    tile_class_id = %s" % tc
-                            for tc in tile_class_filter]
-            clause = (" AND (\n" +
-                      " OR\n".join(compare_list) +
-                      ")")
-        else:
-            clause = ""
-
-        return clause
 
     def get_tile_pathname(self, tile_id):
         """Returns the pathname for a tile."""
@@ -537,7 +539,6 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
                "RETURNING x_index;")
         self.execute_sql_single(sql, footprint_dict)
 
-
     def insert_tile_record(self, tile_dict):
         """Creates a new tile record in the database.
 
@@ -610,10 +611,12 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
                "    oa.acquisition_id = od.acquisition_id AND\n" +
                "    oa.satellite_id = a.satellite_id\n" +
                "WHERE\n" +
-               "    d.dataset_id = %(dataset_id)s AND\n" +
-               "    t.tile_class_id IN %(tile_class_filter)s AND\n" +
-               "    o.tile_class_id IN %(tile_class_filter)s AND\n" +
-               "    (\n" +
+               "    d.dataset_id = %(dataset_id)s\n" +
+               ("    AND t.tile_class_id IN %(tile_class_filter)s\n" if
+                tile_class_filter else "") +
+               ("    AND o.tile_class_id IN %(tile_class_filter)s\n" if
+                tile_class_filter else "") +
+               "    AND (\n" +
                "        (oa.start_datetime BETWEEN\n" +
                "         a.start_datetime - %(delta_t)s AND\n" +
                "         a.end_datetime + %(delta_t)s)\n" +
@@ -621,7 +624,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
                "        (oa.end_datetime BETWEEN\n" +
                "         a.start_datetime - %(delta_t)s AND\n" +
                "         a.end_datetime + %(delta_t)s)\n" +
-               "    );\n" +
+               "    )\n" +
                "ORDER BY od.dataset_id;")
 
         params = {'dataset_id': dataset_id,
@@ -630,6 +633,94 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
                   }
         result = self.execute_sql_multi(sql, params)
         return result
+
+    def get_overlapping_tiles_for_dataset(self,
+                                          dataset_id,
+                                          delta_t=ONE_HOUR,
+                                          input_tile_class_filter=None,
+                                          output_tile_class_filter=None,
+                                          dataset_filter=None):
+        """Return a nested dictonary for the tiles overlapping a dataset.
+
+        The top level dictonary is keyed by tile footprint (x_index, y_index,
+        tile_type_id). Each entry is a list of tile records. Each tile record
+        is a dictonary with entries for tile_id, dataset_id, tile_class,
+        tile_pathname, and ctime.
+
+        Arguments:
+            dataset_id: id of the dataset to act as the base for the query.
+                The input tiles are the ones associated with this dataset.
+            delta_t: The tolerance used to detect overlaps in time. This
+                should be a python timedelta object (from the datatime module).
+            input_tile_class_filter: A tuple of tile_class_ids to restrict
+                the input tiles. If non-empty, input tiles not matching these
+                will be ignored.
+            output_tile_class_filter: A tuple of tile_class_ids to restrict
+                the output tiles. If non-empty, output tiles not matching these
+                will be ignored.
+            dataset_filter: A tuple of dataset_ids to restrict the datasets
+                that the output tiles belong to. If non-empty, output tiles
+                not from these datasets will be ignored. Used to avoid
+                operating on tiles belonging to non-locked datasets.
+        """
+
+        sql = ("SELECT DISTINCT o.x_index, o.y_index, o.tile_type_id,\n" +
+               "    o.tile_id, o.dataset_id, o.tile_class_id,\n" +
+               "    o.tile_pathname, o.ctime\n" +
+               "FROM tile t\n" +
+               "INNER JOIN dataset d USING (dataset_id)\n" +
+               "INNER JOIN acquisition a USING (acquisition_id)\n" +
+               "INNER JOIN tile o ON\n" +
+               "    o.x_index = t.x_index AND\n" +
+               "    o.y_index = t.y_index AND\n" +
+               "    o.tile_type_id = t.tile_type_id\n" +
+               "INNER JOIN dataset od ON\n" +
+               "    od.dataset_id = o.dataset_id AND\n" +
+               "    od.level_id = d.level_id\n" +
+               "INNER JOIN acquisition oa ON\n" +
+               "    oa.acquisition_id = od.acquisition_id AND\n" +
+               "    oa.satellite_id = a.satellite_id\n" +
+               "WHERE\n" +
+               "    d.dataset_id = %(dataset_id)s\n" +
+               ("    AND od.dataset_id IN %(dataset_filter)s\n" if
+                dataset_filter else "") +
+               ("    AND t.tile_class_id IN %(input_tile_class_filter)s\n" if
+                input_tile_class_filter else "") +
+               ("    AND o.tile_class_id IN %(output_tile_class_filter)s\n" if
+                output_tile_class_filter else "") +
+               "    AND (\n" +
+               "        (oa.start_datetime BETWEEN\n" +
+               "         a.start_datetime - %(delta_t)s AND\n" +
+               "         a.end_datetime + %(delta_t)s)\n" +
+               "     OR\n" +
+               "        (oa.end_datetime BETWEEN\n" +
+               "         a.start_datetime - %(delta_t)s AND\n" +
+               "         a.end_datetime + %(delta_t)s)\n" +
+               "    )" +
+               "ORDER BY oa.start_datetime;"
+               )
+        params = {'dataset_id': dataset_id,
+                  'delta_t': delta_t,
+                  'input_tile_class_filter': input_tile_class_filter,
+                  'output_tile_class_filter': output_tile_class_filter,
+                  'dataset_filter': dataset_filter
+                  }
+        result = self.execute_sql_multi(sql, params)
+
+        overlap_dict = {}
+        for record in result:
+            tile_footprint = tuple(record[0:3])
+            tile_record = {'tile_id': record[3],
+                           'dataset_id': record[4],
+                           'tile_class_id': record[5],
+                           'tile_pathname': record[6],
+                           'ctime': record[7]
+                           }
+            if tile_footprint not in overlap_dict:
+                overlap_dict[tile_footprint] = []
+            overlap_dict[tile_footprint].append(tile_record)
+
+        return overlap_dict
 
     def get_overlapping_tiles(self, tile_dict):
         """Return tile records for a given footprint for the mosaicing process.
@@ -645,18 +736,18 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
                "select o.tile_id, o.x_index, o.y_index," + "\n" +
                "       o.tile_type_id, o.dataset_id, o.tile_pathname," + "\n" +
                "       o.tile_class_id, o.tile_size, o.ctime" + "\n" +
-               "from tile t"  + "\n" +
+               "from tile t" + "\n" +
                "inner join dataset d using(dataset_id)" + "\n" +
                "inner join acquisition a using(acquisition_id)" + "\n" +
                "inner join tile o using(x_index, y_index, tile_type_id)" +
                "\n" +
-               "inner join dataset od on"  + "\n" +
+               "inner join dataset od on" + "\n" +
                "    od.dataset_id = o.dataset_id and" + "\n" +
-               "    od.level_id = d.level_id"  + "\n" +
-               "inner join acquisition oa on"  + "\n" +
+               "    od.level_id = d.level_id" + "\n" +
+               "inner join acquisition oa on" + "\n" +
                "    oa.acquisition_id = od.acquisition_id and" + "\n" +
                "    oa.satellite_id = a.satellite_id" + "\n" +
-                "where" + "\n" +
+               "where" + "\n" +
                "t.tile_class_id = 1 and" + "\n" +
                "o.tile_class_id = 1 and" + "\n" +
                "t.tile_type_id = %(tile_type_id)s and" + "\n" +
@@ -684,6 +775,19 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         tile_class_id = result[0]
         return tile_class_id
 
+    def update_tile_class_id(self, tile_id, new_tile_class_id):
+        """Update the tile_class_id of a tile to a new value."""
+
+        sql = ("UPDATE tile\n" +
+               "SET tile_class_id = %(new_tile_class_id)s\n" +
+               "WHERE tile_id = %(tile_id)s\n" +
+               "RETURNING tile_id;"
+               )
+        params = {'tile_id': tile_id,
+                  'new_tile_class_id': new_tile_class_id
+                  }
+        self.execute_sql_single(sql, params)
+
     def update_tiles(self, id_column, columns_tup, ids_tup, values_tup):
         """For records with particular values in id_column, update the
         columns to new_values."""
@@ -700,7 +804,6 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         params = (ids_tup,)
 
         self.execute_sql_single(sql, params)
-
 
     def update_tile_record(self, mosaic_dict):
         """Update the database tile table to reflect the changes to the
