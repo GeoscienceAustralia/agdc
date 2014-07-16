@@ -5,6 +5,7 @@
 import os
 import logging
 import argparse
+import json
 from abc import ABCMeta, abstractmethod
 import psycopg2
 
@@ -171,7 +172,7 @@ class AbstractIngester(object):
 
             dataset_record = self.catalog(dataset)
 
-            self.tile(dataset_record)
+            tile_record_list = self.tile(dataset_record, dataset)
 
             self.mosaic(dataset_record)
 
@@ -189,7 +190,7 @@ class AbstractIngester(object):
         dt = dataset.get_start_datetime()
         date = dt.date() if dt is not None else None
 
-        if not self.filter(path, row, date):
+        if not self.filter_dataset(path, row, date):
             raise DatasetError('Filtered by metadata.')
 
     def catalog(self, dataset):
@@ -223,14 +224,27 @@ class AbstractIngester(object):
                     dataset_record.remove_tiles()
                     dataset_record.update()
 
-    def tile(self, dataset_record):
-        """Create tiles a newly created or updated dataset."""
+        return dataset_record
 
-        tile_list = dataset_record.make_tiles()
+    def tile(self, dataset_record, dataset):
+        """Create tiles for a newly created or updated dataset."""
 
-        with self.collection.lock_datasets([self.dataset_id]):
+        tile_list = []
+        for tile_type_id in dataset_record.list_tile_types():
+            if not self.filter_tile_type(tile_type_id):
+                continue
+
+            tile_bands = dataset_record.get_tile_bands(tile_type_id)
+            band_stack = dataset.stack_bands(tile_bands)
+            band_stack.buildvrt(self.collection.get_temp_tile_directory())
+
+            tile_list += dataset_record.make_tiles(tile_type_id, band_stack)
+
+        with self.collection.lock_datasets([dataset_record.dataset_id]):
             with self.collection.transaction():
-                dataset_record.update_tiles(tile_list)
+                tile_record_list = dataset_record.store_tiles(tile_list)
+
+        return tile_record_list
 
     def mosaic(self, dataset_record):
         """Create mosaics for a newly tiled dataset."""
@@ -379,11 +393,12 @@ class AbstractIngester(object):
         raise NotImplementedError
 
     #
-    # Dataset filter methods.
+    # Filter methods.
     #
-    # The accessor methods give access to the dataset filtering values in
-    # the config file via the datacube object. The filter function decides
-    # wheather to filter a dataset or not.
+    # The accessor methods give access to the dataset and tile type filtering
+    # values in the config file via the datacube object. The filter_dataset
+    # and function decides whether to include a dataset. The filter_tile_type
+    # function decides whether to include a tile_type.
     #
 
     # pylint: disable=maybe-no-member
@@ -449,9 +464,34 @@ class AbstractIngester(object):
 
         return (min_row, max_row)
 
+    def get_tile_type_set(self):
+        """Return the allowable tile types for an ingest as a set.
+
+        If this is not defined in the config file it will be returned as None.
+        """
+
+        try:
+            tile_types = self.datacube.tile_types
+        except AttributeError:
+            tile_types = None
+
+        if tile_types:
+            try:
+                tt_set = set(json.loads(tile_types))
+            except (TypeError, ValueError):
+                try:
+                    tt_set = set([int(tile_types)])
+                except ValueError:
+                    raise AssertionError("Unable to parse the 'tile_types' " +
+                                         "configuration file item.")
+        else:
+            tt_set = None
+
+        return tt_set
+
     # pylint: enable=maybe-no-member
 
-    def filter(self, path, row, date):
+    def filter_dataset(self, path, row, date):
         """Return True if the dataset should be included, False otherwise."""
 
         (start_date, end_date) = self.get_date_range()
@@ -466,6 +506,12 @@ class AbstractIngester(object):
                    (start_date is None or date is None or date >= start_date))
 
         return include
+
+    def filter_tile_type(self, tile_type_id):
+        """Return True if the dataset should be included, False otherwise."""
+
+        tt_set = self.get_tile_type_set()
+        return tt_set is None or tile_type_id in tt_set
 
     #
     # Log messages

@@ -177,14 +177,48 @@ class DatasetRecord(object):
         self.check_update_ok()
         self.db.update_dataset_record(self.dataset_dict)
 
-    @staticmethod
-    def make_mosaic_pathname(tile_pathname):
+    def make_tiles(self, tile_type_id, band_stack):
+        """Tile the dataset, returning a list of tile_content objects."""
+
+        tile_list = []
+        tile_footprint_list = self.get_coverage(tile_type_id)
+        for tile_footprint in tile_footprint_list:
+            tile_contents = self.collection.create_tile_contents(
+                tile_type_id,
+                tile_footprint,
+                band_stack
+                )
+            tile_contents.reproject()
+
+            if tile_contents.has_data():
+                tile_list.append(tile_contents)
+            else:
+                tile_contents.remove()
+
+        return tile_list
+
+    def store_tiles(self, tile_list):
+        """Store tiles in the database and file store.
+
+        'tile_list' is a list of tile_contents objects. This
+        method will create the corrisponding database records and
+        mark tiles for creation when the transaction commits.
+        """
+
+        tile_record_list = []
+        for tile_contents in tile_list:
+            tile_record = self.create_tile_record(tile_contents)
+            tile_record_list.append(tile_record)
+
+        return tile_record_list
+
+    def make_mosaic_pathname(self, tile_pathname):
         """Return the pathname of the mosaic corrisponding to a tile."""
 
         (tile_dir, tile_basename) = os.path.split(tile_pathname)
 
         mosaic_dir = os.path.join(tile_dir, 'mosaic_cache')
-        if re.search(r'PQA', tile_basename):
+        if self.dataset_dict['level_name'] == 'PQA':
             mosaic_basename = tile_basename
         else:
             mosaic_basename = re.sub(r'\.\w+$', '.vrt', tile_basename)
@@ -192,7 +226,7 @@ class DatasetRecord(object):
         return os.path.join(mosaic_dir, mosaic_basename)
 
     def get_removal_overlaps(self):
-        """Returns a list of overlapping dataset ids, for mosaic removal."""
+        """Returns a list of overlapping dataset ids for mosaic removal."""
 
         tile_class_filter = (TC_SINGLE_SCENE,
                              TC_SUPERSEDED,
@@ -230,7 +264,7 @@ class DatasetRecord(object):
 
         The created object will be responsible for inserting tile table records
         into the database for reprojected or mosaiced tiles."""
-        self.collection.tile_create_list.append(tile_contents)
+        self.collection.mark_tile_for_creation(tile_contents)
         return TileRecord(self.collection, self, tile_contents)
 
     def mark_as_tiled(self):
@@ -296,9 +330,9 @@ class DatasetRecord(object):
             return osr.CoordinateTransformation(dataset_spatial_reference,
                                                 tile_spatial_reference)
         except Exception:
-            raise DatasetError('Coordinate transoformation error ' +
-                               'for transforming %s to %s' +
-                               %(str(dataset_crs), str(tile_crs)))
+            raise DatasetError('Coordinate transformation error ' +
+                               'for transforming %s to %s' %
+                               (str(dataset_crs), str(tile_crs)))
 
     @staticmethod
     def create_spatial_ref(crs):

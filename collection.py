@@ -35,7 +35,7 @@ class Collection(object):
         self.datacube = datacube
         self.db = IngestDBWrapper(datacube.db_connection)
         self.new_bands = self.__reindex_bands(datacube.bands)
-        self.current_transaction = None
+        self.transaction_stack = []
 
     @staticmethod
     def get_dataset_key(dataset):
@@ -77,15 +77,15 @@ class Collection(object):
         self.__check_processing_level(dataset)
         self.__check_bands(dataset)
 
-    def transaction(self):
+    def transaction(self, db=None):
         """Returns a Transaction context manager object.
 
         This is for use in a 'with' statement. It uses the Collection's
-        database collection.
+        database collection if one is not provided.
         """
 
-        self.current_transaction = Transaction(self.db)
-        return self.current_transaction
+        return Transaction(self.db if db is None else db,
+                           self.transaction_stack)
 
     def lock_datasets(self, dataset_list):
         """Returns a Lock context manager object.
@@ -123,15 +123,20 @@ class Collection(object):
                                      tile_footprint, band_stack)
         return tile_contents
 
+    def current_transaction(self):
+        """Returns the current transaction."""
+
+        return self.transaction_stack[-1]
+
     def mark_tile_for_removal(self, tile_pathname):
         """Mark a tile file for removal on transaction commit."""
 
-        self.current_transaction.mark_tile_for_removal(tile_pathname)
+        self.current_transaction().mark_tile_for_removal(tile_pathname)
 
     def mark_tile_for_creation(self, tile_contents):
         """Mark a tile file for creation on transaction commit."""
 
-        self.current_transaction.mark_tile_for_creation(tile_contents)
+        self.current_transaction().mark_tile_for_creation(tile_contents)
 
     #
     # worker methods
@@ -229,10 +234,12 @@ class Transaction(object):
     in coordination with the transaction.
     """
 
-    def __init__(self, db):
+    def __init__(self, db, tr_stack=None):
         """Initialise the transaction.
 
         db is the database connection to use.
+        tr_stack is a stack of transactions. If not None, the last item
+            on the tr_stack should be the current transaction.
         tile_remove_list is the list of tile files to remove on commit.
         tile_create_list is the list of tile contents to create on commit
         (or cleanup on roll back).
@@ -244,6 +251,7 @@ class Transaction(object):
         """
 
         self.db = db
+        self.tr_stack = tr_stack
         self.tile_remove_list = None
         self.tile_create_list = None
         self.previous_commit_mode = None
@@ -262,6 +270,9 @@ class Transaction(object):
         self.tile_remove_list = []
         self.tile_create_list = []
         self.previous_commit_mode = self.db.turn_off_autocommit()
+
+        if self.tr_stack is not None:
+            self.tr_stack.append(self)
 
         return self
 
@@ -284,6 +295,10 @@ class Transaction(object):
         self.tile_remove_list = None
         self.tile_create_list = None
         self.db.restore_commit_mode(self.previous_commit_mode)
+
+        if self.tr_stack is not None:
+            tr = self.tr_stack.pop()
+            assert tr is self, "Unexpected value on transaction stack."
 
     def __commit(self):
         """Commit the transaction while handling tile files."""

@@ -11,11 +11,11 @@ format changes.
 
 import logging
 import os
-from ingest_db_wrapper import IngestDBWrapper
+from ingest_db_wrapper import IngestDBWrapper, TC_PENDING
 import cube_util
 from cube_util import MosaicError
 import re
-import time
+import psycopg2
 
 # Set up logger.
 LOGGER = logging.getLogger(__name__)
@@ -42,8 +42,8 @@ class TileRecord(object):
         self.tile_contents = tile_contents
         self.tile_footprint = tile_contents.tile_footprint
         self.tile_type_id = tile_contents.tile_type_id
-        #Set tile_class_id to 1 indicating non-mosaiced tile
-        self.tile_class_id = 1
+        #Set tile_class_id to pending.
+        self.tile_class_id = TC_PENDING
         #Set tile_id, determined below from database query
         self.tile_id = None
         self.db = IngestDBWrapper(self.datacube.db_connection)
@@ -61,30 +61,48 @@ class TileRecord(object):
         tile_dict['tile_size'] = \
             cube_util.get_file_size_mb(self.tile_contents
                                        .temp_tile_output_path)
-        # Update the tile_footprint entry on the datbase:
-        if not self.db.tile_footprint_exists(tile_dict):
-            footprint_dict = {'x_index': self.tile_footprint[0],
-                              'y_index': self.tile_footprint[1],
-                              'tile_type_id': self.tile_type_id,
-                              'x_min': tile_contents.tile_extents[0],
-                              'y_min': tile_contents.tile_extents[1],
-                              'x_max': tile_contents.tile_extents[2],
-                              'y_max': tile_contents.tile_extents[3],
-                              'bbox': 'Populate this within sql query?'}
-            self.db.insert_tile_footprint(footprint_dict)
-            self.collection.commit_tile_footprint()
+
+        self.update_tile_footprint()
+
         # Make the tile record entry on the database:
         self.tile_id = self.db.get_tile_id(tile_dict)
         if self.tile_id  is None:
             self.tile_id = self.db.insert_tile_record(tile_dict)
         else:
-            # If there is any existing tile corresponding to tile_dict then
-            # will have been removed by dataset_record.__remove_dataset_tiles()
-            # and its associated calls to methods in self.db.
-            assert 1 == 2, "Should not be in tiling process"
+            # If there was any existing tile corresponding to tile_dict then
+            # it should alreay have been removed.
+            raise AssertionError("Attempt to recreate an existing tile.")
         tile_dict['tile_id'] = self.tile_id
         self.mosaicing_tile_info = (None, None, None)
 
+    def update_tile_footprint(self):
+        """Update the tile footprint entry in the database"""
+
+        if not self.db.tile_footprint_exists(self.tile_dict):
+            # We may need to create a new footprint record.
+            footprint_dict = {'x_index': self.tile_footprint[0],
+                              'y_index': self.tile_footprint[1],
+                              'tile_type_id': self.tile_type_id,
+                              'x_min': self.tile_contents.tile_extents[0],
+                              'y_min': self.tile_contents.tile_extents[1],
+                              'x_max': self.tile_contents.tile_extents[2],
+                              'y_max': self.tile_contents.tile_extents[3],
+                              'bbox': 'Populate this within sql query?'}
+
+            # Create an independant database connection for this transaction.
+            my_db = IngestDBWrapper(self.datacube.create_connection())
+            try:
+                with self.collection.transaction(my_db):
+                    if not my_db.tile_footprint_exists(self.tile_dict):
+                        my_db.insert_tile_footprint(footprint_dict)
+
+            except psycopg2.IntegrityError:
+                # If we get an IntegrityError we assume the tile_footprint
+                # is already in the database, and we do not need to add it.
+                pass
+
+            finally:
+                my_db.close()
 
     def make_mosaic_db_changes(self):
         """Communicate to any other dataset transaction via the tile table when
