@@ -24,6 +24,7 @@ from ULA3.utils import execute
 
 from datacube import DataCube
 
+TILE_OWNER = 'axi547:rs0' # Owner of file files
 
 # Set top level standard output 
 console_handler = logging.StreamHandler(sys.stdout)
@@ -584,9 +585,9 @@ where tile_type_id = %(tile_type_id)s
     
                             
                             # Change permissions on any recently created files
-                            command_string = 'chmod -R 650 %s; chmod -R 777 %s' % (tile_output_dir, 
-                                                                  os.path.join(tile_output_dir, 'mosaic_cache')
-                                                                  )
+                            command_string = 'chmod -R a-wxs,u+rwX,g+rsX %s; chown -R %s %s' % (tile_output_dir,
+                                                                                                TILE_OWNER,
+                                                                                                tile_output_dir)
                             
                             result = execute(command_string=command_string)
                             
