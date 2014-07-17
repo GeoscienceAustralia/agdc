@@ -17,6 +17,7 @@ from cube_util import DatasetError
 from ingest_db_wrapper import IngestDBWrapper
 from ingest_db_wrapper import TC_PENDING, TC_SINGLE_SCENE, TC_SUPERSEDED
 from ingest_db_wrapper import TC_MOSAIC
+from mosaic_contents import MosaicContents
 from tile_record import TileRecord
 from math import floor
 
@@ -211,6 +212,56 @@ class DatasetRecord(object):
             tile_record_list.append(tile_record)
 
         return tile_record_list
+
+    def create_mosaics(self, dataset_filter):
+        """Create mosaics associated with the dataset.
+
+        'dataset_filter' is a list of dataset_ids to filter on. It should
+        be the list of dataset_ids that have been locked (including this
+        dataset). It is used to avoid operating on the tiles of an
+        unlocked dataset.
+        """
+
+        # Build a dictionary of overlaps (ignoring mosaics, including pending).
+        overlap_dict = self.db.get_overlapping_tiles_for_dataset(
+            self.dataset_id,
+            input_tile_class_filter=(TC_PENDING,
+                                     TC_SINGLE_SCENE,
+                                     TC_SUPERSEDED),
+            output_tile_class_filter=(TC_PENDING,
+                                      TC_SINGLE_SCENE,
+                                      TC_SUPERSEDED),
+            dataset_filter=dataset_filter
+            )
+
+        # Make mosaics and update tile classes as needed.
+        for tile_record_list in overlap_dict.values():
+            if len(tile_record_list) > 2:
+                raise DatasetError("Attempt to create a mosaic of three or " +
+                                   "more datasets. Handling for this case " +
+                                   "is not yet implemented.")
+            elif len(tile_record_list) == 2:
+                self.make_one_mosaic(tile_record_list)
+                for tr in tile_record_list:
+                    self.db.update_tile_class(tr['tile_id'], TC_SUPERSEDED)
+            else:
+                for tr in tile_record_list:
+                    self.db.update_tile_class(tr['tile_id'], TC_SINGLE_SCENE)
+
+    def make_one_mosaic(self, tile_record_list):
+        """Create a single mosaic.
+
+        This create the mosaic contents, creates the database record,
+        and marks the mosaic contents for creation on transaction commit.
+        """
+        mosaic = MosaicContents(
+            tile_record_list,
+            self.datacube.tile_type_dict,
+            self.dataset_dict['level_name'],
+            self.collection.get_temp_tile_directory()
+            )
+        mosaic.create_record(self.db)
+        self.collection.mark_tile_for_creation(mosaic)
 
     def make_mosaic_pathname(self, tile_pathname):
         """Return the pathname of the mosaic corrisponding to a tile."""
