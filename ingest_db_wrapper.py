@@ -664,9 +664,9 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
                 operating on tiles belonging to non-locked datasets.
         """
 
-        sql = ("SELECT DISTINCT o.x_index, o.y_index, o.tile_type_id,\n" +
-               "    o.tile_id, o.dataset_id, o.tile_class_id,\n" +
-               "    o.tile_pathname, o.ctime\n" +
+        sql = ("SELECT DISTINCT o.tile_id, o.x_index, o.y_index,\n" +
+               "    o.tile_type_id, o.dataset_id, o.tile_pathname,\n" +
+               "    o.tile_class_id, o.tile_size, o.ctime\n" +
                "FROM tile t\n" +
                "INNER JOIN dataset d USING (dataset_id)\n" +
                "INNER JOIN acquisition a USING (acquisition_id)\n" +
@@ -709,12 +709,16 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
 
         overlap_dict = {}
         for record in result:
-            tile_footprint = tuple(record[0:3])
-            tile_record = {'tile_id': record[3],
+            tile_footprint = tuple(record[1:4])
+            tile_record = {'tile_id': record[0],
+                           'x_index': record[1],
+                           'y_index': record[2],
+                           'tile_type_id': record[3],
                            'dataset_id': record[4],
-                           'tile_class_id': record[5],
-                           'tile_pathname': record[6],
-                           'ctime': record[7]
+                           'tile_pathname': record[5],
+                           'tile_class_id': record[6],
+                           'tile_size': record[7],
+                           'ctime': record[8]
                            }
             if tile_footprint not in overlap_dict:
                 overlap_dict[tile_footprint] = []

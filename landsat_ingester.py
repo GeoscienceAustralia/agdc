@@ -123,7 +123,9 @@ class LandsatIngester(AbstractIngester):
             if match:
                 (path, row, year, month, day) = map(int, match.groups())
 
-                if self.filter(path, row, datetime.date(year, month, day)):
+                if self.filter_dataset(path,
+                                       row,
+                                       datetime.date(year, month, day)):
                     new_list.append(dataset_path)
             else:
                 # Note that dataset paths that do not match the pattern
@@ -156,3 +158,5 @@ if __name__ == "__main__":
         logging.getLogger().setLevel(logging.DEBUG)
 
     ingester.ingest(ingester.args.source_dir)
+
+    ingester.collection.cleanup()

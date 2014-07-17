@@ -70,7 +70,7 @@ class TileRecord(object):
             self.tile_id = self.db.insert_tile_record(tile_dict)
         else:
             # If there was any existing tile corresponding to tile_dict then
-            # it should alreay have been removed.
+            # it should already have been removed.
             raise AssertionError("Attempt to recreate an existing tile.")
         tile_dict['tile_id'] = self.tile_id
         self.mosaicing_tile_info = (None, None, None)

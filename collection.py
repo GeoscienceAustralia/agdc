@@ -12,6 +12,8 @@ format changes.
 import logging
 import os
 import time
+import shutil
+import cube_util
 from cube_util import DatasetError
 from tile_contents import TileContents
 from acquisition_record import AcquisitionRecord
@@ -36,6 +38,21 @@ class Collection(object):
         self.db = IngestDBWrapper(datacube.db_connection)
         self.new_bands = self.__reindex_bands(datacube.bands)
         self.transaction_stack = []
+
+        self.temp_tile_directory = os.path.join(self.datacube.tile_root,
+                                                'ingest_temp',
+                                                self.datacube.process_id)
+        cube_util.create_directory(self.temp_tile_directory)
+
+    def cleanup(self):
+        """Do end-of-process cleanup.
+
+        Deletes the process-specific temporary dirctory. Does not
+        close the database connection (at present), because the datacube
+        object has a destructor which does that.
+        """
+
+        shutil.rmtree(self.temp_tile_directory, ignore_errors=True)
 
     @staticmethod
     def get_dataset_key(dataset):
@@ -63,7 +80,7 @@ class Collection(object):
     def get_temp_tile_directory(self):
         """Return a path to a directory for temporary tile related files."""
 
-        return os.path.join(self.datacube.tile_root, 'ingest_temp')
+        return self.temp_tile_directory
 
     def check_metadata(self, dataset):
         """Check that the satellite, sensor, and bands are in the database.

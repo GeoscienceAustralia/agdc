@@ -14,6 +14,11 @@ from abc import ABCMeta, abstractmethod
 class AbstractBandstack(object):
     """
     Abstract base class for band stack classes.
+
+    The bandstack allows for the construction of a list, or stack, of
+    bands from the given dataset. The band_dict is a data structure, (for
+    example, a nested dictionary in the case of Landsat), which contains
+    the information for each source band.
     """
 
     __metaclass__ = ABCMeta
@@ -27,13 +32,7 @@ class AbstractBandstack(object):
     # tile file associated with the tile database entry.
     #
 
-    def __init__(self, dataset, band_dict):
-        """The bandstack allows for the construction of a list, or stack, of
-        bands from the given dataset. The band_dict is a data structure, (for
-        example, a nested dictionary in the case of Landsat), which contains
-        the information for each source band."""
-        raise NotImplementedError
-
+    @abstractmethod
     def buildvrt(self, temporary_directory):
         """This creates a virtual raster transform (VRT), which is a reference
         to the files containing the dataset's source bands. The VRT file is
@@ -42,22 +41,19 @@ class AbstractBandstack(object):
         datacube's coordinate reference system."""
         raise NotImplementedError
 
+    @abstractmethod
     def list_source_files(self):
         """Given the dictionary of band source information, form a list
         of scene file names from which a VRT can be constructed. Also return a
         list of nodata values for use by add_metadata."""
         raise NotImplementedError
 
-    def list_source_files(self):
-        """Given the dictionary of band source information, form a list
-        of scene file names from which a VRT can be constructed. Also return a
-        list of nodata values for use by add_metadata"""
-        raise NotImplementedError
-
+    @abstractmethod
     def get_vrt_name(self, vrt_dir):
         """Use the dataset's metadata to form the vrt file name"""
         raise NotImplementedError
 
+    @abstractmethod
     def add_metadata(self, vrt_filename):
         """Add metadata to the VRT."""
         raise NotImplementedError
