@@ -189,3 +189,8 @@ class TileContents(object):
 
         cube_util.create_directory(os.path.dirname(self.tile_output_path))
         shutil.move(self.temp_tile_output_path, self.tile_output_path)
+
+    def get_output_path(self):
+        """Return the final location for the tile."""
+
+        return self.tile_output_path

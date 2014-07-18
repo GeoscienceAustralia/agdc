@@ -91,6 +91,11 @@ class MosaicContents(object):
 
         shutil.move(self.mosaic_temp_path, self.mosaic_final_path)
 
+    def get_output_path(self):
+        """Return the final location for the mosaic."""
+
+        return self.mosaic_final_path
+
     def create_record(self, db):
         """Create a record for the mosaic in the database."""
 

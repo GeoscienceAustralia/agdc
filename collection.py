@@ -342,7 +342,7 @@ class Transaction(object):
         # commit (above) and the wrong file will be in place if the
         # transaction is rolled back.
 
-        tile_create_set = {t.tile_output_path
+        tile_create_set = {t.get_output_path()
                            for t in self.tile_create_list}
         for tile_pathname in self.tile_remove_list:
             if tile_pathname not in tile_create_set:

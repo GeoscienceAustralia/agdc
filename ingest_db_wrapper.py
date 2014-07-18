@@ -25,7 +25,7 @@ import pytz
 
 # Set up logger.
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.DEBUG)
+LOGGER.setLevel(logging.INFO)
 
 #
 # Module level constants
@@ -342,7 +342,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
                      ";"
                      )
         params = {'dataset_id': dataset_id,
-                  'tile_class_filter': tile_class_filter
+                  'tile_class_filter': tuple(tile_class_filter)
                   }
         result = self.execute_sql_single(sql_ctime, params)
         min_ctime = result[0]
@@ -452,7 +452,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
                "ORDER By tile_id;"
                )
         params = {'dataset_id': dataset_id,
-                  'tile_class_filter': tile_class_filter
+                  'tile_class_filter': tuple(tile_class_filter)
                   }
         result = self.execute_sql_multi(sql, params)
         tile_id_list = [tup[0] for tup in result]
@@ -629,10 +629,11 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
 
         params = {'dataset_id': dataset_id,
                   'delta_t': delta_t,
-                  'tile_class_filter': tile_class_filter
+                  'tile_class_filter': tuple(tile_class_filter)
                   }
         result = self.execute_sql_multi(sql, params)
-        return result
+        dataset_id_list = [tup[0] for tup in result]
+        return dataset_id_list
 
     def get_overlapping_tiles_for_dataset(self,
                                           dataset_id,
@@ -666,7 +667,8 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
 
         sql = ("SELECT DISTINCT o.tile_id, o.x_index, o.y_index,\n" +
                "    o.tile_type_id, o.dataset_id, o.tile_pathname,\n" +
-               "    o.tile_class_id, o.tile_size, o.ctime\n" +
+               "    o.tile_class_id, o.tile_size, o.ctime,\n" +
+               "    oa.start_datetime\n" +
                "FROM tile t\n" +
                "INNER JOIN dataset d USING (dataset_id)\n" +
                "INNER JOIN acquisition a USING (acquisition_id)\n" +
@@ -696,14 +698,14 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
                "        (oa.end_datetime BETWEEN\n" +
                "         a.start_datetime - %(delta_t)s AND\n" +
                "         a.end_datetime + %(delta_t)s)\n" +
-               "    )" +
+               "    )\n" +
                "ORDER BY oa.start_datetime;"
                )
         params = {'dataset_id': dataset_id,
                   'delta_t': delta_t,
-                  'input_tile_class_filter': input_tile_class_filter,
-                  'output_tile_class_filter': output_tile_class_filter,
-                  'dataset_filter': dataset_filter
+                  'input_tile_class_filter': tuple(input_tile_class_filter),
+                  'output_tile_class_filter': tuple(output_tile_class_filter),
+                  'dataset_filter': tuple(dataset_filter)
                   }
         result = self.execute_sql_multi(sql, params)
 
