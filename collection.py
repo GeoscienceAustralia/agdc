@@ -497,6 +497,7 @@ class Lock(object):
 # Exceptions
 #
 
+
 class LockError(DatasetError):
     """Exception class used by the Lock context manager."""
     pass

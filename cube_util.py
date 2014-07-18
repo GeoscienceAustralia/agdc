@@ -261,6 +261,8 @@ def execute(command_string=None, shell=True, cwd=None, env=None,
     return result
 
 # pylint: enable = too-many-arguments, too-many-locals
+
+
 def get_file_size_mb(path):
     """Gets the size of a file (megabytes).
 
@@ -275,6 +277,7 @@ def get_file_size_mb(path):
     """
     return os.path.getsize(path) / (1024*1024)
 
+
 def create_directory(dirname):
     """Create dirname, including any intermediate directories necessary to
     create the leaf directory."""
@@ -284,10 +287,11 @@ def create_directory(dirname):
         os.makedirs(dirname)
     except OSError, e:
         if e.errno != errno.EEXIST:
-            raise DatasetError('Directory %s could not be created' %dirname)
+            raise DatasetError('Directory %s could not be created' % dirname)
     finally:
         # Put back the old umask
         os.umask(old_umask)
+
 
 def synchronize(sync_time):
     """Pause the execution until sync_time, where sync_time is the seconds
@@ -299,10 +303,10 @@ def synchronize(sync_time):
     while time.time() < float_sync_time:
         continue
 
-
 #
 # Utility classes
 #
+
 
 class Stopwatch(object):
     """Timer for simple performance measurements."""
@@ -358,15 +362,6 @@ class DatasetError(Exception):
     """
     A problem specific to a dataset. If raised it will cause the
     current dataset to be skipped, but the ingest process will continue.
-    """
-
-    pass
-
-class MosaicError(Exception):
-    """
-    A problem specific to a the mosaicking process. If raised it will cause the
-    mosaicing process to skip for the given dataset. Note: the acquisition,
-    dataset and tile records will still persist.
     """
 
     pass

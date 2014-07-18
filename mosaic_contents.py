@@ -27,11 +27,12 @@ LOGGER.setLevel(logging.INFO)
 # Constants for PQA mosaic formation:
 #
 
-PQA_CONTIGUITY = 256 # contiguity = bit 8
+PQA_CONTIGUITY = 256  # contiguity = bit 8
 
 #
 # Classes
 #
+
 
 class MosaicContents(object):
     """MosaicContents database interface class.
@@ -228,5 +229,5 @@ class MosaicContents(object):
 
         if result['returncode'] != 0:
             raise DatasetError('Unable to perform gdalbuildvrt: ' +
-                               '"%s" failed: %s'\
+                               '"%s" failed: %s'
                                % (gdalbuildvrt_cmd, result['stderr']))

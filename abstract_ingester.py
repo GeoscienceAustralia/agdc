@@ -56,7 +56,7 @@ class AbstractIngester(object):
     # Constants
     #
 
-    CATALOG_MAX_TRIES = 3 # Max number of attempts for the catalog transaction.
+    CATALOG_MAX_TRIES = 3  # Max no. of attempts for the catalog transaction.
 
     #
     # Constructor

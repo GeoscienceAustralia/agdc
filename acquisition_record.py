@@ -47,7 +47,7 @@ class AcquisitionRecord(object):
         self.datacube = collection.datacube
         self.db = IngestDBWrapper(self.datacube.db_connection)
         self.acquisition_dict = {}
-        self.acquisiton_id = None # set below
+        self.acquisiton_id = None  # set below
 
         # Fill a dictonary with data for the acquisition.
         # Start with fields from the dataset metadata.

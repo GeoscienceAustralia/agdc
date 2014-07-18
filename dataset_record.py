@@ -76,22 +76,10 @@ class DatasetRecord(object):
             self.needs_update = False
         else:
             # check that the old dataset record can be updated
-            self.check_update_ok()
+            self.__check_update_ok()
             self.needs_update = True
 
         self.dataset_id = self.dataset_dict['dataset_id']
-
-    def check_update_ok(self):
-        """Checks if an update is possible, raises a DatasetError otherwise."""
-
-        tile_class_filter = (TC_SINGLE_SCENE,
-                             TC_SUPERSEDED)
-        if self.db.dataset_older_than_database(
-                self.dataset_id,
-                self.dataset_dict['datetime_processed'],
-                tile_class_filter):
-            raise DatasetError("Dataset to be ingested is older than " +
-                               "the version in the database.")
 
     def remove_mosaics(self, dataset_filter):
         """Remove mosaics associated with the dataset.
@@ -148,7 +136,7 @@ class DatasetRecord(object):
                 # based on.
                 tr = tile_record_list[0]
                 mosaic_pathname = \
-                    self.make_mosaic_pathname(tr['tile_pathname'])
+                    self.__make_mosaic_pathname(tr['tile_pathname'])
                 if os.path.isfile(mosaic_pathname):
                     self.collection.mark_tile_for_removal(mosaic_pathname)
 
@@ -175,7 +163,7 @@ class DatasetRecord(object):
         the record in the database. If not it raises a dataset error.
         """
 
-        self.check_update_ok()
+        self.__check_update_ok()
         self.db.update_dataset_record(self.dataset_dict)
 
     def make_tiles(self, tile_type_id, band_stack):
@@ -241,40 +229,12 @@ class DatasetRecord(object):
                                    "more datasets. Handling for this case " +
                                    "is not yet implemented.")
             elif len(tile_record_list) == 2:
-                self.make_one_mosaic(tile_record_list)
+                self.__make_one_mosaic(tile_record_list)
                 for tr in tile_record_list:
                     self.db.update_tile_class(tr['tile_id'], TC_SUPERSEDED)
             else:
                 for tr in tile_record_list:
                     self.db.update_tile_class(tr['tile_id'], TC_SINGLE_SCENE)
-
-    def make_one_mosaic(self, tile_record_list):
-        """Create a single mosaic.
-
-        This create the mosaic contents, creates the database record,
-        and marks the mosaic contents for creation on transaction commit.
-        """
-        mosaic = MosaicContents(
-            tile_record_list,
-            self.datacube.tile_type_dict,
-            self.dataset_dict['level_name'],
-            self.collection.get_temp_tile_directory()
-            )
-        mosaic.create_record(self.db)
-        self.collection.mark_tile_for_creation(mosaic)
-
-    def make_mosaic_pathname(self, tile_pathname):
-        """Return the pathname of the mosaic corrisponding to a tile."""
-
-        (tile_dir, tile_basename) = os.path.split(tile_pathname)
-
-        mosaic_dir = os.path.join(tile_dir, 'mosaic_cache')
-        if self.dataset_dict['level_name'] == 'PQA':
-            mosaic_basename = tile_basename
-        else:
-            mosaic_basename = re.sub(r'\.\w+$', '.vrt', tile_basename)
-
-        return os.path.join(mosaic_dir, mosaic_basename)
 
     def get_removal_overlaps(self):
         """Returns a list of overlapping dataset ids for mosaic removal."""
@@ -364,6 +324,56 @@ class DatasetRecord(object):
         coverage = self.get_touched_tiles(dataset_bbox,
                                           cube_origin, cube_tile_size)
         return coverage
+
+    #
+    # worker methods
+    #
+
+    def __check_update_ok(self):
+        """Checks if an update is possible, raises a DatasetError otherwise."""
+
+        tile_class_filter = (TC_SINGLE_SCENE,
+                             TC_SUPERSEDED)
+        if self.db.dataset_older_than_database(
+                self.dataset_id,
+                self.dataset_dict['datetime_processed'],
+                tile_class_filter):
+            raise DatasetError("Dataset to be ingested is older than " +
+                               "the version in the database.")
+
+    def __make_one_mosaic(self, tile_record_list):
+        """Create a single mosaic.
+
+        This create the mosaic contents, creates the database record,
+        and marks the mosaic contents for creation on transaction commit.
+        """
+        mosaic = MosaicContents(
+            tile_record_list,
+            self.datacube.tile_type_dict,
+            self.dataset_dict['level_name'],
+            self.collection.get_temp_tile_directory()
+            )
+        mosaic.create_record(self.db)
+        self.collection.mark_tile_for_creation(mosaic)
+
+    def __make_mosaic_pathname(self, tile_pathname):
+        """Return the pathname of the mosaic corrisponding to a tile."""
+
+        (tile_dir, tile_basename) = os.path.split(tile_pathname)
+
+        mosaic_dir = os.path.join(tile_dir, 'mosaic_cache')
+        if self.dataset_dict['level_name'] == 'PQA':
+            mosaic_basename = tile_basename
+        else:
+            mosaic_basename = re.sub(r'\.\w+$', '.vrt', tile_basename)
+
+        return os.path.join(mosaic_dir, mosaic_basename)
+
+#
+# Worker methods for coverage.
+#
+# These are public so that they can be called by test_dataset_record.
+#
 
     def define_transformation(self, dataset_crs, tile_crs):
         """Return the transformation between dataset_crs
