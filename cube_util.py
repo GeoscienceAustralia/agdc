@@ -41,69 +41,6 @@ def get_datacube_root():
     return datacube_root
 
 
-def execute_python(command_string, command_dir=None, working_dir=None):
-    """Execute a python command as if from the command line.
-
-    This runs a python script in a subprocess.
-
-    Arguments:
-        command_string: A string holding the command, eg
-            'landsat_ingester.py --source /g/data1/some_test_dir --debug'
-
-        command_dir: The directory containing the script to execute. The
-            default is datacube_root as obtained by get_datacube_root()
-            above. This will not be used if the name of the script seems
-            to be an absolute path, otherwise it will be used as a prefix
-            to the command name.
-
-        working_dir: The working directory for the command. This can be
-            relative (to the current directory) or absolute. The current
-            directory will be restored after the command has been executed.
-            The default is the current directory.
-
-    Return Value:
-        Returns a dictionary as follows:
-            { 'command': <str>,
-              'command_list': <list>,
-              'returncode': <int>,
-              'stdout': <stdout text>,
-              'stderr': <stderr text>,
-              'elapsed_time': <time in seconds>,
-              'cpu_time': <time in seconds>
-              }
-
-    """
-
-    command_list = command_string.split()
-    if command_dir is None:
-        command_dir = get_datacube_root()
-    if not os.path.isabs(command_list[0]):
-        command_list[0] = os.path.join(command_dir, command_list[0])
-    command_list = ['python'] + command_list
-
-    new_wd = working_dir if working_dir is not None else os.getcwd()
-
-    result = {}
-    result['command'] = command_string
-    result['command_list'] = command_list
-
-    sw = Stopwatch()
-
-    sw.start()
-    p = subprocess.Popen(command_list,
-                         cwd=new_wd,
-                         stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE
-                         )
-    sw.stop()
-
-    (result['stdout'], result['stderr']) = p.communicate()
-    result['returncode'] = p.returncode
-    (result['elapsed_time'], result['cpu_time']) = sw.read()
-
-    return result
-
-
 def parse_date_from_string(date_string):
     """Attempt to parse a date from a command line or config file argument.
 
@@ -286,7 +223,7 @@ def create_directory(dirname):
     try:
         os.makedirs(dirname)
     except OSError, e:
-        if e.errno != errno.EEXIST:
+        if e.errno != errno.EEXIST or not os.path.isdir(dirname):
             raise DatasetError('Directory %s could not be created' % dirname)
     finally:
         # Put back the old umask

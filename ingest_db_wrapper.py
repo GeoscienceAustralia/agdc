@@ -513,7 +513,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
 
         TODO: describe how bbox generated.
         """
-        #TODO Use Alex's code in email to generate bbox
+        # TODO Use Alex's code in email to generate bbox
         # Columns to be updated
         column_list = ['x_index',
                        'y_index',
