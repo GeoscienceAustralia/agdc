@@ -480,8 +480,8 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
 
         Returns a tile_id if a record metching the key fields in
         tile_dict is found, None otherwise. The key fields are:
-            dataset_id, x_index and y_index.
-        The tile_dict must contain values for both of these."""
+        dataset_id, x_index, y_index, and tile_type_id.
+        The tile_dict must contain values for all of these."""
 
         sql = ("SELECT tile_id FROM tile\n" +
                "WHERE dataset_id = %(dataset_id)s AND\n" +
@@ -496,8 +496,8 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         """Check the tile footprint table for an existing entry.
 
         The table is checked for existing entry with combination
-        (x_index, y_index, tile_type_id). Returns True if such an entry exists
-        and False otherwise.
+        (x_index, y_index, tile_type_id). Returns True if such an entry
+        exists and False otherwise.
         """
 
         sql = ("SELECT 1 FROM tile_footprint\n" +

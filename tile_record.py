@@ -65,7 +65,7 @@ class TileRecord(object):
 
         # Make the tile record entry on the database:
         self.tile_id = self.db.get_tile_id(tile_dict)
-        if self.tile_id  is None:
+        if self.tile_id is None:
             self.tile_id = self.db.insert_tile_record(tile_dict)
         else:
             # If there was any existing tile corresponding to tile_dict then
