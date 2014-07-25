@@ -99,7 +99,7 @@ class DatasetRecord(object):
             input_tile_class_filter=(TC_SINGLE_SCENE,
                                      TC_SUPERSEDED,
                                      TC_MOSAIC),
-            output_tile_class_filter=(TC_MOSAIC),
+            output_tile_class_filter=(TC_MOSAIC,),
             dataset_filter=dataset_filter
             )
 
@@ -335,7 +335,7 @@ class DatasetRecord(object):
         tile_class_filter = (TC_SINGLE_SCENE,
                              TC_SUPERSEDED)
         if self.db.dataset_older_than_database(
-                self.dataset_id,
+                self.dataset_dict['dataset_id'],
                 self.dataset_dict['datetime_processed'],
                 tile_class_filter):
             raise DatasetError("Dataset to be ingested is older than " +
