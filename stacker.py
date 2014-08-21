@@ -852,7 +852,7 @@ order by
     
         log_multiline(logger.debug, stack_info_dict, 'stack_info_dict', '\t')
         
-        static_info_dict = self.get_static_info(level_name='DSM')
+        static_info_dict = self.get_static_info(level_name=None) # Get info for all static data
         log_multiline(logger.debug, static_info_dict, 'static_info_dict', '\t')
         
         processing_levels = sorted(stack_info_dict.keys())
@@ -1154,7 +1154,7 @@ if __name__ == '__main__':
                                          row=stacker.row, 
                                          tile_type_id=None,
                                          create_band_stacks=True,
-                                         disregard_incomplete_data=True)
+                                         disregard_incomplete_data=False)
     
     log_multiline(logger.debug, stack_info_dict, 'stack_info_dict', '\t')
     logger.info('Finished creating %d temporal stack files in %s.', len(stack_info_dict), stacker.output_dir)

@@ -450,7 +450,7 @@ where not exists
   (select dataset_id
   from dataset
   where dataset_path = %(dataset_path)s
-  )
+  );
 
 select dataset_id 
 from dataset

@@ -377,6 +377,16 @@ where tile_type_id = %(tile_type_id)s
                                          os.path.basename(dataset_info['fc_dataset_path'])
                                          )
                 
+                tile_has_data = get_tile_has_data(tile_index_range)             
+
+                any_tile_has_data = False
+                for value in tile_has_data.values():
+                    any_tile_has_data |= value
+
+                if not any_tile_has_data:
+                    logger.info('No valid PQ tiles found - skipping tile creation for %s', dataset_info['fc_dataset_path'])
+                    return result
+                
                 #TODO: Apply lock on path/row instead of on dataset to try to force the same node to process the full depth
                 if not self.lock_object(work_directory):
                     logger.info('Already processing %s - skipping', dataset_info['fc_dataset_path'])
@@ -386,8 +396,6 @@ where tile_type_id = %(tile_type_id)s
                     shutil.rmtree(work_directory)
                 
                 self.create_directory(work_directory)
-                
-                tile_has_data = get_tile_has_data(tile_index_range)             
                 
                 for processing_level in ['FC']:
                     vrt_band_info_list = [vrt_band_info for vrt_band_info in vrt_band_list if vrt_band_info['processing_level'] == processing_level]
