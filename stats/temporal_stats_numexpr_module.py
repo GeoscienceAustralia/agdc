@@ -258,6 +258,11 @@ def temporal_stats(array, no_data=None, as_bip=False):
 
     # assuming a 3D array, [bands,rows,cols]
     dims  = array.shape
+
+    if len(dims) != 3:
+        raise Exception('Error. Array dimensions must be 3D, not %i' %len(dims))
+
+    # define what each dimension represents
     bands = dims[0]
     cols  = dims[2]
     rows  = dims[1]
@@ -477,7 +482,7 @@ def get_pixel_provenance(input_dataset, output_dataset, median_index_layer=11, d
     def seconds_since_epoch(dt):
         return (dt - datetime.utcfromtimestamp(0)).total_seconds()
         
-    satellite_id_lookup = {'LS5': 5, 'LS7': 7}   
+    satellite_id_lookup = {'LS5': 5, 'LS7': 7, 'LS8': 8}   
     
     median_index_array = output_dataset.GetRasterBand(median_index_layer).ReadAsArray()
         

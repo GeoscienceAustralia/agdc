@@ -11,6 +11,7 @@ import ConfigParser
 import logging
 import errno
 import psycopg2
+import socket
 
 from ULA3.utils import execute
 from ULA3.utils import log_multiline
@@ -69,7 +70,8 @@ class DataCube(object):
             default=False, action='store_const', const=True,
             help='Debug mode flag')
     
-        return _arg_parser.parse_args()
+        args, unknown_args = _arg_parser.parse_known_args()
+        return args
     
     def create_connection(self, autocommit=True):
         db_connection = psycopg2.connect(host=self.host, 
@@ -82,6 +84,46 @@ class DataCube(object):
             db_connection.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 
         return db_connection
+    
+    def get_intersecting_tiles(self, geometry_wkt, geometry_srid=4326):
+        """
+        Function to return all tile_footprint indexes that intersect the specified geometry.
+        Arguments: 
+            geometry_wkt - A Well Known Text geometry specification
+            geometry_srid - The spatial reference system ID (EPSG code) that geometry_wkt uses. Defaults to 4326
+        Returns:
+            A list of tuples in the form (x_index, y_index, tile_type_id)
+            x_index - Integer x-index
+            y_index - Integer y-index
+            tile_type_id - Integer tile type ID
+        """
+        db_cursor2 = self.db_connection.cursor()
+        
+        sql = """-- Find the tile_footprints that intersect geometry_wkt
+        select
+          x_index,
+          y_index,
+          tile_type_id
+        from
+          tile_footprint
+        where
+          bbox && ST_GeomFromText(%(geometry_wkt)s, %(geometry_srid)s)
+        order by
+          x_index,
+          y_index
+        """
+        
+        params = {'geometry_wkt' : geometry_wkt, 'geometry_srid' : geometry_srid}
+        
+        log_multiline(logger.debug, db_cursor2.mogrify(sql, params), 'SQL', '\t')
+        db_cursor2.execute(sql, params)
+        
+        resultArray = []
+        for record in db_cursor2:
+            assert record, 'No data found for this tile and temporal range'
+            resultArray.append((record[0], record[1], record[2]))
+            
+        return resultArray
     
     def get_tile_ordinates(self, point_x, point_y, point_date, 
                       processing_level='NBAR', satellite=None, tile_type_id=1):
@@ -139,7 +181,7 @@ where tile_type_id = %(tile_type_id)s
     def __init__(self):
         self.db_connection = None
         
-        self.process_id = os.getenv('PBS_O_HOST', os.getenv('HOSTNAME')) + ':' + os.getenv('PBS_JOBID', str(os.getpid()))
+        self.process_id = os.getenv('PBS_O_HOST', socket.gethostname()) + ':' + os.getenv('PBS_JOBID', str(os.getpid()))
         def open_config(config_file):
             assert os.path.exists(config_file), config_file + " does not exist"
             
@@ -203,8 +245,8 @@ select
   file_extension,
   format_options,
   tile_directory,
-  1.0 / x_pixels as x_pixel_size,
-  1.0 / y_pixels as y_pixel_size
+  x_size / x_pixels as x_pixel_size,
+  y_size / y_pixels as y_pixel_size
 from tile_type
 """ 
         log_multiline(logger.debug, sql, 'SQL', '\t')

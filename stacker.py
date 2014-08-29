@@ -97,7 +97,8 @@ class Stacker(DataCube):
             required=False, default=None,
             help='Specify an output suffix for the physically generated file. Is only applied when -of <FORMAT> is set.')
     
-        return _arg_parser.parse_args()
+        args, unknown_args = _arg_parser.parse_known_args()
+        return args
         
     def __init__(self, source_datacube=None, default_tile_type_id=1):
         """Constructor
@@ -332,7 +333,7 @@ class Stacker(DataCube):
                                                     1, gdal_dtype,
                                                     tile_type_info['format_options'].split(','),
                                                     )
-                assert mosaic_dataset, 'Unable to open output dataset %s'% mosaic_dataset
+                assert mosaic_dataset, 'Unable to open output dataset %s'% output_dataset
 
                 mosaic_dataset.SetGeoTransform(template_dataset.GetGeoTransform())
                 mosaic_dataset.SetProjection(template_dataset.GetProjection())
@@ -501,7 +502,7 @@ inner join tile nbar_tile using (x_index, y_index, tile_type_id)
 inner join tile pqa_tile using (x_index, y_index, tile_type_id)"""
         sql += """
 where tile_type_id = %(tile_type_id)s
-  and (t.tile_class_id = 1 or t.tile_class_id = 3) -- Select only valid, non-mosaic source tiles"""
+  and (t.tile_class_id = 1 or t.tile_class_id = 3) -- Select only valid tiles or overlap source tiles"""
         if disregard_incomplete_data:
             sql += """
   and l1t_dataset.level_id = 1
