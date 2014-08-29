@@ -17,12 +17,14 @@ from math import floor,ceil
 from datetime import datetime
 from copy import copy
 import time
+import string
     
 from ULA3.utils import log_multiline
 from ULA3.utils import execute
 
 from datacube import DataCube
 
+TILE_OWNER = 'axi547:rs0' # Owner of file files
 
 # Set top level standard output 
 console_handler = logging.StreamHandler(sys.stdout)
@@ -375,6 +377,16 @@ where tile_type_id = %(tile_type_id)s
                                          os.path.basename(dataset_info['fc_dataset_path'])
                                          )
                 
+                tile_has_data = get_tile_has_data(tile_index_range)             
+
+                any_tile_has_data = False
+                for value in tile_has_data.values():
+                    any_tile_has_data |= value
+
+                if not any_tile_has_data:
+                    logger.info('No valid PQ tiles found - skipping tile creation for %s', dataset_info['fc_dataset_path'])
+                    return result
+                
                 #TODO: Apply lock on path/row instead of on dataset to try to force the same node to process the full depth
                 if not self.lock_object(work_directory):
                     logger.info('Already processing %s - skipping', dataset_info['fc_dataset_path'])
@@ -384,8 +396,6 @@ where tile_type_id = %(tile_type_id)s
                     shutil.rmtree(work_directory)
                 
                 self.create_directory(work_directory)
-                
-                tile_has_data = get_tile_has_data(tile_index_range)             
                 
                 for processing_level in ['FC']:
                     vrt_band_info_list = [vrt_band_info for vrt_band_info in vrt_band_list if vrt_band_info['processing_level'] == processing_level]
@@ -510,14 +520,41 @@ where tile_type_id = %(tile_type_id)s
              
                                 logger.debug('command_string = %s', command_string)
                                 
-                                result = execute(command_string=command_string)
-                                
-                                if result['stdout']:
-                                    log_multiline(logger.info, result['stdout'], 'stdout from ' + command_string, '\t') 
-                            
-                                if result['returncode']:
-                                    log_multiline(logger.error, result['stderr'], 'stderr from ' + command_string, '\t')
-                                    raise Exception('%s failed', command_string) 
+                                retry=True
+                                while retry:
+                                    result = execute(command_string=command_string)
+
+                                    if result['stdout']:
+                                        log_multiline(logger.info, result['stdout'], 'stdout from ' + command_string, '\t')
+
+                                    if result['returncode']: # Return code is non-zero
+                                        log_multiline(logger.error, result['stderr'], 'stderr from ' + command_string, '\t')
+
+                                        # Work-around for gdalwarp error writing LZW-compressed GeoTIFFs 
+                                        if (string.find(result['stderr'], 'LZW') > -1 # LZW-related error
+                                            and tile_type_info['file_format'] == 'GTiff' # Output format is GeoTIFF
+                                            and string.find(tile_type_info['format_options'], 'COMPRESS=LZW') > -1): # LZW compression requested
+                                            
+                                            temp_tile_path = os.path.join(os.path.dirname(vrt_band_stack_filename), 
+                                                                          os.path.basename(tile_output_path))
+
+                                            # Write uncompressed tile to a temporary path
+                                            command_string = string.replace(command_string, 'COMPRESS=LZW', 'COMPRESS=NONE')
+                                            command_string = string.replace(command_string, tile_output_path, temp_tile_path)
+                                            
+                                            # Translate temporary uncompressed tile to final compressed tile
+                                            command_string += '; gdal_translate -of GTiff'
+                                            if tile_type_info['format_options']:
+                                                for format_option in tile_type_info['format_options'].split(','):
+                                                    command_string += ' -co %s' % format_option
+                                            command_string += ' %s %s' % (
+                                                                          temp_tile_path,
+                                                                          tile_output_path
+                                                                          )
+                                        else:
+                                            raise Exception('%s failed', command_string)
+                                    else:
+                                        retry = False # No retry on success
                                 
                                 # Set tile metadata
                                 tile_dataset = gdal.Open(tile_output_path)
@@ -556,9 +593,9 @@ where tile_type_id = %(tile_type_id)s
     
                             
                             # Change permissions on any recently created files
-                            command_string = 'chmod -R 775 %s; chmod -R 777 %s' % (tile_output_dir, 
-                                                                  os.path.join(tile_output_dir, 'mosaic_cache')
-                                                                  )
+                            command_string = 'chmod -R a-wxs,u+rwX,g+rsX %s; chown -R %s %s' % (tile_output_dir,
+                                                                                                TILE_OWNER,
+                                                                                                tile_output_dir)
                             
                             result = execute(command_string=command_string)
                             
