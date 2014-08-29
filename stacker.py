@@ -852,7 +852,7 @@ order by
     
         log_multiline(logger.debug, stack_info_dict, 'stack_info_dict', '\t')
         
-        static_info_dict = self.get_static_info(level_name=None) # Get info for all static data
+        static_info_dict = self.get_static_info(level_name=None, x_index=x_index, y_index=y_index) # Get info for all static data
         log_multiline(logger.debug, static_info_dict, 'static_info_dict', '\t')
         
         processing_levels = sorted(stack_info_dict.keys())
