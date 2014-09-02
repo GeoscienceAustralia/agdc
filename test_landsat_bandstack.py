@@ -36,7 +36,7 @@ import os
 import logging
 import unittest
 import dbutil
-import cube_util
+from EOtools import execute
 from landsat_dataset import LandsatDataset
 from abstract_ingester import AbstractIngester
 from abstract_ingester import IngesterDataCube
@@ -204,7 +204,7 @@ class TestLandsatBandstack(unittest.TestCase):
                     "%s" %vrt_benchmark,
                     "%s" %ls_bandstack.vrt_name
                     ]
-        result = cube_util.execute(diff_cmd, shell=False)
+        result = execute(diff_cmd, shell=False)
         if result['stdout'] != '':
             self.fail("Differences between vrt files:\n" + result['stdout'])
         if result['stderr'] != '':

@@ -43,6 +43,7 @@ import logging
 import os
 import re
 import cube_util
+from EOtools import execute
 from cube_util import DatasetError
 from osgeo import gdal
 import numpy as np
@@ -167,7 +168,7 @@ class TileContents(object):
                               "%s" % self.band_stack.vrt_name,
                               "%s" % self.temp_tile_output_path
                               ])
-        result = cube_util.execute(reproject_cmd, shell=False)
+        result = execute(reproject_cmd, shell=False)
         if result['returncode'] != 0:
             raise DatasetError('Unable to perform gdalwarp: ' +
                                '"%s" failed: %s' % (reproject_cmd,

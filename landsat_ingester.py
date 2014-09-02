@@ -39,7 +39,6 @@ import logging
 import argparse
 
 from EOtools import execute
-import cube_util
 from abstract_ingester import AbstractIngester
 from landsat_dataset import LandsatDataset
 

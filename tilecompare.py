@@ -38,7 +38,7 @@ import dbutil
 from osgeo import gdal
 import numpy as np
 from dbcompare import ComparisonWrapper
-import cube_util
+from EOtools import execute
 # #
 # # TileComparisonPair class
 # #
@@ -569,7 +569,7 @@ def _compare_data(level, tile_class_id1, tile_class_id2, path1, path2,
                         "%s" %path1,
                         "%s" %path2
                         ]
-            result = cube_util.execute(diff_cmd, shell=False)
+            result = execute(diff_cmd, shell=False)
             if result['stdout'] != '':
                 msg += "Difference between mosaic vrt files:\n" + \
                     result['stdout']

@@ -37,7 +37,7 @@ import sys
 import logging
 import re
 import dbutil
-import cube_util
+from EOtools import execute
 
 #
 # Temporary test database pattern
@@ -270,7 +270,7 @@ def run_dbupdate_subcommand(args):
 #                      "--source=%s" % args.source_dir,
 #                      "--removedblist",
 #                      "--followsymlinks"]
-#     result = cube_util.execute(dbupater_cmd, shell=False)
+#     result = execute(dbupater_cmd, shell=False)
 
 #
 # Main program

@@ -41,7 +41,6 @@ import dbutil
 from abstract_ingester import AbstractIngester
 from abstract_ingester import IngesterDataCube
 from landsat_dataset import LandsatDataset
-#import cube_util
 from test_landsat_tiler import TestLandsatTiler
 import ingest_test_data as TestIngest
 

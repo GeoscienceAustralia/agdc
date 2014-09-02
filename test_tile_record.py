@@ -35,7 +35,7 @@ import re
 import random
 import os
 import numpy as np
-import cube_util
+from EOtools import execute
 import logging
 import sys
 import unittest
@@ -44,7 +44,6 @@ import dbutil
 from abstract_ingester import AbstractIngester
 from abstract_ingester import IngesterDataCube
 from landsat_dataset import LandsatDataset
-#import cube_util
 from test_landsat_tiler import TestLandsatTiler
 import ingest_test_data as TestIngest
 from test_tile_contents import TestTileContents
@@ -312,7 +311,7 @@ class TestTileRecord(unittest.TestCase):
                                     "%s" %mosaic_benchmark,
                                     "%s" %mosaic_new
                                     ]
-                        result = cube_util.execute(diff_cmd, shell=False)
+                        result = execute(diff_cmd, shell=False)
                         assert result['stdout'] == '', \
                             "Differences between vrt files"
                         assert result['stderr'] == '', \
