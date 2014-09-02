@@ -42,7 +42,7 @@ import logging
 import os
 import re
 import shutil
-from EOtools import execute
+from EOtools.execute import execute
 from EOtools.utils import log_multiline
 import cube_util
 from cube_util import DatasetError

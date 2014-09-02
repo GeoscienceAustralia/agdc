@@ -40,7 +40,7 @@ import os
 
 from EOtools.utils import log_multiline
 from edit_envi_hdr import edit_envi_hdr
-from EOtools import execute
+from EOtools.execute import execute
 
 # Set top level standard output 
 console_handler = logging.StreamHandler(sys.stdout)

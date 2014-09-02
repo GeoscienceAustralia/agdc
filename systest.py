@@ -42,7 +42,7 @@ import json
 import psycopg2
 
 import dbutil
-from EOtools import execute
+from EOtools.execute import execute
 
 #
 # Constants

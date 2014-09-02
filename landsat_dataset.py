@@ -41,7 +41,7 @@ import glob
 import re
 
 from EOtools.DatasetDrivers import SceneDataset
-from EOtools import execute
+from EOtools.execute import execute
 
 from cube_util import DatasetError
 from abstract_dataset import AbstractDataset

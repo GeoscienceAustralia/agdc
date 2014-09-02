@@ -38,7 +38,7 @@ import re
 import logging
 import argparse
 
-from EOtools import execute
+from EOtools.execute import execute
 from abstract_ingester import AbstractIngester
 from landsat_dataset import LandsatDataset
 

@@ -43,7 +43,7 @@ import logging
 import os
 import re
 import cube_util
-from EOtools import execute
+from EOtools.execute import execute
 from cube_util import DatasetError
 from osgeo import gdal
 import numpy as np

@@ -51,7 +51,7 @@ import numpy.ma as ma
 import shutil
 from time import sleep
 
-from EOtools import execute
+from EOtools.execute import execute
 from EOtools.utils import log_multiline
 
 from datacube import DataCube

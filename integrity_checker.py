@@ -38,7 +38,7 @@ import os
 import logging
 from osgeo import gdal
 from EOtools.utils import log_multiline
-from EOtools import execute
+from EOtools.execute import execute
 import sys
 from time import sleep
 from datacube import DataCube

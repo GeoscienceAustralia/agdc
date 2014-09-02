@@ -42,7 +42,7 @@ import psycopg2
 import time
 from copy import copy
 
-from EOtools import execute
+from EOtools.execute import execute
 from EOtools.utils import log_multiline
 
 import update_dataset_record

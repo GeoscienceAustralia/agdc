@@ -38,7 +38,7 @@ import dbutil
 from osgeo import gdal
 import numpy as np
 from dbcompare import ComparisonWrapper
-from EOtools import execute
+from EOtools.execute import execute
 # #
 # # TileComparisonPair class
 # #

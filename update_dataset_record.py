@@ -48,7 +48,7 @@ import numpy.ma as ma
 import psycopg2
 
 from EOtools.DatasetDrivers import SceneDataset
-from EOtools import execute
+from EOtools.execute import execute
 from EOtools.utils import log_multiline
 
 # Set top level standard output 

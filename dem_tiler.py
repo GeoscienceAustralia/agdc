@@ -52,7 +52,7 @@ from EOtools.bodies.vincenty import vinc_dist
 from EOtools.blrb import interpolate_grid
     
 from EOtools.utils import log_multiline
-from EOtools import execute
+from EOtools.execute import execute
 
 from datacube import DataCube
 

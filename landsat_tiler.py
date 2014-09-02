@@ -54,7 +54,7 @@ import time
 import string
     
 from EOtools.utils import log_multiline
-from EOtools import execute
+from EOtools.execute import execute
 
 from datacube import DataCube
 

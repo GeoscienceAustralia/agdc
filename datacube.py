@@ -44,7 +44,7 @@ import errno
 import psycopg2
 import socket
 
-from EOtools import execute
+from EOtools.execute import execute
 from EOtools.utils import log_multiline
 
 # Set top level standard output 
