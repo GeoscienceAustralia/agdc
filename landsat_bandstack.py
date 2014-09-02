@@ -43,6 +43,7 @@ from abstract_bandstack import AbstractBandstack
 import cube_util
 from cube_util import DatasetError
 from collections import OrderedDict
+from EOtools import execute
 
 class LandsatBandstack(AbstractBandstack):
     """Landsat subclass of AbstractBandstack class"""
@@ -92,7 +93,7 @@ class LandsatBandstack(AbstractBandstack):
         #for fle in self.source_file_list:
         #    buildvrt_cmd.append(fle)
         #buildvrt_cmd = ' '.join(buildvrt_cmd)
-        result = cube_util.execute(buildvrt_cmd, shell=False)
+        result = execute(buildvrt_cmd, shell=False)
         if result['returncode'] != 0:
             raise DatasetError('Unable to perform gdalbuildvrt: ' +
                                '"%s" failed: %s'\

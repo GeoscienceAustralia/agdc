@@ -35,8 +35,6 @@ import time
 import os
 import random
 import shutil
-import logging
-import subprocess
 
 import dbutil
 import cube_util
@@ -125,184 +123,6 @@ class TestParseDate(unittest.TestCase):
 
         date = cube_util.parse_date_from_string('A Long Time Ago')
         self.assertEqual(date, None)
-
-
-class TestLogMultiline(unittest.TestCase):
-    """Unit tests for the log_multiline utility function."""
-
-    MODULE = 'cube_util'
-    SUITE = 'TestLogMultiline'
-
-    OUTPUT_DIR = dbutil.output_directory(MODULE, SUITE)
-    EXPECTED_DIR = dbutil.expected_directory(MODULE, SUITE)
-
-    def setUp(self):
-        """Set up a test logger."""
-
-        self.logger = logging.getLogger('TestLogMultiline')
-        self.logger.setLevel(logging.DEBUG)
-
-        self.handler = None
-
-    def test_single_line_str(self):
-        """Test of logging a single line string."""
-
-        logfile_name = 'single_line_str.log'
-        output_path = os.path.join(self.OUTPUT_DIR, logfile_name)
-        expected_path = os.path.join(self.EXPECTED_DIR, logfile_name)
-
-        self.open_handler(output_path)
-
-        line = 'This is a single line log message.'
-        prefix = 'TEST: '
-        cube_util.log_multiline(self.logger.debug, line, prefix=prefix)
-
-        self.close_handler()
-        self.check_expected_file(output_path, expected_path)
-
-    def test_single_line_list(self):
-        """Test of logging a single line as a list."""
-
-        logfile_name = 'single_line_list.log'
-        output_path = os.path.join(self.OUTPUT_DIR, logfile_name)
-        expected_path = os.path.join(self.EXPECTED_DIR, logfile_name)
-
-        self.open_handler(output_path)
-
-        line = ['This is a single line log message.']
-        title = 'SINGLE LINE AS LIST'
-        cube_util.log_multiline(self.logger.debug, line, title=title)
-
-        self.close_handler()
-        self.check_expected_file(output_path, expected_path)
-
-    def test_multi_line_str(self):
-        """Test of logging a multi-line string."""
-
-        logfile_name = 'multi_line_str.log'
-        output_path = os.path.join(self.OUTPUT_DIR, logfile_name)
-        expected_path = os.path.join(self.EXPECTED_DIR, logfile_name)
-
-        self.open_handler(output_path)
-
-        line = ('This is a multi-line log message.\n' +
-                'line 2\n'
-                )
-        cube_util.log_multiline(self.logger.debug, line)
-
-        self.close_handler()
-        self.check_expected_file(output_path, expected_path)
-
-    def test_multi_line_list(self):
-        """Test of logging a multi-line message as a list."""
-
-        logfile_name = 'multi_line_list.log'
-        output_path = os.path.join(self.OUTPUT_DIR, logfile_name)
-        expected_path = os.path.join(self.EXPECTED_DIR, logfile_name)
-
-        self.open_handler(output_path)
-
-        title = 'MULTI-LINE AS LIST'
-        prefix = 'TEST:'
-        line = ['This is a multi-line log message.',
-                'line 2',
-                'line 3'
-                ]
-        cube_util.log_multiline(self.logger.debug,
-                                line,
-                                prefix=prefix,
-                                title=title
-                                )
-
-        self.close_handler()
-        self.check_expected_file(output_path, expected_path)
-
-    def test_multi_line_dict(self):
-        """Test of logging a dictionary."""
-
-        logfile_name = 'multi_line_dict.log'
-        output_path = os.path.join(self.OUTPUT_DIR, logfile_name)
-        expected_path = os.path.join(self.EXPECTED_DIR, logfile_name)
-
-        self.open_handler(output_path)
-
-        dictionary = {'first': 'first dict item',
-                      'second': 'second dict item',
-                      'third': 'third dict item'
-                      }
-        cube_util.log_multiline(self.logger.debug, dictionary)
-
-        self.close_handler()
-        self.check_expected_file(output_path, expected_path)
-
-    def check_expected_file(self, output_path, expected_path):
-        """Check the expected file matches the output file.
-
-        This skips the test if the expected file does not exist.
-        """
-
-        if not os.path.isfile(expected_path):
-            self.skipTest("Expected log file not found: " + expected_path)
-        else:
-            try:
-                subprocess.check_output(['diff', output_path, expected_path])
-            except subprocess.CalledProcessError as err:
-                self.fail("Log file does not match expected result:\n" +
-                          err.output)
-
-    def open_handler(self, output_path):
-        """Set up a file handler to the output path."""
-
-        self.handler = logging.FileHandler(output_path, mode='w')
-        self.logger.addHandler(self.handler)
-
-    def close_handler(self):
-        """Flush, remove, and close the handler."""
-
-        self.handler.flush()
-        self.logger.removeHandler(self.handler)
-        self.handler.close()
-        self.handler = None
-
-
-class TestExecute(unittest.TestCase):
-    """Unit tests for the execute utility function."""
-
-    def test_execute_echo(self):
-        """Test the echo shell built-in command."""
-
-        result = cube_util.execute('echo "Hello"')
-
-        self.assertEqual(result['returncode'], 0)
-        self.assertEqual(result['stdout'], 'Hello\n')
-        self.assertEqual(result['stderr'], '')
-
-    def test_execute_python(self):
-        """Execute a python command as a list."""
-
-        command = ['python',
-                   '-c',
-                   'print "Hello"'
-                   ]
-        result = cube_util.execute(command, shell=False)
-
-        self.assertEqual(result['returncode'], 0)
-        self.assertEqual(result['stdout'], 'Hello\n')
-        self.assertEqual(result['stderr'], '')
-
-    def test_execute_error(self):
-        """Execute a python command causing an error."""
-
-        command = ['python',
-                   '-c',
-                   'x = 1/0'
-                   ]
-        result = cube_util.execute(command, shell=False)
-
-        self.assertNotEqual(result['returncode'], 0)
-        self.assertEqual(result['stdout'], '')
-        self.assertRegexpMatches(result['stderr'], 'Traceback')
-        self.assertRegexpMatches(result['stderr'], 'ZeroDivisionError')
 
 
 class TestCreateDirectory(unittest.TestCase):
@@ -484,8 +304,6 @@ def the_suite():
 
     test_classes = [TestParseDate,
                     TestGetDatacubeRoot,
-                    TestLogMultiline,
-                    TestExecute,
                     TestCreateDirectory,
                     TestSynchronize,
                     TestStopwatch

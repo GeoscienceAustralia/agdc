@@ -47,9 +47,9 @@ import numpy
 import numpy.ma as ma
 import psycopg2
 
-from ULA3.dataset import SceneDataset
-from ULA3.utils import execute
-from ULA3.utils import log_multiline
+from EOtools.DatasetDrivers import SceneDataset
+from EOtools import execute
+from EOtools.utils import log_multiline
 
 # Set top level standard output 
 console_handler = logging.StreamHandler(sys.stdout)

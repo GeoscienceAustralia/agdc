@@ -154,9 +154,9 @@ class TestLandsatDataset(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        """Set up logging for ULA3.dataset._scene_dataset debug output."""
+        """Set up logging for EOtools.DatasetDrivers._scene_dataset.SceneDataset debug output."""
 
-        cls.SD_LOGGER = logging.getLogger('root.ULA3.dataset._scene_dataset')
+        cls.SD_LOGGER = logging.getLogger('EOtools.DatasetDrivers._scene_dataset')
         cls.SD_HANDLER = logging.FileHandler(os.path.join(cls.OUTPUT_DIR,
                                                           'scene_dataset.log'),
                                              mode='w')

@@ -49,8 +49,9 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from psycopg2.extensions import ISOLATION_LEVEL_READ_COMMITTED
 
 import dbutil
-import cube_util
 import pytz
+
+from EOtools.utils import log_multiline
 
 # Set up logger.
 LOGGER = logging.getLogger(__name__)
@@ -120,10 +121,10 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
     def log_sql(sql_query_string):
         """Logs an sql query to the logger at debug level.
 
-        This uses the log_multiline utility function from cube_util.
+        This uses the log_multiline utility function from EOtools.utils.
         sql_query_string is as returned from cursor.mogrify."""
 
-        cube_util.log_multiline(LOGGER.debug, sql_query_string,
+        log_multiline(LOGGER.debug, sql_query_string,
                                 title='SQL', prefix='\t')
 
     #

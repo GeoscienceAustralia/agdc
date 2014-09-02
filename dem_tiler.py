@@ -48,11 +48,11 @@ import time
 import numexpr
 from scipy import ndimage
 
-from ULA3.geodesic.vincenty import vinc_dist
-from ULA3.blrb import interpolate_grid
+from EOtools.bodies.vincenty import vinc_dist
+from EOtools.blrb import interpolate_grid
     
-from ULA3.utils import log_multiline
-from ULA3.utils import execute
+from EOtools.utils import log_multiline
+from EOtools import execute
 
 from datacube import DataCube
 

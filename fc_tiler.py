@@ -47,8 +47,8 @@ from copy import copy
 import time
 import string
     
-from ULA3.utils import log_multiline
-from ULA3.utils import execute
+from EOtools.utils import log_multiline
+from EOtools import execute
 
 from datacube import DataCube
 

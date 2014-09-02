@@ -42,7 +42,7 @@ import json
 import psycopg2
 
 import dbutil
-import cube_util
+from EOtools import execute
 
 #
 # Constants
@@ -225,7 +225,7 @@ class Systest(object):
             print self.command
             print ''
 
-            exe_result = cube_util.execute(self.command)
+            exe_result = execute(self.command)
             self.logfile.write(exe_result['stdout'])
             self.logfile.write(exe_result['stderr'])
             if exe_result['returncode'] != 0:

@@ -42,6 +42,8 @@ import logging
 import os
 import re
 import shutil
+from EOtools import execute
+from EOtools.utils import log_multiline
 import cube_util
 from cube_util import DatasetError
 from ingest_db_wrapper import TC_MOSAIC
@@ -251,14 +253,14 @@ class MosaicContents(object):
                             ]
         gdalbuildvrt_cmd.extend(source_file_list)
 
-        result = cube_util.execute(gdalbuildvrt_cmd, shell=False)
+        result = execute(gdalbuildvrt_cmd, shell=False)
 
         if result['stdout']:
-            cube_util.log_multiline(LOGGER.info, result['stdout'],
+            log_multiline(LOGGER.info, result['stdout'],
                                     'stdout from %s' % gdalbuildvrt_cmd, '\t')
 
         if result['stderr']:
-            cube_util.log_multiline(LOGGER.debug, result['stderr'],
+            log_multiline(LOGGER.debug, result['stderr'],
                                     'stderr from %s' % gdalbuildvrt_cmd, '\t')
 
         if result['returncode'] != 0:

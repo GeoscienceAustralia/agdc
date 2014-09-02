@@ -37,8 +37,8 @@ Created on 07/03/2013
 import os
 import logging
 from osgeo import gdal
-from ULA3.utils import log_multiline
-from ULA3.utils import execute
+from EOtools.utils import log_multiline
+from EOtools import execute
 import sys
 from time import sleep
 from datacube import DataCube

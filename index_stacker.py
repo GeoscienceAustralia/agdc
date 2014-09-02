@@ -45,7 +45,7 @@ import gc
 
 from stacker import Stacker
 from edit_envi_hdr import edit_envi_hdr
-from ULA3.utils import log_multiline
+from EOtools.utils import log_multiline
 
 
 # Add stats path for Joshua Sixsmith's statistical analysis code

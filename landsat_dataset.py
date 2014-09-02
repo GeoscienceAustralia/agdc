@@ -32,7 +32,7 @@
 
     This is the implementation of the AbstractDataset class for landsat
     datasets. At present it only works for level 1 (L1T, ORTHO) and NBAR
-    data, as it relys on ULA3.dataset.SceneDataset.
+    data, as it relys on EOtools.DatasetDrivers.SceneDataset.
 """
 
 import os
@@ -40,9 +40,9 @@ import logging
 import glob
 import re
 
-from ULA3.dataset import SceneDataset
+from EOtools.DatasetDrivers import SceneDataset
+from EOtools import execute
 
-import cube_util
 from cube_util import DatasetError
 from abstract_dataset import AbstractDataset
 from landsat_bandstack import LandsatBandstack
@@ -78,7 +78,7 @@ class LandsatDataset(AbstractDataset):
         """Opens the dataset and extracts metadata.
 
         Most of the metadata is kept in self._ds which is
-        a ULA3.dataset.SceneDataset object. Some extra metadata is
+        a EOtools.DatasetDrivers.SceneDataset object. Some extra metadata is
         extracted and kept the instance attributes.
         """
 
@@ -116,7 +116,7 @@ class LandsatDataset(AbstractDataset):
 
         command = "du -sk %s | cut -f1" % self.get_dataset_path()
         LOGGER.debug('executing "%s"', command)
-        result = cube_util.execute(command)
+        result = execute(command)
 
         if result['returncode'] != 0:
             raise DatasetError('Unable to calculate directory size: ' +

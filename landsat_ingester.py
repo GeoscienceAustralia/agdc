@@ -38,6 +38,7 @@ import re
 import logging
 import argparse
 
+from EOtools import execute
 import cube_util
 from abstract_ingester import AbstractIngester
 from landsat_dataset import LandsatDataset
@@ -128,7 +129,7 @@ class LandsatIngester(AbstractIngester):
         else:
             command = "find %s -name 'scene01' | sort" % source_dir
         LOGGER.debug('executing "%s"', command)
-        result = cube_util.execute(command)
+        result = execute(command)
         assert not result['returncode'], \
             '"%s" failed: %s' % (command, result['stderr'])
 

@@ -38,9 +38,9 @@ import sys
 import logging
 import os
 
-from ULA3.utils import log_multiline
+from EOtools.utils import log_multiline
 from edit_envi_hdr import edit_envi_hdr
-from ULA3.utils import execute
+from EOtools import execute
 
 # Set top level standard output 
 console_handler = logging.StreamHandler(sys.stdout)
