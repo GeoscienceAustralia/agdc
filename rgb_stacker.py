@@ -46,7 +46,7 @@ from time import sleep
 import gc
 
 from stacker import Stacker
-from edit_envi_hdr import edit_envi_hdr
+from EOtools.stats import create_envi_hdr
 from EOtools.utils import log_multiline
 
 

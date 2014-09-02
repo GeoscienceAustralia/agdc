@@ -39,7 +39,7 @@ import logging
 import os
 
 from EOtools.utils import log_multiline
-from edit_envi_hdr import edit_envi_hdr
+from EOtools.stats import create_envi_hdr
 from EOtools.execute import execute
 
 # Set top level standard output 
@@ -99,7 +99,7 @@ def vrt2bin(input_vrt_path, output_dataset_path=None,
         raise Exception('%s failed', command_string) 
                 
     if layer_name_list and file_format == 'ENVI':
-        edit_envi_hdr(envi_file=output_dataset_path, 
+        create_envi_hdr(envi_file=output_dataset_path, 
                       noData=no_data_value, 
                       band_names=layer_name_list)
         

@@ -45,13 +45,9 @@ from osgeo import gdal, gdalconst
 from time import sleep
 
 from stacker import Stacker
-from edit_envi_hdr import edit_envi_hdr
+from EOtools.stats import create_envi_hdr
 from EOtools.utils import log_multiline
-
-
-# Add stats path for Joshua Sixsmith's statistical analysis code
-sys.path.append(os.path.join(os.path.dirname(__file__), 'stats'))              
-import temporal_stats_numexpr_module
+from EOtools.stats import temporal_stats
 
 SCALE_FACTOR = 10000
 NaN = numpy.float32(numpy.NaN)
@@ -454,7 +450,7 @@ if __name__ == '__main__':
                 continue
             
             logger.info('Creating stats file %s', stats_dataset_path)
-            temporal_stats_numexpr_module.main(vrt_stack_path, stats_dataset_path, 
+            temporal_stats.main(vrt_stack_path, stats_dataset_path, 
                                                noData=stack_list[0]['nodata_value'], 
                                                #================================
                                                # xtile=fc_stacker.tile_type_dict[fc_stacker.default_tile_type_id]['x_pixels'], # Full tile width

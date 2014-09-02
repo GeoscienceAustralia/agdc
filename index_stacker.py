@@ -44,13 +44,9 @@ import numexpr
 import gc
 
 from stacker import Stacker
-from edit_envi_hdr import edit_envi_hdr
+from EOtools.stats import temporal_stats
 from EOtools.utils import log_multiline
 
-
-# Add stats path for Joshua Sixsmith's statistical analysis code
-sys.path.append(os.path.join(os.path.dirname(__file__), 'stats'))
-import temporal_stats_numexpr_module
 
 SCALE_FACTOR = 10000
 NaN = numpy.float32(numpy.NaN)
@@ -458,7 +454,7 @@ if __name__ == '__main__':
             return ndvi_envi_stack_path
 
         vrt2envi(ndvi_vrt_stack_path, ndvi_envi_stack_path)
-        edit_envi_hdr(envi_file=ndvi_envi_stack_path, noData=-32768, band_names=layer_name_list)
+        temporal_stats.create_envi_header(envi_file=ndvi_envi_stack_path, noData=-32768, band_names=layer_name_list)
 
         logger.info('Finished writing NDVI Envi file %s', ndvi_envi_stack_path)
 
@@ -479,7 +475,7 @@ if __name__ == '__main__':
                 logger.info('Skipping existing stats file %s', stats_dataset_path)
                 continue
 
-            temporal_stats_numexpr_module.main(vrt_stack_path, stats_dataset_path,
+            temporal_stats.main(vrt_stack_path, stats_dataset_path,
                                                noData=stack_list[0]['nodata_value'],
                                                #================================
                                                # xtile=index_stacker.tile_type_dict[index_stacker.default_tile_type_id]['x_pixels'], # Full tile width
