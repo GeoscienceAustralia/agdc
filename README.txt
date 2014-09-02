@@ -25,6 +25,8 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ===============================================================================
 
+N.B: There is a dependency on the EOtools module which contains various shared modules.
+
 README.txt - This file
 datacube.conf - Default configuration file for datacube
 datacube.py - Implementation of base class Datacube with DB connectivity and helper functions
