@@ -1,7 +1,11 @@
+#===============================================================================
 '''
 Created on 21/02/2013
 
 @author: u76345
+
+Hacked version of landsat_tiler.py to ingest FC datasets. 
+This is NOT really how it should be done.
 '''
 import os
 import sys
