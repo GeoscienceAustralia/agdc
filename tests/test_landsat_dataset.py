@@ -37,7 +37,7 @@ import subprocess
 import logging
 
 import dbutil
-from landsat_dataset import LandsatDataset
+from landsat_ingester import LandsatDataset
 
 # pylint: disable=too-many-public-methods
 #

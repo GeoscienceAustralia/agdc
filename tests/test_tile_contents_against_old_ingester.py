@@ -40,7 +40,7 @@ import dbutil
 #import landsat_bandstack
 from abstract_ingester import AbstractIngester
 from abstract_ingester import IngesterDataCube
-from landsat_dataset import LandsatDataset
+from landsat_ingester import LandsatDataset
 from test_landsat_tiler import TestLandsatTiler
 import ingest_test_data as TestIngest
 

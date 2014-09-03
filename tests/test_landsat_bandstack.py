@@ -37,7 +37,7 @@ import logging
 import unittest
 import dbutil
 from EOtools.execute import execute
-from landsat_dataset import LandsatDataset
+from landsat_ingester import LandsatDataset
 from abstract_ingester import AbstractIngester
 from abstract_ingester import IngesterDataCube
 
