@@ -41,7 +41,6 @@ import psycopg2
 from datacube import DataCube
 from collection import Collection
 from cube_util import DatasetError, parse_date_from_string
-from abstract_ingester import AbstractIngester
 from abstract_dataset import AbstractDataset
 from abstract_bandstack import AbstractBandstack
 #from cube_util import synchronize
