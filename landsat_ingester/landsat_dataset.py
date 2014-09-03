@@ -44,7 +44,7 @@ from EOtools.DatasetDrivers import SceneDataset
 from EOtools.execute import execute
 
 from cube_util import DatasetError
-from abstract_dataset import AbstractDataset
+from abstract_ingester import AbstractDataset
 from landsat_bandstack import LandsatBandstack
 
 #

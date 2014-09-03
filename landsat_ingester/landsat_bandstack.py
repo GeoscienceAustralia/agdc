@@ -39,7 +39,7 @@
 import os
 import re
 from osgeo import gdal
-from abstract_bandstack import AbstractBandstack
+from abstract_ingester import AbstractBandstack
 import cube_util
 from cube_util import DatasetError
 from collections import OrderedDict
