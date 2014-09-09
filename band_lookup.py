@@ -160,10 +160,18 @@ class BandLookup(object):
     @property
     def band_no(self):
         '''
-        Returns a dict keyed by band tag containing the integer band number for each band_tag for the current lookup_scheme_name, satellite_tag & sensor_name 
+        Returns a dict keyed by band tag containing the one-based integer band number for each band_tag for the current lookup_scheme_name, satellite_tag & sensor_name 
         '''
         sensor_name_dict = self._get_sensor_name_dict()
         return {band_tag: sensor_name_dict[band_tag]['tile_layer'] for band_tag in sensor_name_dict}
+
+    @property
+    def band_index(self):
+        '''
+        Returns a dict keyed by band tag containing the zero-based integer band number for each band_tag for the current lookup_scheme_name, satellite_tag & sensor_name 
+        '''
+        sensor_name_dict = self._get_sensor_name_dict()
+        return {band_tag: sensor_name_dict[band_tag]['tile_layer'] - 1 for band_tag in sensor_name_dict}
 
     @property
     def adjustment_offset(self):

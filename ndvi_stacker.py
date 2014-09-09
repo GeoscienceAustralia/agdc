@@ -42,6 +42,7 @@ from osgeo import gdal
 
 from stacker import Stacker
 from EOtools.utils import log_multiline
+from band_lookup import BandLookup
 
 SCALE_FACTOR = 10000
 
@@ -176,9 +177,19 @@ class NDVIStacker(Stacker):
         # to an output directory for stacking
 
         output_dataset_dict = {}
-        nbar_dataset_info = input_dataset_dict['NBAR'] # Only need NBAR data for NDVI
+        nbar_dataset_info = input_dataset_dict.get('NBAR') # Only need NBAR data for NDVI
+        if nbar_dataset_info is None:
+            return
+
         #thermal_dataset_info = input_dataset_dict['ORTHO'] # Could have one or two thermal bands
         
+        # Instantiate band lookup object
+        lookup = BandLookup(datacube=self,
+                            lookup_scheme_name='LANDSAT-LS5/7',
+                            satellite_tag=nbar_dataset_info['satellite_tag'],
+                            sensor_name=nbar_dataset_info['sensor_name']
+                            )
+
         nbar_dataset_path = nbar_dataset_info['tile_pathname']
         
         #=======================================================================
@@ -244,7 +255,8 @@ class NDVIStacker(Stacker):
                 # Calculate each output here
                 # Remember band_array indices are zero-based
                 if output_tag == 'NDVI':
-                    data_array = numpy.true_divide(band_array[3] - band_array[2], band_array[3] + band_array[2]) * SCALE_FACTOR
+                    data_array = numpy.true_divide(band_array[lookup.band_index['NIR']] - band_array[lookup.band_index['R']],
+                                                   band_array[lookup.band_index['NIR']] + band_array[lookup.band_index['R']]) * SCALE_FACTOR
                 # elif output_tag == 'EVI':
                 
                 self.apply_pqa_mask(data_array, pqa_mask, no_data_value)
