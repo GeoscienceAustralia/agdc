@@ -24,13 +24,8 @@ class BandLookup(object):
     '''
 
     _band_lookup_dict = {} # Class lookup dict - populated once from query
+    _lookup_schemes = {} # Dict containing the descriptions of all available lookup schemes
         
-    # Sets of allowable values - will be populated from query
-    _lookup_scheme_name_set = set()
-    _satellite_tag_set = set()
-    _sensor_name_set = set()
-    _band_tag_set = set()
-    
     def __init__(self, data_cube, lookup_scheme_name=None, satellite_tag=None, sensor_name=None):
         '''
         Constructor
@@ -57,20 +52,20 @@ class BandLookup(object):
     coalesce(sensor_name, level_name) as sensor_name,
     band_equivalent.master_band_tag,
     band_source.tile_layer,
-    band_equivalent.nominal_centre,
-    band_equivalent.nominal_bandwidth,
-    band_equivalent.centre_tolerance,
-    band_equivalent.bandwidth_tolerance,
-    COALESCE(band_adjustment.adjustment_offset, 0.0) AS adjustment_offset,
-    COALESCE(band_adjustment.adjustment_multiplier, 1.0) AS adjustment_multiplier,
+    band_equivalent.nominal_centre::float,
+    band_equivalent.nominal_bandwidth::float,
+    band_equivalent.centre_tolerance::float,
+    band_equivalent.bandwidth_tolerance::float,
+    COALESCE(band_adjustment.adjustment_offset, 0.0)::float AS adjustment_offset,
+    COALESCE(band_adjustment.adjustment_multiplier, 1.0)::float AS adjustment_multiplier,
     band_lookup_scheme.lookup_scheme_id,
     band.satellite_id,
     band.sensor_id,
     band.band_id,
-    band_lookup_scheme.lookup_scheme_description,
     band_equivalent.master_band_name,
-    band.min_wavelength,
-    band.max_wavelength
+    band.min_wavelength::float,
+    band.max_wavelength::float,
+    band_lookup_scheme.lookup_scheme_description
    FROM band
    JOIN band_type using(band_type_id)
    JOIN band_source using (band_id)
@@ -86,87 +81,103 @@ class BandLookup(object):
             db_cursor.execute(sql)
             
             for record in db_cursor:
-                # Add values to their respective sets of allowable values
-                BandLookup._lookup_scheme_name_set |= {record[0]}
-                BandLookup._satellite_tag_set |= {record[1]}
-                BandLookup._sensor_name_set |= {record[2]}
-                BandLookup._band_tag_set |= {record[3]}
-                
-                # Create dict items keyed by tuple of (lookup_scheme_name, satellite_tag, sensor_name, master_band_tag)
-                BandLookup._band_lookup_dict[(record[0], record[1], record[2], record[3])] = {
-                                                                                             'tile_layer': record[4],
-                                                                                             'nominal_centre': record[5],
-                                                                                             'nominal_bandwidth': record[6],
-                                                                                             'centre_tolerance': record[7],
-                                                                                             'bandwidth_tolerance': record[8],
-                                                                                             'adjustment_offset': record[9],
-                                                                                             'adjustment_multiplier': record[10],
-                                                                                             'lookup_scheme_id': record[11],
-                                                                                             'satellite_id': record[12],
-                                                                                             'sensor_id': record[13],
-                                                                                             'band_id': record[14],
-                                                                                             'lookup_scheme_description': record[15],
-                                                                                             'master_band_name': record[16],
-                                                                                             'min_wavelength': record[17],
-                                                                                             'max_wavelength': record[18]
-                                                                                  }
-    def get_band_dict(self, band_tag):
+                # Create nested dict with levels keyed by lookup_scheme_name, satellite_tag, sensor_name, band_tag
+                lookup_scheme_dict = BandLookup._band_lookup_dict.get(record[0])
+                if lookup_scheme_dict is None:
+                    lookup_scheme_dict = {}
+                    BandLookup._band_lookup_dict[record[0]] = lookup_scheme_dict
+                    BandLookup._lookup_schemes[record[0]] = record[18] # Set lookup scheme description
+                    
+                satellite_tag_dict = lookup_scheme_dict.get(record[1])
+                if satellite_tag_dict is None:
+                    satellite_tag_dict = {}
+                    lookup_scheme_dict[record[1]] = satellite_tag_dict
+                    
+                sensor_name_dict = satellite_tag_dict.get(record[2])
+                if sensor_name_dict is None:
+                    sensor_name_dict = {}
+                    satellite_tag_dict[record[2]] = sensor_name_dict
+                    
+                assert sensor_name_dict.get(record[3]) is None, 'Duplicated band_tag record'
+
+                sensor_name_dict[record[3]] = {
+                                 'tile_layer': record[4],
+                                 'nominal_centre': record[5],
+                                 'nominal_bandwidth': record[6],
+                                 'centre_tolerance': record[7],
+                                 'bandwidth_tolerance': record[8],
+                                 'adjustment_offset': record[9],
+                                 'adjustment_multiplier': record[10],
+                                 'lookup_scheme_id': record[11],
+                                 'satellite_id': record[12],
+                                 'sensor_id': record[13],
+                                 'band_id': record[14],
+                                 'master_band_name': record[15],
+                                 'min_wavelength': record[16],
+                                 'max_wavelength': record[17]
+                                 }
+                    
+    def _get_sensor_name_dict(self):
         '''
-        Returns band dict for provided band_tag using pre-set lookup_scheme_name, satellite_tag & sensor_name
+        Returns sensor_name_dict for pre-set lookup_scheme_name, satellite_tag & sensor_name
         Returns None if not found
         '''
         assert self.lookup_scheme_name, 'lookup_scheme_name not set'
         assert self.satellite_tag, 'satellite_tag not set'
         assert self.sensor_name, 'sensor_name not set'
-        assert band_tag in BandLookup._band_tag_set, 'band_tag not recognised'
         
-        band_dict = BandLookup._band_lookup_dict.get((self.lookup_scheme_name,
-                                                 self.satellite_tag,
-                                                 self.sensor_name,
-                                                 band_tag
-                                                 ))
-        return band_dict
- 
-    def get_tile_layer(self, band_tag):
-        '''
-        Returns tile layer integer for provided band_tag using pre-set lookup_scheme_name, satellite_tag & sensor_name.
-        Returns None if not found
-        '''
-        band_dict = self.get_band_dict(band_tag)
-        if band_dict:
-            return band_dict['tile_layer']
-        else:
-            return None
-                
-    def get_adjustments(self, band_tag):
-        '''
-        Returns adjustment factors for provided band_tag using pre-set lookup_scheme_name, satellite_tag & sensor_name.
-        Returns None if not found
-        '''
-        band_dict = self.get_band_dict(band_tag)
-        if band_dict:
-            return {'adjustment_offset': band_dict['adjustment_offset'],
-                    'adjustment_multiplier': band_dict['adjustment_multiplier']
-                    }
-        else:
-            return None
+        try:
+            sensor_name_dict = BandLookup._band_lookup_dict[self.lookup_scheme_name][self.satellite_tag][self.sensor_name]
+        except KeyError:
+            sensor_name_dict = {}
+            
+        return sensor_name_dict
                 
     @property
-    def lookup_scheme_name_set(self):
-        """Set of allowable lookup_scheme_name values"""
-        return BandLookup._lookup_scheme_name_set
-                
+    def lookup_schemes(self):
+        '''
+        Returns a dict of lookup_scheme descriptions keyed by lookup_scheme_name
+        '''
+        return dict(BandLookup._lookup_schemes)
+
     @property
-    def satellite_tag_set(self):
-        """Set of allowable satellite_tag values"""
-        return BandLookup._satellite_tag_set
-                
+    def bands(self):
+        '''
+        Returns a list of band tags for the current lookup_scheme_name, satellite_tag & sensor_name sorted by centre wavelength
+        '''
+        sensor_name_dict = self._get_sensor_name_dict()
+        return sorted([band_tag for band_tag in sensor_name_dict.keys()], 
+                      key=lambda band_tag: sensor_name_dict[band_tag]['nominal_centre'])
+
     @property
-    def sensor_name_set(self):
-        """Set of allowable sensor_name values"""
-        return BandLookup._sensor_name_set
-                
+    def band_info(self):
+        '''
+        Returns a nested dict keyed by band tag containing all info for each band for the current lookup_scheme_name, satellite_tag & sensor_name 
+        '''
+        sensor_name_dict = self._get_sensor_name_dict()
+        return dict(sensor_name_dict)
+
     @property
-    def band_tag_set(self):
-        """Set of allowable band_tag values"""
-        return BandLookup._band_tag_set
+    def band_no(self):
+        '''
+        Returns a dict keyed by band tag containing the integer band number for each band_tag for the current lookup_scheme_name, satellite_tag & sensor_name 
+        '''
+        sensor_name_dict = self._get_sensor_name_dict()
+        return {band_tag: sensor_name_dict[band_tag]['tile_layer'] for band_tag in sensor_name_dict}
+
+    @property
+    def adjustment_offset(self):
+        '''
+        Returns a dict keyed by band tag containing the floating point adjustment offset for each band_tag for the current lookup_scheme_name, satellite_tag & sensor_name 
+        '''
+        sensor_name_dict = self._get_sensor_name_dict()
+        return {band_tag: sensor_name_dict[band_tag]['adjustment_offset'] for band_tag in sensor_name_dict}
+
+    @property
+    def adjustment_multiplier(self):
+        '''
+        Returns a dict keyed by band tag containing the floating point adjustment multiplier for each band_tag for the current lookup_scheme_name, satellite_tag & sensor_name 
+        '''
+        sensor_name_dict = self._get_sensor_name_dict()
+        return {band_tag: sensor_name_dict[band_tag]['adjustment_multiplier'] for band_tag in sensor_name_dict}
+
