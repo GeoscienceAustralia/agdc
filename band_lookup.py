@@ -30,11 +30,14 @@ class BandLookup(object):
         '''
         Constructor
         '''
-        assert type(data_cube) == DataCube, 'data_cube parameter must be of type DataCube'
+        assert isinstance(data_cube, DataCube), 'data_cube parameter must be of type DataCube'
         assert not lookup_scheme_name or type(lookup_scheme_name) == str, 'lookup_scheme_name parameter must be of type str'
         assert not satellite_tag or type(satellite_tag) == str, 'satellite_tag parameter must be of type str'
         assert not sensor_name or type(sensor_name) == str, 'sensor_name parameter must be of type str'
         
+        if data_cube.debug:
+            console_handler.setLevel(logging.DEBUG)
+
         # Set instance values if provided as constructor parameters
         self.lookup_scheme_name = lookup_scheme_name
         self.satellite_tag = satellite_tag

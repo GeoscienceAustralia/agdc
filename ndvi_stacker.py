@@ -184,7 +184,7 @@ class NDVIStacker(Stacker):
         #thermal_dataset_info = input_dataset_dict['ORTHO'] # Could have one or two thermal bands
         
         # Instantiate band lookup object
-        lookup = BandLookup(datacube=self,
+        lookup = BandLookup(data_cube=self,
                             lookup_scheme_name='LANDSAT-LS5/7',
                             satellite_tag=nbar_dataset_info['satellite_tag'],
                             sensor_name=nbar_dataset_info['sensor_name']
@@ -233,7 +233,7 @@ class NDVIStacker(Stacker):
                 # 31MB for int16 data should be OK for memory depending on what else happens downstream
                 band_array = nbar_dataset.ReadAsArray()
                 log_multiline(logger.debug, band_array, 'band_array', '\t')
-                
+
                 #===============================================================
                 # # Try this as a work-around for an apparent VRT reading bug
                 # for band_index in range(nbar_dataset.RasterCount):
