@@ -215,6 +215,9 @@ stack_output_info = {'x_index': 144,
                             )
 
         nbar_dataset_path = nbar_dataset_info['tile_pathname']
+        
+        if input_dataset_dict.get('PQA') is None: # No PQA tile available
+            return
 
         # Get a boolean mask from the PQA dataset (use default parameters for mask and dilation)
         pqa_mask = self.get_pqa_mask(input_dataset_dict['PQA']['tile_pathname'])
@@ -269,13 +272,16 @@ stack_output_info = {'x_index': 144,
                             # Convert to float32 for arithmetic and scale back to 0~1 reflectance
                             band_array = (nbar_dataset.ReadAsArray().astype(numpy.float32)) / SCALE_FACTOR
                             
+                            log_multiline(logger.debug, band_array, 'band_array', '\t')
+                            
                             # Adjust bands if required
                             for band_tag in lookup.bands:
                                 if lookup.adjustment_multiplier[band_tag] != 1.0 or lookup.adjustment_offset[band_tag] != 0.0:
                                     logger.debug('Band values adjusted: %s = %s * %s + %s', 
                                                  band_tag, band_tag, lookup.adjustment_multiplier[band_tag], lookup.adjustment_offset[band_tag])
                                     band_array[lookup.band_index[band_tag]] = band_array[lookup.band_index[band_tag]] * lookup.adjustment_multiplier[band_tag] + lookup.adjustment_offset[band_tag]
-
+                            log_multiline(logger.debug, band_array, 'adjusted band_array', '\t')
+                            
                             # Re-project issues with PQ. REDO the contiguity layer.
                             non_contiguous = (band_array < 0).any(0)
                             pqa_mask[non_contiguous] = False
@@ -337,9 +343,13 @@ stack_output_info = {'x_index': 144,
                         else:
                             raise Exception('Invalid operation')
 
+                        log_multiline(logger.debug, data_array, 'data_array', '\t')
+                        
                         if no_data_value:
                             self.apply_pqa_mask(data_array=data_array, pqa_mask=pqa_mask, no_data_value=no_data_value)
 
+                        log_multiline(logger.debug, data_array, 'masked data_array', '\t')
+                        
                         gdal_driver = gdal.GetDriverByName(tile_type_info['file_format'])
                         #output_dataset = gdal_driver.Create(output_tile_path,
                         #                                    nbar_dataset.RasterXSize, nbar_dataset.RasterYSize,
