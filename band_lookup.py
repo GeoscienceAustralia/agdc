@@ -97,7 +97,7 @@ class BandLookup(object):
    LEFT JOIN band_adjustment USING (lookup_scheme_id, band_id)
    LEFT JOIN sensor using(satellite_id, sensor_id)
    LEFT JOIN satellite using(satellite_id)   
-   ORDER BY 1,2,3,4,5,6,8
+   ORDER BY 1,2,3,4,5,7
 """ 
             log_multiline(logger.debug, sql, 'SQL', '\t')
             db_cursor.execute(sql)
