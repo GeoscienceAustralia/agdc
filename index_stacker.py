@@ -458,7 +458,7 @@ if __name__ == '__main__':
             return ndvi_envi_stack_path
 
         vrt2envi(ndvi_vrt_stack_path, ndvi_envi_stack_path)
-        temporal_stats.create_envi_hdr(envi_file=ndvi_envi_stack_path, noData=-32768, band_names=layer_name_list)
+        temporal_stats.create_envi_hdr(outfile=ndvi_envi_stack_path, noData=-32768, new_bnames=layer_name_list)
 
         logger.info('Finished writing NDVI Envi file %s', ndvi_envi_stack_path)
 
