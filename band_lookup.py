@@ -45,7 +45,7 @@ class BandLookup(object):
         '''
         assert isinstance(data_cube, DataCube), 'data_cube parameter must be of type DataCube'
         assert not lookup_scheme_name or type(lookup_scheme_name) == str, 'lookup_scheme_name parameter must be of type str'
-        assert not tile_type_id or type(tile_type_id) == int, 'tile_type_id parameter must be of type int'
+        assert not tile_type_id or type(tile_type_id) in (long, int), 'tile_type_id parameter must be of type long or int'
         assert not satellite_tag or type(satellite_tag) == str, 'satellite_tag parameter must be of type str'
         assert not sensor_name or type(sensor_name) == str, 'sensor_name parameter must be of type str'
         assert not level_name or type(level_name) == str, 'level_name parameter must be of type str'
@@ -126,14 +126,14 @@ class BandLookup(object):
                     sensor_name_dict = {}
                     satellite_tag_dict[record[3]] = sensor_name_dict
                     
-                level_name_dict = satellite_tag_dict.get(record[4])
+                level_name_dict = sensor_name_dict.get(record[4])
                 if level_name_dict is None:
                     level_name_dict = {}
-                    satellite_tag_dict[record[4]] = level_name_dict
+                    sensor_name_dict[record[4]] = level_name_dict
                     
-                assert sensor_name_dict.get(record[5]) is None, 'Duplicated band_tag record'
+                assert level_name_dict.get(record[5]) is None, 'Duplicated band_tag record'
 
-                sensor_name_dict[record[3]] = {
+                level_name_dict[record[5]] = {
                                  'tile_layer': record[6],
                                  'nominal_centre': record[7],
                                  'nominal_bandwidth': record[8],

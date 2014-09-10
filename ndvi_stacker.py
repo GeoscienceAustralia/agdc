@@ -246,8 +246,8 @@ class NDVIStacker(Stacker):
                 # Remember band indices are one-based
                 try:
                     # Read and adjust arrays for NIR and R
-                    NIR_array = nbar_dataset.GetRasterBand(lookup.band_no['NIR']) * lookup.adjustment_multiplier['NIR'] + lookup.adjustment_offset['NIR'] * SCALE_FACTOR
-                    R_array = nbar_dataset.GetRasterBand(lookup.band_no['R']) * lookup.adjustment_multiplier['R'] + lookup.adjustment_offset['R'] * SCALE_FACTOR
+                    NIR_array = nbar_dataset.GetRasterBand(lookup.band_no['NIR']).ReadAsArray() * lookup.adjustment_multiplier['NIR'] + lookup.adjustment_offset['NIR'] * SCALE_FACTOR
+                    R_array = nbar_dataset.GetRasterBand(lookup.band_no['R']).ReadAsArray() * lookup.adjustment_multiplier['R'] + lookup.adjustment_offset['R'] * SCALE_FACTOR
                 except TypeError:   
                     return
                   
