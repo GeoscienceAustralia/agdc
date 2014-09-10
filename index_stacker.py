@@ -222,6 +222,8 @@ stack_output_info = {'x_index': 144,
         # Get a boolean mask from the PQA dataset (use default parameters for mask and dilation)
         pqa_mask = self.get_pqa_mask(input_dataset_dict['PQA']['tile_pathname'])
 
+        log_multiline(logger.debug, pqa_mask, 'pqa_mask', '\t')
+
         nbar_dataset = gdal.Open(nbar_dataset_path)
         assert nbar_dataset, 'Unable to open dataset %s' % nbar_dataset
 
@@ -285,6 +287,8 @@ stack_output_info = {'x_index': 144,
                             # Re-project issues with PQ. REDO the contiguity layer.
                             non_contiguous = (band_array < 0).any(0)
                             pqa_mask[non_contiguous] = False
+
+                            log_multiline(logger.debug, pqa_mask, 'enhanced pqa_mask', '\t')
 
                         gdal_driver = gdal.GetDriverByName(tile_type_info['file_format'])
                         #output_dataset = gdal_driver.Create(output_tile_path,
