@@ -20,7 +20,8 @@ if not logger.level:
                 
 class BandLookup(object):
     '''
-    CLass BandLookup manages band equivalence
+    Class BandLookup manages band equivalence with band_tag lookups for a given set of
+    lookup_scheme_name, tile_type_id, satellite_tag, sensor_name & level_name values
     '''
 
     _band_lookup_dict = {} # Class lookup dict - populated once from query
@@ -149,10 +150,12 @@ class BandLookup(object):
                                  'min_wavelength': record[18],
                                  'max_wavelength': record[19]
                                  }
+                
+            log_multiline(logger.debug, BandLookup._band_lookup_dict, 'BandLookup._band_lookup_dict', '\t')
                     
     def _get_level_name_dict(self):
         '''
-        Returns sensor_name_dict for pre-set lookup_scheme_name, satellite_tag & sensor_name
+        Returns level_name_dict for pre-set lookup_scheme_name, tile_type_id, satellite_tag, sensor_name & level_name
         Returns None if not found
         '''
         assert self.lookup_scheme_name, 'lookup_scheme_name not set'
@@ -171,14 +174,14 @@ class BandLookup(object):
     @property
     def lookup_schemes(self):
         '''
-        Returns a dict of lookup_scheme descriptions keyed by lookup_scheme_name
+        Returns a dict of available lookup_scheme descriptions keyed by lookup_scheme_name
         '''
         return dict(BandLookup._lookup_schemes)
 
     @property
     def bands(self):
         '''
-        Returns a list of band tags for the current lookup_scheme_name, satellite_tag & sensor_name sorted by centre wavelength
+        Returns a list of band tags for the current lookup_scheme_name, tile_type_id, satellite_tag, sensor_name & level_name sorted by centre wavelength
         '''
         level_name_dict = self._get_level_name_dict()
         return sorted([band_tag for band_tag in level_name_dict.keys()], 
@@ -187,7 +190,7 @@ class BandLookup(object):
     @property
     def band_info(self):
         '''
-        Returns a nested dict keyed by band tag containing all info for each band for the current lookup_scheme_name, satellite_tag & sensor_name 
+        Returns a nested dict keyed by band tag containing all info for each band for the current lookup_scheme_name, tile_type_id, satellite_tag, sensor_name & level_name 
         '''
         level_name_dict = self._get_level_name_dict()
         return dict(level_name_dict)
@@ -195,7 +198,7 @@ class BandLookup(object):
     @property
     def band_no(self):
         '''
-        Returns a dict keyed by band tag containing the one-based integer band number for each band_tag for the current lookup_scheme_name, satellite_tag & sensor_name 
+        Returns a dict keyed by band tag containing the one-based integer band number for each band_tag for the current lookup_scheme_name, tile_type_id, satellite_tag, sensor_name & level_name
         '''
         level_name_dict = self._get_level_name_dict()
         return {band_tag: level_name_dict[band_tag]['tile_layer'] for band_tag in level_name_dict}
@@ -203,7 +206,7 @@ class BandLookup(object):
     @property
     def band_index(self):
         '''
-        Returns a dict keyed by band tag containing the zero-based integer band number for each band_tag for the current lookup_scheme_name, satellite_tag & sensor_name 
+        Returns a dict keyed by band tag containing the zero-based integer band number for each band_tag for the current lookup_scheme_name, tile_type_id, satellite_tag, sensor_name & level_name
         '''
         level_name_dict = self._get_level_name_dict()
         return {band_tag: level_name_dict[band_tag]['tile_layer'] - 1 for band_tag in level_name_dict}
@@ -211,7 +214,7 @@ class BandLookup(object):
     @property
     def adjustment_offset(self):
         '''
-        Returns a dict keyed by band tag containing the floating point adjustment offset for each band_tag for the current lookup_scheme_name, satellite_tag & sensor_name 
+        Returns a dict keyed by band tag containing the floating point adjustment offset for each band_tag for the current lookup_scheme_name, tile_type_id, satellite_tag, sensor_name & level_name
         '''
         level_name_dict = self._get_level_name_dict()
         return {band_tag: level_name_dict[band_tag]['adjustment_offset'] for band_tag in level_name_dict}
@@ -219,7 +222,7 @@ class BandLookup(object):
     @property
     def adjustment_multiplier(self):
         '''
-        Returns a dict keyed by band tag containing the floating point adjustment multiplier for each band_tag for the current lookup_scheme_name, satellite_tag & sensor_name 
+        Returns a dict keyed by band tag containing the floating point adjustment multiplier for each band_tag for the current lookup_scheme_name, tile_type_id, satellite_tag, sensor_name & level_name
         '''
         level_name_dict = self._get_level_name_dict()
         return {band_tag: level_name_dict[band_tag]['adjustment_multiplier'] for band_tag in level_name_dict}

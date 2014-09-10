@@ -272,6 +272,8 @@ stack_output_info = {'x_index': 144,
                             # Adjust bands if required
                             for band_tag in lookup.bands:
                                 if lookup.adjustment_multiplier[band_tag] != 1.0 or lookup.adjustment_offset[band_tag] != 0.0:
+                                    logger.debug('Band values adjusted: %s = %s * %s + %s', 
+                                                 band_tag, band_tag, lookup.adjustment_multiplier[band_tag], lookup.adjustment_offset[band_tag])
                                     band_array[lookup.band_index[band_tag]] = band_array[lookup.band_index[band_tag]] * lookup.adjustment_multiplier[band_tag] + lookup.adjustment_offset[band_tag]
 
                             # Re-project issues with PQ. REDO the contiguity layer.
@@ -469,9 +471,6 @@ if __name__ == '__main__':
         for vrt_stack_path in sorted(stack_info_dict.keys()):
             stack_list = stack_info_dict[vrt_stack_path]
 
-            if vrt_stack_path.find('WATER') > -1: # Don't run stats on water analysis
-                continue
-
             stats_dataset_path = vrt_stack_path.replace('.vrt', '_stats_envi')
             stats_dataset_path_dict[vrt_stack_path] = stats_dataset_path
 
@@ -496,7 +495,7 @@ if __name__ == '__main__':
     def update_stats_metadata(index_stacker, stack_info_dict, stats_dataset_path_dict):
         for vrt_stack_path in sorted(stack_info_dict.keys()):
             stats_dataset_path = stats_dataset_path_dict.get(vrt_stack_path)
-            if not stats_dataset_path: # Don't proceed if no stats file (e.g. WATER)
+            if not stats_dataset_path: # Don't proceed if no stats file
                 continue
 
             stack_list = stack_info_dict[vrt_stack_path]
