@@ -48,7 +48,7 @@ import gc
 from stacker import Stacker
 from EOtools.stats import create_envi_hdr
 from EOtools.utils import log_multiline
-
+from band_lookup import BandLookup
 
 SCALE_FACTOR = 10000
 NaN = numpy.float32(numpy.NaN)
@@ -189,15 +189,24 @@ stack_output_info = {'x_index': 144,
         """
         
         # Definitions for mapping NBAR values to RGB
-        rgb_bands=(5,4,2)
+        rgb_bands=('SWIR1','NIR','G')
         rgb_minmax=((780,5100),(200,4500),(100,2300)) # Min/Max scaled values to map to 1-255
         
-        nbar_dataset_info = input_dataset_dict['NBAR'] # Only need NBAR data for NDVI
+        nbar_dataset_info = input_dataset_dict.get('NBAR') # Only need NBAR data for NDVI
         #thermal_dataset_info = input_dataset_dict['ORTHO'] # Could have one or two thermal bands
         
         if not nbar_dataset_info:
             log_multiline(logger.warning, input_dataset_dict, 'NBAR dict does not exist', '\t')
             return None
+
+        # Instantiate band lookup object with all required lookup parameters
+        lookup = BandLookup(data_cube=self,
+                            lookup_scheme_name='LANDSAT-LS5/7',
+                            tile_type_id=tile_type_info['tile_type_id'],
+                            satellite_tag=nbar_dataset_info['satellite_tag'],
+                            sensor_name=nbar_dataset_info['sensor_name'],
+                            level_name=nbar_dataset_info['level_name']
+                            )
 
         nbar_dataset_path = nbar_dataset_info['tile_pathname']
         output_tile_path = os.path.join(self.output_dir, re.sub('\.\w+$', 
@@ -237,7 +246,7 @@ stack_output_info = {'x_index': 144,
             scale = (rgb_minmax[band_index][1] - rgb_minmax[band_index][0]) / 254.0
             offset = 1.0 - rgb_minmax[band_index][0] / scale
             
-            input_array = input_dataset.GetRasterBand(rgb_bands[band_index]).ReadAsArray()
+            input_array = input_dataset.GetRasterBand(lookup.band_no(rgb_bands[band_index])).ReadAsArray()
             output_array = (input_array / scale + offset).astype(numpy.byte)
             
             # Set out-of-range values to minimum or maximum as required
