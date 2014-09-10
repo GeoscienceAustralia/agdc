@@ -183,11 +183,13 @@ class NDVIStacker(Stacker):
 
         #thermal_dataset_info = input_dataset_dict['ORTHO'] # Could have one or two thermal bands
         
-        # Instantiate band lookup object
+        # Instantiate band lookup object with all required lookup parameters
         lookup = BandLookup(data_cube=self,
                             lookup_scheme_name='LANDSAT-LS5/7',
+                            tile_type_id=tile_type_info['tile_type_id'],
                             satellite_tag=nbar_dataset_info['satellite_tag'],
-                            sensor_name=nbar_dataset_info['sensor_name']
+                            sensor_name=nbar_dataset_info['sensor_name'],
+                            level_name=nbar_dataset_info['level_name']
                             )
 
         nbar_dataset_path = nbar_dataset_info['tile_pathname']
@@ -229,18 +231,6 @@ class NDVIStacker(Stacker):
     
             # Check for existing, valid file
             if self.refresh or not os.path.exists(output_tile_path) or not gdal.Open(output_tile_path):
-                # Read whole nbar_dataset into one array. 
-                # 31MB for int16 data should be OK for memory depending on what else happens downstream
-                band_array = nbar_dataset.ReadAsArray()
-                log_multiline(logger.debug, band_array, 'band_array', '\t')
-
-                #===============================================================
-                # # Try this as a work-around for an apparent VRT reading bug
-                # for band_index in range(nbar_dataset.RasterCount):
-                #    band_array[band_index] = nbar_dataset.GetRasterBand(band_index + 1).ReadAsArray()
-                #===============================================================
-                
-            
                 gdal_driver = gdal.GetDriverByName(tile_type_info['file_format'])
                 output_dataset = gdal_driver.Create(output_tile_path, 
                                                     nbar_dataset.RasterXSize, nbar_dataset.RasterYSize,
@@ -252,12 +242,16 @@ class NDVIStacker(Stacker):
     
                 output_band = output_dataset.GetRasterBand(1)
     
-                # Calculate each output here
-                # Remember band_array indices are zero-based
-                if output_tag == 'NDVI':
-                    data_array = numpy.true_divide(band_array[lookup.band_index['NIR']] - band_array[lookup.band_index['R']],
-                                                   band_array[lookup.band_index['NIR']] + band_array[lookup.band_index['R']]) * SCALE_FACTOR
-                # elif output_tag == 'EVI':
+                # Calculate NDVI here
+                # Remember band indices are one-based
+                try:
+                    # Read and adjust arrays for NIR and R
+                    NIR_array = nbar_dataset.GetRasterBand(lookup.band_no['NIR']) * lookup.adjustment_multiplier['NIR'] + lookup.adjustment_offset['NIR'] * SCALE_FACTOR
+                    R_array = nbar_dataset.GetRasterBand(lookup.band_no['R']) * lookup.adjustment_multiplier['R'] + lookup.adjustment_offset['R'] * SCALE_FACTOR
+                except TypeError:   
+                    return
+                  
+                data_array = numpy.true_divide(NIR_array - R_array, NIR_array + R_array) * SCALE_FACTOR
                 
                 self.apply_pqa_mask(data_array, pqa_mask, no_data_value)
                 

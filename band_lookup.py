@@ -26,22 +26,39 @@ class BandLookup(object):
     _band_lookup_dict = {} # Class lookup dict - populated once from query
     _lookup_schemes = {} # Dict containing the descriptions of all available lookup schemes
         
-    def __init__(self, data_cube, lookup_scheme_name=None, satellite_tag=None, sensor_name=None):
+    def __init__(self, 
+                 data_cube, 
+                 lookup_scheme_name=None, 
+                 tile_type_id=1, # Should this be None?
+                 satellite_tag=None, 
+                 sensor_name=None,
+                 level_name=None):
         '''
-        Constructor
+        Constructor for BandLookup class
+        Parameters (can all be set later with the exception of data_cube):
+             data_cube: Parent data_cube (or descendant) object 
+             lookup_scheme_name: lookup scheme name. Needs to be a member of self.lookup_schemes 
+             tile_type_id: Tile Type identifier. Defaults to 1 - should this be None?
+             satellite_tag: Short name of satellite 
+             sensor_name: Name of sensor
+             level_name: Processing level name
         '''
         assert isinstance(data_cube, DataCube), 'data_cube parameter must be of type DataCube'
         assert not lookup_scheme_name or type(lookup_scheme_name) == str, 'lookup_scheme_name parameter must be of type str'
+        assert not tile_type_id or type(tile_type_id) == int, 'tile_type_id parameter must be of type int'
         assert not satellite_tag or type(satellite_tag) == str, 'satellite_tag parameter must be of type str'
         assert not sensor_name or type(sensor_name) == str, 'sensor_name parameter must be of type str'
+        assert not level_name or type(level_name) == str, 'level_name parameter must be of type str'
         
         if data_cube.debug:
             console_handler.setLevel(logging.DEBUG)
 
         # Set instance values if provided as constructor parameters
         self.lookup_scheme_name = lookup_scheme_name
+        self.tile_type_id = tile_type_id
         self.satellite_tag = satellite_tag
         self.sensor_name = sensor_name
+        self.level_name = level_name
         
         self.db_connection = data_cube.db_connection
         db_cursor = self.db_connection.cursor()
@@ -49,10 +66,12 @@ class BandLookup(object):
         if not BandLookup._band_lookup_dict: # Check whether class lookup dict has been populated
         
             sql = """-- Retrieve all band equivalence information
- SELECT distinct
+ SELECT 
     band_lookup_scheme.lookup_scheme_name,
+    band_source.tile_type_id,
     coalesce(satellite.satellite_tag, 'DERIVED') as satellite_tag,
     coalesce(sensor_name, level_name) as sensor_name,
+    processing_level.level_name,
     band_equivalent.master_band_tag,
     band_source.tile_layer,
     band_equivalent.nominal_centre::float,
@@ -78,63 +97,76 @@ class BandLookup(object):
    LEFT JOIN band_adjustment USING (lookup_scheme_id, band_id)
    LEFT JOIN sensor using(satellite_id, sensor_id)
    LEFT JOIN satellite using(satellite_id)   
-   ORDER BY 1,2,3,5,6
+   ORDER BY 1,2,3,4,5,6,8
 """ 
             log_multiline(logger.debug, sql, 'SQL', '\t')
             db_cursor.execute(sql)
             
             for record in db_cursor:
-                # Create nested dict with levels keyed by lookup_scheme_name, satellite_tag, sensor_name, band_tag
+                # Create nested dict with levels keyed by:
+                # lookup_scheme_name, tile_type_id, satellite_tag, sensor_name, level_name, band_tag
                 lookup_scheme_dict = BandLookup._band_lookup_dict.get(record[0])
                 if lookup_scheme_dict is None:
                     lookup_scheme_dict = {}
                     BandLookup._band_lookup_dict[record[0]] = lookup_scheme_dict
-                    BandLookup._lookup_schemes[record[0]] = record[18] # Set lookup scheme description
+                    BandLookup._lookup_schemes[record[0]] = record[20] # Set lookup scheme description
                     
-                satellite_tag_dict = lookup_scheme_dict.get(record[1])
+                tile_type_id_dict = lookup_scheme_dict.get(record[1])
+                if tile_type_id_dict is None:
+                    tile_type_id_dict = {}
+                    lookup_scheme_dict[record[1]] = tile_type_id_dict
+                    
+                satellite_tag_dict = tile_type_id_dict.get(record[2])
                 if satellite_tag_dict is None:
                     satellite_tag_dict = {}
-                    lookup_scheme_dict[record[1]] = satellite_tag_dict
+                    tile_type_id_dict[record[2]] = satellite_tag_dict
                     
-                sensor_name_dict = satellite_tag_dict.get(record[2])
+                sensor_name_dict = satellite_tag_dict.get(record[3])
                 if sensor_name_dict is None:
                     sensor_name_dict = {}
-                    satellite_tag_dict[record[2]] = sensor_name_dict
+                    satellite_tag_dict[record[3]] = sensor_name_dict
                     
-                assert sensor_name_dict.get(record[3]) is None, 'Duplicated band_tag record'
+                level_name_dict = satellite_tag_dict.get(record[4])
+                if level_name_dict is None:
+                    level_name_dict = {}
+                    satellite_tag_dict[record[4]] = level_name_dict
+                    
+                assert sensor_name_dict.get(record[5]) is None, 'Duplicated band_tag record'
 
                 sensor_name_dict[record[3]] = {
-                                 'tile_layer': record[4],
-                                 'nominal_centre': record[5],
-                                 'nominal_bandwidth': record[6],
-                                 'centre_tolerance': record[7],
-                                 'bandwidth_tolerance': record[8],
-                                 'adjustment_offset': record[9],
-                                 'adjustment_multiplier': record[10],
-                                 'lookup_scheme_id': record[11],
-                                 'satellite_id': record[12],
-                                 'sensor_id': record[13],
-                                 'band_id': record[14],
-                                 'master_band_name': record[15],
-                                 'min_wavelength': record[16],
-                                 'max_wavelength': record[17]
+                                 'tile_layer': record[6],
+                                 'nominal_centre': record[7],
+                                 'nominal_bandwidth': record[8],
+                                 'centre_tolerance': record[9],
+                                 'bandwidth_tolerance': record[10],
+                                 'adjustment_offset': record[11],
+                                 'adjustment_multiplier': record[12],
+                                 'lookup_scheme_id': record[13],
+                                 'satellite_id': record[14],
+                                 'sensor_id': record[15],
+                                 'band_id': record[16],
+                                 'master_band_name': record[17],
+                                 'min_wavelength': record[18],
+                                 'max_wavelength': record[19]
                                  }
                     
-    def _get_sensor_name_dict(self):
+    def _get_level_name_dict(self):
         '''
         Returns sensor_name_dict for pre-set lookup_scheme_name, satellite_tag & sensor_name
         Returns None if not found
         '''
         assert self.lookup_scheme_name, 'lookup_scheme_name not set'
+        assert self.tile_type_id, 'tile_type_id not set'
         assert self.satellite_tag, 'satellite_tag not set'
         assert self.sensor_name, 'sensor_name not set'
+        assert self.level_name, 'level_name not set'
         
         try:
-            sensor_name_dict = BandLookup._band_lookup_dict[self.lookup_scheme_name][self.satellite_tag][self.sensor_name]
+            level_name_dict = BandLookup._band_lookup_dict[self.lookup_scheme_name][self.tile_type_id][self.satellite_tag][self.sensor_name][self.level_name]
         except KeyError:
-            sensor_name_dict = {}
+            level_name_dict = {}
             
-        return sensor_name_dict
+        return level_name_dict
                 
     @property
     def lookup_schemes(self):
@@ -148,47 +180,47 @@ class BandLookup(object):
         '''
         Returns a list of band tags for the current lookup_scheme_name, satellite_tag & sensor_name sorted by centre wavelength
         '''
-        sensor_name_dict = self._get_sensor_name_dict()
-        return sorted([band_tag for band_tag in sensor_name_dict.keys()], 
-                      key=lambda band_tag: sensor_name_dict[band_tag]['nominal_centre'])
+        level_name_dict = self._get_level_name_dict()
+        return sorted([band_tag for band_tag in level_name_dict.keys()], 
+                      key=lambda band_tag: level_name_dict[band_tag]['nominal_centre'])
 
     @property
     def band_info(self):
         '''
         Returns a nested dict keyed by band tag containing all info for each band for the current lookup_scheme_name, satellite_tag & sensor_name 
         '''
-        sensor_name_dict = self._get_sensor_name_dict()
-        return dict(sensor_name_dict)
+        level_name_dict = self._get_level_name_dict()
+        return dict(level_name_dict)
 
     @property
     def band_no(self):
         '''
         Returns a dict keyed by band tag containing the one-based integer band number for each band_tag for the current lookup_scheme_name, satellite_tag & sensor_name 
         '''
-        sensor_name_dict = self._get_sensor_name_dict()
-        return {band_tag: sensor_name_dict[band_tag]['tile_layer'] for band_tag in sensor_name_dict}
+        level_name_dict = self._get_level_name_dict()
+        return {band_tag: level_name_dict[band_tag]['tile_layer'] for band_tag in level_name_dict}
 
     @property
     def band_index(self):
         '''
         Returns a dict keyed by band tag containing the zero-based integer band number for each band_tag for the current lookup_scheme_name, satellite_tag & sensor_name 
         '''
-        sensor_name_dict = self._get_sensor_name_dict()
-        return {band_tag: sensor_name_dict[band_tag]['tile_layer'] - 1 for band_tag in sensor_name_dict}
+        level_name_dict = self._get_level_name_dict()
+        return {band_tag: level_name_dict[band_tag]['tile_layer'] - 1 for band_tag in level_name_dict}
 
     @property
     def adjustment_offset(self):
         '''
         Returns a dict keyed by band tag containing the floating point adjustment offset for each band_tag for the current lookup_scheme_name, satellite_tag & sensor_name 
         '''
-        sensor_name_dict = self._get_sensor_name_dict()
-        return {band_tag: sensor_name_dict[band_tag]['adjustment_offset'] for band_tag in sensor_name_dict}
+        level_name_dict = self._get_level_name_dict()
+        return {band_tag: level_name_dict[band_tag]['adjustment_offset'] for band_tag in level_name_dict}
 
     @property
     def adjustment_multiplier(self):
         '''
         Returns a dict keyed by band tag containing the floating point adjustment multiplier for each band_tag for the current lookup_scheme_name, satellite_tag & sensor_name 
         '''
-        sensor_name_dict = self._get_sensor_name_dict()
-        return {band_tag: sensor_name_dict[band_tag]['adjustment_multiplier'] for band_tag in sensor_name_dict}
+        level_name_dict = self._get_level_name_dict()
+        return {band_tag: level_name_dict[band_tag]['adjustment_multiplier'] for band_tag in level_name_dict}
 
