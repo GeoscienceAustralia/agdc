@@ -723,7 +723,7 @@ order by
         
         log_multiline(logger.debug, pqa_array, 'pqa_array', '\t')
 
-        # Ignore bit 8 - always 0 for Landsat 5
+        # Ignore bit 6 (saturation for band 62) - always 0 for Landsat 5
         pqa_array = pqa_array | 64
         
     #    logger.debug('pqa_array = %s', pqa_array)

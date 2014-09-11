@@ -191,7 +191,7 @@ stack_output_info = {'x_index': 144,
         dtype = gdalconst.GDT_Float32 # All output is to be float32
         no_data_value = numpy.nan
 
-        log_multiline(logger.debug, input_dataset_dict, 'nbar_dataset_dict', '\t')
+        log_multiline(logger.debug, input_dataset_dict, 'input_dataset_dict', '\t')
 
         # Test function to copy ORTHO & NBAR band datasets with pixel quality mask applied
         # to an output directory for stacking
@@ -203,6 +203,11 @@ stack_output_info = {'x_index': 144,
         # Need to skip tiles which don't have an NBAR tile (i.e. for non-mosaiced FC tiles at W & E sides of test area)
         if nbar_dataset_info is None:
             logger.warning('NBAR tile does not exist')
+            return None
+
+        # Nasty work-around for bad PQA due to missing thermal bands for LS8-OLI
+        if nbar_dataset_info['satellite_tag'] == 'LS8' and nbar_dataset_info['sensor_name'] == 'OLI':
+            logger.debug('Work-around for LS8-OLI PQA issue applied: TILE SKIPPED')
             return None
 
         # Instantiate band lookup object with all required lookup parameters
