@@ -721,6 +721,8 @@ order by
         pqa_array = pqa_gdal_dataset.GetRasterBand(1).ReadAsArray()
         del pqa_gdal_dataset
         
+        log_multiline(logger.debug, pqa_array, 'pqa_array', '\t')
+
         # Ignore bit 8 - always 0 for Landsat 5
         pqa_array = pqa_array | 64
         
