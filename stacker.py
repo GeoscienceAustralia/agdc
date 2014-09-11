@@ -721,7 +721,9 @@ order by
         pqa_array = pqa_gdal_dataset.GetRasterBand(1).ReadAsArray()
         del pqa_gdal_dataset
         
-        # Ignore bit 8 - always 0 for Landsat 5
+        log_multiline(logger.debug, pqa_array, 'pqa_array', '\t')
+
+        # Ignore bit 6 (saturation for band 62) - always 0 for Landsat 5
         pqa_array = pqa_array | 64
         
     #    logger.debug('pqa_array = %s', pqa_array)
@@ -869,7 +871,7 @@ order by
                                          sensor=sensor, 
                                          tile_type_id=None,
                                          create_band_stacks=False,
-                                         disregard_incomplete_data=True)
+                                         disregard_incomplete_data=False)
         
         # Create intermediate mosaics and return dict with stack info
         logger.debug('self.stack_tile(x_index=%s, y_index=%s, stack_output_dir=%s, start_datetime=%s, end_datetime=%s, satellite=%s, sensor=%s, tile_type_id=%s, create_band_stacks=%s, disregard_incomplete_data=%s) called', 
@@ -881,7 +883,7 @@ order by
                                          sensor, 
                                          None,
                                          False,
-                                         True)
+                                         False)
     
         log_multiline(logger.debug, stack_info_dict, 'stack_info_dict', '\t')
         

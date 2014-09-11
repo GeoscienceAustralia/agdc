@@ -46,9 +46,8 @@ from time import sleep
 import gc
 
 from stacker import Stacker
-from EOtools.stats import create_envi_hdr
 from EOtools.utils import log_multiline
-
+from band_lookup import BandLookup
 
 SCALE_FACTOR = 10000
 NaN = numpy.float32(numpy.NaN)
@@ -188,16 +187,27 @@ stack_output_info = {'x_index': 144,
 }
         """
         
+        log_multiline(logger.debug, input_dataset_dict, 'input_dataset_dict', '\t')
+
         # Definitions for mapping NBAR values to RGB
-        rgb_bands=(5,4,2)
+        rgb_bands=('SWIR1','NIR','G')
         rgb_minmax=((780,5100),(200,4500),(100,2300)) # Min/Max scaled values to map to 1-255
         
-        nbar_dataset_info = input_dataset_dict['NBAR'] # Only need NBAR data for NDVI
+        nbar_dataset_info = input_dataset_dict.get('NBAR') # Only need NBAR data for NDVI
         #thermal_dataset_info = input_dataset_dict['ORTHO'] # Could have one or two thermal bands
         
         if not nbar_dataset_info:
             log_multiline(logger.warning, input_dataset_dict, 'NBAR dict does not exist', '\t')
             return None
+
+        # Instantiate band lookup object with all required lookup parameters
+        lookup = BandLookup(data_cube=self,
+                            lookup_scheme_name='LANDSAT-LS5/7',
+                            tile_type_id=tile_type_info['tile_type_id'],
+                            satellite_tag=nbar_dataset_info['satellite_tag'],
+                            sensor_name=nbar_dataset_info['sensor_name'],
+                            level_name=nbar_dataset_info['level_name']
+                            )
 
         nbar_dataset_path = nbar_dataset_info['tile_pathname']
         output_tile_path = os.path.join(self.output_dir, re.sub('\.\w+$', 
@@ -214,12 +224,22 @@ stack_output_info = {'x_index': 144,
             logger.info('Skipping locked file %s', output_tile_path)
             return None
         
-        # Get a boolean mask from the PQA dataset (use default parameters for mask and dilation)
-        pqa_mask = self.get_pqa_mask(input_dataset_dict['PQA']['tile_pathname']) 
-        
         input_dataset = gdal.Open(nbar_dataset_path)
         assert input_dataset, 'Unable to open dataset %s' % nbar_dataset_path
-        
+
+        # Nasty work-around for bad PQA due to missing thermal bands for LS8-OLI
+        if nbar_dataset_info['satellite_tag'] == 'LS8' and nbar_dataset_info['sensor_name'] == 'OLI':
+            pqa_mask = numpy.ones(shape=(input_dataset.RasterYSize, input_dataset.RasterXSize), dtype=numpy.bool)
+            logger.debug('Work-around for LS8-OLI PQA issue applied: EVERYTHING PASSED')
+        else:
+            if input_dataset_dict.get('PQA') is None: # No PQA tile available
+                return
+
+            # Get a boolean mask from the PQA dataset (use default parameters for mask and dilation)
+            pqa_mask = self.get_pqa_mask(pqa_dataset_path=input_dataset_dict['PQA']['tile_pathname']) 
+
+        log_multiline(logger.debug, pqa_mask, 'pqa_mask', '\t')
+
         gdal_driver = gdal.GetDriverByName('GTiff')
         output_dataset = gdal_driver.Create(output_tile_path, 
                                             input_dataset.RasterXSize, input_dataset.RasterYSize,
@@ -233,11 +253,15 @@ stack_output_info = {'x_index': 144,
         output_dataset.SetProjection(input_dataset.GetProjection()) 
 
         for band_index in range(3):
+            logger.debug('Processing %s band in layer %s as band %s', rgb_bands[band_index], lookup.band_no[rgb_bands[band_index]], band_index + 1)
+
             # Offset byte values by 1 to avoid transparency bug
             scale = (rgb_minmax[band_index][1] - rgb_minmax[band_index][0]) / 254.0
             offset = 1.0 - rgb_minmax[band_index][0] / scale
             
-            input_array = input_dataset.GetRasterBand(rgb_bands[band_index]).ReadAsArray()
+            input_array = input_dataset.GetRasterBand(lookup.band_no[rgb_bands[band_index]]).ReadAsArray()
+            log_multiline(logger.debug, input_array, 'input_array', '\t')
+
             output_array = (input_array / scale + offset).astype(numpy.byte)
             
             # Set out-of-range values to minimum or maximum as required
@@ -245,6 +269,7 @@ stack_output_info = {'x_index': 144,
             output_array[input_array > rgb_minmax[band_index][1]] = 255
             
             output_array[~pqa_mask] = 0 # Apply PQA Mask
+            log_multiline(logger.debug, output_array, 'output_array', '\t')
             
             output_band = output_dataset.GetRasterBand(band_index + 1)
             output_band.WriteArray(output_array)

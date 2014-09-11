@@ -46,7 +46,7 @@ import gc
 from stacker import Stacker
 from EOtools.stats import temporal_stats
 from EOtools.utils import log_multiline
-
+from band_lookup import BandLookup
 
 SCALE_FACTOR = 10000
 NaN = numpy.float32(numpy.NaN)
@@ -188,41 +188,16 @@ stack_output_info = {'x_index': 144,
         """
         assert type(input_dataset_dict) == dict, 'nbar_dataset_dict must be a dict'
 
-        dtype = {'B10' : gdalconst.GDT_Float32,
-                 'B20' : gdalconst.GDT_Float32,
-                 'B30' : gdalconst.GDT_Float32,
-                 'B40' : gdalconst.GDT_Float32,
-                 'B50' : gdalconst.GDT_Float32,
-                 'B70' : gdalconst.GDT_Float32,
-                 'NDVI' : gdalconst.GDT_Float32,
-                 'EVI' : gdalconst.GDT_Float32,
-                 'NDSI' : gdalconst.GDT_Float32,
-                 'NDMI' : gdalconst.GDT_Float32,
-                 'SLAVI' : gdalconst.GDT_Float32,
-                 'SATVI' : gdalconst.GDT_Float32,
-                 'WATER' : gdalconst.GDT_Int16}
+        dtype = gdalconst.GDT_Float32 # All output is to be float32
+        no_data_value = numpy.nan
 
-        no_data_value = {'B10' : numpy.nan,
-                 'B20' : numpy.nan,
-                 'B30' : numpy.nan,
-                 'B40' : numpy.nan,
-                 'B50' : numpy.nan,
-                 'B70' : numpy.nan,
-                 'NDVI' : numpy.nan,
-                 'EVI' : numpy.nan,
-                 'NDSI' : numpy.nan,
-                 'NDMI' : numpy.nan,
-                 'SLAVI' : numpy.nan,
-                 'SATVI' : numpy.nan,
-                 'WATER' : -1}
-
-        log_multiline(logger.debug, input_dataset_dict, 'nbar_dataset_dict', '\t')
+        log_multiline(logger.debug, input_dataset_dict, 'input_dataset_dict', '\t')
 
         # Test function to copy ORTHO & NBAR band datasets with pixel quality mask applied
         # to an output directory for stacking
 
         output_dataset_dict = {}
-        nbar_dataset_info = input_dataset_dict['NBAR'] # Only need NBAR data for NDVI
+        nbar_dataset_info = input_dataset_dict.get('NBAR') # Only need NBAR data for NDVI
         #thermal_dataset_info = input_dataset_dict['ORTHO'] # Could have one or two thermal bands
 
         # Need to skip tiles which don't have an NBAR tile (i.e. for non-mosaiced FC tiles at W & E sides of test area)
@@ -230,17 +205,36 @@ stack_output_info = {'x_index': 144,
             logger.warning('NBAR tile does not exist')
             return None
 
+        # Nasty work-around for bad PQA due to missing thermal bands for LS8-OLI
+        if nbar_dataset_info['satellite_tag'] == 'LS8' and nbar_dataset_info['sensor_name'] == 'OLI':
+            logger.debug('Work-around for LS8-OLI PQA issue applied: TILE SKIPPED')
+            return None
+
+        # Instantiate band lookup object with all required lookup parameters
+        lookup = BandLookup(data_cube=self,
+                            lookup_scheme_name='LANDSAT-LS5/7',
+                            tile_type_id=tile_type_info['tile_type_id'],
+                            satellite_tag=nbar_dataset_info['satellite_tag'],
+                            sensor_name=nbar_dataset_info['sensor_name'],
+                            level_name=nbar_dataset_info['level_name']
+                            )
+
         nbar_dataset_path = nbar_dataset_info['tile_pathname']
+        
+        if input_dataset_dict.get('PQA') is None: # No PQA tile available
+            return
 
         # Get a boolean mask from the PQA dataset (use default parameters for mask and dilation)
         pqa_mask = self.get_pqa_mask(input_dataset_dict['PQA']['tile_pathname'])
+
+        log_multiline(logger.debug, pqa_mask, 'pqa_mask', '\t')
 
         nbar_dataset = gdal.Open(nbar_dataset_path)
         assert nbar_dataset, 'Unable to open dataset %s' % nbar_dataset
 
         band_array = None;
         # List of outputs to generate from each file
-        output_tag_list = ['B10', 'B20', 'B30', 'B40', 'B50', 'B70',
+        output_tag_list = ['B', 'G', 'R', 'NIR', 'SWIR1', 'SWIR2',
                            'NDVI', 'EVI', 'NDSI', 'NDMI', 'SLAVI', 'SATVI']
         for output_tag in sorted(output_tag_list):
         # List of outputs to generate from each file
@@ -272,7 +266,7 @@ stack_output_info = {'x_index': 144,
             output_dataset_info['band_name'] = '%s with PQA mask applied' % output_tag
             output_dataset_info['band_tag'] = '%s-PQA' % output_tag
             output_dataset_info['tile_layer'] = 1
-            output_dataset_info['nodata_value'] = no_data_value[output_tag]
+            output_dataset_info['nodata_value'] = no_data_value
 
             # Check for existing, valid file
             if self.refresh or not os.path.exists(output_tile_path):
@@ -284,10 +278,22 @@ stack_output_info = {'x_index': 144,
                         if band_array is None:
                             # Convert to float32 for arithmetic and scale back to 0~1 reflectance
                             band_array = (nbar_dataset.ReadAsArray().astype(numpy.float32)) / SCALE_FACTOR
-
+                            
+                            log_multiline(logger.debug, band_array, 'band_array', '\t')
+                            
+                            # Adjust bands if required
+                            for band_tag in lookup.bands:
+                                if lookup.adjustment_multiplier[band_tag] != 1.0 or lookup.adjustment_offset[band_tag] != 0.0:
+                                    logger.debug('Band values adjusted: %s = %s * %s + %s', 
+                                                 band_tag, band_tag, lookup.adjustment_multiplier[band_tag], lookup.adjustment_offset[band_tag])
+                                    band_array[lookup.band_index[band_tag]] = band_array[lookup.band_index[band_tag]] * lookup.adjustment_multiplier[band_tag] + lookup.adjustment_offset[band_tag]
+                            log_multiline(logger.debug, band_array, 'adjusted band_array', '\t')
+                            
                             # Re-project issues with PQ. REDO the contiguity layer.
                             non_contiguous = (band_array < 0).any(0)
                             pqa_mask[non_contiguous] = False
+
+                            log_multiline(logger.debug, pqa_mask, 'enhanced pqa_mask', '\t')
 
                         gdal_driver = gdal.GetDriverByName(tile_type_info['file_format'])
                         #output_dataset = gdal_driver.Create(output_tile_path,
@@ -296,7 +302,7 @@ stack_output_info = {'x_index': 144,
                         #                                    tile_type_info['format_options'].split(','))
                         output_dataset = gdal_driver.Create(output_tile_path,
                                                             nbar_dataset.RasterXSize, nbar_dataset.RasterYSize,
-                                                            1, dtype[output_tag],
+                                                            1, dtype,
                                                             tile_type_info['format_options'].split(','))
                         assert output_dataset, 'Unable to open output dataset %s'% output_dataset
                         output_dataset.SetGeoTransform(nbar_dataset.GetGeoTransform())
@@ -307,33 +313,52 @@ stack_output_info = {'x_index': 144,
                         # Calculate each output here
                         # Remember band_array indices are zero-based
 
-                        if output_tag[0] == 'B': # One of the band tags
-                            band_file_no = int(output_tag[1:])
-                            # Look up tile_layer (i.e. band number) for specified spectral band in tile dataset
-                            tile_layer = self.bands[tile_type_info['tile_type_id']][(nbar_dataset_info['satellite_tag'], nbar_dataset_info['sensor_name'])][band_file_no]['tile_layer']
+                        if output_tag in lookup.bands: # One of the band tags
                             # Copy values
-                            data_array = band_array[tile_layer - 1].copy()
+                            data_array = band_array[lookup.band_index[output_tag]].copy()
                         elif output_tag == 'NDVI':
-                            data_array = numexpr.evaluate("((b4 - b3) / (b4 + b3)) + 1", {'b4':band_array[3], 'b3':band_array[2]})
+                            data_array = numexpr.evaluate("((NIR_array - R_array) / (NIR_array + R_array)) + 1", 
+                                                          {'NIR_array': band_array[lookup.band_index['NIR']], 
+                                                           'R_array': band_array[lookup.band_index['R']]
+                                                           })
                         elif output_tag == 'EVI':
-                            data_array = numexpr.evaluate("(2.5 * ((b4 - b3) / (b4 + (6 * b3) - (7.5 * b1) + 1))) + 1", {'b4':band_array[3], 'b3':band_array[2], 'b1':band_array[0]})
+                            data_array = numexpr.evaluate("(2.5 * ((NIR_array - R_array) / (NIR_array + (6 * R_array) - (7.5 * B_array) + 1))) + 1", 
+                                                          {'NIR_array': band_array[lookup.band_index['NIR']], 
+                                                           'R_array':band_array[lookup.band_index['R']], 
+                                                           'B_array':band_array[lookup.band_index['B']]
+                                                           })
                         elif output_tag == 'NDSI':
-                            data_array = numexpr.evaluate("((b3 - b5) / (b3 + b5)) + 1", {'b5':band_array[4], 'b3':band_array[2]})
+                            data_array = numexpr.evaluate("((R_array - SWIR1_array) / (R_array + SWIR1_array)) + 1", 
+                                                          {'SWIR1_array': band_array[lookup.band_index['SWIR1']], 
+                                                           'R_array': band_array[lookup.band_index['R']]
+                                                           })
                         elif output_tag == 'NDMI':
-                            data_array = numexpr.evaluate("((b4 - b5) / (b4 + b5)) + 1", {'b5':band_array[4], 'b4':band_array[3]})
+                            data_array = numexpr.evaluate("((NIR_array - SWIR1_array) / (NIR_array + SWIR1_array)) + 1", 
+                                                          {'SWIR1_array': band_array[lookup.band_index['SWIR1']], 
+                                                           'NIR_array': band_array[lookup.band_index['NIR']]
+                                                           })
                         elif output_tag == 'SLAVI':
-                            data_array = numexpr.evaluate("b4 / (b3 + b5)", {'b5':band_array[4], 'b4':band_array[3], 'b3':band_array[2]})
+                            data_array = numexpr.evaluate("NIR_array / (R_array + SWIR1_array)", 
+                                                          {'SWIR1_array': band_array[lookup.band_index['SWIR1']], 
+                                                           'NIR_array': band_array[lookup.band_index['NIR']], 
+                                                           'R_array': band_array[lookup.band_index['R']]
+                                                           })
                         elif output_tag == 'SATVI':
-                            data_array = numexpr.evaluate("(((b5 - b3) / (b5 + b3 + 0.5)) * 1.5 - (b7 / 2)) + 1", {'b5':band_array[4], 'b7':band_array[5], 'b3':band_array[2]})
-                        elif output_tag == 'WATER':
-                            data_array = numpy.zeros(band_array[0].shape, dtype=numpy.int16)
-                            #TODO: Call water analysis code here
+                            data_array = numexpr.evaluate("(((SWIR1_array - R_array) / (SWIR1_array + R_array + 0.5)) * 1.5 - (SWIR2_array / 2)) + 1", 
+                                                          {'SWIR1_array': band_array[lookup.band_index['SWIR1']], 
+                                                           'SWIR2_array':band_array[lookup.band_index['SWIR2']], 
+                                                           'R_array':band_array[lookup.band_index['R']]
+                                                           })
                         else:
                             raise Exception('Invalid operation')
 
-                        if no_data_value[output_tag]:
-                            self.apply_pqa_mask(data_array=data_array, pqa_mask=pqa_mask, no_data_value=no_data_value[output_tag])
+                        log_multiline(logger.debug, data_array, 'data_array', '\t')
+                        
+                        if no_data_value:
+                            self.apply_pqa_mask(data_array=data_array, pqa_mask=pqa_mask, no_data_value=no_data_value)
 
+                        log_multiline(logger.debug, data_array, 'masked data_array', '\t')
+                        
                         gdal_driver = gdal.GetDriverByName(tile_type_info['file_format'])
                         #output_dataset = gdal_driver.Create(output_tile_path,
                         #                                    nbar_dataset.RasterXSize, nbar_dataset.RasterYSize,
@@ -341,7 +366,7 @@ stack_output_info = {'x_index': 144,
                         #                                    tile_type_info['format_options'].split(','))
                         output_dataset = gdal_driver.Create(output_tile_path,
                                                             nbar_dataset.RasterXSize, nbar_dataset.RasterYSize,
-                                                            1, dtype[output_tag],
+                                                            1, dtype,
                                                             tile_type_info['format_options'].split(','))
                         assert output_dataset, 'Unable to open output dataset %s'% output_dataset
                         output_dataset.SetGeoTransform(nbar_dataset.GetGeoTransform())
@@ -454,7 +479,7 @@ if __name__ == '__main__':
             return ndvi_envi_stack_path
 
         vrt2envi(ndvi_vrt_stack_path, ndvi_envi_stack_path)
-        temporal_stats.create_envi_hdr(envi_file=ndvi_envi_stack_path, noData=-32768, band_names=layer_name_list)
+        temporal_stats.create_envi_hdr(outfile=ndvi_envi_stack_path, noData=-32768, new_bnames=layer_name_list)
 
         logger.info('Finished writing NDVI Envi file %s', ndvi_envi_stack_path)
 
@@ -464,9 +489,6 @@ if __name__ == '__main__':
         stats_dataset_path_dict = {}
         for vrt_stack_path in sorted(stack_info_dict.keys()):
             stack_list = stack_info_dict[vrt_stack_path]
-
-            if vrt_stack_path.find('WATER') > -1: # Don't run stats on water analysis
-                continue
 
             stats_dataset_path = vrt_stack_path.replace('.vrt', '_stats_envi')
             stats_dataset_path_dict[vrt_stack_path] = stats_dataset_path
@@ -492,7 +514,7 @@ if __name__ == '__main__':
     def update_stats_metadata(index_stacker, stack_info_dict, stats_dataset_path_dict):
         for vrt_stack_path in sorted(stack_info_dict.keys()):
             stats_dataset_path = stats_dataset_path_dict.get(vrt_stack_path)
-            if not stats_dataset_path: # Don't proceed if no stats file (e.g. WATER)
+            if not stats_dataset_path: # Don't proceed if no stats file
                 continue
 
             stack_list = stack_info_dict[vrt_stack_path]

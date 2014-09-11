@@ -46,4 +46,4 @@ module load psycopg2
 
 export DATACUBE_ROOT=$(readlink -f ${0%/*})
 
-python ${DATACUBE_ROOT}/landsat_ingester.py $@
+python ${DATACUBE_ROOT}/landsat_ingester $@
