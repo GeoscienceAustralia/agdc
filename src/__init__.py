@@ -27,3 +27,6 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #===============================================================================
 
+from agdc.datacube import DataCube
+from agdc.stacker import Stacker
+from agdc.band_lookup import BandLookup

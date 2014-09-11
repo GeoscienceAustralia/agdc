@@ -37,7 +37,7 @@ import sys
 import logging
 from datetime import datetime, time
 
-from stacker import Stacker
+from agdc import Stacker
 from EOtools.utils import log_multiline
 
 # Set top level standard output 

@@ -40,9 +40,9 @@ import numpy
 from datetime import datetime, time
 from osgeo import gdal
 
-from stacker import Stacker
+from agdc import Stacker
 from EOtools.utils import log_multiline
-from band_lookup import BandLookup
+from agdc import BandLookup
 
 SCALE_FACTOR = 10000
 

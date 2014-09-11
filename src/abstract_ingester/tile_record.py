@@ -41,7 +41,7 @@ format changes.
 import logging
 import os
 from ingest_db_wrapper import IngestDBWrapper, TC_PENDING
-import cube_util
+import agdc.cube_util
 import re
 import psycopg2
 

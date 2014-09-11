@@ -49,7 +49,7 @@ import update_dataset_record
 import update_pqa_dataset_record
 import update_fc_dataset_record
 
-from datacube import DataCube
+from agdc import DataCube
 
 # Set top level standard output 
 console_handler = logging.StreamHandler(sys.stdout)
@@ -76,7 +76,7 @@ class DBUpdater(DataCube):
         # N.B: modtran_root is a direct overrides of config entries
         # and its variable name must be prefixed with "_" to allow lookup in conf file
         _arg_parser.add_argument('-C', '--config', dest='config_file',
-            default=os.path.join(os.path.dirname(__file__), 'datacube.conf'),
+            default=os.path.join(self.agdc_root, 'agdc_default.conf'),
             help='DBUpdater configuration file')
         _arg_parser.add_argument('-d', '--debug', dest='debug',
             default=False, action='store_const', const=True,

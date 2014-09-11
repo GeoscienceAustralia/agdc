@@ -39,7 +39,7 @@ import logging
 import argparse
 
 from EOtools.execute import execute
-from abstract_ingester import AbstractIngester
+from agdc.abstract_ingester import AbstractIngester
 from landsat_dataset import LandsatDataset
 
 #
@@ -78,7 +78,8 @@ class LandsatIngester(AbstractIngester):
         _arg_parser = argparse.ArgumentParser()
 
         _arg_parser.add_argument('-C', '--config', dest='config_file',
-            default=os.path.join(os.path.dirname(__file__), 'datacube.conf'),
+            # N.B: The following line assumes that this module is under the agdc directory
+            default=os.path.join(os.path.dirname(os.path.dirname(__file__)), 'agdc_default.conf'),
             help='LandsatIngester configuration file')
 
         _arg_parser.add_argument('-d', '--debug', dest='debug',

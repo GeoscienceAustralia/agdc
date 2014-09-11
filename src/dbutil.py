@@ -619,7 +619,7 @@ def tile_root_directory(module, suite, test_dir, version=None, user=None):
 
 def update_config_file(dbname, input_dir, output_dir, config_file_name,
                        output_file_name=None):
-    """Creates a temporary datacube config file by updating the database name.
+    """Creates a temporary agdc_default.config file by updating the database name.
 
     This function returns the path to the updated config file.
 
@@ -637,7 +637,7 @@ def update_config_file(dbname, input_dir, output_dir, config_file_name,
 
 def update_config_file2(parameter_values_dict, input_dir, output_dir,
                         config_file_name, output_file_name=None):
-    """Creates a temporary datacube config file by updating those attributes
+    """Creates a temporary agdc_default.config file by updating those attributes
     according to the dictionary parameter_values.
 
     This function returns the path to the updated config file.

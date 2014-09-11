@@ -39,9 +39,9 @@
 import os
 import re
 from osgeo import gdal
-from abstract_ingester import AbstractBandstack
-import cube_util
-from cube_util import DatasetError
+from agdc.abstract_ingester import AbstractBandstack
+import agdc.cube_util as cube_util
+from agdc.cube_util import DatasetError
 from collections import OrderedDict
 from EOtools.execute import execute
 

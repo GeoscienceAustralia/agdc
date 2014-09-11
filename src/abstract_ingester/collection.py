@@ -42,8 +42,8 @@ import logging
 import os
 import time
 import shutil
-import cube_util
-from cube_util import DatasetError
+import agdc.cube_util as cube_util
+from agdc.cube_util import DatasetError
 from tile_contents import TileContents
 from acquisition_record import AcquisitionRecord
 from ingest_db_wrapper import IngestDBWrapper

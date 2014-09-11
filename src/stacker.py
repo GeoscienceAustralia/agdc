@@ -54,7 +54,7 @@ from time import sleep
 from EOtools.execute import execute
 from EOtools.utils import log_multiline
 
-from datacube import DataCube
+from agdc import DataCube
 
 PQA_CONTIGUITY = 256 # contiguity = bit 8
 
@@ -84,7 +84,7 @@ class Stacker(DataCube):
         # N.B: modtran_root is a direct overrides of config entries
         # and its variable name must be prefixed with "_" to allow lookup in conf file
         _arg_parser.add_argument('-C', '--config', dest='config_file',
-            default=os.path.join(os.path.dirname(__file__), 'datacube.conf'),
+            default=os.path.join(self.agdc_root, 'agdc_default.conf'),
             help='Stacker configuration file')
         _arg_parser.add_argument('-d', '--debug', dest='debug',
             default=False, action='store_const', const=True,

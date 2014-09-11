@@ -41,7 +41,7 @@ from EOtools.utils import log_multiline
 from EOtools.execute import execute
 import sys
 from time import sleep
-from datacube import DataCube
+from agdc import DataCube
 
 # Set top level standard output 
 console_handler = logging.StreamHandler(sys.stdout)

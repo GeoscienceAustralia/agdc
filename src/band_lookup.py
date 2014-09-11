@@ -5,7 +5,7 @@ Created on 09/09/2014
 '''
 import sys, logging
 from EOtools.utils import log_multiline
-from datacube import DataCube
+from agdc import DataCube
 
 # Set top level standard output 
 console_handler = logging.StreamHandler(sys.stdout)

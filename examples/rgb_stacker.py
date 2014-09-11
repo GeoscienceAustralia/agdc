@@ -45,9 +45,9 @@ from osgeo import gdal, gdalconst
 from time import sleep
 import gc
 
-from stacker import Stacker
+from agdc import Stacker
 from EOtools.utils import log_multiline
-from band_lookup import BandLookup
+from agdc import BandLookup
 
 SCALE_FACTOR = 10000
 NaN = numpy.float32(numpy.NaN)

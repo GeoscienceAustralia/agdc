@@ -56,7 +56,7 @@ import string
 from EOtools.utils import log_multiline
 from EOtools.execute import execute
 
-from datacube import DataCube
+from agdc import DataCube
 
 TILE_OWNER = 'axi547:rs0' # Owner of file files
 
@@ -100,7 +100,7 @@ class LandsatTiler(DataCube):
         _arg_parser = argparse.ArgumentParser('datacube')
         
         _arg_parser.add_argument('-C', '--config', dest='config_file',
-            default=os.path.join(os.path.dirname(__file__), 'datacube.conf'),
+            default=os.path.join(self.agdc_root, 'agdc_default.conf'),
             help='DataCube configuration file')
         _arg_parser.add_argument('-d', '--debug', dest='debug',
             default=False, action='store_const', const=True,

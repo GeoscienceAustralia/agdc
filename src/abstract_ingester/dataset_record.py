@@ -42,7 +42,7 @@ import logging
 import os
 import re
 from osgeo import osr
-from cube_util import DatasetError
+from agdc.cube_util import DatasetError
 from ingest_db_wrapper import IngestDBWrapper
 from ingest_db_wrapper import TC_PENDING, TC_SINGLE_SCENE, TC_SUPERSEDED
 from ingest_db_wrapper import TC_MOSAIC

@@ -42,9 +42,9 @@ import shutil
 import logging
 import os
 import re
-import cube_util
+import agdc.cube_util as cube_util
 from EOtools.execute import execute
-from cube_util import DatasetError
+from agdc.cube_util import DatasetError
 from osgeo import gdal
 import numpy as np
 

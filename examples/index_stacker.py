@@ -43,10 +43,10 @@ from time import sleep
 import numexpr
 import gc
 
-from stacker import Stacker
 from EOtools.stats import temporal_stats
 from EOtools.utils import log_multiline
-from band_lookup import BandLookup
+from agdc import Stacker
+from agdc import BandLookup
 
 SCALE_FACTOR = 10000
 NaN = numpy.float32(numpy.NaN)

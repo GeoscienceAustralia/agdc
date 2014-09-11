@@ -38,9 +38,9 @@ import json
 from abc import ABCMeta, abstractmethod
 import psycopg2
 
-from datacube import DataCube
+from agdc import DataCube
+from agdc.cube_util import DatasetError, parse_date_from_string
 from collection import Collection
-from cube_util import DatasetError, parse_date_from_string
 from abstract_dataset import AbstractDataset
 from abstract_bandstack import AbstractBandstack
 #from cube_util import synchronize
@@ -116,6 +116,8 @@ class AbstractIngester(object):
         else:
             self.datacube = datacube
 
+        self.agdc_root = datacube.agdc_root
+
         if collection is None:
             self.collection = Collection(self.datacube)
         else:
@@ -138,8 +140,8 @@ class AbstractIngester(object):
 
         _arg_parser = argparse.ArgumentParser()
 
-        default_config = os.path.join(os.path.dirname(__file__),
-                                      'datacube.conf')
+        default_config = os.path.join(os.path.dirname(os.path.dirname(__file__)),
+                                      'agdc_default.conf')
         _arg_parser.add_argument('-C', '--config', dest='config_file',
                                  default=default_config,
                                  help='DataCube configuration file')

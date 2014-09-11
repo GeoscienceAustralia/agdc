@@ -48,7 +48,7 @@ import datetime
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from psycopg2.extensions import ISOLATION_LEVEL_READ_COMMITTED
 
-import dbutil
+import agdc.dbutil as dbutil
 import pytz
 
 from EOtools.utils import log_multiline

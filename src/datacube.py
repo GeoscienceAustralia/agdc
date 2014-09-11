@@ -43,6 +43,7 @@ import logging
 import errno
 import psycopg2
 import socket
+import inspect
 
 from EOtools.execute import execute
 from EOtools.utils import log_multiline
@@ -63,7 +64,7 @@ class DataCube(object):
     LOCK_WAIT = 10 # Seconds to sleep between checking for file unlock
     MAX_RETRIES = 30 # Maximum number of checks for file unlock
     MAX_BLOCK_SIZE = 536870912 # Maximum blocksize for array operations (0.5GB)
-    
+
     def create_directory(self, dirname):
         try:
             os.makedirs(dirname)
@@ -95,7 +96,7 @@ class DataCube(object):
         _arg_parser = argparse.ArgumentParser('datacube')
         
         _arg_parser.add_argument('-C', '--config', dest='config_file',
-            default=os.path.join(os.path.dirname(__file__), 'datacube.conf'),
+            default=os.path.join(self.agdc_root, 'agdc_default.conf'),
             help='DataCube configuration file')
         _arg_parser.add_argument('-d', '--debug', dest='debug',
             default=False, action='store_const', const=True,
@@ -210,6 +211,8 @@ where tile_type_id = %(tile_type_id)s
             return None
    
     def __init__(self):
+        self.agdc_root = os.path.dirname(__file__)
+
         self.db_connection = None
         
         self.process_id = os.getenv('PBS_O_HOST', socket.gethostname()) + ':' + os.getenv('PBS_JOBID', str(os.getpid()))
@@ -235,9 +238,9 @@ where tile_type_id = %(tile_type_id)s
             
         log_multiline(logger.debug, args.__dict__, 'args.__dict__',  '\t')
 
-        # Default conf file is datacube.conf - show absolute pathname in error messages
+        # Default conf file is agdc_default.conf - show absolute pathname in error messages
         config_file = os.path.abspath(args.config_file or
-                                      os.path.join(os.path.dirname(__file__), 'datacube.conf'))
+                                      os.path.join(self.agdc_root, 'agdc_default.conf'))
         
         config_parser = open_config(config_file)
     

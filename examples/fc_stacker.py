@@ -44,8 +44,8 @@ from datetime import datetime, time
 from osgeo import gdal, gdalconst
 from time import sleep
 
-from stacker import Stacker
-from EOtools.stats import create_envi_hdr
+from agdc import Stacker
+from EOtools.stats.temporal_stats import create_envi_hdr
 from EOtools.utils import log_multiline
 from EOtools.stats import temporal_stats
 

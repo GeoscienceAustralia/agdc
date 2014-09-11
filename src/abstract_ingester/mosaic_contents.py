@@ -44,8 +44,8 @@ import re
 import shutil
 from EOtools.execute import execute
 from EOtools.utils import log_multiline
-import cube_util
-from cube_util import DatasetError
+import agdc.cube_util as cube_util
+from agdc.cube_util import DatasetError
 from ingest_db_wrapper import TC_MOSAIC
 from osgeo import gdal
 import numpy
