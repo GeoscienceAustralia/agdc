@@ -171,20 +171,3 @@ class LandsatIngester(AbstractIngester):
         """
 
         return LandsatDataset(dataset_path)
-
-# Start ingest process
-if __name__ == "__main__":
-
-    #pylint:disable=invalid-name
-    #
-    # Top level variables are OK if this is the top level script.
-    #
-
-    ingester = LandsatIngester()
-
-    if ingester.args.debug:
-        logging.getLogger().setLevel(logging.DEBUG)
-
-    ingester.ingest(ingester.args.source_dir)
-
-    ingester.collection.cleanup()
