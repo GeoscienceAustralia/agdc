@@ -32,12 +32,9 @@
 """
 
 import os
-import subprocess
 import time
 import datetime
-import pdb
 import logging
-import pprint
 import errno
 import inspect
 

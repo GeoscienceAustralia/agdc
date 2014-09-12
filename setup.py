@@ -29,14 +29,35 @@
 
 from distutils.core import setup
 
+version = '1.0.0'
+
 setup(name='agdc',
-      version = '1.0.0',
-      package_dir = {'agdc' : 'src'},
-      packages = ['agdc','agdc.abstract_ingester','agdc.landsat_ingester'],
-      package_data = {'agdc': ['agdc_default.conf']},
+      version = version,
+      package_dir = {
+                     'agdc' : 'src'
+                     },
+      packages = [
+                  'agdc',
+                  'agdc.abstract_ingester',
+                  'agdc.landsat_ingester'
+                  ],
+      package_data = {
+                      'agdc': ['agdc_default.conf']
+                      },
+      scripts = ['bin/stacker.sh',
+                 'bin/landsat_ingester.sh'
+                 ],
+      requires = [
+                  'EOtools',
+                  'psycopg2',
+                  'osgeo',
+                  'numexpr'
+                  ],
+      url = 'https://github.com/GeoscienceAustralia/ga-datacube',
       author = 'Alex Ip, Matthew Hoyles, Matthew Hardy',
-      maintainer = 'Geoscience Australia',
+      maintainer = 'Alex Ip, Geoscience Australia',
+      maintainer_email = 'alex.ip@ga.gov.au',
       description = 'Australian Geoscience Data Cube (AGDC)',
-      long_description = 'Python prototype code developed during .Unlocking the Landsat Archive. (ULA) Project, 2013',
-      license = 'BSD 3',
+      long_description = 'Australian Geoscience Data Cube (AGDC). Original Python code developed during the Unlocking the Landsat Archive. (ULA) Project, 2013',
+      license = 'BSD 3'
      )

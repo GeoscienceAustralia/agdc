@@ -27,24 +27,16 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #===============================================================================
 
-#PBS -P v10
+#@PBS -P v10
 #PBS -q normal
 #PBS -l walltime=08:00:00,mem=4096MB,ncpus=1
 #PBS -l wd
 #@#PBS -m e
-#PBS -M alex.ip@ga.gov.au
+#@PBS -M alex.ip@ga.gov.au
 
+# MODULEPATH=/projects/u46/opt/modules/modulefiles:$MODULEPATH # GA in-house testing only
+MODULEPATH=/projects/el8/opt/modules/modulefiles:$MODULEPATH # Collaborative AGDC users
 
-MODULEPATH=/projects/u46/opt/modules/modulefiles:$MODULEPATH
+module load agdc # Should load all dependencies
 
-module load python/2.7.5
-module load datacube
-module load gdal
-module load pyephem
-module load numexpr
-module load ga-neo-landsat-processor
-module load psycopg2
-
-export DATACUBE_ROOT=$(readlink -f ${0%/*})
-
-python ${DATACUBE_ROOT}/stacker.py $@
+python -m agdc.landsat_ingester $@
