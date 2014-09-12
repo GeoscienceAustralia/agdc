@@ -37,8 +37,7 @@ import sys
 import subprocess
 
 import dbutil
-import cube_util
-from cube_util import DatasetError
+from cube_util import DatasetError, Stopwatch
 from landsat_ingester import LandsatIngester
 
 # pylint: disable=too-many-public-methods
@@ -62,7 +61,7 @@ class TestDatasetFiltering(unittest.TestCase):
     def setUp(self):
         """Set up ingester."""
 
-        self.stopwatch = cube_util.Stopwatch()
+        self.stopwatch = Stopwatch()
 
         updates = {'start_date': '01/03/2014',
                    'end_date': '15/03/2014',

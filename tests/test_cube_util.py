@@ -37,7 +37,7 @@ import random
 import shutil
 
 import dbutil
-import cube_util
+import agdc.cube_util as cube_util
 
 #
 # Test cases

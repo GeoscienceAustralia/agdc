@@ -42,9 +42,8 @@ import shutil
 import logging
 import os
 import re
-import agdc.cube_util as cube_util
 from EOtools.execute import execute
-from agdc.cube_util import DatasetError
+from agdc.cube_util import DatasetError, create_directory
 from osgeo import gdal
 import numpy as np
 
@@ -217,7 +216,7 @@ class TileContents(object):
     def make_permanent(self):
         """Move the tile file to its permanent location."""
 
-        cube_util.create_directory(os.path.dirname(self.tile_output_path))
+        create_directory(os.path.dirname(self.tile_output_path))
         shutil.move(self.temp_tile_output_path, self.tile_output_path)
 
     def get_output_path(self):

@@ -41,7 +41,7 @@ format changes.
 import logging
 import os
 from ingest_db_wrapper import IngestDBWrapper, TC_PENDING
-import agdc.cube_util
+from agdc.cube_util import get_file_size_mb
 import re
 import psycopg2
 
@@ -87,7 +87,7 @@ class TileRecord(object):
         tile_dict['tile_class_id'] = 1
         # The physical file is currently in the temporary location
         tile_dict['tile_size'] = \
-            cube_util.get_file_size_mb(self.tile_contents
+            get_file_size_mb(self.tile_contents
                                        .temp_tile_output_path)
 
         self.update_tile_footprint()

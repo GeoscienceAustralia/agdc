@@ -40,8 +40,7 @@ import os
 import re
 from osgeo import gdal
 from agdc.abstract_ingester import AbstractBandstack
-import agdc.cube_util as cube_util
-from agdc.cube_util import DatasetError
+from agdc.cube_util import DatasetError, create_directory
 from collections import OrderedDict
 from EOtools.execute import execute
 
@@ -80,7 +79,7 @@ class LandsatBandstack(AbstractBandstack):
         #This is done using
         #args = shlex.split(command_line)
         #where command_line is the buildvrt command
-        cube_util.create_directory(temp_dir)
+        create_directory(temp_dir)
         self.vrt_name = self.get_vrt_name(temp_dir)
         #Build the vrt
         buildvrt_cmd = ["gdalbuildvrt",

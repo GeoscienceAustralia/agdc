@@ -44,8 +44,7 @@ import re
 import shutil
 from EOtools.execute import execute
 from EOtools.utils import log_multiline
-import agdc.cube_util as cube_util
-from agdc.cube_util import DatasetError
+from agdc.cube_util import DatasetError, get_file_size_mb, create_directory
 from ingest_db_wrapper import TC_MOSAIC
 from osgeo import gdal
 import numpy
@@ -110,7 +109,7 @@ class MosaicContents(object):
         self.mosaic_dict['tile_pathname'] = self.mosaic_final_path
         self.mosaic_dict['tile_class_id'] = TC_MOSAIC
         self.mosaic_dict['tile_size'] = (
-            cube_util.get_file_size_mb(self.mosaic_temp_path))
+            get_file_size_mb(self.mosaic_temp_path))
 
     def remove(self):
         """Remove the temporary mosaic file."""
@@ -144,10 +143,10 @@ class MosaicContents(object):
         (tile_dir, tile_basename) = os.path.split(tile_pathname)
 
         mosaic_final_dir = os.path.join(tile_dir, 'mosaic_cache')
-        cube_util.create_directory(mosaic_final_dir)
+        create_directory(mosaic_final_dir)
 
         mosaic_temp_dir = os.path.join(temp_tile_dir, 'mosaic_cache')
-        cube_util.create_directory(mosaic_temp_dir)
+        create_directory(mosaic_temp_dir)
 
         mosaic_basename = re.sub(r'\.\w+$', extension, tile_basename)
 

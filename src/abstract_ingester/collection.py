@@ -42,8 +42,7 @@ import logging
 import os
 import time
 import shutil
-import agdc.cube_util as cube_util
-from agdc.cube_util import DatasetError
+from agdc.cube_util import DatasetError, create_directory
 from tile_contents import TileContents
 from acquisition_record import AcquisitionRecord
 from ingest_db_wrapper import IngestDBWrapper
@@ -71,7 +70,7 @@ class Collection(object):
         self.temp_tile_directory = os.path.join(self.datacube.tile_root,
                                                 'ingest_temp',
                                                 self.datacube.process_id)
-        cube_util.create_directory(self.temp_tile_directory)
+        create_directory(self.temp_tile_directory)
 
     def cleanup(self):
         """Do end-of-process cleanup.
