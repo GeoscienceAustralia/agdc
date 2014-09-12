@@ -116,7 +116,7 @@ class AbstractIngester(object):
         else:
             self.datacube = datacube
 
-        self.agdc_root = datacube.agdc_root
+        self.agdc_root = self.datacube.agdc_root
 
         if collection is None:
             self.collection = Collection(self.datacube)

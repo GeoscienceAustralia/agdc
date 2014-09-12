@@ -31,6 +31,7 @@
     landsat_ingester.py - Ingester script for landsat datasets.
 """
 
+import logging
 from agdc.landsat_ingester import LandsatIngester
 
 # Start ingest process
