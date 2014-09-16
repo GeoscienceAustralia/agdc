@@ -46,8 +46,8 @@ setup(name='agdc',
                       },
       scripts = ['bin/stacker.sh',
                  'bin/landsat_ingester.sh',
-                 'bulk_submit_interactive.sh',
-                 'bulk_submit_pbs.sh'
+                 'bin/bulk_submit_interactive.sh',
+                 'bin/bulk_submit_pbs.sh'
                  ],
       requires = [
                   'EOtools',
