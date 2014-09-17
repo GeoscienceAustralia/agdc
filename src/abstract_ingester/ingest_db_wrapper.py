@@ -467,10 +467,10 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
                "RETURNING dataset_id;")
         self.execute_sql_single(sql, dataset_dict)
 
-    def get_dataset_tile_ids(self, dataset_id, tile_class_filter=None):
+    def get_dataset_tile_ids(self, dataset_id, tile_class_filter=()):
         """Returns a list of tile_ids associated with a dataset.
 
-        If tile_class_filter is not None then the tile_ids returned are
+        If tile_class_filter is not an empty tuple then the tile_ids returned are
         restricted to those with tile_class_ids that that match the
         tile_class_filter. Otherwise all tile_ids for the dataset are
         returned."""
