@@ -501,14 +501,14 @@ class Stacker(DataCube):
         
         # Compose tuples from single values (TEMPORARY ONLY)    
         #TODO: Change stack_tile parameters to allow multi-value tuples
-        tile_type_ids_tuple = (tile_type_id)
-        tile_indices_tuple = ((x_index, y_index))
-        satellites_tuple = (satellite)
-        sensors_tuple = (sensor)
-        paths_tuple = (path)
-        rows_tuple = (row)
+        tile_type_ids_tuple = (tile_type_id,) if tile_type_id is not None else None
+        tile_indices_tuple = ((x_index, y_index),) if x_index is not None and y_index is not None else None
+        satellites_tuple = (satellite,) if satellite is not None else None
+        sensors_tuple = (sensor,) if sensor is not None else None
+        paths_tuple = (path,) if path is not None else None
+        rows_tuple = (row,) if row is not None else None
         
-        params = {'tile_type_id': tile_type_ids_tuple,
+        params = {'tile_type_ids': tile_type_ids_tuple,
                   'tile_indices': tile_indices_tuple,
                   'satellites': satellites_tuple,
                   'sensors': sensors_tuple,
@@ -517,6 +517,7 @@ class Stacker(DataCube):
                   'start_datetime': start_datetime,
                   'end_datetime': end_datetime
               }
+        log_multiline(logger.debug, params, 'params', '\t')
                       
         sql = """-- Retrieve all tile details for specified tile range
 select
