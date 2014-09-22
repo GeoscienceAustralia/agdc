@@ -53,10 +53,11 @@ from time import sleep
 
 from EOtools.execute import execute
 from EOtools.utils import log_multiline
-
 from agdc import DataCube
+from agdc import BandLookup
 
 PQA_CONTIGUITY = 256 # contiguity = bit 8
+DEFAULT_BAND_LOOKUP_SCHEME = 'LANDSAT-UNADJUSTED'
 
 # Set top level standard output 
 console_handler = logging.StreamHandler(sys.stdout)
@@ -211,6 +212,10 @@ class Stacker(DataCube):
         except:
             self.max_row = None
 
+        # Create nested dict for given lookup_scheme_name with levels keyed by:
+        # tile_type_id, satellite_tag, sensor_name, level_name, band_tag
+        band_lookup = BandLookup() # Don't bother initialising it - we only want the lookup dict
+        self.band_lookup_dict = band_lookup.band_lookup_dict[DEFAULT_BAND_LOOKUP_SCHEME]
             
     def stack_files(self, timeslice_info_list, stack_dataset_path, band1_vrt_path=None, overwrite=False):
         if os.path.exists(stack_dataset_path) and not overwrite:
@@ -473,25 +478,27 @@ class Stacker(DataCube):
                 log_multiline(logger.error, result['stderr'], 'stderr from ' + command_string, '\t')
                 raise Exception('%s failed', command_string) 
 
-        def record_timeslice_information(timeslice_info, mosaic_file_list, stack_dict):
-
-            if len(mosaic_file_list) > 1: # Mosaic required - cache under tile directory
-                mosaic_dir = os.path.join(os.path.dirname(timeslice_info['tile_pathname']),
-                                                          'mosaic_cache')
-                if not os.path.isdir(mosaic_dir):
-                    create_mosaic_dir(mosaic_dir)
-
-                timeslice_info['tile_pathname'] = os.path.join(
-                    mosaic_dir,
-                    re.sub(r'\.\w+$', '.vrt', os.path.basename(timeslice_info['tile_pathname']))
-                    )
-
-                # N.B: cache_mosaic_files function may modify filename
-                timeslice_info['tile_pathname'] = \
-                    cache_mosaic_files(mosaic_file_list, timeslice_info['tile_pathname'],
-                                       overwrite=self.refresh, pqa_data=(timeslice_info['level_name'] == 'PQA'))
-
-            stack_dict[timeslice_info['start_datetime']] = timeslice_info
+#===============================================================================
+#         def record_timeslice_information(timeslice_info, mosaic_file_list, stack_dict):
+# 
+#             if len(mosaic_file_list) > 1: # Mosaic required - cache under tile directory
+#                 mosaic_dir = os.path.join(os.path.dirname(timeslice_info['tile_pathname']),
+#                                                           'mosaic_cache')
+#                 if not os.path.isdir(mosaic_dir):
+#                     create_mosaic_dir(mosaic_dir)
+# 
+#                 timeslice_info['tile_pathname'] = os.path.join(
+#                     mosaic_dir,
+#                     re.sub(r'\.\w+$', '.vrt', os.path.basename(timeslice_info['tile_pathname']))
+#                     )
+# 
+#                 # N.B: cache_mosaic_files function may modify filename
+#                 timeslice_info['tile_pathname'] = \
+#                     cache_mosaic_files(mosaic_file_list, timeslice_info['tile_pathname'],
+#                                        overwrite=self.refresh, pqa_data=(timeslice_info['level_name'] == 'PQA'))
+# 
+#             stack_dict[timeslice_info['start_datetime']] = timeslice_info
+#===============================================================================
         
         #
         # stack_tile method body         
@@ -521,6 +528,7 @@ class Stacker(DataCube):
                       
         sql = """-- Retrieve all tile details for specified tile range
 select
+  tile_type_id,
   x_index,
   y_index,            
   start_datetime, 
@@ -576,23 +584,18 @@ order by
         log_multiline(logger.debug, db_cursor2.mogrify(sql, params), 'SQL', '\t')
         db_cursor2.execute(sql, params)
         
-        band_stack_dict = {}
-        stack_dict = {}
-        mosaic_file_list = []
-        last_band_tile_info = None
-        timeslice_info = None
-        start_datetime = None
-        end_datetime = None
+        stack_info_dict = {}
         
         for record in db_cursor2:   
             assert record, 'No data found for this tile and temporal range'      
-            band_tile_info = {'x_index': record[0],
-                'y_index': record[1],            
-                'start_datetime': record[2], 
-                'end_datetime': record[3], 
-                'satellite_tag': record[4],
-                'sensor_name': record[5], 
-                'tile_pathname': record[6],
+            tile_info = {'tile_type_id': record[0], 
+                'x_index': record[1],
+                'y_index': record[2],            
+                'start_datetime': record[3], 
+                'end_datetime': record[4], 
+                'satellite_tag': record[5],
+                'sensor_name': record[6], 
+                'tile_pathname': record[7],
                 'path': record[8],
                 'start_row': record[9], 
                 'end_row': record[10], # Copy of row field
@@ -603,112 +606,160 @@ order by
                 }
 #            log_multiline(logger.debug, band_tile_info, 'band_tile_info', '\t')
             
-            assert os.path.exists(band_tile_info['tile_pathname']), 'File for tile %s does not exist' % band_tile_info['tile_pathname']
+            assert os.path.exists(tile_info['tile_pathname']), 'File for tile %s does not exist' % tile_info['tile_pathname']
             
-            # If this tile is NOT a continuation of the last one
-            if (not last_band_tile_info # First tile
-                or (band_tile_info['band_tag'] != last_band_tile_info['band_tag'])
-                or (band_tile_info['satellite_tag'] != last_band_tile_info['satellite_tag'])
-                or (band_tile_info['sensor_name'] != last_band_tile_info['sensor_name'])
-                or (band_tile_info['path'] != last_band_tile_info['path'])
-                or ((band_tile_info['start_datetime'] - last_band_tile_info['end_datetime']) > timedelta(0, 3600)) # time difference > 1hr
-                ):
-                # Record timeslice information for previous timeslice if it exists
-                if timeslice_info:
-                    record_timeslice_information(timeslice_info, mosaic_file_list, stack_dict)
+            # Create nested dict keyed by start_datetime and level_name
+            timeslice_dict = stack_info_dict.get(tile_info['start_datetime']) or {}
+            if not timeslice_dict:
+                stack_info_dict[tile_info['start_datetime']] = timeslice_dict
                 
-                # Start recording a new band if necessary
-                if (not last_band_tile_info or (band_tile_info['band_tag'] != last_band_tile_info['band_tag'])):                    
-                    stack_dict = {}
-                    level_dict = band_stack_dict.get(band_tile_info['level_name']) or {}
-                    if not level_dict:
-                        band_stack_dict[band_tile_info['level_name']] = level_dict
-                        
-                    level_dict[band_tile_info['band_tag']] = stack_dict
+            level_dict = timeslice_dict.get(tile_info['level_name']) or tile_info
+            if not timeslice_dict:
+                timeslice_dict[tile_info['level_name']] = level_dict
                 
-                # Start a new timeslice
-                mosaic_file_list = [band_tile_info['tile_pathname']]
-                timeslice_info = band_tile_info
-            else: # Tile IS a continuation of the last one - same timeslice
-                mosaic_file_list.append(band_tile_info['tile_pathname'])
-                timeslice_info['end_datetime'] = band_tile_info['end_datetime']
-                timeslice_info['end_row'] = band_tile_info['end_row']
-                            
-            last_band_tile_info = band_tile_info
+                                    
+            #===================================================================
+            # # If this tile is NOT a continuation of the last one
+            # if (not last_band_tile_info # First tile
+            #     or (band_tile_info['band_tag'] != last_band_tile_info['band_tag'])
+            #     or (band_tile_info['satellite_tag'] != last_band_tile_info['satellite_tag'])
+            #     or (band_tile_info['sensor_name'] != last_band_tile_info['sensor_name'])
+            #     or (band_tile_info['path'] != last_band_tile_info['path'])
+            #     or ((band_tile_info['start_datetime'] - last_band_tile_info['end_datetime']) > timedelta(0, 3600)) # time difference > 1hr
+            #     ):
+            #     # Record timeslice information for previous timeslice if it exists
+            #     if timeslice_info:
+            #         record_timeslice_information(timeslice_info, mosaic_file_list, stack_dict)
+            #     
+            #     # Start recording a new band if necessary
+            #     if (not last_band_tile_info or (band_tile_info['band_tag'] != last_band_tile_info['band_tag'])):                    
+            #         stack_dict = {}
+            #         level_dict = band_stack_dict.get(band_tile_info['level_name']) or {}
+            #         if not level_dict:
+            #             band_stack_dict[band_tile_info['level_name']] = level_dict
+            #             
+            #         level_dict[band_tile_info['band_tag']] = stack_dict
+            #     
+            #     # Start a new timeslice
+            #     mosaic_file_list = [band_tile_info['tile_pathname']]
+            #     timeslice_info = band_tile_info
+            # else: # Tile IS a continuation of the last one - same timeslice
+            #     mosaic_file_list.append(band_tile_info['tile_pathname'])
+            #     timeslice_info['end_datetime'] = band_tile_info['end_datetime']
+            #     timeslice_info['end_row'] = band_tile_info['end_row']
+            #                 
+            # last_band_tile_info = band_tile_info
+            #===================================================================
             
-        # Check for no results, otherwise record the last timeslice
-        if not timeslice_info:
-            return {}
-        else:
-            record_timeslice_information(timeslice_info, mosaic_file_list, stack_dict)
-
-        log_multiline(logger.debug, band_stack_dict, 'band_stack_dict', '\t')
+        #=======================================================================
+        # # Check for no results, otherwise record the last timeslice
+        # if not timeslice_info:
+        #     return {}
+        # else:
+        #     record_timeslice_information(timeslice_info, mosaic_file_list, stack_dict)
+        #
+        # log_multiline(logger.debug, band_stack_dict, 'band_stack_dict', '\t')
+        #=======================================================================
         
         if (stack_output_dir):
             self.create_directory(stack_output_dir)
-        
-        # Create stack files for each band
-        stack_info_dict = {}
-        if create_band_stacks:
-            for level_name in sorted(band_stack_dict.keys()):
-                band1_stack_filename = None
-                for band_tag in sorted(band_stack_dict[level_name].keys()):
-                    stack_dict = band_stack_dict[level_name][band_tag]
-                    timeslice_info_list = []
-                    stack_filename = None
-                    for start_time in sorted(stack_dict.keys()):
-                        timeslice_info_list.append(stack_dict[start_time])
-                   
-                    stack_filename = stack_filename or os.path.join(stack_output_dir,
-                                                                    '_'.join([timeslice_info_list[0]['level_name'],
-                                                                              re.sub('\+', '', '%+04d_%+04d' % (x_index, y_index)),
-                                                                              timeslice_info_list[0]['band_tag']]) + '.vrt')
-        
-                    self.stack_files(timeslice_info_list, stack_filename, band1_stack_filename, overwrite=True)
-                    
-                    # Convert the virtual file to a physical file, ie VRT to ENVI
-                    if self.out_format:
-                        #if (len(self.suffix) > 0):
-                        if self.suffix:
-                            outfname = re.sub('.vrt', '.%s'%self.suffix, stack_filename)
+            
+        if create_band_stacks: 
+            band_stack_dict = {}
+            for start_datetime in sorted(stack_info_dict.keys()):
+                timeslice_dict = stack_info_dict[start_datetime]
+                # Get all the band info for this tile type / satellite / sensor
+                band_info_dict = self.bands[tile_info['tile_type_id']][(tile_info['satellite_tag'], tile_info['sensor_name'])]
+                # Iterate through the available processing levels
+                for level_name in timeslice_dict.keys():
+                    tile_info_dict = timeslice_dict[level_name]
+                    # Iterate through all bands for this processing level
+                    for band_info in [band_info for band_info in band_info_dict.values() if band_info['level_name'] == level_name]:                  
+                        # Combine tile and band info into one dict
+                        band_tile_info = {start_datetime: dict(tile_info_dict).update(band_info)}
+                        
+                        band_tile_dict = band_stack_dict.get((level_name, band_info['band_tag']))
+                        if not band_tile_dict: # No entry found for this level_name & band_tag
+                            stack_filename = os.path.join(stack_output_dir,
+                                                          '_'.join(level_name,
+                                                                   re.sub('\+', '', '%+04d_%+04d' % (x_index, y_index)),
+                                                                   band_info['band_tag']) + '.vrt')
+                            
+                            band_tile_dict = {'stack_filename': stack_filename,
+                                              'stack_dict': band_tile_info
+                                              }
+                            band_stack_dict[(level_name, band_info['band_tag'])] = band_tile_dict
                         else:
-                            # Strip the suffix of the existing file name and output to disk
-                            outfname = os.path.splitext(stack_filename)[0]
+                            band_tile_dict['stack_dict'].update(band_tile_info)
 
-                        # Base commandline string
-                        command_string = 'gdal_translate -of %s %s %s' %(self.out_format, stack_filename, outfname)
-                    
-                        logger.debug('command_string = %s', command_string)
-
-                        print 'Creating Physical File'
-                        print 'File Format: %s' %self.out_format
-                        print 'Filename: %s' %outfname
-
-                        result = execute(command_string=command_string)
-
-                        if result['stdout']:
-                            log_multiline(logger.info, result['stdout'], 'stdout from ' + command_string, '\t')
-
-                        if result['stderr']:
-                            log_multiline(logger.debug, result['stderr'], 'stderr from ' + command_string, '\t')
-
-                        if result['returncode']:
-                            raise Exception('%s failed', command_string)
-                        if timeslice_info_list[0]['tile_layer'] == 1:
-                            band1_stack_filename = stack_filename
-                    
-        #            log_multiline(logger.info, timeslice_info_list, 'stack_info_dict[%s]' % stack_filename, '\t')
-                    stack_info_dict[stack_filename] = timeslice_info_list
-                    
-        else: # Don't create stacks - just return a dict of tiles for each level   
-            for level_name in sorted(band_stack_dict.keys()):
-                for band_tag in sorted(band_stack_dict[level_name].keys()):
-                    # Only look at bands at layer 1 - all other bands share the same file
-                    if band_stack_dict[level_name][band_tag].values()[0]['tile_layer'] == 1: # N.B: All the same layer
-                        stack_dict = stack_info_dict.get(level_name, {})
-                        if not stack_dict: # New dict keyed by start_datetime
-                            stack_info_dict[level_name] = stack_dict
-                        stack_dict.update(band_stack_dict[level_name][band_tag]) # Merge band 1 dict into layer dict
+            log_multiline(logger.debug, band_stack_dict, 'band_stack_dict', '\t')              
+                        
+            
+        
+#===============================================================================
+#         # Create stack files for each band
+#         stack_info_dict = {}
+#         if create_band_stacks:
+#             for level_name in sorted(band_stack_dict.keys()):
+#                 band1_stack_filename = None
+#                 for band_tag in sorted(band_stack_dict[level_name].keys()):
+#                     stack_dict = band_stack_dict[level_name][band_tag]
+#                     timeslice_info_list = []
+#                     stack_filename = None
+#                     for start_time in sorted(stack_dict.keys()):
+#                         timeslice_info_list.append(stack_dict[start_time])
+#                    
+#                     stack_filename = stack_filename or os.path.join(stack_output_dir,
+#                                                                     '_'.join([timeslice_info_list[0]['level_name'],
+#                                                                               re.sub('\+', '', '%+04d_%+04d' % (x_index, y_index)),
+#                                                                               timeslice_info_list[0]['band_tag']]) + '.vrt')
+#         
+#                     self.stack_files(timeslice_info_list, stack_filename, band1_stack_filename, overwrite=True)
+#                     
+#                     # Convert the virtual file to a physical file, ie VRT to ENVI
+#                     if self.out_format:
+#                         #if (len(self.suffix) > 0):
+#                         if self.suffix:
+#                             outfname = re.sub('.vrt', '.%s'%self.suffix, stack_filename)
+#                         else:
+#                             # Strip the suffix of the existing file name and output to disk
+#                             outfname = os.path.splitext(stack_filename)[0]
+# 
+#                         # Base commandline string
+#                         command_string = 'gdal_translate -of %s %s %s' %(self.out_format, stack_filename, outfname)
+#                     
+#                         logger.debug('command_string = %s', command_string)
+# 
+#                         print 'Creating Physical File'
+#                         print 'File Format: %s' %self.out_format
+#                         print 'Filename: %s' %outfname
+# 
+#                         result = execute(command_string=command_string)
+# 
+#                         if result['stdout']:
+#                             log_multiline(logger.info, result['stdout'], 'stdout from ' + command_string, '\t')
+# 
+#                         if result['stderr']:
+#                             log_multiline(logger.debug, result['stderr'], 'stderr from ' + command_string, '\t')
+# 
+#                         if result['returncode']:
+#                             raise Exception('%s failed', command_string)
+#                         if timeslice_info_list[0]['tile_layer'] == 1:
+#                             band1_stack_filename = stack_filename
+#                     
+#         #            log_multiline(logger.info, timeslice_info_list, 'stack_info_dict[%s]' % stack_filename, '\t')
+#                     stack_info_dict[stack_filename] = timeslice_info_list
+#                     
+#         else: # Don't create stacks - just return a dict of tiles for each level   
+#             for level_name in sorted(band_stack_dict.keys()):
+#                 for band_tag in sorted(band_stack_dict[level_name].keys()):
+#                     # Only look at bands at layer 1 - all other bands share the same file
+#                     if band_stack_dict[level_name][band_tag].values()[0]['tile_layer'] == 1: # N.B: All the same layer
+#                         stack_dict = stack_info_dict.get(level_name, {})
+#                         if not stack_dict: # New dict keyed by start_datetime
+#                             stack_info_dict[level_name] = stack_dict
+#                         stack_dict.update(band_stack_dict[level_name][band_tag]) # Merge band 1 dict into layer dict
+#===============================================================================
 
                                            
         return stack_info_dict

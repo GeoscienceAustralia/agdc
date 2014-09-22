@@ -227,3 +227,9 @@ class BandLookup(object):
         level_name_dict = self._get_level_name_dict()
         return {band_tag: level_name_dict[band_tag]['adjustment_multiplier'] for band_tag in level_name_dict}
 
+    @property
+    def band_lookup_dict(self):
+        """
+        Returns a copy of the class value _band_lookup_dict
+        """
+        return dict(BandLookup._band_lookup_dict)
