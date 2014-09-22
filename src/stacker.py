@@ -499,79 +499,79 @@ class Stacker(DataCube):
 
         db_cursor2 = self.db_connection.cursor()
         
-        sql = """-- Retrieve all tile and band details for specified tile range
-select distinct
-  band_tag, 
-  band_name, 
+        # Compose tuples from single values (TEMPORARY ONLY)    
+        #TODO: Change stack_tile parameters to allow multi-value tuples
+        tile_type_ids_tuple = (tile_type_id)
+        tile_indices_tuple = ((x_index, y_index))
+        satellites_tuple = (satellite)
+        sensors_tuple = (sensor)
+        paths_tuple = (path)
+        rows_tuple = (row)
+        
+        params = {'tile_type_id': tile_type_ids_tuple,
+                  'tile_indices': tile_indices_tuple,
+                  'satellites': satellites_tuple,
+                  'sensors': sensors_tuple,
+                  'x_refs': paths_tuple,
+                  'y_refs': rows_tuple,
+                  'start_datetime': start_datetime,
+                  'end_datetime': end_datetime
+              }
+                      
+        sql = """-- Retrieve all tile details for specified tile range
+select
+  x_index,
+  y_index,            
   start_datetime, 
   end_datetime, 
-  satellite_tag, 
+  satellite_tag,
   sensor_name, 
-  t.tile_pathname, 
-  tile_layer,
+  tile_pathname,
   x_ref as path,
-  y_ref as row,
+  y_ref as start_row, 
+  case when tile_class_id = 4 then y_ref + 1 else y_ref end as end_row, -- This will not work for mosaics with >2 source tiles
   level_name,
   nodata_value,
   gcp_count,
   cloud_cover
-from tile_footprint tf
-inner join tile t using (x_index, y_index, tile_type_id)
-inner join dataset using(dataset_id)
-inner join acquisition using(acquisition_id)
-inner join satellite using(satellite_id)
-inner join sensor using(satellite_id, sensor_id)
-inner join processing_level using(level_id)
-inner join band_source using(tile_type_id, level_id)
-inner join band using(band_id) -- Don't exclude bands with null satellite/sensor"""
-        if disregard_incomplete_data:
+  
+from acquisition
+join dataset using(acquisition_id)
+join tile using(dataset_id)
+join satellite using(satellite_id)
+join sensor using(satellite_id, sensor_id)
+join processing_level using(level_id)
+
+where (tile_class_id = 1 or tile_class_id = 4) -- Only good non-overlapped and mosaic tiles"""
+        if params['tile_type_ids']:
             sql += """
-inner join dataset l1t_dataset using(acquisition_id)
-inner join dataset nbar_dataset using(acquisition_id)
-inner join dataset pqa_dataset using(acquisition_id)
-inner join tile l1t_tile using (x_index, y_index, tile_type_id)
-inner join tile nbar_tile using (x_index, y_index, tile_type_id)
-inner join tile pqa_tile using (x_index, y_index, tile_type_id)"""
-        sql += """
-where tile_type_id = %(tile_type_id)s
-  and (t.tile_class_id = 1 or t.tile_class_id = 3) -- Select only valid tiles or overlap source tiles"""
-        if disregard_incomplete_data:
+  and tile_type_id in %(tile_type_ids)s"""
+        if params['tile_indices']:
             sql += """
-  and l1t_dataset.level_id = 1
-  and nbar_dataset.level_id = 2
-  and pqa_dataset.level_id = 3
-  and l1t_tile.dataset_id = l1t_dataset.dataset_id
-  and nbar_tile.dataset_id = nbar_dataset.dataset_id
-  and pqa_tile.dataset_id = pqa_dataset.dataset_id"""
-        sql += """
-  and (band.satellite_id is null or band.satellite_id = sensor.satellite_id)
-  and (band.sensor_id is null or band.sensor_id = sensor.sensor_id)
-  and x_index = %(x_index)s
-  and y_index = %(y_index)s
+  and (x_index, y_index) in %(tile_indices)s"""
+        if params['satellites']:
+            sql += """
+  and satellite_tag in %(satellites)s"""
+        if params['sensors']:
+            sql += """
+  and sensor_name in %(sensors)s"""
+        if params['x_refs']:
+            sql += """
+  and x_ref in %(x_refs)s"""
+        if params['y_refs']:
+            sql += """
+  and y_ref in %(y_refs)s"""
+        sql += """  
   and (%(start_datetime)s is null or start_datetime >= %(start_datetime)s)
   and (%(end_datetime)s is null or end_datetime < %(end_datetime)s)
-  and (%(satellite)s is null or satellite_tag = %(satellite)s)
-  and (%(sensor)s is null or sensor_name = %(sensor)s)
-  and (%(x_ref)s is null or x_ref = %(x_ref)s)
-  and (%(y_ref)s is null or y_ref = %(y_ref)s)
 order by
-  band_tag, 
+  x_index, 
+  y_index,
   start_datetime, 
   end_datetime, 
   satellite_tag, 
   sensor_name;
 """
-        params = {'x_index': x_index,
-              'y_index': y_index,
-              'tile_type_id': tile_type_id,
-              'start_datetime': start_datetime,
-              'end_datetime': end_datetime,
-              'satellite': satellite,
-              'sensor': sensor,
-              'x_ref': path,
-              'y_ref': row
-              }
-                      
         log_multiline(logger.debug, db_cursor2.mogrify(sql, params), 'SQL', '\t')
         db_cursor2.execute(sql, params)
         
@@ -585,21 +585,18 @@ order by
         
         for record in db_cursor2:   
             assert record, 'No data found for this tile and temporal range'      
-            band_tile_info = {'x_index': x_index,
-                'y_index': y_index,            
-                'band_tag': record[0], 
-                'band_name': record[1], 
+            band_tile_info = {'x_index': record[0],
+                'y_index': record[1],            
                 'start_datetime': record[2], 
                 'end_datetime': record[3], 
                 'satellite_tag': record[4],
                 'sensor_name': record[5], 
                 'tile_pathname': record[6],
-                'tile_layer': record[7], 
                 'path': record[8],
                 'start_row': record[9], 
-                'end_row': record[9], # Copy of row field
-                'level_name': record[10],
-                'nodata_value': record[11],
+                'end_row': record[10], # Copy of row field
+                'level_name': record[11],
+                'nodata_value': record[12],
                 'gcp_count': record[12],
                 'cloud_cover': record[13] 
                 }
