@@ -601,8 +601,8 @@ order by
                 'end_row': record[10], # Copy of row field
                 'level_name': record[11],
                 'nodata_value': record[12],
-                'gcp_count': record[12],
-                'cloud_cover': record[13] 
+                'gcp_count': record[13],
+                'cloud_cover': record[14] 
                 }
 #            log_multiline(logger.debug, band_tile_info, 'band_tile_info', '\t')
             
