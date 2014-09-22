@@ -54,7 +54,7 @@ from time import sleep
 from EOtools.execute import execute
 from EOtools.utils import log_multiline
 from agdc import DataCube
-from agdc import BandLookup
+from agdc.band_lookup import BandLookup
 
 PQA_CONTIGUITY = 256 # contiguity = bit 8
 DEFAULT_BAND_LOOKUP_SCHEME = 'LANDSAT-UNADJUSTED'
@@ -214,7 +214,7 @@ class Stacker(DataCube):
 
         # Create nested dict for given lookup_scheme_name with levels keyed by:
         # tile_type_id, satellite_tag, sensor_name, level_name, band_tag
-        band_lookup = BandLookup() # Don't bother initialising it - we only want the lookup dict
+        band_lookup = BandLookup(self) # Don't bother initialising it - we only want the lookup dict
         self.band_lookup_dict = band_lookup.band_lookup_dict[DEFAULT_BAND_LOOKUP_SCHEME]
             
     def stack_files(self, timeslice_info_list, stack_dataset_path, band1_vrt_path=None, overwrite=False):
@@ -676,19 +676,32 @@ order by
                     # Iterate through all bands for this processing level
                     for band_info in [band_info for band_info in band_info_dict.values() if band_info['level_name'] == level_name]:                  
                         # Combine tile and band info into one dict
-                        band_tile_info = {start_datetime: dict(tile_info_dict).update(band_info)}
-                        
-                        band_tile_dict = band_stack_dict.get((level_name, band_info['band_tag']))
+                        band_tile_info = {start_datetime: dict(tile_info_dict)}
+                        band_tile_info[start_datetime].update(band_info)
+
+#                        log_multiline(logger.debug, band_tile_info, 'band_tile_info for %s' % band_info['band_tag'], '\t')
+
+                        band_tile_dict = band_stack_dict.get((tile_info_dict['tile_type_id'],
+                                                              tile_info_dict['x_index'],
+                                                              tile_info_dict['y_index'],
+                                                              level_name,
+                                                              band_info['band_tag']))
                         if not band_tile_dict: # No entry found for this level_name & band_tag
                             stack_filename = os.path.join(stack_output_dir,
-                                                          '_'.join(level_name,
-                                                                   re.sub('\+', '', '%+04d_%+04d' % (x_index, y_index)),
-                                                                   band_info['band_tag']) + '.vrt')
+                                                          '_'.join((level_name,
+                                                                    re.sub('\+', '', '%+04d_%+04d' % (x_index, y_index)),
+                                                                    band_info['band_tag'])) + '.vrt')
                             
                             band_tile_dict = {'stack_filename': stack_filename,
                                               'stack_dict': band_tile_info
                                               }
-                            band_stack_dict[(level_name, band_info['band_tag'])] = band_tile_dict
+
+                            band_stack_dict[(tile_info_dict['tile_type_id'],
+                                             tile_info_dict['x_index'],
+                                             tile_info_dict['y_index'],
+                                             level_name,
+                                             band_info['band_tag'])
+                                             ] = band_tile_dict
                         else:
                             band_tile_dict['stack_dict'].update(band_tile_info)
 
