@@ -574,10 +574,12 @@ where (tile_class_id = 1 or tile_class_id = 4) -- Only good non-overlapped and m
   and (%(start_datetime)s is null or start_datetime >= %(start_datetime)s)
   and (%(end_datetime)s is null or end_datetime < %(end_datetime)s)
 order by
+  tile_type_id,
   x_index, 
   y_index,
   start_datetime, 
   end_datetime, 
+  level_name,
   satellite_tag, 
   sensor_name;
 """
@@ -613,8 +615,9 @@ order by
             if not timeslice_dict:
                 stack_info_dict[tile_info['start_datetime']] = timeslice_dict
                 
-            level_dict = timeslice_dict.get(tile_info['level_name']) or tile_info
-            if not timeslice_dict:
+            level_dict = timeslice_dict.get(tile_info['level_name']) or {}
+            if not level_dict:
+                level_dict = tile_info
                 timeslice_dict[tile_info['level_name']] = level_dict
                 
                                     
