@@ -723,27 +723,76 @@ order by
                                                               band_tag))
                         
                         if not band_tile_dict: # No entry found for this level_name & band_tag
-                            stack_filename = os.path.join(stack_output_dir,
-                                                          '_'.join((level_name,
-                                                                    re.sub('\+', '', '%+04d_%+04d' % (x_index, y_index)),
-                                                                    band_tag)) + '.vrt')
-                            
-                            band_tile_dict = {'stack_filename': stack_filename,
-                                              'stack_dict': band_tile_info
-                                              }
-
+                            # Create the first entry                           
                             band_stack_dict[(tile_info_dict['tile_type_id'],
                                              tile_info_dict['x_index'],
                                              tile_info_dict['y_index'],
                                              level_name,
                                              band_tag)
-                                             ] = band_tile_dict
+                                             ] = band_tile_info
                         else:
-                            band_tile_dict['stack_dict'].update(band_tile_info) # Should this ever happen?
+                            band_tile_dict.update(band_tile_info)
 
-            log_multiline(logger.debug, band_stack_dict, 'band_stack_dict', '\t')              
-                        
+            log_multiline(logger.debug, band_stack_dict, 'band_stack_dict', '\t') 
             
+            # Create VRT files
+            #TODO: Make this cater for multiple tile types
+            for tile_type_id, x_index, y_index, level_name, band_tag in band_stack_dict.keys(): # Every stack file 
+                            
+                file_stack_dict = band_stack_dict[(tile_type_id, x_index, y_index, level_name, band_tag)] 
+                       
+                stack_filename = os.path.join(stack_output_dir,
+                                              '_'.join((level_name,
+                                                        re.sub('\+', '', '%+04d_%+04d' % (x_index, y_index)),
+                                                        band_tag)) + '.vrt')
+                
+                logger.debug('stack_filename = %s', stack_filename)
+
+                # Open the first tile as the template dataset
+                template_dataset = gdal.Open(file_stack_dict.values()[0]['tile_pathname'])
+
+                raster_size = {'x': template_dataset.RasterXSize, 'y': template_dataset.RasterYSize}
+                block_size = dict(zip(['x','y'], template_dataset.GetRasterBand(1).GetBlockSize()))
+                
+                gdal_driver = gdal.GetDriverByName("VRT")
+                
+                #Set datatype formats appropriate to Create() and numpy
+                # gdal_dtype = template_dataset.GetRasterBand(1).DataType
+                # numpy_dtype = gdal.GetDataTypeName(gdal_dtype)
+
+                vrt_dataset = gdal_driver.Create(stack_filename,
+                                                 raster_size['x'], 
+                                                 raster_size['y'], 
+                                                 0)
+                
+                vrt_dataset.SetGeoTransform(template_dataset.GetGeoTransform())
+                vrt_dataset.SetProjection(template_dataset.GetProjection())
+
+                for start_datetime in sorted(file_stack_dict.keys()):
+                    tile_info = file_stack_dict[start_datetime]
+                    
+                    vrt_dataset.AddBand(gdal.GDT_Float32)
+                    output_band = vrt_dataset.GetRasterBand(vrt_dataset.RasterCount)
+                    
+                    complex_source = '<SourceFilename relativeToVRT="0">%s</SourceFilename>' % tile_info['tile_pathname'] + \
+                    '<SourceBand>%i</SourceBand>' % tile_info['tile_layer'] + \
+                    '<SourceProperties RasterXSize="%i" RasterYSize="%i" DataType="Real" BlockXSize="%i" BlockYSize="%i"/>' % (raster_size['x'], raster_size['y'], block_size['x'], block_size['y']) + \
+                    '<SrcRect xOff="%i" yOff="%i" xSize="%i" ySize="%i"/>' % (0, 0, raster_size['x'], raster_size['y']) + \
+                    '<DstRect xOff="%i" yOff="%i" xSize="%i" ySize="%i"/>' % (0, 0, raster_size['x'], raster_size['y'])
+                    
+                    output_band.SetMetadataItem("ComplexSource", complex_source)
+                    output_band.SetMetadataItem("NoDataValue", tile_info['nodata_value'])        
+            
+    #===========================================================================
+    # <ComplexSource>
+    #   <SourceFilename relativeToVRT="0">/g/data1/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS5_TM/150_-030/2010/LS5_TM_NBAR_150_-030_2010-01-20T23-39-42.750050.tif</SourceFilename>
+    #   <SourceBand>6</SourceBand>
+    #   <SourceProperties RasterXSize="4000" RasterYSize="4000" DataType="Int16" BlockXSize="4000" BlockYSize="1" />
+    #   <SrcRect xOff="0" yOff="0" xSize="4000" ySize="4000" />
+    #   <DstRect xOff="0" yOff="0" xSize="4000" ySize="4000" />
+    #   <NODATA>-999</NODATA>
+    # </ComplexSource>
+    #===========================================================================
         
 #===============================================================================
 #         # Create stack files for each band
@@ -1278,7 +1327,7 @@ if __name__ == '__main__':
                                          row=stacker.row, 
                                          tile_type_id=None,
                                          create_band_stacks=True,
-                                         disregard_incomplete_data=True)
+                                         disregard_incomplete_data=False)
     
     log_multiline(logger.debug, stack_info_dict, 'stack_info_dict', '\t')
     logger.info('Finished creating %d temporal stack files in %s.', len(stack_info_dict), stacker.output_dir)
