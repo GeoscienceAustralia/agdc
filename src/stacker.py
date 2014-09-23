@@ -757,8 +757,8 @@ order by
                 gdal_driver = gdal.GetDriverByName("VRT")
                 
                 #Set datatype formats appropriate to Create() and numpy
-                # gdal_dtype = template_dataset.GetRasterBand(1).DataType
-                # numpy_dtype = gdal.GetDataTypeName(gdal_dtype)
+                gdal_dtype = template_dataset.GetRasterBand(1).DataType
+                dtype_name = gdal.GetDataTypeName(gdal_dtype)
 
                 vrt_dataset = gdal_driver.Create(stack_filename,
                                                  raster_size['x'], 
@@ -776,12 +776,14 @@ order by
                     
                     complex_source = '<SourceFilename relativeToVRT="0">%s</SourceFilename>' % tile_info['tile_pathname'] + \
                     '<SourceBand>%i</SourceBand>' % tile_info['tile_layer'] + \
-                    '<SourceProperties RasterXSize="%i" RasterYSize="%i" DataType="Real" BlockXSize="%i" BlockYSize="%i"/>' % (raster_size['x'], raster_size['y'], block_size['x'], block_size['y']) + \
+                    '<SourceProperties RasterXSize="%i" RasterYSize="%i" DataType="%s" BlockXSize="%i" BlockYSize="%i"/>' % (raster_size['x'], raster_size['y'], 
+                                                                                                                             dtype_name, block_size['x'], 
+                                                                                                                             block_size['y']) + \
                     '<SrcRect xOff="%i" yOff="%i" xSize="%i" ySize="%i"/>' % (0, 0, raster_size['x'], raster_size['y']) + \
                     '<DstRect xOff="%i" yOff="%i" xSize="%i" ySize="%i"/>' % (0, 0, raster_size['x'], raster_size['y'])
                     
                     output_band.SetMetadataItem("ComplexSource", complex_source)
-                    output_band.SetMetadataItem("NoDataValue", tile_info['nodata_value'])        
+                    output_band.SetMetadataItem("NoDataValue", str(tile_info['nodata_value']))        
             
     #===========================================================================
     # <ComplexSource>
