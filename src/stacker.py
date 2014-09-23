@@ -718,7 +718,7 @@ order by
                                                                     band_tag)) + '.vrt')
                             
                             band_tile_dict = {'stack_filename': stack_filename,
-                                              'stack_dict': {start_datetime: band_tile_info}
+                                              'stack_dict': band_tile_info
                                               }
 
                             band_stack_dict[(tile_info_dict['tile_type_id'],
@@ -728,7 +728,7 @@ order by
                                              band_tag)
                                              ] = band_tile_dict
                         else:
-                            band_tile_dict['stack_dict'].update({start_datetime: band_tile_info}) # Should this ever happen?
+                            band_tile_dict['stack_dict'].update(band_tile_info) # Should this ever happen?
 
             log_multiline(logger.debug, band_stack_dict, 'band_stack_dict', '\t')              
                         
