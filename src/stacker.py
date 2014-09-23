@@ -664,6 +664,17 @@ order by
         # log_multiline(logger.debug, band_stack_dict, 'band_stack_dict', '\t')
         #=======================================================================
         
+        log_multiline(logger.debug, stack_info_dict, 'stack_info_dict', '\t')
+        logger.debug('stack_info_dict has %s timeslices', len(stack_info_dict))
+        
+        if disregard_incomplete_data:
+            stack_info_dict = {start_datetime: stack_info_dict[start_datetime] 
+                               for start_datetime in stack_info_dict.keys()
+                               if {'L1T', 'ORTHO'} & set(stack_info_dict[start_datetime].keys()) # Either L1T or ORTHO
+                               and {'NBAR','PQA'} <= set(stack_info_dict[start_datetime].keys()) # Both NBAR & PQA
+                               }
+            logger.debug('stack_info_dict has %s timeslices after removal of incomplete datasets', len(stack_info_dict))
+        
         if (stack_output_dir):
             self.create_directory(stack_output_dir)
             
@@ -1267,7 +1278,7 @@ if __name__ == '__main__':
                                          row=stacker.row, 
                                          tile_type_id=None,
                                          create_band_stacks=True,
-                                         disregard_incomplete_data=False)
+                                         disregard_incomplete_data=True)
     
     log_multiline(logger.debug, stack_info_dict, 'stack_info_dict', '\t')
     logger.info('Finished creating %d temporal stack files in %s.', len(stack_info_dict), stacker.output_dir)
