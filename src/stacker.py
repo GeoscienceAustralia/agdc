@@ -952,23 +952,14 @@ order by
         static_info_dict = self.get_static_info(level_name=None, x_index=x_index, y_index=y_index) # Get info for all static data
         log_multiline(logger.debug, static_info_dict, 'static_info_dict', '\t')
         
-        processing_levels = sorted(stack_info_dict.keys())
-        
         # Find all datetimes
-        start_datetime_set = set()
-        for processing_level in processing_levels:
-            for start_datetime in stack_info_dict[processing_level].keys():
-                start_datetime_set.add(start_datetime)
-        start_datetimes = sorted(start_datetime_set)
-        del start_datetime_set
+        start_datetimes = sorted(stack_info_dict.keys())
 
         # Iterate through sorted start_datetimes
         derived_stack_dict = {}
         for start_datetime in start_datetimes:
             # Create input_dataset_dict dict for deriver_function
-            input_dataset_dict = {}
-            for processing_level in processing_levels:
-                input_dataset_dict[processing_level] = stack_info_dict[processing_level].get(start_datetime)
+            input_dataset_dict = dict(stack_info_dict[start_datetime])
                 
             input_dataset_dict.update(static_info_dict) # Add static data to dict passed to function
             
