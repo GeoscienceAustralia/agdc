@@ -782,11 +782,11 @@ order by
                                                                                                                              block_size['y']) + \
                     '<SrcRect xOff="%i" yOff="%i" xSize="%i" ySize="%i"/>' % (0, 0, raster_size['x'], raster_size['y']) + \
                     '<DstRect xOff="%i" yOff="%i" xSize="%i" ySize="%i"/>' % (0, 0, raster_size['x'], raster_size['y']) + \
+                    '<NODATA>%d</NODATA>' % tile_info['nodata_value'] if tile_info['nodata_value'] else "" + \
                     '</ComplexSource>'
                     
                     output_band.SetMetadataItem("source_0", complex_source, "new_vrt_sources")
-#                    output_band.SetNoDataValue(tile_info['nodata_value'])
-#                    output_band.SetMetadataItem("NoDataValue", str(tile_info['nodata_value']), "new_vrt_sources")        
+     
             
     #===========================================================================
     # <ComplexSource>
