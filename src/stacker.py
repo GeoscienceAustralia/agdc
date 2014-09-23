@@ -671,16 +671,21 @@ order by
             band_stack_dict = {}
             for start_datetime in sorted(stack_info_dict.keys()):
                 timeslice_dict = stack_info_dict[start_datetime]
-                # Get all the band info for this tile type / satellite / sensor
-                band_info_dict = self.bands[tile_info['tile_type_id']][(tile_info['satellite_tag'], tile_info['sensor_name'])]
+                # self.band_lookup_dict is keyed by tile_type_id, satellite_tag, sensor_name, level_name, band_tag
+                band_lookup_dict = self.band_lookup_dict[tile_info['tile_type_id']][tile_info['satellite_tag']][tile_info['sensor_name']]
                 # Iterate through the available processing levels
                 for level_name in timeslice_dict.keys():
+                    
+                    level_band_dict = band_lookup_dict.get(level_name)
+                    if not level_band_dict: # Don't process this level if there are no bands to be processed
+                        break
+                    
                     tile_info_dict = timeslice_dict[level_name]
                     # Iterate through all bands for this processing level
-                    for band_info in [band_info for band_info in band_info_dict.values() if band_info['level_name'] == level_name]:                  
+                    for band_tag in level_band_dict:                  
                         # Combine tile and band info into one dict
                         band_tile_info = {start_datetime: dict(tile_info_dict)}
-                        band_tile_info[start_datetime].update(band_info)
+                        band_tile_info[start_datetime].update(level_band_dict[band_tag])
 
 #                        log_multiline(logger.debug, band_tile_info, 'band_tile_info for %s' % band_info['band_tag'], '\t')
 
@@ -688,25 +693,26 @@ order by
                                                               tile_info_dict['x_index'],
                                                               tile_info_dict['y_index'],
                                                               level_name,
-                                                              band_info['band_tag']))
+                                                              band_tag))
+                        
                         if not band_tile_dict: # No entry found for this level_name & band_tag
                             stack_filename = os.path.join(stack_output_dir,
                                                           '_'.join((level_name,
                                                                     re.sub('\+', '', '%+04d_%+04d' % (x_index, y_index)),
-                                                                    band_info['band_tag'])) + '.vrt')
+                                                                    band_tag)) + '.vrt')
                             
                             band_tile_dict = {'stack_filename': stack_filename,
-                                              'stack_dict': band_tile_info
+                                              'stack_dict': {start_datetime: band_tile_info}
                                               }
 
                             band_stack_dict[(tile_info_dict['tile_type_id'],
                                              tile_info_dict['x_index'],
                                              tile_info_dict['y_index'],
                                              level_name,
-                                             band_info['band_tag'])
+                                             band_tag)
                                              ] = band_tile_dict
                         else:
-                            band_tile_dict['stack_dict'].update(band_tile_info)
+                            band_tile_dict['stack_dict'].update({start_datetime: band_tile_info}) # Should this ever happen?
 
             log_multiline(logger.debug, band_stack_dict, 'band_stack_dict', '\t')              
                         
