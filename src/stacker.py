@@ -670,13 +670,16 @@ order by
         if create_band_stacks: 
             band_stack_dict = {}
             for start_datetime in sorted(stack_info_dict.keys()):
+                logger.debug('start_datetime = %s', start_datetime)
                 timeslice_dict = stack_info_dict[start_datetime]
                 # self.band_lookup_dict is keyed by tile_type_id, satellite_tag, sensor_name, level_name, band_tag
                 band_lookup_dict = self.band_lookup_dict[tile_info['tile_type_id']][tile_info['satellite_tag']][tile_info['sensor_name']]
+                log_multiline(logger.debug, band_lookup_dict, 'band_lookup_dict', '\t')
                 # Iterate through the available processing levels
                 for level_name in timeslice_dict.keys():
-                    
+                    logger.debug('level_name = %s', level_name)
                     level_band_dict = band_lookup_dict.get(level_name)
+                    log_multiline(logger.debug, level_band_dict, 'level_band_dict', '\t')
                     if not level_band_dict: # Don't process this level if there are no bands to be processed
                         break
                     
