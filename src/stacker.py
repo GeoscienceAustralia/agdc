@@ -678,9 +678,12 @@ order by
                 # self.band_lookup_dict is keyed by tile_type_id, satellite_tag, sensor_name, level_name, band_tag
                 band_lookup_dict = self.band_lookup_dict[tile_info['tile_type_id']][tile_info['satellite_tag']][tile_info['sensor_name']]
                 
-                # Combine derived bands with lookup-sourced band info
-                derived_band_dict = {key[1]: self.bands[tile_info['tile_type_id']][key] for key in self.bands[tile_info['tile_type_id']].keys() if key[1] == 'DERIVED'}
+                # Combine derived bands with lookup-sourced band info - this is a bit ugly
+                derived_band_dict = {key[1]: self.bands[tile_info['tile_type_id']][key] for key in self.bands[tile_info['tile_type_id']].keys() if key[0] == 'DERIVED'}
                 log_multiline(logger.debug, derived_band_dict, 'derived_band_dict', '\t')
+                derived_band_dict = {level_name: {value['band_tag']: value for value in derived_band_dict[level_name].values()} 
+                                     for level_name in derived_band_dict.keys()}
+                log_multiline(logger.debug, derived_band_dict, 'modified derived_band_dict', '\t')
                 band_lookup_dict.update(derived_band_dict) 
                    
                 log_multiline(logger.debug, band_lookup_dict, 'band_lookup_dict', '\t')
