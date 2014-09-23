@@ -771,19 +771,22 @@ order by
                 for start_datetime in sorted(file_stack_dict.keys()):
                     tile_info = file_stack_dict[start_datetime]
                     
-                    vrt_dataset.AddBand(gdal.GDT_Float32)
+                    vrt_dataset.AddBand(gdal_dtype)
                     output_band = vrt_dataset.GetRasterBand(vrt_dataset.RasterCount)
                     
-                    complex_source = '<SourceFilename relativeToVRT="0">%s</SourceFilename>' % tile_info['tile_pathname'] + \
+                    complex_source = '<ComplexSource>' + \
+                    '<SourceFilename relativeToVRT="0">%s</SourceFilename>' % tile_info['tile_pathname'] + \
                     '<SourceBand>%i</SourceBand>' % tile_info['tile_layer'] + \
                     '<SourceProperties RasterXSize="%i" RasterYSize="%i" DataType="%s" BlockXSize="%i" BlockYSize="%i"/>' % (raster_size['x'], raster_size['y'], 
                                                                                                                              dtype_name, block_size['x'], 
                                                                                                                              block_size['y']) + \
                     '<SrcRect xOff="%i" yOff="%i" xSize="%i" ySize="%i"/>' % (0, 0, raster_size['x'], raster_size['y']) + \
-                    '<DstRect xOff="%i" yOff="%i" xSize="%i" ySize="%i"/>' % (0, 0, raster_size['x'], raster_size['y'])
+                    '<DstRect xOff="%i" yOff="%i" xSize="%i" ySize="%i"/>' % (0, 0, raster_size['x'], raster_size['y']) + \
+                    '</ComplexSource>'
                     
-                    output_band.SetMetadataItem("ComplexSource", complex_source)
-                    output_band.SetMetadataItem("NoDataValue", str(tile_info['nodata_value']))        
+                    output_band.SetMetadataItem("source_0", complex_source, "new_vrt_sources")
+#                    output_band.SetNoDataValue(tile_info['nodata_value'])
+#                    output_band.SetMetadataItem("NoDataValue", str(tile_info['nodata_value']), "new_vrt_sources")        
             
     #===========================================================================
     # <ComplexSource>
