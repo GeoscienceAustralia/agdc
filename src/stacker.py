@@ -686,8 +686,14 @@ order by
                 timeslice_dict = stack_info_dict[start_datetime]
                 log_multiline(logger.debug, timeslice_dict, 'timeslice_dict', '\t')
                 
+                # Use first processing level to obtain lookup values - All levels should all have same values
+                tile_info = timeslice_dict[0]
+                
                 # self.band_lookup_dict is keyed by tile_type_id, satellite_tag, sensor_name, level_name, band_tag
-                band_lookup_dict = self.band_lookup_dict[tile_info['tile_type_id']][tile_info['satellite_tag']][tile_info['sensor_name']]
+                band_lookup_dict = (self.band_lookup_dict[tile_info['tile_type_id']]
+                                                         [tile_info['satellite_tag']]
+                                                         [tile_info['sensor_name']]
+                                                         )
                 log_multiline(logger.debug, band_lookup_dict, 'band_lookup_dict', '\t')
                 
                 # Combine derived bands with lookup-sourced band info - this is a bit ugly
