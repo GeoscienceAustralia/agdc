@@ -337,148 +337,149 @@ class Stacker(DataCube):
         # stack_tile local functions
         #
 
-        def cache_mosaic_files(mosaic_file_list, mosaic_dataset_path, overwrite=False, pqa_data=False):
-            logger.debug('cache_mosaic_files(mosaic_file_list=%s, mosaic_dataset_path=%s, overwrite=%s, pqa_data=%s) called', mosaic_file_list, mosaic_dataset_path, overwrite, pqa_data)
-            
-            if pqa_data: # Need to handle PQA datasets manually and produce a real output file
-                tile_type_info = self.tile_type_dict[tile_type_id]
-
-                # Change the output file extension to match the source (This is a bit ugly)
-                mosaic_dataset_path = re.sub('\.\w+$', 
-                                             tile_type_info['file_extension'],
-                                             mosaic_dataset_path)
-                
-                if os.path.exists(mosaic_dataset_path) and not overwrite:
-                    logger.debug('Mosaic file %s already exists', mosaic_dataset_path)
-                    return mosaic_dataset_path
-            
-                logger.info('Creating PQA mosaic file %s', mosaic_dataset_path)
-                
-                #MPH commented this out since we are working with a file path rather than a database connection
-                #assert self.lock_object(mosaic_dataset_path), 'Unable to acquire lock for %s' % mosaic_dataset_path
-            
-                template_dataset = gdal.Open(mosaic_file_list[0])
-
-                gdal_driver = gdal.GetDriverByName(tile_type_info['file_format'])
-
-                #Set datatype formats appropriate to Create() and numpy
-                gdal_dtype = template_dataset.GetRasterBand(1).DataType
-                numpy_dtype = gdal.GetDataTypeName(gdal_dtype)
-
-                mosaic_dataset = gdal_driver.Create(mosaic_dataset_path,
-                                                    template_dataset.RasterXSize, template_dataset.RasterYSize,
-                                                    1, gdal_dtype,
-                                                    tile_type_info['format_options'].split(','),
-                                                    )
-                assert mosaic_dataset, 'Unable to open output dataset %s'% output_dataset
-
-                mosaic_dataset.SetGeoTransform(template_dataset.GetGeoTransform())
-                mosaic_dataset.SetProjection(template_dataset.GetProjection())
-
-                # if tile_type_info['file_format'] == 'netCDF':
-                #     pass #TODO: make vrt here - not really needed for single-layer file
-
-                output_band = mosaic_dataset.GetRasterBand(1)
-                # Set all background values of data_array to FFFF (i.e. all ones)
-                data_array=numpy.ones(shape=(template_dataset.RasterYSize, template_dataset.RasterXSize),dtype=numpy_dtype) * -1
-                # Set all background values of no_data_array to 0 (i.e. all zeroes) 
-                no_data_array=numpy.zeros(shape=(template_dataset.RasterYSize, template_dataset.RasterXSize),dtype=numpy_dtype)
-                
-                overall_data_mask = numpy.zeros((mosaic_dataset.RasterYSize, 
-                                               mosaic_dataset.RasterXSize), 
-                                              dtype=numpy.bool)
-                del template_dataset
-                
-                # Populate data_array with -masked PQA data
-                for pqa_dataset_index in range(len(mosaic_file_list)):
-                    pqa_dataset_path = mosaic_file_list[pqa_dataset_index]
-                    pqa_dataset = gdal.Open(pqa_dataset_path)
-                    assert pqa_dataset, 'Unable to open %s' % pqa_dataset_path
-                    pqa_array = pqa_dataset.ReadAsArray()
-                    del pqa_dataset
-                    logger.debug('Opened %s', pqa_dataset_path)
-                    
-                    # Treat contiguous and non-contiguous pixels separately
-                    # Set all contiguous pixels to true in data_mask
-                    pqa_data_mask = (pqa_array & PQA_CONTIGUITY).astype(numpy.bool)
-                    # Expand overall_data_mask to true for any contiguous pixels
-                    overall_data_mask = overall_data_mask | pqa_data_mask 
-                    # Perform bitwise-and on contiguous pixels in data_array
-                    data_array[pqa_data_mask] &= pqa_array[pqa_data_mask] 
-                    # Perform bitwise-or on non-contiguous pixels in no_data_array
-                    no_data_array[~pqa_data_mask] |= pqa_array[~pqa_data_mask] 
-                    
-                    log_multiline(logger.debug, pqa_array, 'pqa_array', '\t')
-                    log_multiline(logger.debug, pqa_data_mask, 'pqa_data_mask', '\t')
-                    log_multiline(logger.debug, overall_data_mask, 'overall_data_mask', '\t')
-                    log_multiline(logger.debug, data_array, 'data_array', '\t')
-                    log_multiline(logger.debug, no_data_array, 'no_data_array', '\t')
-
-                # Set all pixels which don't contain data to combined no-data values (should be same as original no-data values)
-                data_array[~overall_data_mask] = no_data_array[~overall_data_mask] 
-                
-                log_multiline(logger.debug, data_array, 'FINAL data_array', '\t')
-                
-                output_band.WriteArray(data_array)  
-                mosaic_dataset.FlushCache()  
-            
-            else: # Anything other than PQA
-                if os.path.exists(mosaic_dataset_path) and not overwrite:
-                    logger.debug('Mosaic VRT file %s already exists', mosaic_dataset_path)
-                    return mosaic_dataset_path
-            
-                logger.info('Creating mosaic VRT file %s', mosaic_dataset_path)
-                assert self.lock_object(mosaic_dataset_path), 'Unable to acquire lock for %s' % mosaic_dataset_path
-
-                command_string = 'gdalbuildvrt'
-                if not self.debug:
-                    command_string += ' -q'
-                command_string += ' -overwrite %s \\\n%s' % (
-                    mosaic_dataset_path,
-                    ' \\\n'.join(mosaic_file_list)
-                    )
-                command_string += '\nchmod 777 %s' % mosaic_dataset_path
-                
-                logger.debug('command_string = %s', command_string)
-            
-                result = execute(command_string=command_string)
-            
-                if result['stdout']:
-                    log_multiline(logger.info, result['stdout'], 'stdout from ' + command_string, '\t') 
-        
-                if result['stderr']:
-                    log_multiline(logger.debug, result['stderr'], 'stderr from ' + command_string, '\t')
-                    
-                if result['returncode']:
-                    raise Exception('%s failed', command_string) 
-            
-            # Check for corrupted file and remove it
-            try:
-                assert gdal.Open(mosaic_dataset_path), 'Unable to open mosaic dataset %s. Attempting to remove it.' % mosaic_dataset_path
-            except:
-                self.remove(mosaic_dataset_path) 
-                raise
-                    
-            self.unlock_object(mosaic_dataset_path)    
-              
-            return mosaic_dataset_path # Return potentially modified filename 
-        
-        def create_mosaic_dir(mosaic_dir):
-            command_string = 'mkdir -p %s' % mosaic_dir
-            command_string += '\nchmod 777 %s' % mosaic_dir
-
-            logger.debug('command_string = %s', command_string)
-
-            result = execute(command_string=command_string)
-
-            if result['stdout']:
-                log_multiline(logger.debug, result['stdout'], 'stdout from ' + command_string, '\t') 
-
-            if result['returncode']:
-                log_multiline(logger.error, result['stderr'], 'stderr from ' + command_string, '\t')
-                raise Exception('%s failed', command_string) 
-
 #===============================================================================
+#         def cache_mosaic_files(mosaic_file_list, mosaic_dataset_path, overwrite=False, pqa_data=False):
+#             logger.debug('cache_mosaic_files(mosaic_file_list=%s, mosaic_dataset_path=%s, overwrite=%s, pqa_data=%s) called', mosaic_file_list, mosaic_dataset_path, overwrite, pqa_data)
+#             
+#             if pqa_data: # Need to handle PQA datasets manually and produce a real output file
+#                 tile_type_info = self.tile_type_dict[tile_type_id]
+# 
+#                 # Change the output file extension to match the source (This is a bit ugly)
+#                 mosaic_dataset_path = re.sub('\.\w+$', 
+#                                              tile_type_info['file_extension'],
+#                                              mosaic_dataset_path)
+#                 
+#                 if os.path.exists(mosaic_dataset_path) and not overwrite:
+#                     logger.debug('Mosaic file %s already exists', mosaic_dataset_path)
+#                     return mosaic_dataset_path
+#             
+#                 logger.info('Creating PQA mosaic file %s', mosaic_dataset_path)
+#                 
+#                 #MPH commented this out since we are working with a file path rather than a database connection
+#                 #assert self.lock_object(mosaic_dataset_path), 'Unable to acquire lock for %s' % mosaic_dataset_path
+#             
+#                 template_dataset = gdal.Open(mosaic_file_list[0])
+# 
+#                 gdal_driver = gdal.GetDriverByName(tile_type_info['file_format'])
+# 
+#                 #Set datatype formats appropriate to Create() and numpy
+#                 gdal_dtype = template_dataset.GetRasterBand(1).DataType
+#                 numpy_dtype = gdal.GetDataTypeName(gdal_dtype)
+# 
+#                 mosaic_dataset = gdal_driver.Create(mosaic_dataset_path,
+#                                                     template_dataset.RasterXSize, template_dataset.RasterYSize,
+#                                                     1, gdal_dtype,
+#                                                     tile_type_info['format_options'].split(','),
+#                                                     )
+#                 assert mosaic_dataset, 'Unable to open output dataset %s'% output_dataset
+# 
+#                 mosaic_dataset.SetGeoTransform(template_dataset.GetGeoTransform())
+#                 mosaic_dataset.SetProjection(template_dataset.GetProjection())
+# 
+#                 # if tile_type_info['file_format'] == 'netCDF':
+#                 #     pass #TODO: make vrt here - not really needed for single-layer file
+# 
+#                 output_band = mosaic_dataset.GetRasterBand(1)
+#                 # Set all background values of data_array to FFFF (i.e. all ones)
+#                 data_array=numpy.ones(shape=(template_dataset.RasterYSize, template_dataset.RasterXSize),dtype=numpy_dtype) * -1
+#                 # Set all background values of no_data_array to 0 (i.e. all zeroes) 
+#                 no_data_array=numpy.zeros(shape=(template_dataset.RasterYSize, template_dataset.RasterXSize),dtype=numpy_dtype)
+#                 
+#                 overall_data_mask = numpy.zeros((mosaic_dataset.RasterYSize, 
+#                                                mosaic_dataset.RasterXSize), 
+#                                               dtype=numpy.bool)
+#                 del template_dataset
+#                 
+#                 # Populate data_array with -masked PQA data
+#                 for pqa_dataset_index in range(len(mosaic_file_list)):
+#                     pqa_dataset_path = mosaic_file_list[pqa_dataset_index]
+#                     pqa_dataset = gdal.Open(pqa_dataset_path)
+#                     assert pqa_dataset, 'Unable to open %s' % pqa_dataset_path
+#                     pqa_array = pqa_dataset.ReadAsArray()
+#                     del pqa_dataset
+#                     logger.debug('Opened %s', pqa_dataset_path)
+#                     
+#                     # Treat contiguous and non-contiguous pixels separately
+#                     # Set all contiguous pixels to true in data_mask
+#                     pqa_data_mask = (pqa_array & PQA_CONTIGUITY).astype(numpy.bool)
+#                     # Expand overall_data_mask to true for any contiguous pixels
+#                     overall_data_mask = overall_data_mask | pqa_data_mask 
+#                     # Perform bitwise-and on contiguous pixels in data_array
+#                     data_array[pqa_data_mask] &= pqa_array[pqa_data_mask] 
+#                     # Perform bitwise-or on non-contiguous pixels in no_data_array
+#                     no_data_array[~pqa_data_mask] |= pqa_array[~pqa_data_mask] 
+#                     
+#                     log_multiline(logger.debug, pqa_array, 'pqa_array', '\t')
+#                     log_multiline(logger.debug, pqa_data_mask, 'pqa_data_mask', '\t')
+#                     log_multiline(logger.debug, overall_data_mask, 'overall_data_mask', '\t')
+#                     log_multiline(logger.debug, data_array, 'data_array', '\t')
+#                     log_multiline(logger.debug, no_data_array, 'no_data_array', '\t')
+# 
+#                 # Set all pixels which don't contain data to combined no-data values (should be same as original no-data values)
+#                 data_array[~overall_data_mask] = no_data_array[~overall_data_mask] 
+#                 
+#                 log_multiline(logger.debug, data_array, 'FINAL data_array', '\t')
+#                 
+#                 output_band.WriteArray(data_array)  
+#                 mosaic_dataset.FlushCache()  
+#             
+#             else: # Anything other than PQA
+#                 if os.path.exists(mosaic_dataset_path) and not overwrite:
+#                     logger.debug('Mosaic VRT file %s already exists', mosaic_dataset_path)
+#                     return mosaic_dataset_path
+#             
+#                 logger.info('Creating mosaic VRT file %s', mosaic_dataset_path)
+#                 assert self.lock_object(mosaic_dataset_path), 'Unable to acquire lock for %s' % mosaic_dataset_path
+# 
+#                 command_string = 'gdalbuildvrt'
+#                 if not self.debug:
+#                     command_string += ' -q'
+#                 command_string += ' -overwrite %s \\\n%s' % (
+#                     mosaic_dataset_path,
+#                     ' \\\n'.join(mosaic_file_list)
+#                     )
+#                 command_string += '\nchmod 777 %s' % mosaic_dataset_path
+#                 
+#                 logger.debug('command_string = %s', command_string)
+#             
+#                 result = execute(command_string=command_string)
+#             
+#                 if result['stdout']:
+#                     log_multiline(logger.info, result['stdout'], 'stdout from ' + command_string, '\t') 
+#         
+#                 if result['stderr']:
+#                     log_multiline(logger.debug, result['stderr'], 'stderr from ' + command_string, '\t')
+#                     
+#                 if result['returncode']:
+#                     raise Exception('%s failed', command_string) 
+#             
+#             # Check for corrupted file and remove it
+#             try:
+#                 assert gdal.Open(mosaic_dataset_path), 'Unable to open mosaic dataset %s. Attempting to remove it.' % mosaic_dataset_path
+#             except:
+#                 self.remove(mosaic_dataset_path) 
+#                 raise
+#                     
+#             self.unlock_object(mosaic_dataset_path)    
+#               
+#             return mosaic_dataset_path # Return potentially modified filename 
+#         
+#         def create_mosaic_dir(mosaic_dir):
+#             command_string = 'mkdir -p %s' % mosaic_dir
+#             command_string += '\nchmod 777 %s' % mosaic_dir
+# 
+#             logger.debug('command_string = %s', command_string)
+# 
+#             result = execute(command_string=command_string)
+# 
+#             if result['stdout']:
+#                 log_multiline(logger.debug, result['stdout'], 'stdout from ' + command_string, '\t') 
+# 
+#             if result['returncode']:
+#                 log_multiline(logger.error, result['stderr'], 'stderr from ' + command_string, '\t')
+#                 raise Exception('%s failed', command_string) 
+#
+#
 #         def record_timeslice_information(timeslice_info, mosaic_file_list, stack_dict):
 # 
 #             if len(mosaic_file_list) > 1: # Mosaic required - cache under tile directory
@@ -774,6 +775,8 @@ order by
                 
                 vrt_dataset.SetGeoTransform(template_dataset.GetGeoTransform())
                 vrt_dataset.SetProjection(template_dataset.GetProjection())
+                
+                del template_dataset # All values read - not needed any more
 
                 for start_datetime in sorted(file_stack_dict.keys()):
                     tile_info = file_stack_dict[start_datetime]
@@ -797,17 +800,6 @@ order by
                     output_band.SetMetadata({key: str(tile_info[key]) for key in tile_info.keys()})
      
             
-    #===========================================================================
-    # <ComplexSource>
-    #   <SourceFilename relativeToVRT="0">/g/data1/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS5_TM/150_-030/2010/LS5_TM_NBAR_150_-030_2010-01-20T23-39-42.750050.tif</SourceFilename>
-    #   <SourceBand>6</SourceBand>
-    #   <SourceProperties RasterXSize="4000" RasterYSize="4000" DataType="Int16" BlockXSize="4000" BlockYSize="1" />
-    #   <SrcRect xOff="0" yOff="0" xSize="4000" ySize="4000" />
-    #   <DstRect xOff="0" yOff="0" xSize="4000" ySize="4000" />
-    #   <NODATA>-999</NODATA>
-    # </ComplexSource>
-    #===========================================================================
-        
 #===============================================================================
 #         # Create stack files for each band
 #         stack_info_dict = {}
