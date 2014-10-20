@@ -185,7 +185,7 @@ class AbstractIngester(object):
         dataset_list = self.find_datasets(source_dir)
 
         for dataset_path in dataset_list:
-            self.ingest_individual_dataset(dataset_path)
+           self.ingest_individual_dataset(dataset_path)
 
         self.log_ingestion_process_complete(source_dir)
 
@@ -197,6 +197,8 @@ class AbstractIngester(object):
         """
 
         try:
+            self.preprocess_dataset(dataset_path)
+#            """
             dataset = self.open_dataset(dataset_path)
 
             self.collection.check_metadata(dataset)
@@ -208,7 +210,7 @@ class AbstractIngester(object):
             self.tile(dataset_record, dataset)
 
             self.mosaic(dataset_record)
-
+#            """
         except DatasetError as err:
             self.log_dataset_skip(dataset_path, err)
 
@@ -218,10 +220,12 @@ class AbstractIngester(object):
     def filter_on_metadata(self, dataset):
         """Raises a DatasetError unless the dataset passes the filter."""
 
+        print "AbstractIngester::filter_on_metadata()"
         path = dataset.get_x_ref()
         row = dataset.get_y_ref()
         dt = dataset.get_start_datetime()
         date = dt.date() if dt is not None else None
+        print "AbstractIngester::filter_on_metadata() DONE"
 
         if not self.filter_dataset(path, row, date):
             raise DatasetError('Filtered by metadata.')
@@ -262,6 +266,7 @@ class AbstractIngester(object):
     def tile(self, dataset_record, dataset):
         """Create tiles for a newly created or updated dataset."""
 
+        print "AbstractIngester::tile()"
         tile_list = []
         for tile_type_id in dataset_record.list_tile_types():
             if not self.filter_tile_type(tile_type_id):
@@ -276,6 +281,7 @@ class AbstractIngester(object):
         with self.collection.lock_datasets([dataset_record.dataset_id]):
             with self.collection.transaction():
                 dataset_record.store_tiles(tile_list)
+        print "AbstractIngester::tile() DONE"
 
     def mosaic(self, dataset_record):
         """Create mosaics for a newly tiled dataset."""
@@ -324,6 +330,16 @@ class AbstractIngester(object):
         """
 
         raise NotImplementedError
+
+    @abstractmethod
+    def preprocess_dataset(self, dataset_path):
+        """Performs pre-processing on the dataset object.
+
+        dataset_path: points to the dataset to be opened and have
+           its metadata read.
+        """
+
+        pass
 
     #
     # Filter methods.
@@ -424,6 +440,7 @@ class AbstractIngester(object):
 
     # pylint: enable=maybe-no-member
 
+    @abstractmethod
     def filter_dataset(self, path, row, date):
         """Return True if the dataset should be included, False otherwise."""
 
