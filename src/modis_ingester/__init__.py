@@ -131,8 +131,7 @@ class ModisIngester(AbstractIngester):
         dir_path, child_dirs, files = os.walk(source_dir).next()
 
         # find all NetCDF files in the source_dir
-#        dataset_list = [ os.path.join(dir_path, x) for x in files if (os.path.splitext(x)[1] == ".nc") ]
-        dataset_list = [ os.path.join(dir_path, x) for x in files if (x.endswith("float64.nc")) ]
+        dataset_list = [ os.path.join(dir_path, x) for x in files if (x.endswith(".nc")) ]
 
         print dataset_list
         return dataset_list
@@ -182,14 +181,14 @@ class ModisIngester(AbstractIngester):
         command_string += dataset_dir + '/' + fname
         command_string += '.vrt'
 
-        command_string += ' ' + subDataSets[14][0] # band 1
-        command_string += ' ' + subDataSets[15][0] # band 2
-        command_string += ' ' + subDataSets[16][0] # band 3
-        command_string += ' ' + subDataSets[17][0] # band 4
-        command_string += ' ' + subDataSets[18][0] # band 5
-        command_string += ' ' + subDataSets[19][0] # band 6
-        command_string += ' ' + subDataSets[20][0] # band 7
-        command_string += ' ' + subDataSets[13][0] # 500m PQA
+        command_string += ' ' + subDataSets[1][0] # band 1
+        command_string += ' ' + subDataSets[2][0] # band 2
+        command_string += ' ' + subDataSets[3][0] # band 3
+        command_string += ' ' + subDataSets[4][0] # band 4
+        command_string += ' ' + subDataSets[5][0] # band 5
+        command_string += ' ' + subDataSets[6][0] # band 6
+        command_string += ' ' + subDataSets[7][0] # band 7
+        command_string += ' ' + subDataSets[0][0] # 500m PQA
         """
         command_string += ' ' + subDataSets[11][0] # band 8
         command_string += ' ' + subDataSets[12][0] # band 9

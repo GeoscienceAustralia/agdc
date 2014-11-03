@@ -152,8 +152,8 @@ class ModisDataset(AbstractDataset):
 
         LOGGER.debug('pixel size (%s, %s)', str(self._gt[1]), str(self._gt[5])) # pixel size
 
-        self._pixelX = self._width / self._gt[1]
-        self._pixelY = self._height / self._gt[1]
+        self._pixelX = self._width
+        self._pixelY = self._height
 
         LOGGER.debug('pixels (%s, %s)', str(self._pixelX), str(self._pixelY)) # pixels
 
