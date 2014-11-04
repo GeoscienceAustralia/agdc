@@ -107,6 +107,7 @@ class TileContents(object):
             )
         self.tile_extents = None
 
+    
     def reproject(self):
         """Reproject the scene dataset into tile coordinate reference system
         and extent. This method uses gdalwarp to do the reprojection."""
@@ -146,6 +147,8 @@ class TileContents(object):
 
         reproject_cmd = ["gdalwarp",
                          "-q",
+                         "-of ",
+                         "%s" % self.tile_type_info['file_format'],
                          "-t_srs",
                          "%s" % self.tile_type_info['crs'],
                          "-te",
@@ -172,7 +175,8 @@ class TileContents(object):
             raise DatasetError('Unable to perform gdalwarp: ' +
                                '"%s" failed: %s' % (reproject_cmd,
                                                     result['stderr']))
-
+        
+            
     def has_data(self):
         """Check if the reprojection gave rise to a tile with valid data.
 
