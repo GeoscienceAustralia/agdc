@@ -147,7 +147,7 @@ class TileContents(object):
 
         reproject_cmd = ["gdalwarp",
                          "-q",
-                         "-of ",
+                         "-of",
                          "%s" % self.tile_type_info['file_format'],
                          "-t_srs",
                          "%s" % self.tile_type_info['crs'],
