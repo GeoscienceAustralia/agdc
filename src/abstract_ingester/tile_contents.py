@@ -108,8 +108,15 @@ class TileContents(object):
         self.tile_extents = None
         
         # Work-around to allow existing GDAL code to work with netCDF subdatasets as band stacks
-        #TODO: Move to netCDF libraries
-        self.vrt_required = self.tile_type_info['file_format'] == 'netCDF' and tile_type_info['file_extension'] == '.vrt'
+        # N.B: file_extension must be set to ".vrt" when used with netCDF
+        #TODO: Change all code to use netCDF libraries instead of GDAL for netCDF file handling
+        if self.tile_type_info['file_format'] == 'netCDF' and tile_type_info['file_extension'] == '.vrt':
+            self.nc_temp_tile_output_path = re.sub('\.vrt$', '.nc', self.temp_tile_output_path) 
+            self.nc_tile_output_path = re.sub('\.vrt$', '.nc', self.tile_output_path)
+        else:
+            self.nc_temp_tile_output_path = None
+            self.nc_tile_output_path = None
+
 
     
     def nc2vrt(self, nc_path, vrt_path):
@@ -165,7 +172,7 @@ class TileContents(object):
             format_spec.extend(["-co", "%s" % format_option])
             
         # Work-around to allow existing code to work with netCDF subdatasets as GDAL band stacks
-        temp_tile_output_path = re.sub('\.vrt$', '.nc', self.temp_tile_output_path) if self.vrt_required else self.temp_tile_output_path
+        temp_tile_output_path = self.nc_temp_tile_output_path or self.temp_tile_output_path
 
         
         reproject_cmd = ["gdalwarp",
@@ -200,8 +207,8 @@ class TileContents(object):
                                                     result['stderr']))
             
         # Work-around to allow existing code to work with netCDF subdatasets as GDAL band stacks
-        if self.vrt_required:
-            self.nc2vrt(temp_tile_output_path, self.temp_tile_output_path)
+        if self.nc_temp_tile_output_path:
+            self.nc2vrt(self.nc_temp_tile_output_path, self.temp_tile_output_path)
         
             
     def has_data(self):
@@ -252,21 +259,20 @@ class TileContents(object):
         
         create_directory(dest_dir)
         
-        # Edit paths in .vrt file and move .nc file if required
-        if self.vrt_required:
+        # If required, edit paths in re-written .vrt file and move .nc file 
+        if self.nc_tile_output_path:
             vrt_file = open(self.temp_tile_output_path, 'r')
             vrt_string = vrt_file.read()
             vrt_file.close()
             
-            vrt_string = vrt_string.replace(source_dir, dest_dir)
+            vrt_string = vrt_string.replace(source_dir, dest_dir) # Update all paths in VRT file
             
             vrt_file = open(self.tile_output_path, 'w')
             vrt_file.write(vrt_string)
             vrt_file.close()
             
             # Move .nc file
-            shutil.move(re.sub('\.vrt$', '.nc', self.temp_tile_output_path), 
-                        re.sub('\.vrt$', '.nc', self.tile_output_path))
+            shutil.move(self.nc_temp_tile_output_path, self.nc_tile_output_path)
 
         else: # No .vrt file required - just move the tile file
             shutil.move(self.temp_tile_output_path, self.tile_output_path)
