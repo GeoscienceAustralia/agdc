@@ -106,7 +106,26 @@ class TileContents(object):
             os.path.basename(self.tile_output_path)
             )
         self.tile_extents = None
+        
+        # Work-around to allow existing GDAL code to work with netCDF subdatasets as band stacks
+        #TODO: Move to netCDF libraries
+        self.vrt_required = self.tile_type_info['file_format'] == 'netCDF' and tile_type_info['file_extension'] == '.vrt'
 
+    
+    def nc2vrt(self, nc_path, vrt_path):
+        """Create a VRT file to present a netCDF file with multiple subdatasets to GDAL as a band stack"""
+        
+        nc_abs_path = os.path.abspath(nc_path)
+        vrt_abs_path = os.path.abspath(vrt_path)
+        
+        # Create VRT file using absolute pathnames
+        nc2vrt_cmd = "gdalbuildvrt -separate -allow_projection_difference -overwrite %s %s" % (vrt_abs_path, nc_abs_path)
+        result = execute(nc2vrt_cmd, shell=False)
+        if result['returncode'] != 0:
+            raise DatasetError('Unable to perform gdalbuildvrt: ' +
+                               '"%s" failed: %s' % (nc2vrt_cmd,
+                                                    result['stderr']))
+            
     
     def reproject(self):
         """Reproject the scene dataset into tile coordinate reference system
@@ -144,7 +163,11 @@ class TileContents(object):
         format_spec = []
         for format_option in self.tile_type_info['format_options'].split(','):
             format_spec.extend(["-co", "%s" % format_option])
+            
+        # Work-around to allow existing code to work with netCDF subdatasets as GDAL band stacks
+        temp_tile_output_path = re.sub('\.vrt$', '.nc', self.temp_tile_output_path) if self.vrt_required else self.temp_tile_output_path
 
+        
         reproject_cmd = ["gdalwarp",
                          "-q",
                          "-of",
@@ -168,13 +191,17 @@ class TileContents(object):
         reproject_cmd.extend(format_spec)
         reproject_cmd.extend(["-overwrite",
                               "%s" % self.band_stack.vrt_name,
-                              "%s" % self.temp_tile_output_path
+                              "%s" % temp_tile_output_path # Use locally-defined output path, not class instance value
                               ])
         result = execute(reproject_cmd, shell=False)
         if result['returncode'] != 0:
             raise DatasetError('Unable to perform gdalwarp: ' +
                                '"%s" failed: %s' % (reproject_cmd,
                                                     result['stderr']))
+            
+        # Work-around to allow existing code to work with netCDF subdatasets as GDAL band stacks
+        if self.vrt_required:
+            self.nc2vrt(temp_tile_output_path, self.temp_tile_output_path)
         
             
     def has_data(self):
@@ -220,8 +247,29 @@ class TileContents(object):
     def make_permanent(self):
         """Move the tile file to its permanent location."""
 
-        create_directory(os.path.dirname(self.tile_output_path))
-        shutil.move(self.temp_tile_output_path, self.tile_output_path)
+        source_dir = os.path.abspath(os.path.dirname(self.temp_tile_output_path))
+        dest_dir = os.path.abspath(os.path.dirname(self.tile_output_path))
+        
+        create_directory(dest_dir)
+        
+        # Edit paths in .vrt file and move .nc file if required
+        if self.vrt_required:
+            vrt_file = open(self.temp_tile_output_path, 'r')
+            vrt_string = vrt_file.read()
+            vrt_file.close()
+            
+            vrt_string = vrt_string.replace(source_dir, dest_dir)
+            
+            vrt_file = open(self.tile_output_path, 'w')
+            vrt_file.write(vrt_string)
+            vrt_file.close()
+            
+            # Move .nc file
+            shutil.move(re.sub('\.vrt$', '.nc', self.temp_tile_output_path), 
+                        re.sub('\.vrt$', '.nc', self.tile_output_path))
+
+        else: # No .vrt file required - just move the tile file
+            shutil.move(self.temp_tile_output_path, self.tile_output_path)
 
     def get_output_path(self):
         """Return the final location for the tile."""
