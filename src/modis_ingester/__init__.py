@@ -166,45 +166,55 @@ class ModisIngester(AbstractIngester):
         print "ModisIngester::filter_dataset() DONE"
         return include
 
-    def preprocess_dataset(self, dataset_path):
-        """Performs pre-processing on the dataset object.
+    def preprocess_dataset(self, dataset_list):
+        """Performs pre-processing on the dataset_list object.
 
-        dataset_path: points to the dataset to be opened and have
+        dataset_list: list of datasets to be opened and have
            its metadata read.
         """
 
-        print "dataset_path", dataset_path
+        vrt_list = []
 
-        fname = os.path.splitext(basename(dataset_path))[0]
-        dataset_dir = os.path.split(dataset_path)[0]
+        for dataset_path in dataset_list:
+            fname = os.path.splitext(basename(dataset_path))[0]
+            dataset_dir = os.path.split(dataset_path)[0]
 
-        dataset = gdal.Open(dataset_path, gdal.GA_ReadOnly)
-        subDataSets = dataset.GetSubDatasets()
-        command_string = 'gdalbuildvrt -separate -overwrite '
-        command_string += dataset_dir + '/' + fname
-        command_string += '.vrt'
+            mod09_fname = dataset_dir + '/' + fname + '.vrt'
+            rbq500_fname = dataset_dir + '/' + fname + '_RBQ500.vrt'
 
-        command_string += ' ' + subDataSets[1][0] # band 1
-        command_string += ' ' + subDataSets[2][0] # band 2
-        command_string += ' ' + subDataSets[3][0] # band 3
-        command_string += ' ' + subDataSets[4][0] # band 4
-        command_string += ' ' + subDataSets[5][0] # band 5
-        command_string += ' ' + subDataSets[6][0] # band 6
-        command_string += ' ' + subDataSets[7][0] # band 7
-        command_string += ' ' + subDataSets[0][0] # 500m PQA
-        """
-        command_string += ' ' + subDataSets[11][0] # band 8
-        command_string += ' ' + subDataSets[12][0] # band 9
+            dataset = gdal.Open(dataset_path, gdal.GA_ReadOnly)
+            subDataSets = dataset.GetSubDatasets()
+            command_string = 'gdalbuildvrt -separate -overwrite '
+            command_string += mod09_fname
 
-        command_string += ' ' + subDataSets[3][0] # band 10
-        command_string += ' ' + subDataSets[4][0] # band 11
-        command_string += ' ' + subDataSets[5][0] # band 12
-        command_string += ' ' + subDataSets[6][0] # band 13
-        command_string += ' ' + subDataSets[7][0] # band 14
-        command_string += ' ' + subDataSets[8][0] # band 15
-        command_string += ' ' + subDataSets[9][0] # band 16
+            command_string += ' ' + subDataSets[1][0] # band 1
+            command_string += ' ' + subDataSets[2][0] # band 2
+            command_string += ' ' + subDataSets[3][0] # band 3
+            command_string += ' ' + subDataSets[4][0] # band 4
+            command_string += ' ' + subDataSets[5][0] # band 5
+            command_string += ' ' + subDataSets[6][0] # band 6
+            command_string += ' ' + subDataSets[7][0] # band 7
 
-        command_string += ' ' + subDataSets[10][0] # band 26
-        command_string += ' ' + subDataSets[1][0] # 1km PQA
-        """
-        result = execute(command_string=command_string)
+            result = execute(command_string=command_string)
+            if result['returncode'] != 0:
+                raise DatasetError('Unable to perform gdalbuildvrt on bands: ' +
+                                   '"%s" failed: %s'\
+                                       % (buildvrt_cmd, result['stderr']))
+
+            vrt_list.append(mod09_fname)
+
+            command_string = 'gdalbuildvrt -separate -overwrite '
+            command_string += rbq500_fname
+
+            command_string += ' ' + subDataSets[0][0] # 500m PQA
+
+            result = execute(command_string=command_string)
+            if result['returncode'] != 0:
+                raise DatasetError('Unable to perform gdalbuildvrt on rbq: ' +
+                                   '"%s" failed: %s'\
+                                       % (buildvrt_cmd, result['stderr']))
+
+            vrt_list.append(rbq500_fname)
+
+        return vrt_list
+

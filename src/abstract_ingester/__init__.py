@@ -184,6 +184,8 @@ class AbstractIngester(object):
 
         dataset_list = self.find_datasets(source_dir)
 
+        dataset_list = self.preprocess_dataset(dataset_list)
+
         for dataset_path in dataset_list:
            self.ingest_individual_dataset(dataset_path)
 
@@ -197,8 +199,6 @@ class AbstractIngester(object):
         """
 
         try:
-            self.preprocess_dataset(dataset_path)
-#            """
             dataset = self.open_dataset(dataset_path)
 
             self.collection.check_metadata(dataset)
@@ -210,7 +210,7 @@ class AbstractIngester(object):
             self.tile(dataset_record, dataset)
 
             self.mosaic(dataset_record)
-#            """
+
         except DatasetError as err:
             self.log_dataset_skip(dataset_path, err)
 
@@ -332,14 +332,14 @@ class AbstractIngester(object):
         raise NotImplementedError
 
     @abstractmethod
-    def preprocess_dataset(self, dataset_path):
-        """Performs pre-processing on the dataset object.
+    def preprocess_dataset(self, dataset_list):
+        """Performs pre-processing on the dataset_list object.
 
-        dataset_path: points to the dataset to be opened and have
+        dataset_list: list of datasets to be opened and have
            its metadata read.
         """
 
-        pass
+        return dataset_list
 
     #
     # Filter methods.
