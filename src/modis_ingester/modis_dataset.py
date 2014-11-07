@@ -53,7 +53,7 @@ from modis_bandstack import ModisBandstack
 #
 
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.CRITICAL)
+LOGGER.setLevel(logging.DEBUG)
 
 #
 # Class definition
@@ -105,8 +105,15 @@ class ModisDataset(AbstractDataset):
         LOGGER.debug('RasterXSize = %s', self._ds.RasterXSize);
         LOGGER.debug('RasterYSize = %s', self._ds.RasterYSize);
 
-        s = execute("ncdump -v InputFileGlobalAttributes %s" % self._netcdf_file)
-        s = re.sub(r"\s+", "", s['stdout'])
+        command = "ncdump -v InputFileGlobalAttributes %s" % self._netcdf_file
+        result = execute(command)
+        if result['returncode'] != 0:
+            raise DatasetError('Unable to perform ncdump: ' +
+                               '"%s" failed: %s' % (command,
+                                                    result['stderr']))
+
+        s = re.sub(r"\s+", "", result['stdout'])
+        LOGGER.debug('%s = %s', command, s);
 
         self._rangeendingdate = re.search('RANGEENDINGDATE\\\\nNUM_VAL=1\\\\nVALUE=\\\\\"(.*)\\\\\"\\\\nEND_OBJECT=RANGEENDINGDATE', s).groups(1)[0]
         LOGGER.debug('RangeEndingDate = %s', self._rangeendingdate)

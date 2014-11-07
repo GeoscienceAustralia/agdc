@@ -49,7 +49,7 @@ import numpy as np
 
 # Set up logger.
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.INFO)
+LOGGER.setLevel(logging.DEBUG)
 
 #
 # Constants for PQA nodata check:
@@ -127,7 +127,8 @@ class TileContents(object):
         
         # Create VRT file using absolute pathnames
         nc2vrt_cmd = "gdalbuildvrt -separate -allow_projection_difference -overwrite %s %s" % (vrt_abs_path, nc_abs_path)
-        result = execute(nc2vrt_cmd, shell=False)
+        LOGGER.debug('nc2vrt_cmd = %s', nc2vrt_cmd)
+        result = execute(nc2vrt_cmd) #, shell=False)
         if result['returncode'] != 0:
             raise DatasetError('Unable to perform gdalbuildvrt: ' +
                                '"%s" failed: %s' % (nc2vrt_cmd,
