@@ -117,24 +117,27 @@ class ModisIngester(AbstractIngester):
         return _arg_parser.parse_args()
 
     def find_datasets(self, source_dir):
-        """Return a list of path to the datasets under 'source_dir'.
+        """Return a list of path to the netCDF datasets under 'source_dir' or a single-item list
+        if source_dir is a netCDF file path
+        """
+        
+        # Allow an individual netCDF file to be nominated as the source
+        if os.path.isfile(source_dir) and source_dir.endswith(".nc"):
+            LOGGER.debug('%s is a netCDF file')
+            return [source_dir]
 
-        Datasets are identified as a directory containing a 'scene01'
-        subdirectory.
-
-        Datasets are filtered by path, row, and date range if
-        fast filtering is on (command line flag)."""
-
+        assert os.path.isdir(source_dir), '%s is not a directory' % source_dir
         LOGGER.info('Searching for datasets in %s', source_dir)
 
         # Get all files of source_dir
-        dir_path, child_dirs, files = os.walk(source_dir).next()
+        dir_path, _child_dirs, files = os.walk(source_dir).next()
 
         # find all NetCDF files in the source_dir
         dataset_list = [ os.path.join(dir_path, x) for x in files if (x.endswith(".nc")) ]
 
-        print dataset_list
+        LOGGER.debug('dataset_list = %s', dataset_list)
         return dataset_list
+
 
     def open_dataset(self, dataset_path):
         """Create and return a dataset object.
