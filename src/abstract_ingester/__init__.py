@@ -331,7 +331,6 @@ class AbstractIngester(object):
 
         raise NotImplementedError
 
-    @abstractmethod
     def preprocess_dataset(self, dataset_list):
         """Performs pre-processing on the dataset_list object.
 
@@ -440,7 +439,6 @@ class AbstractIngester(object):
 
     # pylint: enable=maybe-no-member
 
-    @abstractmethod
     def filter_dataset(self, path, row, date):
         """Return True if the dataset should be included, False otherwise."""
 
