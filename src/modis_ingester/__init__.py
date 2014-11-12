@@ -129,12 +129,13 @@ class ModisIngester(AbstractIngester):
         assert os.path.isdir(source_dir), '%s is not a directory' % source_dir
         LOGGER.info('Searching for datasets in %s', source_dir)
 
-        # Get all files of source_dir
-        dir_path, _child_dirs, files = os.walk(source_dir).next()
-
-        # find all NetCDF files in the source_dir
-        dataset_list = [ os.path.join(dir_path, x) for x in files if (x.endswith(".nc")) ]
-
+        # Get all .nc files under source_dir (all levels)
+        dataset_list = []
+        for root, _dirs, files in os.walk(source_dir):
+            dataset_list += [os.path.join(root, nc) for nc in files if nc.endswith('.nc')]
+            
+        dataset_list = sorted(dataset_list)
+        
         LOGGER.debug('dataset_list = %s', dataset_list)
         return dataset_list
 
@@ -145,7 +146,7 @@ class ModisIngester(AbstractIngester):
         dataset_path: points to the dataset to be opened and have
            its metadata read.
         """
-	   
+
         return ModisDataset(dataset_path)
     
     def filter_dataset(self, path, row, date):
