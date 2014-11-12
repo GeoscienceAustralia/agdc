@@ -80,8 +80,6 @@ class ModisDataset(AbstractDataset):
 
         """
 
-        print "ModisDataset::init()"
-
         self._satellite_tag = "MT"
         self._satellite_sensor = "MODIS-Terra"
 
@@ -145,7 +143,6 @@ class ModisDataset(AbstractDataset):
 
         self._metadata = self._ds.GetMetadata('SUBDATASETS')
 
-        print self._metadata['SUBDATASET_1_NAME']
         band1 = gdal.Open(self._metadata['SUBDATASET_1_NAME'])
 
         # Get Coordinates
@@ -172,7 +169,6 @@ class ModisDataset(AbstractDataset):
         self._mtl_text = None
         self._xml_text = None
 
-        print "ModisDataset::init() DONE"
         AbstractDataset.__init__(self)
 
     #

@@ -63,16 +63,10 @@ class ModisBandstack(AbstractBandstack):
         """Given a dataset_record and corresponding dataset, build the vrt that
         will be used to reproject the dataset's data to tile coordinates"""
 
-        print "ModisBandstack::buildvrt()"
-        print self.dataset_mdd
- 
         self.vrt_name = self.dataset_mdd['dataset_path']
-        print "vrt name",self.vrt_name
         self.vrt_band_stack = self.vrt_name
 
         self.add_metadata(self.vrt_name)
-
-        print "ModisBandstack::buildvrt() DONE"
 
     def list_source_files(self):
         """Given the dictionary of band source information, form a list
@@ -91,7 +85,6 @@ class ModisBandstack(AbstractBandstack):
         """Add metadata to the VRT."""
         band_stack_dataset = gdal.Open(vrt_filename)
         assert band_stack_dataset, 'Unable to open VRT %s' % vrt_filename
-        print self.dataset_mdd
         band_stack_dataset.SetMetadata(
             {'satellite': self.dataset_mdd['satellite_tag'].upper(),
              'sensor':  self.dataset_mdd['sensor_name'].upper(),
@@ -101,7 +94,6 @@ class ModisBandstack(AbstractBandstack):
             )
         self.nodata_list = []
         for band_info in self.band_dict.values():
-            print band_info
             band_number = band_info['tile_layer']
             band = band_stack_dataset.GetRasterBand(band_number)
             self.nodata_list.append(band.GetNoDataValue())

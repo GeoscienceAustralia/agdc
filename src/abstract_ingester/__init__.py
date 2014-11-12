@@ -220,12 +220,10 @@ class AbstractIngester(object):
     def filter_on_metadata(self, dataset):
         """Raises a DatasetError unless the dataset passes the filter."""
 
-        print "AbstractIngester::filter_on_metadata()"
         path = dataset.get_x_ref()
         row = dataset.get_y_ref()
         dt = dataset.get_start_datetime()
         date = dt.date() if dt is not None else None
-        print "AbstractIngester::filter_on_metadata() DONE"
 
         if not self.filter_dataset(path, row, date):
             raise DatasetError('Filtered by metadata.')
@@ -266,7 +264,6 @@ class AbstractIngester(object):
     def tile(self, dataset_record, dataset):
         """Create tiles for a newly created or updated dataset."""
 
-        print "AbstractIngester::tile()"
         tile_list = []
         for tile_type_id in dataset_record.list_tile_types():
             if not self.filter_tile_type(tile_type_id):
@@ -281,7 +278,6 @@ class AbstractIngester(object):
         with self.collection.lock_datasets([dataset_record.dataset_id]):
             with self.collection.transaction():
                 dataset_record.store_tiles(tile_list)
-        print "AbstractIngester::tile() DONE"
 
     def mosaic(self, dataset_record):
         """Create mosaics for a newly tiled dataset."""

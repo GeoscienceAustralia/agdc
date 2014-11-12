@@ -153,7 +153,6 @@ class ModisIngester(AbstractIngester):
 
         Overridden to allow NULLS for row 
         """
-        print "ModisIngester::filter_dataset()"
         (start_date, end_date) = self.get_date_range()
         (min_path, max_path) = self.get_path_range()
         (min_row, max_row) = self.get_row_range()
@@ -163,7 +162,6 @@ class ModisIngester(AbstractIngester):
                    (end_date is None or date is None or date <= end_date) and
                    (start_date is None or date is None or date >= start_date))
 
-        print "ModisIngester::filter_dataset() DONE"
         return include
 
     def preprocess_dataset(self, dataset_list):

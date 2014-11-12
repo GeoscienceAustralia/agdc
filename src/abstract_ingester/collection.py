@@ -64,7 +64,6 @@ class Collection(object):
 
         self.datacube = datacube
         self.db = IngestDBWrapper(datacube.db_connection)
-        print "datacube.bands", datacube.bands
         self.new_bands = self.__reindex_bands(datacube.bands)
         self.transaction_stack = []
 
