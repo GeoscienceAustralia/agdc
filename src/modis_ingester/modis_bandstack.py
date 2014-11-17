@@ -63,8 +63,8 @@ class ModisBandstack(AbstractBandstack):
         """Given a dataset_record and corresponding dataset, build the vrt that
         will be used to reproject the dataset's data to tile coordinates"""
 
-        self.vrt_name = self.dataset_mdd['dataset_path']
-        self.vrt_band_stack = self.vrt_name
+        self.vrt_name = self.dataset._vrt_file
+        self.vrt_band_stack = self.dataset._vrt_file
 
         self.add_metadata(self.vrt_name)
 

@@ -53,7 +53,7 @@ from modis_bandstack import ModisBandstack
 #
 
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.DEBUG)
+LOGGER.setLevel(logging.INFO)
 
 #
 # Class definition
@@ -83,23 +83,27 @@ class ModisDataset(AbstractDataset):
         self._satellite_tag = "MT"
         self._satellite_sensor = "MODIS-Terra"
 
-        self._dataset_path = dataset_path
         self._dataset_file = os.path.abspath(dataset_path)
         fileName, fileExtension = os.path.splitext(self._dataset_file)
 
         if (fileName.endswith("RBQ500")):
             self._processor_level = "RBQ500"
-            self._netcdf_file = fileName.split("_RBQ500")[0] + ".nc"
         else:
             self._processor_level = "MOD09"
-            self._netcdf_file = fileName + ".nc"
 
-        self._ds = gdal.Open(self._netcdf_file, gdal.GA_ReadOnly)
+        vrt_file = open(dataset_path, 'r')
+        vrt_string = vrt_file.read()
+        vrt_file.close()
+
+        self._dataset_path = re.search('NETCDF:(.*):', vrt_string).groups(1)[0]
+        self._vrt_file = dataset_path
+
+        self._ds = gdal.Open(self._dataset_path, gdal.GA_ReadOnly)
 
         if not self._ds:
             raise DatasetError("Unable to open %s" % self.get_dataset_path())
 
-        self._dataset_size = os.path.getsize(self._netcdf_file)
+        self._dataset_size = os.path.getsize(self._dataset_path)
         
         LOGGER.debug('Transform = %s', self._ds.GetGeoTransform());
         LOGGER.debug('Projection = %s', self._ds.GetProjection());
@@ -107,7 +111,7 @@ class ModisDataset(AbstractDataset):
         LOGGER.debug('RasterXSize = %s', self._ds.RasterXSize);
         LOGGER.debug('RasterYSize = %s', self._ds.RasterYSize);
 
-        command = "ncdump -v InputFileGlobalAttributes %s" % self._netcdf_file
+        command = "ncdump -v InputFileGlobalAttributes %s" % self._dataset_path
         result = execute(command)
         if result['returncode'] != 0:
             raise DatasetError('Unable to perform ncdump: ' +

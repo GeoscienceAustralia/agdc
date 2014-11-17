@@ -172,14 +172,15 @@ class ModisIngester(AbstractIngester):
            its metadata read.
         """
 
+        temp_dir = self.collection.get_temp_tile_directory()
         vrt_list = []
 
         for dataset_path in dataset_list:
             fname = os.path.splitext(basename(dataset_path))[0]
             dataset_dir = os.path.split(dataset_path)[0]
 
-            mod09_fname = dataset_dir + '/' + fname + '.vrt'
-            rbq500_fname = dataset_dir + '/' + fname + '_RBQ500.vrt'
+            mod09_fname = temp_dir + '/' + fname + '.vrt'
+            rbq500_fname = temp_dir + '/' + fname + '_RBQ500.vrt'
 
             dataset = gdal.Open(dataset_path, gdal.GA_ReadOnly)
             subDataSets = dataset.GetSubDatasets()
