@@ -232,8 +232,8 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         sql = ("SELECT acquisition_id FROM acquisition\n" +
                "WHERE satellite_id = %(satellite_id)s AND\n" +
                "    sensor_id = %(sensor_id)s AND\n" +
-               "    x_ref = %(x_ref)s AND\n" +
-               "    y_ref = %(y_ref)s AND\n" +
+               ("    x_ref = %(x_ref)s AND\n" if acquisition_dict['x_ref'] is not None else "    x_ref is null AND\n") +
+               ("    y_ref = %(y_ref)s AND\n" if acquisition_dict['y_ref'] is not None else "    y_ref is null AND\n") +
                "    start_datetime = %(start_datetime)s AND\n" +
                "    end_datetime = %(end_datetime)s;")
         result = self.execute_sql_single(sql, acquisition_dict)
@@ -262,8 +262,8 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         sql = ("SELECT acquisition_id FROM acquisition\n" +
                "WHERE satellite_id = %(satellite_id)s AND\n" +
                "    sensor_id = %(sensor_id)s AND\n" +
-               "    x_ref = %(x_ref)s AND\n" +
-               "    y_ref = %(y_ref)s AND\n" +
+               ("    x_ref = %(x_ref)s AND\n" if params['x_ref'] is not None else "    x_ref is null AND\n") +
+               ("    y_ref = %(y_ref)s AND\n" if params['y_ref'] is not None else "    y_ref is null AND\n") +
                "    start_datetime BETWEEN\n" +
                "        %(start_datetime)s - %(delta)s AND\n" +
                "        %(start_datetime)s + %(delta)s AND\n" +
