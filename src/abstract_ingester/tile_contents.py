@@ -231,19 +231,24 @@ class TileContents(object):
                                )
         for file_number in self.band_stack.band_dict:
             nodata_val = self.band_stack.band_dict[file_number]['nodata_value']
+            LOGGER.debug('nodata_val = %s', nodata_val)
             if nodata_val is None:
                 if (self.band_stack.band_dict[file_number]['level_name'] ==
                         'PQA'):
                     #Check if any pixel has the contiguity bit set
                     if (np.bitwise_and(data, PQA_CONTIGUITY) > 0).any():
+                        LOGGER.debug('Tile is not empty: PQA data contains some contiguous data')
                         return True
                 else:
                     #nodata_value of None means all array data is valid
+                    LOGGER.debug('Tile is not empty: No data value not set')
                     return True
             else:
                 if (data != nodata_val).any():
+                    LOGGER.debug('Tile is not empty: Some values != %s', nodata_val)
                     return True
         #If all comparisons have shown that all array contents are nodata:
+        LOGGER.debug('Tile is empty')
         return False
 
     def remove(self):

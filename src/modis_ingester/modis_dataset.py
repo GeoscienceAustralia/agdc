@@ -178,7 +178,30 @@ class ModisDataset(AbstractDataset):
     #
     # Methods to extract extra metadata
     #
-
+    def _get_datetime_from_string(self, datetime_string):
+        """Determine datetime.datetime value from a string in several possible formats"""
+        
+        format_string_list=[
+                            '%Y-%m-%dT%H:%M:%S.%f', # e.g: 2012-12-28T01:36:14.000
+                            '%Y-%m-%d %H:%M:%S.%f', # e.g: 2012-12-28 01:36:14.000 
+                            '%Y-%m-%dT%H:%M:%S', # e.g: 2012-12-28T01:36:14 
+                            '%Y-%m-%d %H:%M:%S' # e.g: 2012-12-28 01:36:14 
+                            ]
+        
+        datetime_value = None
+        
+        for format_string in format_string_list:
+            try:
+                datetime_value =  datetime.datetime.strptime(datetime_string, format_string)
+                break
+            except ValueError:
+                continue
+            
+        if datetime_value is None:
+            raise ValueError("time data '%s' does not match any common format" % datetime_string)
+             
+        return datetime_value
+        
     def _get_directory_size(self):
         """Calculate the size of the dataset in kB."""
 
@@ -256,7 +279,7 @@ class ModisDataset(AbstractDataset):
         """
         
         #2011-01-31 02:35:09.897216
-        return datetime.datetime.strptime(self.scene_start_datetime, "%Y-%m-%d %H:%M:%S.%f")
+        return self._get_datetime_from_string(self.scene_start_datetime)
 
     def get_end_datetime(self):
         """The end of the acquisition.
@@ -264,7 +287,7 @@ class ModisDataset(AbstractDataset):
         This is a datatime without timezone in UTC.
         """
 
-        return datetime.datetime.strptime(self.scene_end_datetime, "%Y-%m-%d %H:%M:%S.%f")
+        return self._get_datetime_from_string(self.scene_end_datetime)
 
     def get_datetime_processed(self):
         """The date and time when the dataset was processed or created.
@@ -274,7 +297,7 @@ class ModisDataset(AbstractDataset):
 
         It is a datetime without timezone in UTC.
         """
-        return self._completion_datetime
+        return self._get_datetime_from_string(self._completion_datetime)
 
     def get_dataset_size(self):
         """The size of the dataset in kilobytes as an integer."""
