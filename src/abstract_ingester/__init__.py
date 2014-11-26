@@ -34,6 +34,7 @@
 import os
 import logging
 import argparse
+from datetime import datetime
 import json
 from abc import ABCMeta, abstractmethod
 import psycopg2
@@ -105,6 +106,8 @@ class AbstractIngester(object):
             if this is None the Ingeseter will set up its own collection
             using self.datacube.
         """
+        self.ingestion_start_datetime = datetime.now()
+        
         self.args = self.parse_args()
 
         if self.args.debug:
@@ -181,13 +184,16 @@ class AbstractIngester(object):
 
         Find datasets under 'source_dir' and ingest them into the collection.
         """
-
+        start_datetime = datetime.now()
+        
         dataset_list = self.find_datasets(source_dir)
+
+        dataset_list = self.preprocess_dataset(dataset_list)
 
         for dataset_path in dataset_list:
             self.ingest_individual_dataset(dataset_path)
 
-        self.log_ingestion_process_complete(source_dir)
+        self.log_ingestion_process_complete(source_dir, datetime.now() - start_datetime)
 
     def ingest_individual_dataset(self, dataset_path):
         """Ingests a single dataset at 'dataset_path' into the collection.
@@ -196,6 +202,7 @@ class AbstractIngester(object):
         but the process continues.
         """
 
+        start_datetime = datetime.now()
         try:
             dataset = self.open_dataset(dataset_path)
 
@@ -210,10 +217,10 @@ class AbstractIngester(object):
             self.mosaic(dataset_record)
 
         except DatasetError as err:
-            self.log_dataset_skip(dataset_path, err)
+            self.log_dataset_skip(dataset_path, err, datetime.now() - start_datetime)
 
         else:
-            self.log_dataset_ingest_complete(dataset_path)
+            self.log_dataset_ingest_complete(dataset_path, datetime.now() - start_datetime)
 
     def filter_on_metadata(self, dataset):
         """Raises a DatasetError unless the dataset passes the filter."""
@@ -324,6 +331,15 @@ class AbstractIngester(object):
         """
 
         raise NotImplementedError
+
+    def preprocess_dataset(self, dataset_list):
+        """Performs pre-processing on the dataset_list object.
+
+        dataset_list: list of datasets to be opened and have
+           its metadata read.
+        """
+
+        return dataset_list
 
     #
     # Filter methods.
@@ -457,21 +473,21 @@ class AbstractIngester(object):
     # be modified to add more information to the log messages.
     #
 
-    def log_ingestion_process_complete(self, source_dir):
+    def log_ingestion_process_complete(self, source_dir, elapsed_time):
 
         LOGGER.info("Ingestion process complete for source directory " +
-                    "'%s'." % source_dir)
+                    "'%s' in %s.", source_dir, elapsed_time)
 
-    def log_dataset_skip(self, dataset_path, err):
+    def log_dataset_skip(self, dataset_path, err, elapsed_time):
 
         LOGGER.info("Ingestion skipped for dataset " +
-                    "'%s':" % dataset_path)
+                    "'%s' in %s:", dataset_path, elapsed_time)
         LOGGER.info(str(err))
         LOGGER.debug("Exception info:", exc_info=True)
 
-    def log_dataset_ingest_complete(self, dataset_path):
+    def log_dataset_ingest_complete(self, dataset_path, elapsed_time):
 
         LOGGER.info("Ingestion complete for dataset " +
-                    "'%s'." % dataset_path)
+                    "'%s' in %s.", dataset_path, elapsed_time)
 
     # pylint: enable=missing-docstring, no-self-use
