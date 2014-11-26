@@ -200,6 +200,8 @@ class DatasetRecord(object):
 
         tile_list = []
         tile_footprint_list = self.get_coverage(tile_type_id)
+        LOGGER.info('%d tile footprints cover dataset', len(tile_footprint_list))
+        
         for tile_footprint in tile_footprint_list:
             tile_contents = self.collection.create_tile_contents(
                 tile_type_id,
@@ -213,6 +215,7 @@ class DatasetRecord(object):
             else:
                 tile_contents.remove()
 
+        LOGGER.info('%d non-empty tiles created', len(tile_list))
         return tile_list
 
     def store_tiles(self, tile_list):

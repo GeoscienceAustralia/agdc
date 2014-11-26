@@ -46,10 +46,11 @@ from EOtools.execute import execute
 from agdc.cube_util import DatasetError, create_directory
 from osgeo import gdal
 import numpy as np
+from datetime import datetime
 
 # Set up logger.
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.DEBUG)
+LOGGER.setLevel(logging.INFO)
 
 #
 # Constants for PQA nodata check:
@@ -201,7 +202,11 @@ class TileContents(object):
                               "%s" % self.band_stack.vrt_name,
                               "%s" % temp_tile_output_path # Use locally-defined output path, not class instance value
                               ])
+        
+        LOGGER.debug('Performing gdalwarp for tile %s', self.tile_footprint)
+        start_datetime = datetime.now()
         result = execute(reproject_cmd, shell=False)
+        LOGGER.debug('gdalwarp time = %s', datetime.now() - start_datetime)
         if result['returncode'] != 0:
             raise DatasetError('Unable to perform gdalwarp: ' +
                                '"%s" failed: %s' % (reproject_cmd,
@@ -217,39 +222,59 @@ class TileContents(object):
 
         Open the file and check if there is data"""
         tile_dataset = gdal.Open(self.temp_tile_output_path)
-        data = tile_dataset.ReadAsArray()
-        if len(data.shape) == 2:
-            data = data[None, :]
-        if data.shape[0] != len(self.band_stack.band_dict):
+        start_datetime = datetime.now()
+        
+        if tile_dataset.RasterCount != len(self.band_stack.band_dict):
             raise DatasetError(("Number of layers (%d) in tile file\n %s\n" +
                                 "does not match number of bands " +
                                 "(%d) from database."
-                                ) % (data.shape[0],
+                                ) % (tile_dataset.RasterCount,
                                      self.temp_tile_output_path,
                                      len(self.band_stack.band_dict)
                                      )
                                )
-        for file_number in self.band_stack.band_dict:
-            nodata_val = self.band_stack.band_dict[file_number]['nodata_value']
-            LOGGER.debug('nodata_val = %s', nodata_val)
+            
+        # Convert self.band_stack.band_dict into list of elements sorted by tile_layer
+        band_list = [self.band_stack.band_dict[file_number] for file_number in sorted(self.band_stack.band_dict.keys(), key=lambda file_number: self.band_stack.band_dict[file_number]['tile_layer'])]
+        
+        result = False
+        
+        # Read each band in individually - will be quicker for non-empty tiles but slower for empty ones
+        for band_index in range(tile_dataset.RasterCount):
+            band_no = band_index + 1
+            band = tile_dataset.GetRasterBand(band_no)
+            band_data = band.ReadAsArray()
+            
+            # Use DB value: Should actually be the same for all bands in a given processing level       
+            nodata_val = band_list[band_index]['nodata_value'] 
+            
             if nodata_val is None:
-                if (self.band_stack.band_dict[file_number]['level_name'] ==
-                        'PQA'):
-                    #Check if any pixel has the contiguity bit set
-                    if (np.bitwise_and(data, PQA_CONTIGUITY) > 0).any():
+                # Use value defined in tile dataset (inherited from source dataset)
+                nodata_val = band.GetNoDataValue() 
+                
+            LOGGER.debug('nodata_val = %s for layer %d', nodata_val, band_no)
+
+            if nodata_val is None:
+                # Special case for PQA with no no-data value defined
+                if (self.band_stack.band_dict[file_number]['level_name'] == 'PQA'):
+                    if (np.bitwise_and(band_data, PQA_CONTIGUITY) > 0).any():
                         LOGGER.debug('Tile is not empty: PQA data contains some contiguous data')
-                        return True
+                        result = True                
+                        break
                 else:
                     #nodata_value of None means all array data is valid
-                    LOGGER.debug('Tile is not empty: No data value not set')
-                    return True
-            else:
-                if (data != nodata_val).any():
-                    LOGGER.debug('Tile is not empty: Some values != %s', nodata_val)
-                    return True
-        #If all comparisons have shown that all array contents are nodata:
-        LOGGER.debug('Tile is empty')
-        return False
+                    LOGGER.debug('Tile is not empty: No-data value is not set')
+                    result = True
+                    break
+                
+            if (band_data != nodata_val).any():
+                LOGGER.debug('Tile is not empty: Some values != %s', nodata_val)
+                result = True
+                break
+            
+        # All comparisons have shown that all band contents are no-data:
+        LOGGER.debug('Tile has data = %s. Empty tile detection time = %s', result, datetime.now() - start_datetime)
+        return result
 
     def remove(self):
         """Remove tiles that were in coverage but have no data. Also remove
