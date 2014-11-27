@@ -149,7 +149,7 @@ class Collection(object):
     def create_acquisition_record(self, dataset):
         """Factory method to create an instance of the AcquisitonRecord class.
 
-        This method creates a corrisponding record in the database if one
+        This method creates a corresponding record in the database if one
         does not already exist.
         """
 

@@ -222,7 +222,7 @@ class DatasetRecord(object):
         """Store tiles in the database and file store.
 
         'tile_list' is a list of tile_contents objects. This
-        method will create the corrisponding database records and
+        method will create the corresponding database records and
         mark tiles for creation when the transaction commits.
         """
 
@@ -389,7 +389,7 @@ class DatasetRecord(object):
         self.collection.mark_tile_for_creation(mosaic)
 
     def __make_mosaic_pathname(self, tile_pathname):
-        """Return the pathname of the mosaic corrisponding to a tile."""
+        """Return the pathname of the mosaic corresponding to a tile."""
 
         (tile_dir, tile_basename) = os.path.split(tile_pathname)
 
