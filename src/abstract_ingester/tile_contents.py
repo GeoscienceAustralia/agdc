@@ -43,12 +43,13 @@ import logging
 import os
 import re
 from EOtools.execute import execute
+from EOtools.utils import log_multiline
 from agdc.cube_util import DatasetError, create_directory
 from osgeo import gdal
 import numpy as np
 from datetime import datetime
 
-# Set up logger.
+# Set up LOGGER.
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
@@ -203,15 +204,49 @@ class TileContents(object):
                               "%s" % temp_tile_output_path # Use locally-defined output path, not class instance value
                               ])
         
-        LOGGER.debug('Performing gdalwarp for tile %s', self.tile_footprint)
-        start_datetime = datetime.now()
-        result = execute(reproject_cmd, shell=False)
-        LOGGER.debug('gdalwarp time = %s', datetime.now() - start_datetime)
-        if result['returncode'] != 0:
-            raise DatasetError('Unable to perform gdalwarp: ' +
-                               '"%s" failed: %s' % (reproject_cmd,
-                                                    result['stderr']))
-            
+        command_string = ' '.join(reproject_cmd)
+        LOGGER.info('Performing gdalwarp for tile %s', self.tile_footprint)
+        retry=True
+        while retry:
+            LOGGER.debug('command_string = %s', command_string)
+            start_datetime = datetime.now()
+            result = execute(command_string)
+            LOGGER.debug('gdalwarp time = %s', datetime.now() - start_datetime)
+
+            if result['stdout']:
+                log_multiline(LOGGER.debug, result['stdout'], 'stdout from ' + command_string, '\t')
+
+            if result['returncode']: # Return code is non-zero
+                log_multiline(LOGGER.error, result['stderr'], 'stderr from ' + command_string, '\t')
+
+                # Work-around for gdalwarp error writing LZW-compressed GeoTIFFs 
+                if (result['stderr'].find('LZW') > -1 # LZW-related error
+                    and self.tile_type_info['file_format'] == 'GTiff' # Output format is GeoTIFF
+                    and 'COMPRESS=LZW' in format_spec): # LZW compression requested
+                        
+                    uncompressed_tile_path = temp_tile_output_path + '.tmp'
+
+                    # Write uncompressed tile to a temporary path
+                    command_string = command_string.replace('COMPRESS=LZW', 'COMPRESS=NONE')
+                    command_string = command_string.replace(temp_tile_output_path, uncompressed_tile_path)
+
+                    # Translate temporary uncompressed tile to final compressed tile
+                    command_string += '; gdal_translate -of GTiff'
+                    command_string += ' ' + ' '.join(format_spec)
+                    command_string += ' %s %s' % (
+                                                  uncompressed_tile_path,
+                                                  temp_tile_output_path
+                                                  )
+                    
+                    LOGGER.info('Creating compressed GeoTIFF tile via temporary uncompressed GeoTIFF')
+                else:
+                    raise DatasetError('Unable to perform gdalwarp: ' +
+                                       '"%s" failed: %s' % (command_string,
+                                                            result['stderr']))
+
+            else:
+                retry = False # No retry on success
+        
         # Work-around to allow existing code to work with netCDF subdatasets as GDAL band stacks
         if self.nc_temp_tile_output_path:
             self.nc2vrt(self.nc_temp_tile_output_path, self.temp_tile_output_path)
@@ -273,7 +308,8 @@ class TileContents(object):
                 break
             
         # All comparisons have shown that all band contents are no-data:
-        LOGGER.debug('Tile has data = %s. Empty tile detection time = %s', result, datetime.now() - start_datetime)
+        LOGGER.info('Tile ' + ('has data' if result else 'is empty') + '.')
+        LOGGER.debug('Empty tile detection time = %s', datetime.now() - start_datetime)
         return result
 
     def remove(self):

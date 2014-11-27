@@ -199,7 +199,7 @@ class DatasetRecord(object):
         """Tile the dataset, returning a list of tile_content objects."""
 
         tile_list = []
-        tile_footprint_list = self.get_coverage(tile_type_id)
+        tile_footprint_list = sorted(self.get_coverage(tile_type_id))
         LOGGER.info('%d tile footprints cover dataset', len(tile_footprint_list))
         
         for tile_footprint in tile_footprint_list:
