@@ -350,6 +350,11 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         tile.ctime field for the dataset's tiles. Tiles considered are
         restricted to those with tile_class_ids listed in tile_class_filter
         if it is non-empty.
+        
+        Returns tuple 
+        (disk_datetime_processed, database_datetime_processed, tile_ingested_datetime) 
+        if no ingestion required 
+        or None if ingestion is required
         """
         sql_dtp = ("SELECT datetime_processed FROM dataset\n" +
                    "WHERE dataset_id = %s;")
@@ -357,7 +362,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         database_datetime_processed = result[0]
 
         if database_datetime_processed < disk_datetime_processed:
-            return False
+            return None
 
         # The database's dataset record is newer that what is on disk.
         # Consider whether the tile record's are older than dataset on disk.
@@ -378,14 +383,14 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
         min_ctime = result[0]
 
         if min_ctime is None:
-            return False
+            return None
 
         if min_ctime < disk_datetime_processed:
-            return False
+            return None
 
         # The dataset on disk is more recent than the database records and
-        # should be re-ingested.
-        return True
+        # should be re-ingested. Return tuple containing relevant times
+        return (disk_datetime_processed, utc.localize(database_datetime_processed), min_ctime)
 
     def insert_dataset_record(self, dataset_dict):
         """Creates a new dataset record in the database.

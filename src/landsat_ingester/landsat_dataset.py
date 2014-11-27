@@ -83,7 +83,8 @@ class LandsatDataset(AbstractDataset):
         """
 
         self._dataset_path = dataset_path
-
+        LOGGER.info('Opening Dataset %s', self._dataset_path)
+        
         self._ds = SceneDataset(default_metadata_required=False, utm_fix=True)
         self._ds = self._ds.Open(self.get_dataset_path())
         if not self._ds:

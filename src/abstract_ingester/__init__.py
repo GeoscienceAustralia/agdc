@@ -40,7 +40,7 @@ from abc import ABCMeta, abstractmethod
 import psycopg2
 
 from agdc import DataCube
-from agdc.cube_util import DatasetError, parse_date_from_string
+from agdc.cube_util import DatasetError, DatasetSkipError, parse_date_from_string
 from collection import Collection
 from abstract_dataset import AbstractDataset
 from abstract_bandstack import AbstractBandstack
@@ -217,6 +217,9 @@ class AbstractIngester(object):
             self.mosaic(dataset_record)
 
         except DatasetError as err:
+            self.log_dataset_fail(dataset_path, err, datetime.now() - start_datetime)
+
+        except DatasetSkipError as err:
             self.log_dataset_skip(dataset_path, err, datetime.now() - start_datetime)
 
         else:
@@ -477,6 +480,13 @@ class AbstractIngester(object):
 
         LOGGER.info("Ingestion process complete for source directory " +
                     "'%s' in %s.", source_dir, elapsed_time)
+
+    def log_dataset_fail(self, dataset_path, err, elapsed_time):
+
+        LOGGER.info("Ingestion failed for dataset " +
+                    "'%s' in %s:", dataset_path, elapsed_time)
+        LOGGER.info(str(err))
+        LOGGER.debug("Exception info:", exc_info=True)
 
     def log_dataset_skip(self, dataset_path, err, elapsed_time):
 

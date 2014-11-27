@@ -193,3 +193,13 @@ class DatasetError(Exception):
     """
 
     pass
+
+
+class DatasetSkipError(Exception):
+    """
+    A problem specific to a dataset which already exists in the DB. 
+    If raised it will cause the current dataset to be skipped, but the 
+    ingest process will continue.
+    """
+
+    pass

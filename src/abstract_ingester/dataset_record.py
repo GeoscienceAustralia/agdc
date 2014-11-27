@@ -42,7 +42,7 @@ import logging
 import os
 import re
 from osgeo import osr
-from agdc.cube_util import DatasetError
+from agdc.cube_util import DatasetError, DatasetSkipError
 from ingest_db_wrapper import IngestDBWrapper
 from ingest_db_wrapper import TC_PENDING, TC_SINGLE_SCENE, TC_SUPERSEDED
 from ingest_db_wrapper import TC_MOSAIC
@@ -362,17 +362,32 @@ class DatasetRecord(object):
     #
 
     def __check_update_ok(self):
-        """Checks if an update is possible, raises a DatasetError otherwise."""
+        """Checks if an update is possible, raises a DatasetError otherwise.
+        
+        Note that dataset_older_than_database returns a tuple 
+        (disk_datetime_processed, database_datetime_processed, tile_ingested_datetime)
+        if no ingestion required"""
 
         tile_class_filter = (TC_SINGLE_SCENE,
                              TC_SUPERSEDED)
-        if self.db.dataset_older_than_database(
+        time_tuple = self.db.dataset_older_than_database(
                 self.dataset_dict['dataset_id'],
                 self.dataset_dict['datetime_processed'],
-                tile_class_filter):
-            raise DatasetError("Dataset to be ingested is older than " +
-                               "the version in the database.")
-
+                tile_class_filter)
+        
+        if time_tuple is not None:  
+            disk_datetime_processed, database_datetime_processed, tile_ingested_datetime = time_tuple          
+            if (disk_datetime_processed == database_datetime_processed):
+                skip_message = 'Dataset has already been ingested' 
+            elif disk_datetime_processed < database_datetime_processed:
+                    skip_message = 'Dataset on disk is older than dataset in DB'
+            else:
+                skip_message = 'Dataset on disk was created after currently ingested contents'
+            
+            skip_message += ' (Disk = %s, DB = %s, Ingested = %s)' % time_tuple
+                
+            raise DatasetSkipError(skip_message)
+        
     def __make_one_mosaic(self, tile_record_list):
         """Create a single mosaic.
 
