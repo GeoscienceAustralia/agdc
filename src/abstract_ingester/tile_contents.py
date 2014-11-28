@@ -302,7 +302,7 @@ class TileContents(object):
                     result = True
                     break
                 
-            if (band_data != nodata_val).any():
+            elif (band_data != nodata_val).any():
                 LOGGER.debug('Tile is not empty: Some values != %s', nodata_val)
                 result = True
                 break
