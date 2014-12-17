@@ -82,13 +82,13 @@ class TileRemover(DataCube):
         args, _unknown_args = _arg_parser.parse_known_args()
         return args
         
-    def get_field_names(self, table_name):
+    def get_field_names(self, table_name, excluded_field_list=[]):
         ''' Return a list containing all field names for the specified table'''
         sql = """select column_name from information_schema.columns where table_name='""" + table_name + """';"""
         log_multiline(logger.debug, sql, 'SQL', '\t')
         self.db_cursor.execute(sql)
             
-        field_list = [record[0] for record in self.db_cursor]
+        field_list = [record[0] for record in self.db_cursor if record[0] not in excluded_field_list]
         log_multiline(logger.debug, field_list, table_name + ' field list', '\t')
         return field_list
     
@@ -154,8 +154,8 @@ class TileRemover(DataCube):
         self.db_cursor = self.db_connection.cursor()
         
         # Populate field name lists for later use
-        self.dataset_field_list = self.get_field_names('dataset')
-        self.acquisition_field_list = self.get_field_names('acquisition')
+        self.dataset_field_list = self.get_field_names('dataset', ['xml_text'])
+        self.acquisition_field_list = self.get_field_names('acquisition', ['mtl_text'])
         self.tile_field_list = self.get_field_names('tile')
         
         self.satellite_dict = self.get_satellite_dict()
@@ -165,35 +165,49 @@ class TileRemover(DataCube):
     def get_dataset_records(self, dataset_name_list):
         '''Return a nested dict containing all dataset record info for datasets matching specified names keyed by dataset_id'''
         
+        dataset_records = {}
         for dataset_name in dataset_name_list:
             if self.target == 'dataset': # Only return exact matches
                 match_pattern = '.*/' + dataset_name + '$'
             else: # Return all versions
-                match_pattern = '.*/' + re.sub('(_\d+)$', '', dataset_name) + '(_\d+)*$'
+                #
+                match_pattern = '.*/' + re.sub('_(\d){1,3}$', '', dataset_name) + '(_(\d){1,3})*$'
                 
             if self.target == 'acquisition':
                 sql = """-- Find all datasets derived from acquisition of specified dataset name
-select dataset.* from dataset
+select
+    """ + \
+',\n    '.join(self.dataset_field_list) + \
+"""
+from dataset
 join (
     select distinct acquisition_id from dataset where dataset_path ~ '""" + match_pattern + """'
     ) a using(acquisition_id);"""
             else:
                 sql = """-- Find datasets matching provided name
-select * from dataset where dataset_path ~ '""" + match_pattern + """';"""
+select
+    """ + \
+',\n    '.join(self.dataset_field_list) + \
+"""
+from dataset where dataset_path ~ '""" + match_pattern + """';"""
         
-        log_multiline(logger.debug, sql, 'SQL', '\t')
-        self.db_cursor.execute(sql)
-        
-        dataset_records = {}
-        for record in self.db_cursor:
-            dataset_records[record[0]] = dict(zip(self.dataset_field_list, record))
+            log_multiline(logger.debug, sql, 'SQL', '\t')
+            self.db_cursor.execute(sql)
+            
+            for record in self.db_cursor:
+                dataset_records[record[0]] = dict(zip(self.dataset_field_list, record))
             
         log_multiline(logger.debug, dataset_records, 'dataset_records', '\t')
         return dataset_records
     
         
     def get_acquisition_records(self, dataset_records):
-        sql = """select * from acquisition where acquisition_id in %(acquisition_id_tuple)s"""
+        sql = """-- Find all acquisition records for specified datasets
+select
+    """ + \
+',\n    '.join(self.acquisition_field_list) + \
+"""
+from acquisition where acquisition_id in %(acquisition_id_tuple)s"""
         params = {'acquisition_id_tuple': tuple(sorted(set([dataset_record['acquisition_id'] for dataset_record in dataset_records.values()])))}
         
         log_multiline(logger.debug, self.db_cursor.mogrify(sql, params), 'SQL', '\t')
@@ -210,20 +224,27 @@ select * from dataset where dataset_path ~ '""" + match_pattern + """';"""
     
     def get_tile_records(self, dataset_records):         
         sql = """-- Find tiles and any overlap tiles including those for other datasets
-select * from tile where dataset_id in %(dataset_id_tuple)s
+select
+    """ + \
+',\n    '.join(self.tile_field_list) + \
+"""
+from tile where dataset_id in %(dataset_id_tuple)s
 union
-SELECT DISTINCT o.*
+SELECT DISTINCT
+    """ + \
+',\n    '.join(['o.' + tile_field for tile_field in self.tile_field_list]) + \
+"""
 FROM tile t
-INNER JOIN dataset d USING (dataset_id)
-INNER JOIN acquisition a USING (acquisition_id)
-INNER JOIN tile o ON
+JOIN dataset d USING (dataset_id)
+JOIN acquisition a USING (acquisition_id)
+JOIN tile o ON
     o.x_index = t.x_index AND
     o.y_index = t.y_index AND
     o.tile_type_id = t.tile_type_id
-INNER JOIN dataset od ON
+JOIN dataset od ON
     od.dataset_id = o.dataset_id AND
     od.level_id = d.level_id
-INNER JOIN acquisition oa ON
+JOIN acquisition oa ON
     oa.acquisition_id = od.acquisition_id AND
     oa.satellite_id = a.satellite_id
 WHERE
@@ -252,7 +273,7 @@ WHERE
         
     def get_records(self):
         self.dataset_records = self.get_dataset_records(self.dataset_name_list)
-        assert self.dataset_records, 'No dataset records provided'
+        assert self.dataset_records, 'No matching dataset records found'
         
         self.acquisition_records = self.get_acquisition_records(self.dataset_records)
         self.all_tile_records = self.get_tile_records(self.dataset_records)
@@ -322,6 +343,7 @@ and tile_id in %(tiles_to_be_updated_tuple)s;
                 print
             else:
                 self.db_cursor.execute(sql, params)
+                print 'Records updated successfully'
         else:
             print 'No tiles to delete or modify'
     
@@ -384,7 +406,9 @@ and not exists (
                 print
             else:
                 self.db_cursor.execute(sql, params)
+                print 'Records deleted/updated successfully'
                 self.remove_files(sorted([tile_record['tile_pathname'] for tile_record in self.tile_records_to_delete.values()]))
+                print 'Tile files removed successfully'
         else:
             print 'No tiles, datasets or acquisitions to delete or modify'
     
