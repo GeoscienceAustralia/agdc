@@ -142,8 +142,7 @@ class TileRemover(DataCube):
             self.dataset_name_list = self.dataset_name.split(',')
         elif self.dataset_list: # Dataset list file specified
             dataset_list_file = open(self.dataset_list, 'r')
-            self.dataset_name_list = [dataset_name.replace('\n', '') for dataset_name in dataset_list_file.readlines()]
-            
+            self.dataset_name_list = [dataset_name.replace('\n', '') for dataset_name in dataset_list_file.readlines()]            
             dataset_list_file.close()
         else:
             raise Exception('No dataset IDs or dataset name list file specified')
@@ -170,7 +169,7 @@ class TileRemover(DataCube):
             if self.target == 'dataset': # Only return exact matches
                 match_pattern = '.*/' + dataset_name + '$'
             else: # Return all versions
-                match_pattern = '.*/' + dataset_name + '(_\d+)*$'
+                match_pattern = '.*/' + re.sub('(_\d+)$', '', dataset_name) + '(_\d+)*$'
                 
             if self.target == 'acquisition':
                 sql = """-- Find all datasets derived from acquisition of specified dataset name
@@ -322,8 +321,7 @@ and tile_id in %(tiles_to_be_updated_tuple)s;
                 print self.db_cursor.mogrify(sql, params)
                 print
             else:
-                pass # TODO: Remove this after testing and un-comment line(s) below
-#                self.db_cursor.execute(sql, params)
+                self.db_cursor.execute(sql, params)
         else:
             print 'No tiles to delete or modify'
     
@@ -385,9 +383,8 @@ and not exists (
                     print '\t%s' % tile_pathname
                 print
             else:
-                pass # TODO: Remove this after testing and un-comment line(s) below
-#                self.db_cursor.execute(sql, params)
-#                self.remove_files(sorted([tile_record['tile_pathname'] for tile_record in self.tile_records_to_delete.values()]))
+                self.db_cursor.execute(sql, params)
+                self.remove_files(sorted([tile_record['tile_pathname'] for tile_record in self.tile_records_to_delete.values()]))
         else:
             print 'No tiles, datasets or acquisitions to delete or modify'
     
