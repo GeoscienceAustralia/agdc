@@ -315,24 +315,24 @@ WHERE
         params = {'tiles_to_be_deleted_tuple': tuple(sorted(self.tile_records_to_delete.keys())),
                   'tiles_to_be_updated_tuple': tuple(sorted(self.tile_records_to_update.keys()))
                   }
-        
+
         if (params['tiles_to_be_deleted_tuple'] 
             or params['tiles_to_be_updated_tuple']
             ):
         
-            sql = """-- Change tile class of non-overlapping tiles or overlap source tiles from nominated datasets
+            sql = ("""-- Change tile class of non-overlapping tiles or overlap source tiles from nominated datasets
 update tile
 set tile_class_id = tile_class_id + 1000
 where tile_class_id < 1000
 and tile_id in %(tiles_to_be_deleted_tuple)s;
-""" if params['tiles_to_be_deleted_tuple'] else '' + \
-"""    
+""" if params['tiles_to_be_deleted_tuple'] else '') + \
+("""    
 -- Change tile class of overlap source tiles NOT from nominated datasets
 update tile
 set tile_class_id = 1 -- Change 3->1
 where tile_class_id = 3
 and tile_id in %(tiles_to_be_updated_tuple)s;
-""" if params['tiles_to_be_updated_tuple'] else ''
+""" if params['tiles_to_be_updated_tuple'] else '')
     
             log_multiline(logger.debug, self.db_cursor.mogrify(sql, params), 'SQL', '\t')
             
