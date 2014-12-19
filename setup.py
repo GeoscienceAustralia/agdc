@@ -52,8 +52,10 @@ setup(name='agdc',
       requires = [
                   'EOtools',
                   'psycopg2',
-                  'osgeo',
-                  'numexpr'
+                  'gdal',
+                  'numexpr',
+                  'scipy',
+                  'pytz'
                   ],
       url = 'https://github.com/GeoscienceAustralia/ga-datacube',
       author = 'Alex Ip, Matthew Hoyles, Matthew Hardy',
