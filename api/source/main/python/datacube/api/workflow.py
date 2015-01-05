@@ -415,6 +415,7 @@ class Workflow(object):
         output directory = {output_directory}
         csv = {csv}
         dummy = {dummy}
+        save input files = {save_input_files}
         apply PQ filter = {apply_pq_filter}
         local scheduler = {local_scheduler}
         """.format(x_min=self.x_min, x_max=self.x_max, y_min=self.y_min, y_max=self.y_max,
@@ -422,7 +423,7 @@ class Workflow(object):
                    process_min=self.process_min, process_max=self.process_max,
                    ingest_min=self.ingest_min, ingest_max=self.ingest_max,
                    satellites=self.satellites, output_directory=self.output_directory, csv=self.csv, dummy=self.dummy,
-                   apply_pq_filter=self.apply_pq_filter,
+                   save_input_files=self.save_input_files, apply_pq_filter=self.apply_pq_filter,
                    local_scheduler=self.local_scheduler))
 
 
