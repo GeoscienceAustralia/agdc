@@ -53,10 +53,11 @@ from time import sleep
 
 from EOtools.execute import execute
 from EOtools.utils import log_multiline
-
 from agdc import DataCube
+from agdc.band_lookup import BandLookup
 
 PQA_CONTIGUITY = 256 # contiguity = bit 8
+DEFAULT_BAND_LOOKUP_SCHEME = 'LANDSAT-UNADJUSTED'
 
 # Set top level standard output 
 console_handler = logging.StreamHandler(sys.stdout)
@@ -211,6 +212,10 @@ class Stacker(DataCube):
         except:
             self.max_row = None
 
+        # Create nested dict for given lookup_scheme_name with levels keyed by:
+        # tile_type_id, satellite_tag, sensor_name, level_name, band_tag
+        band_lookup = BandLookup(self) # Don't bother initialising it - we only want the lookup dict
+        self.band_lookup_dict = band_lookup.band_lookup_dict[DEFAULT_BAND_LOOKUP_SCHEME]
             
     def stack_files(self, timeslice_info_list, stack_dataset_path, band1_vrt_path=None, overwrite=False):
         if os.path.exists(stack_dataset_path) and not overwrite:
@@ -332,166 +337,169 @@ class Stacker(DataCube):
         # stack_tile local functions
         #
 
-        def cache_mosaic_files(mosaic_file_list, mosaic_dataset_path, overwrite=False, pqa_data=False):
-            logger.debug('cache_mosaic_files(mosaic_file_list=%s, mosaic_dataset_path=%s, overwrite=%s, pqa_data=%s) called', mosaic_file_list, mosaic_dataset_path, overwrite, pqa_data)
-            
-            if pqa_data: # Need to handle PQA datasets manually and produce a real output file
-                tile_type_info = self.tile_type_dict[tile_type_id]
-
-                # Change the output file extension to match the source (This is a bit ugly)
-                mosaic_dataset_path = re.sub('\.\w+$', 
-                                             tile_type_info['file_extension'],
-                                             mosaic_dataset_path)
-                
-                if os.path.exists(mosaic_dataset_path) and not overwrite:
-                    logger.debug('Mosaic file %s already exists', mosaic_dataset_path)
-                    return mosaic_dataset_path
-            
-                logger.info('Creating PQA mosaic file %s', mosaic_dataset_path)
-                
-                #MPH commented this out since we are working with a file path rather than a database connection
-                #assert self.lock_object(mosaic_dataset_path), 'Unable to acquire lock for %s' % mosaic_dataset_path
-            
-                template_dataset = gdal.Open(mosaic_file_list[0])
-
-                gdal_driver = gdal.GetDriverByName(tile_type_info['file_format'])
-
-                #Set datatype formats appropriate to Create() and numpy
-                gdal_dtype = template_dataset.GetRasterBand(1).DataType
-                numpy_dtype = gdal.GetDataTypeName(gdal_dtype)
-
-                mosaic_dataset = gdal_driver.Create(mosaic_dataset_path,
-                                                    template_dataset.RasterXSize, template_dataset.RasterYSize,
-                                                    1, gdal_dtype,
-                                                    tile_type_info['format_options'].split(','),
-                                                    )
-                assert mosaic_dataset, 'Unable to open output dataset %s'% output_dataset
-
-                mosaic_dataset.SetGeoTransform(template_dataset.GetGeoTransform())
-                mosaic_dataset.SetProjection(template_dataset.GetProjection())
-
-                # if tile_type_info['file_format'] == 'netCDF':
-                #     pass #TODO: make vrt here - not really needed for single-layer file
-
-                output_band = mosaic_dataset.GetRasterBand(1)
-                # Set all background values of data_array to FFFF (i.e. all ones)
-                data_array=numpy.ones(shape=(template_dataset.RasterYSize, template_dataset.RasterXSize),dtype=numpy_dtype) * -1
-                # Set all background values of no_data_array to 0 (i.e. all zeroes) 
-                no_data_array=numpy.zeros(shape=(template_dataset.RasterYSize, template_dataset.RasterXSize),dtype=numpy_dtype)
-                
-                overall_data_mask = numpy.zeros((mosaic_dataset.RasterYSize, 
-                                               mosaic_dataset.RasterXSize), 
-                                              dtype=numpy.bool)
-                del template_dataset
-                
-                # Populate data_array with -masked PQA data
-                for pqa_dataset_index in range(len(mosaic_file_list)):
-                    pqa_dataset_path = mosaic_file_list[pqa_dataset_index]
-                    pqa_dataset = gdal.Open(pqa_dataset_path)
-                    assert pqa_dataset, 'Unable to open %s' % pqa_dataset_path
-                    pqa_array = pqa_dataset.ReadAsArray()
-                    del pqa_dataset
-                    logger.debug('Opened %s', pqa_dataset_path)
-                    
-                    # Treat contiguous and non-contiguous pixels separately
-                    # Set all contiguous pixels to true in data_mask
-                    pqa_data_mask = (pqa_array & PQA_CONTIGUITY).astype(numpy.bool)
-                    # Expand overall_data_mask to true for any contiguous pixels
-                    overall_data_mask = overall_data_mask | pqa_data_mask 
-                    # Perform bitwise-and on contiguous pixels in data_array
-                    data_array[pqa_data_mask] &= pqa_array[pqa_data_mask] 
-                    # Perform bitwise-or on non-contiguous pixels in no_data_array
-                    no_data_array[~pqa_data_mask] |= pqa_array[~pqa_data_mask] 
-                    
-                    log_multiline(logger.debug, pqa_array, 'pqa_array', '\t')
-                    log_multiline(logger.debug, pqa_data_mask, 'pqa_data_mask', '\t')
-                    log_multiline(logger.debug, overall_data_mask, 'overall_data_mask', '\t')
-                    log_multiline(logger.debug, data_array, 'data_array', '\t')
-                    log_multiline(logger.debug, no_data_array, 'no_data_array', '\t')
-
-                # Set all pixels which don't contain data to combined no-data values (should be same as original no-data values)
-                data_array[~overall_data_mask] = no_data_array[~overall_data_mask] 
-                
-                log_multiline(logger.debug, data_array, 'FINAL data_array', '\t')
-                
-                output_band.WriteArray(data_array)  
-                mosaic_dataset.FlushCache()  
-            
-            else: # Anything other than PQA
-                if os.path.exists(mosaic_dataset_path) and not overwrite:
-                    logger.debug('Mosaic VRT file %s already exists', mosaic_dataset_path)
-                    return mosaic_dataset_path
-            
-                logger.info('Creating mosaic VRT file %s', mosaic_dataset_path)
-                assert self.lock_object(mosaic_dataset_path), 'Unable to acquire lock for %s' % mosaic_dataset_path
-
-                command_string = 'gdalbuildvrt'
-                if not self.debug:
-                    command_string += ' -q'
-                command_string += ' -overwrite %s \\\n%s' % (
-                    mosaic_dataset_path,
-                    ' \\\n'.join(mosaic_file_list)
-                    )
-                command_string += '\nchmod 777 %s' % mosaic_dataset_path
-                
-                logger.debug('command_string = %s', command_string)
-            
-                result = execute(command_string=command_string)
-            
-                if result['stdout']:
-                    log_multiline(logger.info, result['stdout'], 'stdout from ' + command_string, '\t') 
-        
-                if result['stderr']:
-                    log_multiline(logger.debug, result['stderr'], 'stderr from ' + command_string, '\t')
-                    
-                if result['returncode']:
-                    raise Exception('%s failed', command_string) 
-            
-            # Check for corrupted file and remove it
-            try:
-                assert gdal.Open(mosaic_dataset_path), 'Unable to open mosaic dataset %s. Attempting to remove it.' % mosaic_dataset_path
-            except:
-                self.remove(mosaic_dataset_path) 
-                raise
-                    
-            self.unlock_object(mosaic_dataset_path)    
-              
-            return mosaic_dataset_path # Return potentially modified filename 
-        
-        def create_mosaic_dir(mosaic_dir):
-            command_string = 'mkdir -p %s' % mosaic_dir
-            command_string += '\nchmod 777 %s' % mosaic_dir
-
-            logger.debug('command_string = %s', command_string)
-
-            result = execute(command_string=command_string)
-
-            if result['stdout']:
-                log_multiline(logger.debug, result['stdout'], 'stdout from ' + command_string, '\t') 
-
-            if result['returncode']:
-                log_multiline(logger.error, result['stderr'], 'stderr from ' + command_string, '\t')
-                raise Exception('%s failed', command_string) 
-
-        def record_timeslice_information(timeslice_info, mosaic_file_list, stack_dict):
-
-            if len(mosaic_file_list) > 1: # Mosaic required - cache under tile directory
-                mosaic_dir = os.path.join(os.path.dirname(timeslice_info['tile_pathname']),
-                                                          'mosaic_cache')
-                if not os.path.isdir(mosaic_dir):
-                    create_mosaic_dir(mosaic_dir)
-
-                timeslice_info['tile_pathname'] = os.path.join(
-                    mosaic_dir,
-                    re.sub(r'\.\w+$', '.vrt', os.path.basename(timeslice_info['tile_pathname']))
-                    )
-
-                # N.B: cache_mosaic_files function may modify filename
-                timeslice_info['tile_pathname'] = \
-                    cache_mosaic_files(mosaic_file_list, timeslice_info['tile_pathname'],
-                                       overwrite=self.refresh, pqa_data=(timeslice_info['level_name'] == 'PQA'))
-
-            stack_dict[timeslice_info['start_datetime']] = timeslice_info
+#===============================================================================
+#         def cache_mosaic_files(mosaic_file_list, mosaic_dataset_path, overwrite=False, pqa_data=False):
+#             logger.debug('cache_mosaic_files(mosaic_file_list=%s, mosaic_dataset_path=%s, overwrite=%s, pqa_data=%s) called', mosaic_file_list, mosaic_dataset_path, overwrite, pqa_data)
+#             
+#             if pqa_data: # Need to handle PQA datasets manually and produce a real output file
+#                 tile_type_info = self.tile_type_dict[tile_type_id]
+# 
+#                 # Change the output file extension to match the source (This is a bit ugly)
+#                 mosaic_dataset_path = re.sub('\.\w+$', 
+#                                              tile_type_info['file_extension'],
+#                                              mosaic_dataset_path)
+#                 
+#                 if os.path.exists(mosaic_dataset_path) and not overwrite:
+#                     logger.debug('Mosaic file %s already exists', mosaic_dataset_path)
+#                     return mosaic_dataset_path
+#             
+#                 logger.info('Creating PQA mosaic file %s', mosaic_dataset_path)
+#                 
+#                 #MPH commented this out since we are working with a file path rather than a database connection
+#                 #assert self.lock_object(mosaic_dataset_path), 'Unable to acquire lock for %s' % mosaic_dataset_path
+#             
+#                 template_dataset = gdal.Open(mosaic_file_list[0])
+# 
+#                 gdal_driver = gdal.GetDriverByName(tile_type_info['file_format'])
+# 
+#                 #Set datatype formats appropriate to Create() and numpy
+#                 gdal_dtype = template_dataset.GetRasterBand(1).DataType
+#                 numpy_dtype = gdal.GetDataTypeName(gdal_dtype)
+# 
+#                 mosaic_dataset = gdal_driver.Create(mosaic_dataset_path,
+#                                                     template_dataset.RasterXSize, template_dataset.RasterYSize,
+#                                                     1, gdal_dtype,
+#                                                     tile_type_info['format_options'].split(','),
+#                                                     )
+#                 assert mosaic_dataset, 'Unable to open output dataset %s'% output_dataset
+# 
+#                 mosaic_dataset.SetGeoTransform(template_dataset.GetGeoTransform())
+#                 mosaic_dataset.SetProjection(template_dataset.GetProjection())
+# 
+#                 # if tile_type_info['file_format'] == 'netCDF':
+#                 #     pass #TODO: make vrt here - not really needed for single-layer file
+# 
+#                 output_band = mosaic_dataset.GetRasterBand(1)
+#                 # Set all background values of data_array to FFFF (i.e. all ones)
+#                 data_array=numpy.ones(shape=(template_dataset.RasterYSize, template_dataset.RasterXSize),dtype=numpy_dtype) * -1
+#                 # Set all background values of no_data_array to 0 (i.e. all zeroes) 
+#                 no_data_array=numpy.zeros(shape=(template_dataset.RasterYSize, template_dataset.RasterXSize),dtype=numpy_dtype)
+#                 
+#                 overall_data_mask = numpy.zeros((mosaic_dataset.RasterYSize, 
+#                                                mosaic_dataset.RasterXSize), 
+#                                               dtype=numpy.bool)
+#                 del template_dataset
+#                 
+#                 # Populate data_array with -masked PQA data
+#                 for pqa_dataset_index in range(len(mosaic_file_list)):
+#                     pqa_dataset_path = mosaic_file_list[pqa_dataset_index]
+#                     pqa_dataset = gdal.Open(pqa_dataset_path)
+#                     assert pqa_dataset, 'Unable to open %s' % pqa_dataset_path
+#                     pqa_array = pqa_dataset.ReadAsArray()
+#                     del pqa_dataset
+#                     logger.debug('Opened %s', pqa_dataset_path)
+#                     
+#                     # Treat contiguous and non-contiguous pixels separately
+#                     # Set all contiguous pixels to true in data_mask
+#                     pqa_data_mask = (pqa_array & PQA_CONTIGUITY).astype(numpy.bool)
+#                     # Expand overall_data_mask to true for any contiguous pixels
+#                     overall_data_mask = overall_data_mask | pqa_data_mask 
+#                     # Perform bitwise-and on contiguous pixels in data_array
+#                     data_array[pqa_data_mask] &= pqa_array[pqa_data_mask] 
+#                     # Perform bitwise-or on non-contiguous pixels in no_data_array
+#                     no_data_array[~pqa_data_mask] |= pqa_array[~pqa_data_mask] 
+#                     
+#                     log_multiline(logger.debug, pqa_array, 'pqa_array', '\t')
+#                     log_multiline(logger.debug, pqa_data_mask, 'pqa_data_mask', '\t')
+#                     log_multiline(logger.debug, overall_data_mask, 'overall_data_mask', '\t')
+#                     log_multiline(logger.debug, data_array, 'data_array', '\t')
+#                     log_multiline(logger.debug, no_data_array, 'no_data_array', '\t')
+# 
+#                 # Set all pixels which don't contain data to combined no-data values (should be same as original no-data values)
+#                 data_array[~overall_data_mask] = no_data_array[~overall_data_mask] 
+#                 
+#                 log_multiline(logger.debug, data_array, 'FINAL data_array', '\t')
+#                 
+#                 output_band.WriteArray(data_array)  
+#                 mosaic_dataset.FlushCache()  
+#             
+#             else: # Anything other than PQA
+#                 if os.path.exists(mosaic_dataset_path) and not overwrite:
+#                     logger.debug('Mosaic VRT file %s already exists', mosaic_dataset_path)
+#                     return mosaic_dataset_path
+#             
+#                 logger.info('Creating mosaic VRT file %s', mosaic_dataset_path)
+#                 assert self.lock_object(mosaic_dataset_path), 'Unable to acquire lock for %s' % mosaic_dataset_path
+# 
+#                 command_string = 'gdalbuildvrt'
+#                 if not self.debug:
+#                     command_string += ' -q'
+#                 command_string += ' -overwrite %s \\\n%s' % (
+#                     mosaic_dataset_path,
+#                     ' \\\n'.join(mosaic_file_list)
+#                     )
+#                 command_string += '\nchmod 777 %s' % mosaic_dataset_path
+#                 
+#                 logger.debug('command_string = %s', command_string)
+#             
+#                 result = execute(command_string=command_string)
+#             
+#                 if result['stdout']:
+#                     log_multiline(logger.info, result['stdout'], 'stdout from ' + command_string, '\t') 
+#         
+#                 if result['stderr']:
+#                     log_multiline(logger.debug, result['stderr'], 'stderr from ' + command_string, '\t')
+#                     
+#                 if result['returncode']:
+#                     raise Exception('%s failed', command_string) 
+#             
+#             # Check for corrupted file and remove it
+#             try:
+#                 assert gdal.Open(mosaic_dataset_path), 'Unable to open mosaic dataset %s. Attempting to remove it.' % mosaic_dataset_path
+#             except:
+#                 self.remove(mosaic_dataset_path) 
+#                 raise
+#                     
+#             self.unlock_object(mosaic_dataset_path)    
+#               
+#             return mosaic_dataset_path # Return potentially modified filename 
+#         
+#         def create_mosaic_dir(mosaic_dir):
+#             command_string = 'mkdir -p %s' % mosaic_dir
+#             command_string += '\nchmod 777 %s' % mosaic_dir
+# 
+#             logger.debug('command_string = %s', command_string)
+# 
+#             result = execute(command_string=command_string)
+# 
+#             if result['stdout']:
+#                 log_multiline(logger.debug, result['stdout'], 'stdout from ' + command_string, '\t') 
+# 
+#             if result['returncode']:
+#                 log_multiline(logger.error, result['stderr'], 'stderr from ' + command_string, '\t')
+#                 raise Exception('%s failed', command_string) 
+#
+#
+#         def record_timeslice_information(timeslice_info, mosaic_file_list, stack_dict):
+# 
+#             if len(mosaic_file_list) > 1: # Mosaic required - cache under tile directory
+#                 mosaic_dir = os.path.join(os.path.dirname(timeslice_info['tile_pathname']),
+#                                                           'mosaic_cache')
+#                 if not os.path.isdir(mosaic_dir):
+#                     create_mosaic_dir(mosaic_dir)
+# 
+#                 timeslice_info['tile_pathname'] = os.path.join(
+#                     mosaic_dir,
+#                     re.sub(r'\.\w+$', '.vrt', os.path.basename(timeslice_info['tile_pathname']))
+#                     )
+# 
+#                 # N.B: cache_mosaic_files function may modify filename
+#                 timeslice_info['tile_pathname'] = \
+#                     cache_mosaic_files(mosaic_file_list, timeslice_info['tile_pathname'],
+#                                        overwrite=self.refresh, pqa_data=(timeslice_info['level_name'] == 'PQA'))
+# 
+#             stack_dict[timeslice_info['start_datetime']] = timeslice_info
+#===============================================================================
         
         #
         # stack_tile method body         
@@ -499,218 +507,363 @@ class Stacker(DataCube):
 
         db_cursor2 = self.db_connection.cursor()
         
-        sql = """-- Retrieve all tile and band details for specified tile range
-select distinct
-  band_tag, 
-  band_name, 
+        # Compose tuples from single values (TEMPORARY ONLY)    
+        #TODO: Change stack_tile parameters to allow multi-value tuples
+        tile_type_ids_tuple = (tile_type_id,) if tile_type_id is not None else None
+        tile_indices_tuple = ((x_index, y_index),) if x_index is not None and y_index is not None else None
+        satellites_tuple = (satellite,) if satellite is not None else None
+        sensors_tuple = (sensor,) if sensor is not None else None
+        paths_tuple = (path,) if path is not None else None
+        rows_tuple = (row,) if row is not None else None
+        
+        params = {'tile_type_ids': tile_type_ids_tuple,
+                  'tile_indices': tile_indices_tuple,
+                  'satellites': satellites_tuple,
+                  'sensors': sensors_tuple,
+                  'x_refs': paths_tuple,
+                  'y_refs': rows_tuple,
+                  'start_datetime': start_datetime,
+                  'end_datetime': end_datetime
+              }
+        log_multiline(logger.debug, params, 'params', '\t')
+                      
+        sql = """-- Retrieve all tile details for specified tile range
+select
+  tile_type_id,
+  x_index,
+  y_index,            
   start_datetime, 
   end_datetime, 
-  satellite_tag, 
+  satellite_tag,
   sensor_name, 
-  t.tile_pathname, 
-  tile_layer,
+  tile_pathname,
   x_ref as path,
-  y_ref as row,
+  y_ref as start_row, 
+  case when tile_class_id = 4 then y_ref + 1 else y_ref end as end_row, -- This will not work for mosaics with >2 source tiles
   level_name,
   nodata_value,
   gcp_count,
   cloud_cover
-from tile_footprint tf
-inner join tile t using (x_index, y_index, tile_type_id)
-inner join dataset using(dataset_id)
-inner join acquisition using(acquisition_id)
-inner join satellite using(satellite_id)
-inner join sensor using(satellite_id, sensor_id)
-inner join processing_level using(level_id)
-inner join band_source using(tile_type_id, level_id)
-inner join band using(band_id) -- Don't exclude bands with null satellite/sensor"""
-        if disregard_incomplete_data:
+  
+from acquisition
+join dataset using(acquisition_id)
+join tile using(dataset_id)
+join satellite using(satellite_id)
+join sensor using(satellite_id, sensor_id)
+join processing_level using(level_id)
+
+where (tile_class_id = 1 or tile_class_id = 4) -- Only good non-overlapped and mosaic tiles"""
+        if params['tile_type_ids']:
             sql += """
-inner join dataset l1t_dataset using(acquisition_id)
-inner join dataset nbar_dataset using(acquisition_id)
-inner join dataset pqa_dataset using(acquisition_id)
-inner join tile l1t_tile using (x_index, y_index, tile_type_id)
-inner join tile nbar_tile using (x_index, y_index, tile_type_id)
-inner join tile pqa_tile using (x_index, y_index, tile_type_id)"""
-        sql += """
-where tile_type_id = %(tile_type_id)s
-  and (t.tile_class_id = 1 or t.tile_class_id = 3) -- Select only valid tiles or overlap source tiles"""
-        if disregard_incomplete_data:
+  and tile_type_id in %(tile_type_ids)s"""
+        if params['tile_indices']:
             sql += """
-  and l1t_dataset.level_id = 1
-  and nbar_dataset.level_id = 2
-  and pqa_dataset.level_id = 3
-  and l1t_tile.dataset_id = l1t_dataset.dataset_id
-  and nbar_tile.dataset_id = nbar_dataset.dataset_id
-  and pqa_tile.dataset_id = pqa_dataset.dataset_id"""
-        sql += """
-  and (band.satellite_id is null or band.satellite_id = sensor.satellite_id)
-  and (band.sensor_id is null or band.sensor_id = sensor.sensor_id)
-  and x_index = %(x_index)s
-  and y_index = %(y_index)s
+  and (x_index, y_index) in %(tile_indices)s"""
+        if params['satellites']:
+            sql += """
+  and satellite_tag in %(satellites)s"""
+        if params['sensors']:
+            sql += """
+  and sensor_name in %(sensors)s"""
+        if params['x_refs']:
+            sql += """
+  and x_ref in %(x_refs)s"""
+        if params['y_refs']:
+            sql += """
+  and y_ref in %(y_refs)s"""
+        sql += """  
   and (%(start_datetime)s is null or start_datetime >= %(start_datetime)s)
   and (%(end_datetime)s is null or end_datetime < %(end_datetime)s)
-  and (%(satellite)s is null or satellite_tag = %(satellite)s)
-  and (%(sensor)s is null or sensor_name = %(sensor)s)
-  and (%(x_ref)s is null or x_ref = %(x_ref)s)
-  and (%(y_ref)s is null or y_ref = %(y_ref)s)
 order by
-  band_tag, 
+  tile_type_id,
+  x_index, 
+  y_index,
   start_datetime, 
   end_datetime, 
+  level_name,
   satellite_tag, 
   sensor_name;
 """
-        params = {'x_index': x_index,
-              'y_index': y_index,
-              'tile_type_id': tile_type_id,
-              'start_datetime': start_datetime,
-              'end_datetime': end_datetime,
-              'satellite': satellite,
-              'sensor': sensor,
-              'x_ref': path,
-              'y_ref': row
-              }
-                      
         log_multiline(logger.debug, db_cursor2.mogrify(sql, params), 'SQL', '\t')
         db_cursor2.execute(sql, params)
         
-        band_stack_dict = {}
-        stack_dict = {}
-        mosaic_file_list = []
-        last_band_tile_info = None
-        timeslice_info = None
-        start_datetime = None
-        end_datetime = None
+        stack_info_dict = {}
         
         for record in db_cursor2:   
             assert record, 'No data found for this tile and temporal range'      
-            band_tile_info = {'x_index': x_index,
-                'y_index': y_index,            
-                'band_tag': record[0], 
-                'band_name': record[1], 
-                'start_datetime': record[2], 
-                'end_datetime': record[3], 
-                'satellite_tag': record[4],
-                'sensor_name': record[5], 
-                'tile_pathname': record[6],
-                'tile_layer': record[7], 
+            tile_info = {'tile_type_id': record[0], 
+                'x_index': record[1],
+                'y_index': record[2],            
+                'start_datetime': record[3], 
+                'end_datetime': record[4], 
+                'satellite_tag': record[5],
+                'sensor_name': record[6], 
+                'tile_pathname': record[7],
                 'path': record[8],
                 'start_row': record[9], 
-                'end_row': record[9], # Copy of row field
-                'level_name': record[10],
-                'nodata_value': record[11],
-                'gcp_count': record[12],
-                'cloud_cover': record[13] 
+                'end_row': record[10], # Copy of row field
+                'level_name': record[11],
+                'nodata_value': record[12],
+                'gcp_count': record[13],
+                'cloud_cover': record[14] 
                 }
 #            log_multiline(logger.debug, band_tile_info, 'band_tile_info', '\t')
             
-            assert os.path.exists(band_tile_info['tile_pathname']), 'File for tile %s does not exist' % band_tile_info['tile_pathname']
+            assert os.path.exists(tile_info['tile_pathname']), 'File for tile %s does not exist' % tile_info['tile_pathname']
             
-            # If this tile is NOT a continuation of the last one
-            if (not last_band_tile_info # First tile
-                or (band_tile_info['band_tag'] != last_band_tile_info['band_tag'])
-                or (band_tile_info['satellite_tag'] != last_band_tile_info['satellite_tag'])
-                or (band_tile_info['sensor_name'] != last_band_tile_info['sensor_name'])
-                or (band_tile_info['path'] != last_band_tile_info['path'])
-                or ((band_tile_info['start_datetime'] - last_band_tile_info['end_datetime']) > timedelta(0, 3600)) # time difference > 1hr
-                ):
-                # Record timeslice information for previous timeslice if it exists
-                if timeslice_info:
-                    record_timeslice_information(timeslice_info, mosaic_file_list, stack_dict)
+            # Create nested dict keyed by start_datetime and level_name
+            timeslice_dict = stack_info_dict.get(tile_info['start_datetime']) or {}
+            if not timeslice_dict:
+                stack_info_dict[tile_info['start_datetime']] = timeslice_dict
                 
-                # Start recording a new band if necessary
-                if (not last_band_tile_info or (band_tile_info['band_tag'] != last_band_tile_info['band_tag'])):                    
-                    stack_dict = {}
-                    level_dict = band_stack_dict.get(band_tile_info['level_name']) or {}
-                    if not level_dict:
-                        band_stack_dict[band_tile_info['level_name']] = level_dict
-                        
-                    level_dict[band_tile_info['band_tag']] = stack_dict
+            level_dict = timeslice_dict.get(tile_info['level_name']) or {}
+            if not level_dict:
+                level_dict = tile_info
+                timeslice_dict[tile_info['level_name']] = level_dict
                 
-                # Start a new timeslice
-                mosaic_file_list = [band_tile_info['tile_pathname']]
-                timeslice_info = band_tile_info
-            else: # Tile IS a continuation of the last one - same timeslice
-                mosaic_file_list.append(band_tile_info['tile_pathname'])
-                timeslice_info['end_datetime'] = band_tile_info['end_datetime']
-                timeslice_info['end_row'] = band_tile_info['end_row']
-                            
-            last_band_tile_info = band_tile_info
+                                    
+            #===================================================================
+            # # If this tile is NOT a continuation of the last one
+            # if (not last_band_tile_info # First tile
+            #     or (band_tile_info['band_tag'] != last_band_tile_info['band_tag'])
+            #     or (band_tile_info['satellite_tag'] != last_band_tile_info['satellite_tag'])
+            #     or (band_tile_info['sensor_name'] != last_band_tile_info['sensor_name'])
+            #     or (band_tile_info['path'] != last_band_tile_info['path'])
+            #     or ((band_tile_info['start_datetime'] - last_band_tile_info['end_datetime']) > timedelta(0, 3600)) # time difference > 1hr
+            #     ):
+            #     # Record timeslice information for previous timeslice if it exists
+            #     if timeslice_info:
+            #         record_timeslice_information(timeslice_info, mosaic_file_list, stack_dict)
+            #     
+            #     # Start recording a new band if necessary
+            #     if (not last_band_tile_info or (band_tile_info['band_tag'] != last_band_tile_info['band_tag'])):                    
+            #         stack_dict = {}
+            #         level_dict = band_stack_dict.get(band_tile_info['level_name']) or {}
+            #         if not level_dict:
+            #             band_stack_dict[band_tile_info['level_name']] = level_dict
+            #             
+            #         level_dict[band_tile_info['band_tag']] = stack_dict
+            #     
+            #     # Start a new timeslice
+            #     mosaic_file_list = [band_tile_info['tile_pathname']]
+            #     timeslice_info = band_tile_info
+            # else: # Tile IS a continuation of the last one - same timeslice
+            #     mosaic_file_list.append(band_tile_info['tile_pathname'])
+            #     timeslice_info['end_datetime'] = band_tile_info['end_datetime']
+            #     timeslice_info['end_row'] = band_tile_info['end_row']
+            #                 
+            # last_band_tile_info = band_tile_info
+            #===================================================================
             
-        # Check for no results, otherwise record the last timeslice
-        if not timeslice_info:
-            return {}
-        else:
-            record_timeslice_information(timeslice_info, mosaic_file_list, stack_dict)
-
-        log_multiline(logger.debug, band_stack_dict, 'band_stack_dict', '\t')
+        #=======================================================================
+        # # Check for no results, otherwise record the last timeslice
+        # if not timeslice_info:
+        #     return {}
+        # else:
+        #     record_timeslice_information(timeslice_info, mosaic_file_list, stack_dict)
+        #
+        # log_multiline(logger.debug, band_stack_dict, 'band_stack_dict', '\t')
+        #=======================================================================
+        
+        log_multiline(logger.debug, stack_info_dict, 'stack_info_dict', '\t')
+        logger.debug('stack_info_dict has %s timeslices', len(stack_info_dict))
+        
+        if disregard_incomplete_data:
+            stack_info_dict = {start_datetime: stack_info_dict[start_datetime] 
+                               for start_datetime in stack_info_dict.keys()
+                               if {'L1T', 'ORTHO'} & set(stack_info_dict[start_datetime].keys()) # Either L1T or ORTHO
+                               and {'NBAR','PQA'} <= set(stack_info_dict[start_datetime].keys()) # Both NBAR & PQA
+                               }
+            logger.debug('stack_info_dict has %s timeslices after removal of incomplete datasets', len(stack_info_dict))
         
         if (stack_output_dir):
             self.create_directory(stack_output_dir)
-        
-        # Create stack files for each band
-        stack_info_dict = {}
-        if create_band_stacks:
-            for level_name in sorted(band_stack_dict.keys()):
-                band1_stack_filename = None
-                for band_tag in sorted(band_stack_dict[level_name].keys()):
-                    stack_dict = band_stack_dict[level_name][band_tag]
-                    timeslice_info_list = []
-                    stack_filename = None
-                    for start_time in sorted(stack_dict.keys()):
-                        timeslice_info_list.append(stack_dict[start_time])
+            
+        if create_band_stacks: 
+            band_stack_dict = {}
+            for start_datetime in sorted(stack_info_dict.keys()):
+                logger.debug('start_datetime = %s', start_datetime)
+                
+                timeslice_dict = stack_info_dict[start_datetime]
+                log_multiline(logger.debug, timeslice_dict, 'timeslice_dict', '\t')
+                
+                # Use any processing level to obtain lookup values - All levels should all have same values
+                tile_info = timeslice_dict.values()[0]
+                
+                # self.band_lookup_dict is keyed by tile_type_id, satellite_tag, sensor_name, level_name, band_tag
+                band_lookup_dict = (self.band_lookup_dict[tile_info['tile_type_id']]
+                                                         [tile_info['satellite_tag']]
+                                                         [tile_info['sensor_name']]
+                                                         )
+                log_multiline(logger.debug, band_lookup_dict, 'band_lookup_dict', '\t')
+                
+                # Combine derived bands with lookup-sourced band info - this is a bit ugly
+                derived_band_dict = {key[1]: self.bands[tile_info['tile_type_id']][key] for key in self.bands[tile_info['tile_type_id']].keys() if key[0] == 'DERIVED'}
+                log_multiline(logger.debug, derived_band_dict, 'derived_band_dict', '\t')
+                derived_band_dict = {level_name: {value['band_tag']: value for value in derived_band_dict[level_name].values()} 
+                                     for level_name in derived_band_dict.keys()}
+                log_multiline(logger.debug, derived_band_dict, 'modified derived_band_dict', '\t')
+                band_lookup_dict.update(derived_band_dict) 
                    
-                    stack_filename = stack_filename or os.path.join(stack_output_dir,
-                                                                    '_'.join([timeslice_info_list[0]['level_name'],
-                                                                              re.sub('\+', '', '%+04d_%+04d' % (x_index, y_index)),
-                                                                              timeslice_info_list[0]['band_tag']]) + '.vrt')
-        
-                    self.stack_files(timeslice_info_list, stack_filename, band1_stack_filename, overwrite=True)
+                log_multiline(logger.debug, band_lookup_dict, 'modified band_lookup_dict', '\t')
+                
+                # Iterate through the available processing levels
+                for level_name in sorted(timeslice_dict.keys()): # Sorting is not really necessary
+                    logger.debug('level_name = %s', level_name)
+                    level_band_dict = band_lookup_dict.get(level_name)
+                    log_multiline(logger.debug, level_band_dict, 'level_band_dict', '\t')
+                    if not level_band_dict: # Don't process this level if there are no bands to be processed
+                        continue
                     
-                    # Convert the virtual file to a physical file, ie VRT to ENVI
-                    if self.out_format:
-                        #if (len(self.suffix) > 0):
-                        if self.suffix:
-                            outfname = re.sub('.vrt', '.%s'%self.suffix, stack_filename)
+                    tile_info_dict = timeslice_dict[level_name]
+                    # Iterate through all bands for this processing level
+                    for band_tag in level_band_dict:                  
+                        # Combine tile and band info into one dict
+                        band_tile_info = {start_datetime: dict(tile_info_dict)}
+                        band_tile_info[start_datetime].update(level_band_dict[band_tag])
+
+#                        log_multiline(logger.debug, band_tile_info, 'band_tile_info for %s' % band_info['band_tag'], '\t')
+
+                        band_tile_dict = band_stack_dict.get((tile_info_dict['tile_type_id'],
+                                                              tile_info_dict['x_index'],
+                                                              tile_info_dict['y_index'],
+                                                              level_name,
+                                                              band_tag))
+                        
+                        if not band_tile_dict: # No entry found for this level_name & band_tag
+                            # Create the first entry                           
+                            band_stack_dict[(tile_info_dict['tile_type_id'],
+                                             tile_info_dict['x_index'],
+                                             tile_info_dict['y_index'],
+                                             level_name,
+                                             band_tag)
+                                             ] = band_tile_info
                         else:
-                            # Strip the suffix of the existing file name and output to disk
-                            outfname = os.path.splitext(stack_filename)[0]
+                            band_tile_dict.update(band_tile_info)
 
-                        # Base commandline string
-                        command_string = 'gdal_translate -of %s %s %s' %(self.out_format, stack_filename, outfname)
+            log_multiline(logger.debug, band_stack_dict, 'band_stack_dict', '\t') 
+            
+            # Create VRT files
+            #TODO: Make this cater for multiple tile types
+            for tile_type_id, x_index, y_index, level_name, band_tag in band_stack_dict.keys(): # Every stack file 
+                            
+                file_stack_dict = band_stack_dict[(tile_type_id, x_index, y_index, level_name, band_tag)] 
+                       
+                stack_filename = os.path.join(stack_output_dir,
+                                              '_'.join((level_name,
+                                                        re.sub('\+', '', '%+04d_%+04d' % (x_index, y_index)),
+                                                        band_tag)) + '.vrt')
+                
+                logger.debug('stack_filename = %s', stack_filename)
+
+                # Open the first tile as the template dataset
+                template_dataset = gdal.Open(file_stack_dict.values()[0]['tile_pathname'])
+
+                raster_size = {'x': template_dataset.RasterXSize, 'y': template_dataset.RasterYSize}
+                block_size = dict(zip(['x','y'], template_dataset.GetRasterBand(1).GetBlockSize()))
+                
+                gdal_driver = gdal.GetDriverByName("VRT")
+                
+                #Set datatype formats appropriate to Create() and numpy
+                gdal_dtype = template_dataset.GetRasterBand(1).DataType
+                dtype_name = gdal.GetDataTypeName(gdal_dtype)
+
+                vrt_dataset = gdal_driver.Create(stack_filename,
+                                                 raster_size['x'], 
+                                                 raster_size['y'], 
+                                                 0)
+                
+                vrt_dataset.SetGeoTransform(template_dataset.GetGeoTransform())
+                vrt_dataset.SetProjection(template_dataset.GetProjection())
+                
+                del template_dataset # All values read - not needed any more
+
+                for start_datetime in sorted(file_stack_dict.keys()):
+                    tile_info = file_stack_dict[start_datetime]
                     
-                        logger.debug('command_string = %s', command_string)
-
-                        print 'Creating Physical File'
-                        print 'File Format: %s' %self.out_format
-                        print 'Filename: %s' %outfname
-
-                        result = execute(command_string=command_string)
-
-                        if result['stdout']:
-                            log_multiline(logger.info, result['stdout'], 'stdout from ' + command_string, '\t')
-
-                        if result['stderr']:
-                            log_multiline(logger.debug, result['stderr'], 'stderr from ' + command_string, '\t')
-
-                        if result['returncode']:
-                            raise Exception('%s failed', command_string)
-                        if timeslice_info_list[0]['tile_layer'] == 1:
-                            band1_stack_filename = stack_filename
+                    vrt_dataset.AddBand(gdal_dtype)
+                    output_band = vrt_dataset.GetRasterBand(vrt_dataset.RasterCount)
                     
-        #            log_multiline(logger.info, timeslice_info_list, 'stack_info_dict[%s]' % stack_filename, '\t')
-                    stack_info_dict[stack_filename] = timeslice_info_list
+                    complex_source = '<ComplexSource>' + \
+                    '<SourceFilename relativeToVRT="0">%s</SourceFilename>' % tile_info['tile_pathname'] + \
+                    '<SourceBand>%i</SourceBand>' % tile_info['tile_layer'] + \
+                    '<SourceProperties RasterXSize="%i" RasterYSize="%i" DataType="%s" BlockXSize="%i" BlockYSize="%i"/>' % (raster_size['x'], raster_size['y'], 
+                                                                                                                             dtype_name, block_size['x'], 
+                                                                                                                             block_size['y']) + \
+                    '<SrcRect xOff="%i" yOff="%i" xSize="%i" ySize="%i"/>' % (0, 0, raster_size['x'], raster_size['y']) + \
+                    '<DstRect xOff="%i" yOff="%i" xSize="%i" ySize="%i"/>' % (0, 0, raster_size['x'], raster_size['y']) + \
+                    ('<NODATA>%d</NODATA>' % tile_info['nodata_value'] if tile_info['nodata_value'] else "") + \
+                    '</ComplexSource>'
                     
-        else: # Don't create stacks - just return a dict of tiles for each level   
-            for level_name in sorted(band_stack_dict.keys()):
-                for band_tag in sorted(band_stack_dict[level_name].keys()):
-                    # Only look at bands at layer 1 - all other bands share the same file
-                    if band_stack_dict[level_name][band_tag].values()[0]['tile_layer'] == 1: # N.B: All the same layer
-                        stack_dict = stack_info_dict.get(level_name, {})
-                        if not stack_dict: # New dict keyed by start_datetime
-                            stack_info_dict[level_name] = stack_dict
-                        stack_dict.update(band_stack_dict[level_name][band_tag]) # Merge band 1 dict into layer dict
+                    log_multiline(logger.debug, complex_source, 'complex_source', '\t')
+                    output_band.SetMetadataItem("source_0", complex_source, "new_vrt_sources")
+                    output_band.SetMetadata({key: str(tile_info[key]) for key in tile_info.keys()})
+     
+            
+#===============================================================================
+#         # Create stack files for each band
+#         stack_info_dict = {}
+#         if create_band_stacks:
+#             for level_name in sorted(band_stack_dict.keys()):
+#                 band1_stack_filename = None
+#                 for band_tag in sorted(band_stack_dict[level_name].keys()):
+#                     stack_dict = band_stack_dict[level_name][band_tag]
+#                     timeslice_info_list = []
+#                     stack_filename = None
+#                     for start_time in sorted(stack_dict.keys()):
+#                         timeslice_info_list.append(stack_dict[start_time])
+#                    
+#                     stack_filename = stack_filename or os.path.join(stack_output_dir,
+#                                                                     '_'.join([timeslice_info_list[0]['level_name'],
+#                                                                               re.sub('\+', '', '%+04d_%+04d' % (x_index, y_index)),
+#                                                                               timeslice_info_list[0]['band_tag']]) + '.vrt')
+#         
+#                     self.stack_files(timeslice_info_list, stack_filename, band1_stack_filename, overwrite=True)
+#                     
+#                     # Convert the virtual file to a physical file, ie VRT to ENVI
+#                     if self.out_format:
+#                         #if (len(self.suffix) > 0):
+#                         if self.suffix:
+#                             outfname = re.sub('.vrt', '.%s'%self.suffix, stack_filename)
+#                         else:
+#                             # Strip the suffix of the existing file name and output to disk
+#                             outfname = os.path.splitext(stack_filename)[0]
+# 
+#                         # Base commandline string
+#                         command_string = 'gdal_translate -of %s %s %s' %(self.out_format, stack_filename, outfname)
+#                     
+#                         logger.debug('command_string = %s', command_string)
+# 
+#                         print 'Creating Physical File'
+#                         print 'File Format: %s' %self.out_format
+#                         print 'Filename: %s' %outfname
+# 
+#                         result = execute(command_string=command_string)
+# 
+#                         if result['stdout']:
+#                             log_multiline(logger.info, result['stdout'], 'stdout from ' + command_string, '\t')
+# 
+#                         if result['stderr']:
+#                             log_multiline(logger.debug, result['stderr'], 'stderr from ' + command_string, '\t')
+# 
+#                         if result['returncode']:
+#                             raise Exception('%s failed', command_string)
+#                         if timeslice_info_list[0]['tile_layer'] == 1:
+#                             band1_stack_filename = stack_filename
+#                     
+#         #            log_multiline(logger.info, timeslice_info_list, 'stack_info_dict[%s]' % stack_filename, '\t')
+#                     stack_info_dict[stack_filename] = timeslice_info_list
+#                     
+#         else: # Don't create stacks - just return a dict of tiles for each level   
+#             for level_name in sorted(band_stack_dict.keys()):
+#                 for band_tag in sorted(band_stack_dict[level_name].keys()):
+#                     # Only look at bands at layer 1 - all other bands share the same file
+#                     if band_stack_dict[level_name][band_tag].values()[0]['tile_layer'] == 1: # N.B: All the same layer
+#                         stack_dict = stack_info_dict.get(level_name, {})
+#                         if not stack_dict: # New dict keyed by start_datetime
+#                             stack_info_dict[level_name] = stack_dict
+#                         stack_dict.update(band_stack_dict[level_name][band_tag]) # Merge band 1 dict into layer dict
+#===============================================================================
 
                                            
         return stack_info_dict
@@ -890,23 +1043,14 @@ order by
         static_info_dict = self.get_static_info(level_name=None, x_index=x_index, y_index=y_index) # Get info for all static data
         log_multiline(logger.debug, static_info_dict, 'static_info_dict', '\t')
         
-        processing_levels = sorted(stack_info_dict.keys())
-        
         # Find all datetimes
-        start_datetime_set = set()
-        for processing_level in processing_levels:
-            for start_datetime in stack_info_dict[processing_level].keys():
-                start_datetime_set.add(start_datetime)
-        start_datetimes = sorted(start_datetime_set)
-        del start_datetime_set
+        start_datetimes = sorted(stack_info_dict.keys())
 
         # Iterate through sorted start_datetimes
         derived_stack_dict = {}
         for start_datetime in start_datetimes:
             # Create input_dataset_dict dict for deriver_function
-            input_dataset_dict = {}
-            for processing_level in processing_levels:
-                input_dataset_dict[processing_level] = stack_info_dict[processing_level].get(start_datetime)
+            input_dataset_dict = dict(stack_info_dict[start_datetime])
                 
             input_dataset_dict.update(static_info_dict) # Add static data to dict passed to function
             

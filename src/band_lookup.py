@@ -67,7 +67,7 @@ class BandLookup(object):
         if not BandLookup._band_lookup_dict: # Check whether class lookup dict has been populated
         
             sql = """-- Retrieve all band equivalence information
- SELECT 
+ SELECT
     band_lookup_scheme.lookup_scheme_name,
     band_source.tile_type_id,
     coalesce(satellite.satellite_tag, 'DERIVED') as satellite_tag,
@@ -86,6 +86,7 @@ class BandLookup(object):
     band.sensor_id,
     band.band_id,
     band_equivalent.master_band_name,
+    band_type_name,
     band.min_wavelength::float,
     band.max_wavelength::float,
     band_lookup_scheme.lookup_scheme_description
@@ -93,11 +94,13 @@ class BandLookup(object):
    JOIN band_type using(band_type_id)
    JOIN band_source using (band_id)
    JOIN processing_level using(level_id)
-   JOIN band_equivalent ON abs((band.max_wavelength::numeric + band.min_wavelength::numeric) / 2.0 - band_equivalent.nominal_centre) <= band_equivalent.centre_tolerance AND abs(band.max_wavelength::numeric - band.min_wavelength::numeric - band_equivalent.nominal_bandwidth) <= band_equivalent.bandwidth_tolerance
+   JOIN band_equivalent ON band_equivalent.band_type_id = band.band_type_id
+     and abs((band.max_wavelength::numeric + band.min_wavelength::numeric) / 2.0 - band_equivalent.nominal_centre) <= band_equivalent.centre_tolerance 
+     AND abs(band.max_wavelength::numeric - band.min_wavelength::numeric - band_equivalent.nominal_bandwidth) <= band_equivalent.bandwidth_tolerance
    JOIN band_lookup_scheme USING (lookup_scheme_id)
    LEFT JOIN band_adjustment USING (lookup_scheme_id, band_id)
    LEFT JOIN sensor using(satellite_id, sensor_id)
-   LEFT JOIN satellite using(satellite_id)   
+   LEFT JOIN satellite using(satellite_id)
    ORDER BY 1,2,3,4,5,7
 """ 
             log_multiline(logger.debug, sql, 'SQL', '\t')
@@ -110,7 +113,7 @@ class BandLookup(object):
                 if lookup_scheme_dict is None:
                     lookup_scheme_dict = {}
                     BandLookup._band_lookup_dict[record[0]] = lookup_scheme_dict
-                    BandLookup._lookup_schemes[record[0]] = record[20] # Set lookup scheme description
+                    BandLookup._lookup_schemes[record[0]] = record[21] # Set lookup scheme description
                     
                 tile_type_id_dict = lookup_scheme_dict.get(record[1])
                 if tile_type_id_dict is None:
@@ -147,8 +150,9 @@ class BandLookup(object):
                                  'sensor_id': record[15],
                                  'band_id': record[16],
                                  'master_band_name': record[17],
-                                 'min_wavelength': record[18],
-                                 'max_wavelength': record[19]
+                                 'band_type_name': record[18],
+                                 'min_wavelength': record[19],
+                                 'max_wavelength': record[20]
                                  }
                 
             log_multiline(logger.debug, BandLookup._band_lookup_dict, 'BandLookup._band_lookup_dict', '\t')
@@ -227,3 +231,9 @@ class BandLookup(object):
         level_name_dict = self._get_level_name_dict()
         return {band_tag: level_name_dict[band_tag]['adjustment_multiplier'] for band_tag in level_name_dict}
 
+    @property
+    def band_lookup_dict(self):
+        """
+        Returns a copy of the class value _band_lookup_dict
+        """
+        return dict(BandLookup._band_lookup_dict)
