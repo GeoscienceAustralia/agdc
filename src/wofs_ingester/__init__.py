@@ -258,10 +258,10 @@ class WofsDataset(AbstractDataset):
         pass  # N/A? We could extract the row for landsat datasets.
 
     def get_satellite_tag(self):
-        return None  # N/A?
+        return self._md.get('satellite_tag')
 
     def get_gcp_count(self):
-        return int(self._ds['gcp_count'])
+        return int(self._md['gcp_count'])
 
     def get_dataset_size(self):
         return get_file_size(self._path)
@@ -273,13 +273,20 @@ class WofsDataset(AbstractDataset):
         return self._path
 
     def get_sensor_name(self):
-        return None  # N/A?
+        sensor_name = self._md.get('sensor_name')
+
+        # FIXME: Hard-coded correction.
+        # This difference is common across our systems. Maybe add an 'alias' column to sensor table?
+        if sensor_name == 'ETM':
+            return 'ETM+'
+
+        return sensor_name
 
     def get_mtl_text(self):
         return None  # N/A?
 
     def _get_date_param(self, param_name):
-        start = self._ds[param_name]
+        start = self._md[param_name]
         return datetime.strptime(start, '%Y-%m-%d %H:%M:%S.%f')
 
     def get_start_datetime(self):
@@ -289,8 +296,8 @@ class WofsDataset(AbstractDataset):
         return self._get_date_param('end_datetime')
 
     def _get_int_param(self, param_name):
-        val = self._ds.get(param_name)
-        if not val:
+        val = self._md.get(param_name)
+        if not val or val == 'None':
             return None
 
         return int(val)
@@ -334,6 +341,12 @@ class WofsDataset(AbstractDataset):
     get_ur_y = get_ur_lat
     get_ul_x = get_ul_lon
     get_ul_y = get_ul_lat
+
+    def find_band_file(self, file_pattern):
+        return self._path
+
+    def stack_bands(self, band_dict):
+        return None
 
 
 if __name__ == "__main__":
