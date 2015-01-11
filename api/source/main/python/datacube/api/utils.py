@@ -24,6 +24,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ===============================================================================
+from datetime import datetime
+import math
 
 
 __author__ = "Simon Oldfield"
@@ -34,7 +36,7 @@ import numpy
 import gdal
 from gdalconst import *
 from enum import Enum
-from datacube.api.model import Pq25Bands, Ls57Arg25Bands, Satellite
+from datacube.api.model import Pq25Bands, Ls57Arg25Bands, Satellite, DatasetType
 
 
 _log = logging.getLogger(__name__)
@@ -164,6 +166,10 @@ def get_dataset_data(dataset, bands=None, x=0, y=0, x_size=None, y_size=None):
 
     :param dataset: The dataset from which to read the band
     :param bands: A list of bands to read from the dataset
+    :param x:
+    :param y:
+    :param x_size:
+    :param y_size:
     :return: dictionary of band/data as numpy array
     """
 
@@ -192,14 +198,18 @@ def get_dataset_data(dataset, bands=None, x=0, y=0, x_size=None, y_size=None):
     return out
 
 
-def get_dataset_data_with_pq(dataset, pq_dataset, bands=None, pq_mask=PQA_MASK):
+def get_dataset_data_with_pq(dataset, pq_dataset, bands=None, x=0, y=0, x_size=None, y_size=None, pq_mask=PQA_MASK):
 
     """
     Return one or more bands from the dataset with pixel quality applied
 
     :param dataset: The dataset from which to read the band
-    :param bands: A list of bands to read from the dataset
     :param pq_dataset: The pixel quality dataset
+    :param bands: A list of bands to read from the dataset
+    :param x:
+    :param y:
+    :param x_size:
+    :param y_size:
     :param pq_mask: Required pixel quality mask to apply
     :return: dictionary of band/data as numpy array
     """
@@ -207,9 +217,9 @@ def get_dataset_data_with_pq(dataset, pq_dataset, bands=None, pq_mask=PQA_MASK):
     if not bands:
         bands = dataset.bands
 
-    out = get_dataset_data(dataset, bands)
+    out = get_dataset_data(dataset, bands, x=x, y=y, x_size=x_size, y_size=y_size)
 
-    data_pq = get_dataset_data(pq_dataset, [Pq25Bands.PQ])[Pq25Bands.PQ]
+    data_pq = get_dataset_data(pq_dataset, [Pq25Bands.PQ], x=x, y=y, x_size=x_size, y_size=y_size)[Pq25Bands.PQ]
 
     for band in bands:
 
@@ -421,31 +431,15 @@ TCI_COEFFICIENTS = {
 }
 
 
-# def calculate_tassel_cap_indice(bands, coefficients, input_ndv=NDV, output_ndv=NDV):
-#
-#     bands_m = dict()
-#
-#     # Drop out no data values - do I need this???
-#
-#     for b in bands.iterkeys():
-#         bands_m[b] = numpy.ma.masked_equal(bands[b], input_ndv)
-#
-#     tci = 0
-#
-#     for b in [Arg25Bands.BLUE, Arg25Bands.GREEN, Arg25Bands.RED, Arg25Bands.NEAR_INFRARED,
-#               Arg25Bands.SHORT_WAVE_INFRARED_1, Arg25Bands.SHORT_WAVE_INFRARED_2]:
-#         tci += bands_m[b] * coefficients[b]
-#
-#     # Dunno about the scaling factor and the no data value???
-#
-#     tci = (tci * 10000).astype(numpy.int16)
-#     tci = tci.filled(output_ndv)
-#
-#     return tci
-
-
 def calculate_tassel_cap_index(bands, coefficients, input_ndv=NDV, output_ndv=numpy.nan):
+    """
 
+    :param bands:
+    :param coefficients:
+    :param input_ndv:
+    :param output_ndv:
+    :return:
+    """
     bands_masked = dict()
 
     # Drop out no data values - do I need this???
@@ -498,3 +492,84 @@ def calculate_medoid(X, dist=None):
 #
 #     ndx = vectormedian(imagestack)
 #     medianimg = selectmedianimage(imagestack, ndx)
+
+
+def latlon_to_xy(lat, lon, transform):
+    """
+    Convert lat/lon to x/y for raster
+    NOTE: No projection done - assumes raster has native lat/lon projection
+
+    :param lat: latitude
+    :param lon: longitude
+    :param transform: GDAL GeoTransform
+    :return: x, y pair
+    """
+    # Get the reverse direction GeoTransform
+    _, transform = gdal.InvGeoTransform(transform)
+
+    ulx, uly = transform[0], transform[3]
+    psx, psy = transform[1], transform[5]
+
+    x = int(math.floor(ulx + psx * lon))
+    y = int(math.floor(uly + psy * lat))
+
+    return x, y
+
+
+def latlon_to_cell(lat, lon):
+    """
+    Return the cell that contains the given lat/lon pair
+
+    NOTE: x of cell represents min (contained) lon value but y of cell represents max (not contained) lat value
+        that is, 120_-20 contains lon values 120->120.99999 but lat values -19->-19.99999
+        that is, that is, 120_-20 does NOT contain lat value of -20
+
+    :param lat: latitude
+    :param lon: longitude
+    :return: cell as x, y pair
+    """
+    x = int(lon)
+    y = int(lat) - 1
+
+    return x, y
+
+
+# TODO this is a bit of dodginess until the WOFS tiles are ingested
+# DO NOT USE THIS IT WON'T STAY!!!!
+
+def extract_fields_from_filename(filename):
+    """
+
+    :param filename:
+    :return:
+    """
+
+    # At the moment I only need this to work for the WOFS WATER extent tile files....
+    #  LS5_TM_WATER_120_-021_2004-09-20T01-40-14.409038.tif
+    #  LS7_ETM_WATER_120_-021_2006-06-30T01-45-48.187525.tif
+
+    if filename.endswith(".tif"):
+        filename = filename[:-len(".tif")]
+
+    elif filename.endswith(".tiff"):
+        filename = filename[:-len(".tiff")]
+
+    elif filename.endswith(".vrt"):
+        filename = filename[:-len(".vrt")]
+
+    fields = filename.split("_")
+
+    # Satellite
+    satellite = Satellite[fields[0]]
+
+    # Dataset Type
+    dataset_type = DatasetType[fields[2]]
+
+    # Cell
+    x, y = int(fields[3]), int(fields[4])
+
+    # Acquisition Date/Time
+    acq_str = fields[5].split(".")[0] # go from "2006-06-30T01-45-48.187525" to "2006-06-30T01-45-48"
+    acq_dt = datetime.strptime(acq_str, "%Y-%m-%dT%H-%M-%S")
+
+    return satellite, dataset_type, x, y, acq_dt

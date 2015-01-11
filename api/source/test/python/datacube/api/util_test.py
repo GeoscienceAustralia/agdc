@@ -32,7 +32,7 @@ __author__ = "Simon Oldfield"
 
 from datacube.api.model import Ls57Arg25Bands, DatasetTile
 from datacube.api.utils import raster_get_band_data_with_pq, get_dataset_metadata, raster_create, raster_get_band_data, \
-    calculate_ndvi, calculate_ndvi_with_pq
+    calculate_ndvi, calculate_ndvi_with_pq, latlon_to_xy, latlon_to_cell
 import logging
 import gdal
 import numpy
@@ -84,6 +84,43 @@ def test_calculate_ndvi_with_pq():
     raster_create("/data/tmp/cube/data/unit_test/LS5_TM_NDVI_PQ_150_-034_2004-01-13T23-22-17.088044.tif",
                   [band_data.filled(numpy.NaN)],
                   metadata.transform, metadata.projection, numpy.NaN, gdal.GDT_Float32)
+
+
+def test_latlon_to_xy():
+    # This equates to the 120/-20 cell
+    transform = (120.0, 0.00025, 0.0, -19.0, 0.0, -0.00025)
+
+    # TODO
+
+    # Expected outputs:
+    #
+    #   (120.00000, -20.00000) -> (   0, 4000) which is actually outside the TIF!!!
+    #
+    #   (120.25000, -19.25000) -> (1000, 1000)
+    #   (120.50000, -19.50000) -> (2000, 2000)
+    #
+    #   (120.00024, -19.00024) -> (   0,    0)
+    #   (120.00025, -19.00025) -> (   1,    1)
+    #   (120.00026, -19.00026) -> (   1,    1)
+
+    # Should return
+    latlon_to_xy(120, -20, transform)
+
+
+def test_latlon_to_cell():
+
+    # TODO
+
+    # Expected outputs:
+    #
+    # (120, -19) -> (120, -20)
+    # (120.1, -19.1) -> (120, -20)
+    # (120.9, -19.9) -> (120, -20)
+    # (120, -20) -> (120, -21)
+
+
+    # Should return
+    latlon_to_cell(120, -20)
 
 
 if __name__ == "__main__":

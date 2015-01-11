@@ -125,13 +125,20 @@ class Fc25Bands(Enum):
     ERROR = 4
 
 
+class Wofs25Bands(Enum):
+    __order__ = "WATER"
+
+    WATER = 1
+
+
 class DatasetType(Enum):
-    __order__ = "ARG25 PQ25 FC25 DSM"
+    __order__ = "ARG25 PQ25 FC25 DSM WATER"
 
     ARG25 = "ARG25"
     PQ25 = "PQ25"
     FC25 = "FC25"
     DSM = "DSM"
+    WATER = "WATER"
 
 
 class DatasetTile:
@@ -172,6 +179,38 @@ class DatasetTile:
         for entry in [x.strip("{}").split(",") for x in datasets.split("},")]:
             dst = DatasetTile(satellite_id, entry[0], entry[1])
             out[dst.dataset_type] = dst
+
+        return out
+
+    # TODO THIS METHOD IS ONLY HERE UNTIL WOFS EXTENTS ARE INGESTED
+    # DO NOT USE!!!
+
+    @staticmethod
+    def from_path(path):
+
+        """
+        Dodgy as method to construct a Dataset from a filename
+        :param filename:
+        :return:
+        """
+
+        # At the moment I just need this to work for the WOFS extent files
+        # which are named like
+        #  LS5_TM_WATER_120_-021_2004-09-20T01-40-14.409038.tif
+        #  LS7_ETM_WATER_120_-021_2006-06-30T01-45-48.187525.tif
+
+        # And I am writing this at 4pm on a Sunday afternoon so I can't even be bothered doing it properly dodgily
+        # That is, using regex'es or something...
+        # Throw this away!!!
+
+        import os
+        from datacube.api.utils import extract_fields_from_filename
+
+        out = None
+
+        satellite, dataset_type, x, y, acq_dt = extract_fields_from_filename(os.path.basename(path))
+
+        out = DatasetTile(satellite.value, dataset_type.value, path)
 
         return out
 
@@ -270,7 +309,11 @@ BANDS = {
 
     (DatasetType.FC25, Satellite.LS5): Fc25Bands,
     (DatasetType.FC25, Satellite.LS7): Fc25Bands,
-    (DatasetType.FC25, Satellite.LS8): Fc25Bands
+    (DatasetType.FC25, Satellite.LS8): Fc25Bands,
+
+    (DatasetType.WATER, Satellite.LS5): Wofs25Bands,
+    (DatasetType.WATER, Satellite.LS7): Wofs25Bands,
+    (DatasetType.WATER, Satellite.LS8): Wofs25Bands
 }
 
 
