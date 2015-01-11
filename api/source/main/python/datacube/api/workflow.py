@@ -205,11 +205,11 @@ class CellTask(luigi.Task):
                                password=config.get_db_password(),
                                host=config.get_db_host(), port=config.get_db_port()):
 
-            # Copy input files if requested
-            if self.save_input_files:
-                input_file_save_dir = self.output_directory + "_input_files"
-                for dataset in tile.datasets:
-                    os.link(dataset.path, input_file_save_dir)
+            # # Copy input files if requested
+            # if self.save_input_files:
+            #     input_file_save_dir = self.output_directory + "_input_files"
+            #     for dataset in tile.datasets:
+            #         os.link(dataset.path, input_file_save_dir)
 
             yield tile
 
