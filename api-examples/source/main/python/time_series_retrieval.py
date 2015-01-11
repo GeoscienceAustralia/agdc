@@ -29,7 +29,7 @@
 import argparse
 import glob
 import os
-from datacube.api.model import DatasetType, DatasetTile, Wofs25Bands
+from datacube.api.model import DatasetType, DatasetTile, Wofs25Bands, BANDS
 from datacube.api.query import list_tiles
 from datacube.api.utils import latlon_to_cell, get_dataset_metadata, latlon_to_xy, get_dataset_data_with_pq, \
     get_dataset_data, extract_fields_from_filename
@@ -213,6 +213,7 @@ class TimeSeriesRetrievalWorkflow():
                 for dataset in datasets:
                     data = retrieve_pixel_value(tile.datasets[dataset], self.apply_pq_filter and tile.datasets[dataset] or None, self.latitude, self.longitude)
                     _log.info("data is [%s]", data)
+                    print "%s|%s" % (tile.end_datetime, decode_data(tile.datasets[dataset], data))
 
         if self.wofs:
             base = "/g/data/u46/wofs/water_f7q/extents/{x:03d}_{y:04d}/LS*_WATER_{x:03d}_{y:04d}_*.tif".format(x=cell_x, y=cell_y)
@@ -226,6 +227,18 @@ class TimeSeriesRetrievalWorkflow():
                 # TODO
                 satellite, dataset_type, x, y, acq_dt = extract_fields_from_filename(os.path.basename(f))
                 print "%s|%s" % (acq_dt, decode_wofs_water_value(data[Wofs25Bands.WATER][0][0]))
+
+
+def decode_data(dataset, data):
+
+    return "|".join([str(data[band][0][0]) for band in dataset.bands])
+    # out = ""
+    #
+    #
+    # for band in dataset.bands:
+    #     out += str(data[band][0][0])
+    #
+    # return out
 
 
 def retrieve_pixel_value(dataset, pq, latitude, longitude):
