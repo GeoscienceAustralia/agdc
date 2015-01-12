@@ -70,6 +70,8 @@ class TimeSeriesRetrievalWorkflow():
     fc = None
     wofs = None
 
+    delimiter = None
+
     def __init__(self, application_name):
         self.application_name = application_name
 
@@ -100,6 +102,8 @@ class TimeSeriesRetrievalWorkflow():
         parser.add_argument("--pqa", help="Retrieve PQA values", action="store_true", dest="pqa", default=False)
         parser.add_argument("--fc", help="Retrieve FC values", action="store_true", dest="fc", default=False)
         parser.add_argument("--wofs", help="Retrieve WOFS values", action="store_true", dest="wofs", default=False)
+
+        parser.add_argument("--delimiter", help="Field delimiter in output file", action="store", dest="delimiter", type=str, default=",")
 
         args = parser.parse_args()
 
@@ -161,6 +165,8 @@ class TimeSeriesRetrievalWorkflow():
         self.fc = args.fc
         self.wofs = args.wofs
 
+        self.delimiter = args.delimiter
+
         _log.debug("""
         longitude = {longitude:f}
         latitude = {latitude:f}
@@ -211,9 +217,9 @@ class TimeSeriesRetrievalWorkflow():
                                    host=config.get_db_host(), port=config.get_db_port()):
 
                 for dataset in datasets:
-                    data = retrieve_pixel_value(tile.datasets[dataset], self.apply_pq_filter and tile.datasets[dataset] or None, self.latitude, self.longitude)
+                    data = retrieve_pixel_value(tile.datasets[dataset], self.apply_pq_filter and tile.datasets[DatasetType.PQ25] or None, self.latitude, self.longitude)
                     _log.info("data is [%s]", data)
-                    print "%s|%s" % (tile.end_datetime, decode_data(tile.datasets[dataset], data))
+                    print self.delimiter.join([tile.datasets[dataset].satellite.value, str(tile.end_datetime), decode_data(tile.datasets[dataset], data, self.delimiter)])
 
         if self.wofs:
             base = "/g/data/u46/wofs/water_f7q/extents/{x:03d}_{y:04d}/LS*_WATER_{x:03d}_{y:04d}_*.tif".format(x=cell_x, y=cell_y)
@@ -226,19 +232,12 @@ class TimeSeriesRetrievalWorkflow():
                 _log.info("data is [%s]", data)
                 # TODO
                 satellite, dataset_type, x, y, acq_dt = extract_fields_from_filename(os.path.basename(f))
-                print "%s|%s" % (acq_dt, decode_wofs_water_value(data[Wofs25Bands.WATER][0][0]))
+                print self.delimiter.join([satellite.value, str(acq_dt), decode_wofs_water_value(data[Wofs25Bands.WATER][0][0]), str(data[Wofs25Bands.WATER][0][0])])
 
 
-def decode_data(dataset, data):
+def decode_data(dataset, data, delimiter):
 
-    return "|".join([str(data[band][0][0]) for band in dataset.bands])
-    # out = ""
-    #
-    #
-    # for band in dataset.bands:
-    #     out += str(data[band][0][0])
-    #
-    # return out
+    return delimiter.join([str(data[band][0][0]) for band in dataset.bands])
 
 
 def retrieve_pixel_value(dataset, pq, latitude, longitude):
@@ -286,16 +285,28 @@ def retrieve_pixel_value(dataset, pq, latitude, longitude):
 
 def decode_wofs_water_value(value):
 
+    # values = {
+    #     0: "Dry|7",
+    #     1: "No Data|0",
+    #     2: "Saturation/Contiguity|1",
+    #     4: "Sea Water|2",
+    #     8: "Terrain Shadow|3",
+    #     16: "High Slope|4",
+    #     32: "Cloud Shadow|5",
+    #     64: "Cloud|6",
+    #     128: "Wet|8"
+    #     }
+
     values = {
-        0: "Dry|7",
-        1: "No Data|0",
-        2: "Saturation/Contiguity|1",
-        4: "Sea Water|2",
-        8: "Terrain Shadow|3",
-        16: "High Slope|4",
-        32: "Cloud Shadow|5",
-        64: "Cloud|6",
-        128: "Wet|8"
+        0: "Dry",
+        1: "No Data",
+        2: "Saturation/Contiguity",
+        4: "Sea Water",
+        8: "Terrain Shadow",
+        16: "High Slope",
+        32: "Cloud Shadow",
+        64: "Cloud",
+        128: "Wet"
         }
 
     return values[value]
