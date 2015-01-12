@@ -378,8 +378,11 @@ where dataset_id in %(dataset_tuple)s
 and not exists (
     select tile_id
     from tile
-    where dataset_id in %(dataset_tuple)s
+    where dataset_id in %(dataset_tuple)s""" + \
+("""
     and tile_id not in %(tiles_to_be_deleted_tuple)s
+""" if params['tiles_to_be_deleted_tuple'] else '') + \
+"""
     );
 """ if params['dataset_tuple'] else '') + \
 ("""
