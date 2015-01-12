@@ -129,6 +129,9 @@ class Stacker(DataCube):
         _arg_parser.add_argument('-sfx', '--suffix', dest='suffix',
             required=False, default=None,
             help='Specify an output suffix for the physically generated file. Is only applied when -of <FORMAT> is set.')
+        _arg_parser.add_argument('-b', '--band_lookup_scheme', dest='band_lookup_scheme',
+            required=False, default=DEFAULT_BAND_LOOKUP_SCHEME,
+            help='Specify a valid band lookup scheme name (default="%s")' % DEFAULT_BAND_LOOKUP_SCHEME)
     
         args, unknown_args = _arg_parser.parse_known_args()
         return args
@@ -215,7 +218,7 @@ class Stacker(DataCube):
         # Create nested dict for given lookup_scheme_name with levels keyed by:
         # tile_type_id, satellite_tag, sensor_name, level_name, band_tag
         band_lookup = BandLookup(self) # Don't bother initialising it - we only want the lookup dict
-        self.band_lookup_dict = band_lookup.band_lookup_dict[DEFAULT_BAND_LOOKUP_SCHEME]
+        self.band_lookup_dict = band_lookup.band_lookup_dict[self.band_lookup_scheme]
             
     def stack_files(self, timeslice_info_list, stack_dataset_path, band1_vrt_path=None, overwrite=False):
         if os.path.exists(stack_dataset_path) and not overwrite:
@@ -691,6 +694,7 @@ order by
                 tile_info = timeslice_dict.values()[0]
                 
                 # self.band_lookup_dict is keyed by tile_type_id, satellite_tag, sensor_name, level_name, band_tag
+                log_multiline(logger.debug, self.band_lookup_dict, 'self.band_lookup_dict', '\t')
                 band_lookup_dict = (self.band_lookup_dict[tile_info['tile_type_id']]
                                                          [tile_info['satellite_tag']]
                                                          [tile_info['sensor_name']]
