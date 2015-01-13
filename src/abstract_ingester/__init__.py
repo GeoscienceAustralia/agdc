@@ -108,7 +108,7 @@ class AbstractIngester(object):
         """
         self.ingestion_start_datetime = datetime.now()
         
-        self.args = self.parse_args()
+        self.args = self.arg_parser().parse_args()
 
         if self.args.debug:
             # Set DEBUG level on the root logger
@@ -132,15 +132,14 @@ class AbstractIngester(object):
     # are needed.
     #
 
-    @staticmethod
-    def parse_args():
-        """Virtual function to parse command line arguments.
+    @classmethod
+    def arg_parser(cls):
+        """Build an argument parser.
 
-        Returns:
-            argparse namespace object
+        Additional args may be added by subclasses.
+
+        :rtype: argparse.ArgumentParser
         """
-        LOGGER.debug('  Calling parse_args()')
-
         _arg_parser = argparse.ArgumentParser()
 
         default_config = os.path.join(os.path.dirname(os.path.dirname(__file__)),
@@ -169,8 +168,7 @@ class AbstractIngester(object):
         _arg_parser.add_argument('--synctype', dest='sync_type',
                                  default=None, help=sync_type_help)
 
-        args, dummy_unknown_args = _arg_parser.parse_known_args()
-        return args
+        return _arg_parser
 
     #
     # Top level algorithm

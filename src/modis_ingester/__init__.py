@@ -69,52 +69,18 @@ LOGGER.setLevel(logging.INFO)
 class ModisIngester(AbstractIngester):
     """Ingester class for Modis datasets."""
 
-    @staticmethod
-    def parse_args():
-        """Parse the command line arguments for the ingester.
+    @classmethod
+    def arg_parser(cls):
+        """Make a parser for required args."""
 
-        Returns an argparse namespace object.
-        """
-        LOGGER.debug('  Calling parse_args()')
-
-        _arg_parser = argparse.ArgumentParser()
-
-        _arg_parser.add_argument('-C', '--config', dest='config_file',
-            # N.B: The following line assumes that this module is under the agdc directory
-            default=os.path.join(os.path.dirname(__file__), 'datacube.conf'),
-            help='ModisIngester configuration file')
-
-        _arg_parser.add_argument('-d', '--debug', dest='debug',
-            default=False, action='store_const', const=True,
-            help='Debug mode flag')
+        # Extend the default parser
+        _arg_parser = super(ModisIngester, cls).arg_parser()
 
         _arg_parser.add_argument('--source', dest='source_dir',
             required=True,
             help='Source root directory containing datasets')
 
-        follow_symlinks_help = \
-            'Follow symbolic links when finding datasets to ingest'
-        _arg_parser.add_argument('--followsymlinks',
-                                 dest='follow_symbolic_links',
-                                 default=False, action='store_const',
-                                 const=True, help=follow_symlinks_help)
-
-        fast_filter_help = 'Filter datasets using filename patterns.'
-        _arg_parser.add_argument('--fastfilter', dest='fast_filter',
-                                 default=False, action='store_const',
-                                 const=True, help=fast_filter_help)
-
-        sync_time_help = 'Synchronize parallel ingestions at the given time'\
-            ' in seconds after 01/01/1970'
-        _arg_parser.add_argument('--synctime', dest='sync_time',
-                                 default=None, help=sync_time_help)
-
-        sync_type_help = 'Type of transaction to syncronize with synctime,'\
-            + ' one of "cataloging", "tiling", or "mosaicking".'
-        _arg_parser.add_argument('--synctype', dest='sync_type',
-                                 default=None, help=sync_type_help)
-
-        return _arg_parser.parse_args()
+        return _arg_parser
 
     def find_datasets(self, source_dir):
         """Return a list of path to the netCDF datasets under 'source_dir' or a single-item list

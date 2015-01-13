@@ -28,7 +28,7 @@
 # ===============================================================================
 
 import logging
-from . import WofsIngester
+from agdc.wofs_ingester import WofsIngester
 import sys
 
 
