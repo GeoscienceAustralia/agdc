@@ -38,6 +38,7 @@
 # export MODULEPATH=/projects/u46/opt/modules/modulefiles:$MODULEPATH # GA in-house testing only
 # export MODULEPATH=/projects/el8/opt/modules/modulefiles:$MODULEPATH # Collaborative AGDC users
 
-module load agdc # Should load all dependencies
+# Script assumes that agdc module has already been loaded as follows:
+# module load agdc # Should load all dependencies
 
 python -m agdc.stacker $@

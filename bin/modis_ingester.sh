@@ -38,11 +38,8 @@
 # export MODULEPATH=/projects/u46/opt/modules/modulefiles:$MODULEPATH # GA in-house testing only
 # export MODULEPATH=/projects/el8/opt/modules/modulefiles:$MODULEPATH # Collaborative AGDC users
 
-module load agdc # Should load all dependencies
-module load netcdf/4.3.2
-module load proj/4.8.0
-module unload gdal/1.9.2
-module load gdal/1.10.1
+# Script assumes that agdc module has already been loaded as follows:
+# module load agdc # Should load all dependencies
 
 python -m agdc.modis_ingester $@
 

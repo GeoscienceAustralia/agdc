@@ -29,7 +29,7 @@
 
 from distutils.core import setup
 
-version = '1.0.0'
+version = '1.1.0'
 
 setup(name='agdc',
       version = version,
@@ -46,6 +46,7 @@ setup(name='agdc',
                       },
       scripts = ['bin/stacker.sh',
                  'bin/landsat_ingester.sh',
+                 'bin/modis_ingester.sh',
                  'bin/bulk_submit_interactive.sh',
                  'bin/bulk_submit_pbs.sh'
                  ],
