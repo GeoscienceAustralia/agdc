@@ -26,6 +26,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ===============================================================================
+from datacube.api.query import SortType
 
 
 __author__ = "Simon Oldfield"
@@ -82,17 +83,17 @@ class LandsatMosaicCellTask(CellTask):
 
         best_pixel_satellite = empty_array(shape=shape, dtype=numpy.int16, ndv=NDV)
         # best_pixel_epoch = empty_array(shape=shape, dtype=numpy.int32, ndv=NDV)
-        best_pixel_date = empty_array(shape=shape, dtype=numpy.int16, ndv=NDV)
+        best_pixel_date = empty_array(shape=shape, dtype=numpy.int32, ndv=NDV)
 
         current_satellite = empty_array(shape=shape, dtype=numpy.int16, ndv=NDV)
         # current_epoch = empty_array(shape=shape, dtype=numpy.int32, ndv=NDV)
-        current_date = empty_array(shape=shape, dtype=numpy.int16, ndv=NDV)
+        current_date = empty_array(shape=shape, dtype=numpy.int32, ndv=NDV)
 
         metadata = None
 
         SATELLITE_DATA_VALUES = {Satellite.LS5: 5, Satellite.LS7: 7, Satellite.LS8: 8}
 
-        for tile in self.get_tiles():
+        for tile in self.get_tiles(sort=SortType.DESC):
             # Get ARG25 dataset
 
             dataset = tile.datasets[DatasetType.ARG25]
@@ -183,7 +184,7 @@ class LandsatMosaicCellTask(CellTask):
         raster_create(self.get_output_path("DATE"),
                       [best_pixel_date],
                       metadata.transform, metadata.projection, no_data_value,
-                      gdal.GDT_Int16)
+                      gdal.GDT_Int32)
 
 
 class LandsatMosaicWorkflow(Workflow):

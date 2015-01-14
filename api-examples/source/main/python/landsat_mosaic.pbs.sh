@@ -2,7 +2,7 @@
 #PBS -N mosaic
 #PBS -P u46
 #PBS -q normal
-#PBS -l ncpus=4,mem=8GB
+#PBS -l ncpus=16,mem=32GB
 #PBS -l wd
 #PBS -l other=gdata1
 
@@ -21,10 +21,10 @@ export PYTHONPATH=$HOME/source/agdc-api/api-examples/source/main/python:$HOME/so
 
 COMMAND="python $HOME/source/agdc-api/api-examples/source/main/python/landsat_mosaic.py --output-dir $outputdir --x-min $xmin --x-max $xmax --y-min $ymin --y-max $ymax --acq-min $acqmin --acq-max $acqmax"
 [ "${pqfilter}" == "false" ] && COMMAND="${COMMAND} --skip-pq"
-[ -n "${satellite}" ] && COMMAND="${COMMAND}  --satellites $satellites"
+[ -n "${satellites}" ] && COMMAND="${COMMAND}  --satellites $satellites"
 
 # MPI
-mpirun -n 4 $COMMAND
+mpirun -n 16 $COMMAND
 
 # NO MPI
 #$COMMAND --local-scheduler
