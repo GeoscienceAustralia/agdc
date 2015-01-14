@@ -58,7 +58,7 @@ logger = logging.getLogger(__name__)
 if not logger.level:
     logger.setLevel(logging.INFO) # Default logging level for all modules
     logger.addHandler(console_handler)
-                
+
 class DataCube(object):
     SECTION_NAME = 'datacube'
     LOCK_WAIT = 10 # Seconds to sleep between checking for file unlock
@@ -218,15 +218,15 @@ where tile_type_id = %(tile_type_id)s
         self.process_id = os.getenv('PBS_O_HOST', socket.gethostname()) + ':' + os.getenv('PBS_JOBID', str(os.getpid()))
         def open_config(config_file):
             assert os.path.exists(config_file), config_file + " does not exist"
-            
+
             logger.debug('  Opening conf file %s', repr(config_file))
             _config_parser = ConfigParser.SafeConfigParser(allow_no_value=True)
             _config_parser.read(config_file)
-            
+
             assert _config_parser.has_section(DataCube.SECTION_NAME), 'No %s section defined in conf file' % DataCube.SECTION_NAME
-    
+
             return _config_parser
-        
+
         def string_to_boolean(bool_string):
             return bool_string[0].lower() in ['t', '1']
         

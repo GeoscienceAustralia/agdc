@@ -93,7 +93,7 @@ class Collection(object):
         ('DERIVED', processing_level, processing_level).
         """
 
-        derived_levels = {'PQA', 'FC'}
+        derived_levels = {'PQA', 'FC', 'WATER'}
 
         satellite = dataset.get_satellite_tag()
         sensor = dataset.get_sensor_name()
@@ -257,7 +257,8 @@ class Collection(object):
         """
 
         try:
-            dataset_bands = self.new_bands[self.get_dataset_key(dataset)]
+            dataset_key = self.get_dataset_key(dataset)
+            dataset_bands = self.new_bands[dataset_key]
         except KeyError:
             raise DatasetError('No tile types for this dataset.')
 

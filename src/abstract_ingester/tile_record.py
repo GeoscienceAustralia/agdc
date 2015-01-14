@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
-#===============================================================================
+# ===============================================================================
 # Copyright (c)  2014 Geoscience Australia
 # All rights reserved.
 # 
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
-#     * Redistributions of source code must retain the above copyright
+# * Redistributions of source code must retain the above copyright
 #       notice, this list of conditions and the following disclaimer.
 #     * Redistributions in binary form must reproduce the above copyright
 #       notice, this list of conditions and the following disclaimer in the
@@ -39,18 +39,16 @@ format changes.
 """
 
 import logging
-import os
-from ingest_db_wrapper import IngestDBWrapper, TC_PENDING
-from agdc.cube_util import get_file_size_mb
-import re
+
 import psycopg2
 
-# Set up logger.
-LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.INFO)
+from ingest_db_wrapper import IngestDBWrapper, TC_PENDING
+from agdc.cube_util import get_file_size_mb
+
+_LOG = logging.getLogger(__name__)
+
 
 class TileRecord(object):
-    # pylint: disable=too-many-instance-attributes
     """TileRecord database interface class."""
 
     TILE_METADATA_FIELDS = ['tile_id',
@@ -62,70 +60,82 @@ class TileRecord(object):
                             'tile_class_id',
                             'tile_size',
                             'ctime'
-                            ]
-    def __init__(self, collection, dataset_record, tile_contents):
+    ]
+
+    def __init__(self, dataset_id, tile_footprint, tile_type_id):
+        self.dataset_id = dataset_id
+        self.tile_footprint = tile_footprint
+        self.tile_type_id = tile_type_id
+
+        # Tile starts as pending
+        self.tile_class_id = TC_PENDING
+        # Tile ID will be set when persisted.
+        self.tile_id = None
+
+
+class TileRepository(object):
+    def __init__(self, collection):
+        super(TileRepository, self).__init__()
         self.collection = collection
         self.datacube = collection.datacube
-        self.dataset_record = dataset_record
-        self.tile_contents = tile_contents
-        self.tile_footprint = tile_contents.tile_footprint
-        self.tile_type_id = tile_contents.tile_type_id
-        #Set tile_class_id to pending.
-        self.tile_class_id = TC_PENDING
-        #Set tile_id, determined below from database query
-        self.tile_id = None
         self.db = IngestDBWrapper(self.datacube.db_connection)
-        # Fill a dictionary with data for the tile
-        tile_dict = {}
-        self.tile_dict = tile_dict
-        tile_dict['x_index'] = self.tile_footprint[0]
-        tile_dict['y_index'] = self.tile_footprint[1]
-        tile_dict['tile_type_id'] = self.tile_type_id
-        tile_dict['dataset_id'] = self.dataset_record.dataset_id
-        # Store final destination in the 'tile_pathname' field
-        tile_dict['tile_pathname'] = self.tile_contents.tile_output_path
-        tile_dict['tile_class_id'] = 1
-        # The physical file is currently in the temporary location
-        tile_dict['tile_size'] = \
-            get_file_size_mb(self.tile_contents
-                                       .temp_tile_output_path)
 
-        self.update_tile_footprint()
+    def persist_tile(self, tile):
+        # Fill a dictionary with data for the tile
+        tile_dict = {
+            'x_index': tile.tile_footprint[0],
+            'y_index': tile.tile_footprint[1],
+            'tile_type_id': tile.tile_type_id,
+            'dataset_id': tile.dataset_record.dataset_id,
+            # Store final destination in the 'tile_pathname' field
+            # The physical file may currently be in the temporary location
+            'tile_pathname': tile.tile_contents.tile_output_path,
+            'tile_class_id': 1,
+            'tile_size': get_file_size_mb(tile.tile_contents.temp_tile_output_path)
+        }
+
+        self._update_tile_footprint(tile, tile_dict)
 
         # Make the tile record entry on the database:
-        self.tile_id = self.db.get_tile_id(tile_dict)
-        if self.tile_id is None:
-            self.tile_id = self.db.insert_tile_record(tile_dict)
+        tile.tile_id = tile.db.get_tile_id(tile_dict)
+        if tile.tile_id is None:
+            tile.tile_id = tile.db.insert_tile_record(tile_dict)
         else:
             # If there was any existing tile corresponding to tile_dict then
             # it should already have been removed.
             raise AssertionError("Attempt to recreate an existing tile.")
-        tile_dict['tile_id'] = self.tile_id
+        tile_dict['tile_id'] = tile.tile_id
 
-    def update_tile_footprint(self):
+    def _update_tile_footprint(self, tile, tile_dict):
         """Update the tile footprint entry in the database"""
 
-        if not self.db.tile_footprint_exists(self.tile_dict):
+        if not self.db.tile_footprint_exists(tile_dict):
             # We may need to create a new footprint record.
-            footprint_dict = {'x_index': self.tile_footprint[0],
-                              'y_index': self.tile_footprint[1],
-                              'tile_type_id': self.tile_type_id,
-                              'x_min': self.tile_contents.tile_extents[0],
-                              'y_min': self.tile_contents.tile_extents[1],
-                              'x_max': self.tile_contents.tile_extents[2],
-                              'y_max': self.tile_contents.tile_extents[3],
-                              'bbox': 'Populate this within sql query?'}
+            footprint_dict = {
+                'x_index': tile.tile_footprint[0],
+                'y_index': tile.tile_footprint[1],
+                'tile_type_id': tile.tile_type_id,
+                'x_min': tile.tile_contents.tile_extents[0],
+                'y_min': tile.tile_contents.tile_extents[1],
+                'x_max': tile.tile_contents.tile_extents[2],
+                'y_max': tile.tile_contents.tile_extents[3],
+                'bbox': 'Populate this within sql query?'
+            }
 
             # Create an independent database connection for this transaction.
             my_db = IngestDBWrapper(self.datacube.create_connection())
             try:
                 with self.collection.transaction(my_db):
-                    if not my_db.tile_footprint_exists(self.tile_dict):
+                    if not my_db.tile_footprint_exists(footprint_dict):
                         my_db.insert_tile_footprint(footprint_dict)
 
             except psycopg2.IntegrityError:
                 # If we get an IntegrityError we assume the tile_footprint
                 # is already in the database, and we do not need to add it.
+
+                # FIXME! This is migrated from the old codebase, but is clearly unsafe.
+                # The query should return a count of inserted records to distinguish already-present records
+                # from actual integrity errors (which are important).
                 pass
 
             finally:

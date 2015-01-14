@@ -37,6 +37,7 @@ from osgeo import gdal
 from datetime import datetime
 
 from ..abstract_ingester import AbstractIngester, AbstractDataset
+from agdc.wofs_ingester.band import WofsBand
 
 
 _LOG = logging.getLogger(__name__)
@@ -87,7 +88,44 @@ def _find_water_files(source_path):
     return sorted(dataset_list)
 
 
-class WofsIngester(AbstractIngester):
+class TiledIngester(AbstractIngester):
+    """Ingest data that is already tiled"""
+
+    def tile(self, dataset_record, dataset):
+        """Create tiles for a newly created or updated dataset."""
+
+        tile_list = []
+        for tile_type_id in dataset_record.list_tile_types():
+            if not self.filter_tile_type(tile_type_id):
+                continue
+
+            tile_bands = dataset_record.get_tile_bands(tile_type_id)
+            band_stack = dataset.stack_bands(tile_bands)
+
+            tile_footprint_list = sorted(dataset_record.get_coverage(tile_type_id))
+            _LOG.info('%d tile footprints cover dataset', len(tile_footprint_list))
+
+            for tile_footprint in tile_footprint_list:
+                tile_contents = dataset_record.collection.create_tile_contents(
+                    tile_type_id,
+                    tile_footprint,
+                    band_stack
+                )
+
+                if tile_contents.has_data():
+                    tile_list.append(tile_contents)
+                else:
+                    _LOG.info('Empty tile, skipping %r', tile_contents)
+                    tile_contents.remove()
+
+        _LOG.info('%d non-empty tiles logged', len(tile_list))
+
+        with self.collection.lock_datasets([dataset_record.dataset_id]):
+            with self.collection.transaction():
+                dataset_record.store_tiles(tile_list)
+
+
+class WofsIngester(TiledIngester):
     """Ingester class for Modis datasets."""
 
     @classmethod
@@ -311,7 +349,7 @@ class WofsDataset(AbstractDataset):
         return self._path
 
     def stack_bands(self, band_dict):
-        return None
+        return WofsBand(self, band_dict)
 
 
 if __name__ == "__main__":

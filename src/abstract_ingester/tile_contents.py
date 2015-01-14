@@ -106,7 +106,7 @@ class TileContents(object):
         self.temp_tile_output_path = os.path.join(
             os.path.dirname(self.band_stack.vrt_name),
             os.path.basename(self.tile_output_path)
-            )
+        )
         self.tile_extents = None
         
         # Work-around to allow existing GDAL code to work with netCDF subdatasets as band stacks

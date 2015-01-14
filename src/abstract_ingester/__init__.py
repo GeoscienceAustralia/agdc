@@ -252,6 +252,7 @@ class AbstractIngester(object):
                 break
             except psycopg2.IntegrityError:
                 tries = tries + 1
+                LOGGER.exception("Integrity error (attempt %d of %d)", tries, self.CATALOG_MAX_TRIES)
         else:
             raise DatasetError('Unable to catalog: ' +
                                'persistent integrity error.')

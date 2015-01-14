@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#===============================================================================
+# ===============================================================================
 # Copyright (c)  2014 Geoscience Australia
 # All rights reserved.
 # 
@@ -41,14 +41,17 @@ format changes.
 import logging
 import os
 import re
+from math import floor
+
 from osgeo import osr
+
 from agdc.cube_util import DatasetError, DatasetSkipError
 from ingest_db_wrapper import IngestDBWrapper
 from ingest_db_wrapper import TC_PENDING, TC_SINGLE_SCENE, TC_SUPERSEDED
 from ingest_db_wrapper import TC_MOSAIC
 from mosaic_contents import MosaicContents
-from tile_record import TileRecord
-from math import floor
+from tile_record import TileRecord, TileRepository
+
 
 # Set up logger.
 LOGGER = logging.getLogger(__name__)
@@ -201,7 +204,7 @@ class DatasetRecord(object):
         tile_list = []
         tile_footprint_list = sorted(self.get_coverage(tile_type_id))
         LOGGER.info('%d tile footprints cover dataset', len(tile_footprint_list))
-        
+
         for tile_footprint in tile_footprint_list:
             tile_contents = self.collection.create_tile_contents(
                 tile_type_id,
@@ -224,14 +227,10 @@ class DatasetRecord(object):
         'tile_list' is a list of tile_contents objects. This
         method will create the corresponding database records and
         mark tiles for creation when the transaction commits.
+
+        :type tile_list: list of TileContents
         """
-
-        tile_record_list = []
-        for tile_contents in tile_list:
-            tile_record = self.create_tile_record(tile_contents)
-            tile_record_list.append(tile_record)
-
-        return tile_record_list
+        return [self.create_tile_record(tile_contents) for tile_contents in tile_list]
 
     def create_mosaics(self, dataset_filter):
         """Create mosaics associated with the dataset.
@@ -308,7 +307,13 @@ class DatasetRecord(object):
         The created object will be responsible for inserting tile table records
         into the database for reprojected or mosaiced tiles."""
         self.collection.mark_tile_for_creation(tile_contents)
-        return TileRecord(self.collection, self, tile_contents)
+        tile = TileRecord(
+            self.dataset_id,
+            tile_footprint=tile_contents.tile_footprint,
+            tile_type_id=tile_contents.tile_type_id
+        )
+        TileRepository.persist_tile(tile)
+        return tile
 
     def mark_as_tiled(self):
         """Flag the dataset record as tiled in the database.
@@ -374,20 +379,20 @@ class DatasetRecord(object):
                 self.dataset_dict['dataset_id'],
                 self.dataset_dict['datetime_processed'],
                 tile_class_filter)
-        
-        if time_tuple is not None:  
-            disk_datetime_processed, database_datetime_processed, tile_ingested_datetime = time_tuple          
+
+        if time_tuple is not None:
+            disk_datetime_processed, database_datetime_processed, tile_ingested_datetime = time_tuple
             if (disk_datetime_processed == database_datetime_processed):
-                skip_message = 'Dataset has already been ingested' 
+                skip_message = 'Dataset has already been ingested'
             elif disk_datetime_processed < database_datetime_processed:
                     skip_message = 'Dataset on disk is older than dataset in DB'
             else:
                 skip_message = 'Dataset on disk was created after currently ingested contents'
-            
+
             skip_message += ' (Disk = %s, DB = %s, Ingested = %s)' % time_tuple
-                
+
             raise DatasetSkipError(skip_message)
-        
+
     def __make_one_mosaic(self, tile_record_list):
         """Create a single mosaic.
 
