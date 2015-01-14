@@ -36,10 +36,11 @@ import csv
 import glob
 import logging
 import os
-from datacube.api.model import DatasetType, DatasetTile, Wofs25Bands, BANDS, Satellite
+from datacube.api.model import DatasetType, DatasetTile, Wofs25Bands, Satellite
 from datacube.api.query import list_tiles
-from datacube.api.utils import latlon_to_cell, get_dataset_metadata, latlon_to_xy, get_dataset_data_with_pq, \
-    get_dataset_data, extract_fields_from_filename, NDV
+from datacube.api.utils import latlon_to_cell, latlon_to_xy
+from datacube.api.utils import get_dataset_data, get_dataset_data_with_pq, get_dataset_metadata
+from datacube.api.utils import extract_fields_from_filename, NDV
 from datacube.api.workflow import writeable_dir
 from datacube.config import Config
 
