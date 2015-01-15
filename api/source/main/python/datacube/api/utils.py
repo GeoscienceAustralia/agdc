@@ -59,22 +59,43 @@ _log = logging.getLogger(__name__)
 #       - 12 = not cloud shadow (ACCA test)
 #       - 13 = not cloud shadow (FMASK test)
 
-PQA_MASK = 0x3fff  # This represents bits 0-13 set
-PQA_MASK_CONTIGUITY = 0x01FF
-PQA_MASK_CLOUD = 0x0C00
-PQA_MASK_CLOUD_SHADOW = 0x3000
-PQA_MASK_SEA_WATER = 0x0200
+# ### DEPRECATE AND REMOVE THESE IN FAVOUR OF THE ENUM!!!
+#
+# PQA_MASK = 0x3fff  # This represents bits 0-13 set
+# PQA_MASK_CONTIGUITY = 0x01FF
+# PQA_MASK_CLOUD = 0x0C00
+# PQA_MASK_CLOUD_SHADOW = 0x3000
+# PQA_MASK_SEA_WATER = 0x0200
+#
+# PQ_MASK_CLEAR = 16383               # bits 0 - 13 set
+# PQ_MASK_SATURATION = 255            # bits 0 - 7 set
+# PQ_MASK_SATURATION_OPTICAL = 159    # bits 0-4 and 7 set
+# PQ_MASK_SATURATION_THERMAL = 96     # bits 5,6 set
+# PQ_MASK_CONTIGUITY = 256            # bit 8 set
+# PQ_MASK_LAND = 512                  # bit 9 set
+# PQ_MASK_CLOUD_ACCA = 1024           # bit 10 set
+# PQ_MASK_CLOUD_FMASK = 2048          # bit 11 set
+# PQ_MASK_CLOUD_SHADOW_ACCA = 4096    # bit 12 set
+# PQ_MASK_CLOUD_SHADOW_FMASK = 8192   # bit 13 set
 
-PQ_MASK_CLEAR = 16383               # bits 0 - 13 set
-PQ_MASK_SATURATION = 255            # bits 0 - 7 set
-PQ_MASK_SATURATION_OPTICAL = 159    # bits 0-4 and 7 set
-PQ_MASK_SATURATION_THERMAL = 96     # bits 5,6 set
-PQ_MASK_CONTIGUITY = 256            # bit 8 set
-PQ_MASK_LAND = 512                  # bit 9 set
-PQ_MASK_CLOUD_ACCA = 1024           # bit 10 set
-PQ_MASK_CLOUD_FMASK = 2048          # bit 11 set
-PQ_MASK_CLOUD_SHADOW_ACCA = 4096    # bit 12 set
-PQ_MASK_CLOUD_SHADOW_FMASK = 8192   # bit 13 set
+class PqaMask(Enum):
+    # PQA_MASK = 0x3fff                   # This represents bits 0-13 set
+    # PQA_MASK_CONTIGUITY = 0x01FF
+    # PQA_MASK_CLOUD = 0x0C00
+    # PQA_MASK_CLOUD_SHADOW = 0x3000
+    # PQA_MASK_SEA_WATER = 0x0200
+
+    PQ_MASK_CLEAR = 16383               # bits 0 - 13 set
+    PQ_MASK_SATURATION = 255            # bits 0 - 7 set
+    PQ_MASK_SATURATION_OPTICAL = 159    # bits 0-4 and 7 set
+    PQ_MASK_SATURATION_THERMAL = 96     # bits 5,6 set
+    PQ_MASK_CONTIGUITY = 256            # bit 8 set
+    PQ_MASK_LAND = 512                  # bit 9 set
+    PQ_MASK_CLOUD_ACCA = 1024           # bit 10 set
+    PQ_MASK_CLOUD_FMASK = 2048          # bit 11 set
+    PQ_MASK_CLOUD_SHADOW_ACCA = 4096    # bit 12 set
+    PQ_MASK_CLOUD_SHADOW_FMASK = 8192   # bit 13 set
+
 
 # Standard no data value
 NDV = -999
@@ -198,7 +219,9 @@ def get_dataset_data(dataset, bands=None, x=0, y=0, x_size=None, y_size=None):
     return out
 
 
-def get_dataset_data_with_pq(dataset, pq_dataset, bands=None, x=0, y=0, x_size=None, y_size=None, pq_mask=PQA_MASK):
+DEFAULT_PQA_MASK = [PqaMask.PQ_MASK_CLEAR]
+
+def get_dataset_data_with_pq(dataset, pq_dataset, bands=None, x=0, y=0, x_size=None, y_size=None, pq_masks=DEFAULT_PQA_MASK):
 
     """
     Return one or more bands from the dataset with pixel quality applied
@@ -223,19 +246,21 @@ def get_dataset_data_with_pq(dataset, pq_dataset, bands=None, x=0, y=0, x_size=N
 
     for band in bands:
 
-        out[band] = apply_pq(out[band], data_pq, mask=pq_mask)
+        out[band] = apply_pq(out[band], data_pq, pq_masks=pq_masks)
 
     return out
 
 
-def apply_pq(dataset, pq, ndv=NDV, mask=PQA_MASK):
+def apply_pq(dataset, pq, ndv=NDV, pq_masks=DEFAULT_PQA_MASK):
 
-    pq_mask = numpy.ma.masked_not_equal(pq, mask).mask
+    # Get the PQ mask
+    mask = get_pq_mask(pq, pq_masks)
 
-    return numpy.ma.array(dataset, mask=pq_mask).filled(ndv)
+    # Apply the PQ mask to the dataset and fill masked entries with no data value
+    return numpy.ma.array(dataset, mask=mask).filled(ndv)
 
 
-def get_pq_mask(pq, mask=PQA_MASK):
+def get_pq_mask(pq, pq_masks=DEFAULT_PQA_MASK):
 
     """
     Return a pixel quality mask
@@ -245,7 +270,20 @@ def get_pq_mask(pq, mask=PQA_MASK):
     :return: the PQ mask
     """
 
-    return numpy.ma.masked_not_equal(pq, mask).mask
+    # Consolidate the list of (bit) masks into a single (bit) mask
+    pq_mask = consolidate_pq_mask(pq_masks)
+
+    # Mask out values where the requested bits in the PQ value are not set
+    return numpy.ma.masked_where(pq & pq_mask != pq_mask, pq).mask
+
+
+def consolidate_pq_mask(masks):
+    mask = 0x0000
+
+    for m in masks:
+        mask |= m.value
+
+    return mask
 
 
 def raster_create(path, data, transform, projection, no_data_value, data_type,

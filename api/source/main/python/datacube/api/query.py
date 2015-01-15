@@ -258,7 +258,7 @@ def list_tiles(x, y, satellites, acq_min, acq_max, datasets, database, user, pas
         """.format(sort=sort.value)
 
         params = {"tile_type": [1], "tile_class": TILE_CLASSES,
-                  "satellite": satellites,
+                  "satellite": [satellite.value for satellite in satellites],
                   "x": x, "y": y,
                   "acq_min": acq_min, "acq_max": acq_max}
 
