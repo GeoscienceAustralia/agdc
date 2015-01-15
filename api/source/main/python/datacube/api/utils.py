@@ -79,20 +79,21 @@ _log = logging.getLogger(__name__)
 # PQ_MASK_CLOUD_SHADOW_FMASK = 8192   # bit 13 set
 
 class PqaMask(Enum):
-    # PQA_MASK = 0x3fff                   # This represents bits 0-13 set
-    # PQA_MASK_CONTIGUITY = 0x01FF
-    # PQA_MASK_CLOUD = 0x0C00
-    # PQA_MASK_CLOUD_SHADOW = 0x3000
-    # PQA_MASK_SEA_WATER = 0x0200
-
     PQ_MASK_CLEAR = 16383               # bits 0 - 13 set
+
     PQ_MASK_SATURATION = 255            # bits 0 - 7 set
     PQ_MASK_SATURATION_OPTICAL = 159    # bits 0-4 and 7 set
     PQ_MASK_SATURATION_THERMAL = 96     # bits 5,6 set
+
     PQ_MASK_CONTIGUITY = 256            # bit 8 set
+
     PQ_MASK_LAND = 512                  # bit 9 set
+
+    PQ_MASK_CLOUD = 15360               # bits 10-13
+
     PQ_MASK_CLOUD_ACCA = 1024           # bit 10 set
     PQ_MASK_CLOUD_FMASK = 2048          # bit 11 set
+
     PQ_MASK_CLOUD_SHADOW_ACCA = 4096    # bit 12 set
     PQ_MASK_CLOUD_SHADOW_FMASK = 8192   # bit 13 set
 
@@ -302,7 +303,7 @@ def raster_create(path, data, transform, projection, no_data_value, data_type,
     :param options: raster creation options
     """
 
-    _log.info("creating output raster %s", path)
+    _log.debug("creating output raster %s", path)
     _log.debug("filename=%s | shape = %s | bands = %d | data type = %s", path, (numpy.shape(data[0])[0], numpy.shape(data[0])[1]),
                len(data), data_type)
 
@@ -318,7 +319,7 @@ def raster_create(path, data, transform, projection, no_data_value, data_type,
     dataset.SetProjection(projection)
 
     for i in range(0, len(data)):
-        _log.info("Writing band %d", i + 1)
+        _log.debug("Writing band %d", i + 1)
         dataset.GetRasterBand(i + 1).SetNoDataValue(no_data_value)
         dataset.GetRasterBand(i + 1).WriteArray(data[i])
         dataset.GetRasterBand(i + 1).ComputeStatistics(True)
@@ -611,3 +612,12 @@ def extract_fields_from_filename(filename):
     acq_dt = datetime.strptime(acq_str, "%Y-%m-%dT%H-%M-%S")
 
     return satellite, dataset_type, x, y, acq_dt
+
+def intersection(a, b):
+    return list(set(a) & set(b))
+
+def union(a, b):
+    return list(set(a) | set(b))
+
+def subset(a, b):
+    return set(a) <= set(b)

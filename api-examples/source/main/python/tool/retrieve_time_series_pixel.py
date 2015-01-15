@@ -26,7 +26,6 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ===============================================================================
-import sys
 
 
 __author__ = "Simon Oldfield"
@@ -37,6 +36,7 @@ import csv
 import glob
 import logging
 import os
+import sys
 from datacube.api.model import DatasetType, DatasetTile, Wofs25Bands, Satellite
 from datacube.api.query import list_tiles
 from datacube.api.utils import latlon_to_cell, latlon_to_xy, PqaMask
@@ -90,15 +90,11 @@ class TimeSeriesRetrievalWorkflow():
 
     output_no_data = None
 
-    # nbar = None
-    # pqa = None
-    # fc = None
-    # wofs = None
-
     dataset_type = None
 
     delimiter = None
     output_directory = None
+    overwrite = None
 
     def __init__(self, application_name):
         self.application_name = application_name
@@ -130,7 +126,7 @@ class TimeSeriesRetrievalWorkflow():
 
         parser.add_argument("--apply-pqa", help="Apply PQA mask", action="store_true", dest="apply_pqa", default=False)
         parser.add_argument("--pqa-mask", help="The PQA mask to apply", action="store", dest="pqa_mask",
-                            type=pqa_mask_arg, nargs="+", choices=PqaMask, default=PqaMask.PQ_MASK_CLEAR)
+                            type=pqa_mask_arg, nargs="+", choices=PqaMask, default=[PqaMask.PQ_MASK_CLEAR])
 
         parser.add_argument("--hide-no-data", help="Don't output records that are completely no data value(s)", action="store_false", dest="output_no_data", default=True)
 
@@ -145,6 +141,8 @@ class TimeSeriesRetrievalWorkflow():
 
         parser.add_argument("--output-directory", help="Output directory", action="store", dest="output_directory",
                             type=writeable_dir)
+
+        parser.add_argument("--overwrite", help="Over write existing output file", action="store_true", dest="overwrite", default=False)
 
         args = parser.parse_args()
 
@@ -207,15 +205,11 @@ class TimeSeriesRetrievalWorkflow():
 
         self.output_no_data = args.output_no_data
 
-        # self.nbar = args.nbar
-        # self.pqa = args.pqa
-        # self.fc = args.fc
-        # self.wofs = args.wofs
-
         self.dataset_type = args.dataset_type
 
         self.delimiter = args.delimiter
         self.output_directory = args.output_directory
+        self.overwrite = args.overwrite
 
         _log.info("""
         longitude = {longitude:f}
@@ -229,6 +223,7 @@ class TimeSeriesRetrievalWorkflow():
         datasets to retrieve = {dataset_type}
         output no data values = {output_no_data}
         output = {output}
+        over write = {overwrite}
         delimiter = {delimiter}
         """.format(longitude=self.longitude, latitude=self.latitude,
                    acq_min=self.acq_min, acq_max=self.acq_max,
@@ -239,6 +234,7 @@ class TimeSeriesRetrievalWorkflow():
                    dataset_type=decode_dataset_type(self.dataset_type),
                    output_no_data=self.output_no_data,
                    output=self.output_directory and self.output_directory or "STDOUT",
+                   overwrite=self.overwrite,
                    delimiter=self.delimiter))
 
     def run(self):
@@ -255,7 +251,7 @@ class TimeSeriesRetrievalWorkflow():
 
             headered = False
 
-            with self.get_output_file(self.dataset_type) as csv_file:
+            with self.get_output_file(self.dataset_type, self.overwrite) as csv_file:
 
                 csv_writer = csv.writer(csv_file, delimiter=self.delimiter)
 
@@ -290,7 +286,7 @@ class TimeSeriesRetrievalWorkflow():
 
             headered = False
 
-            with self.get_output_file(self.dataset_type) as csv_file:
+            with self.get_output_file(self.dataset_type, self.overwrite) as csv_file:
 
                 csv_writer = csv.writer(csv_file, delimiter=self.delimiter)
 
@@ -318,13 +314,20 @@ class TimeSeriesRetrievalWorkflow():
                     if True or self.output_no_data:
                         csv_writer.writerow([satellite.value, str(acq_dt), decode_wofs_water_value(data[Wofs25Bands.WATER][0][0]), str(data[Wofs25Bands.WATER][0][0])])
 
-    def get_output_file(self, dataset_type):
+    def get_output_file(self, dataset_type, overwrite=False):
 
         if not self.output_directory:
             _log.info("Writing output to standard output")
             return sys.stdout
 
-        _log.info("Writing output to %s", self.get_output_filename(dataset_type))
+        filename = self.get_output_filename(dataset_type)
+
+        _log.info("Writing output to %s", filename)
+
+        if os.path.exists(filename) and not overwrite:
+            _log.error("Output file [%s] exists", filename)
+            raise Exception("Output file [%s] already exists" % filename)
+
         return open(self.get_output_filename(dataset_type), "wb")
 
 

@@ -26,6 +26,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ===============================================================================
+import gdal
 
 
 __author__ = "Simon Oldfield"
@@ -36,9 +37,11 @@ import csv
 import glob
 import logging
 import os
-from datacube.api.model import DatasetType, DatasetTile, Wofs25Bands, Satellite
+import sys
+from datacube.api.model import DatasetType, DatasetTile, Wofs25Bands, Satellite, dataset_type_database, \
+    dataset_type_derived_nbar
 from datacube.api.query import list_tiles
-from datacube.api.utils import latlon_to_cell, latlon_to_xy
+from datacube.api.utils import latlon_to_cell, latlon_to_xy, PqaMask, raster_create, intersection, calculate_ndvi
 from datacube.api.utils import get_dataset_data, get_dataset_data_with_pq, get_dataset_metadata
 from datacube.api.utils import extract_fields_from_filename, NDV
 from datacube.api.workflow import writeable_dir
@@ -48,12 +51,30 @@ from datacube.config import Config
 _log = logging.getLogger()
 
 
-class TimeSeriesRetrievalWorkflow():
+def satellite_arg(s):
+    if s in Satellite._member_names_:
+        return Satellite[s]
+    raise argparse.ArgumentTypeError("{0} is not a supported satellite".format(s))
+
+
+def pqa_mask_arg(s):
+    if s in PqaMask._member_names_:
+        return PqaMask[s]
+    raise argparse.ArgumentTypeError("{0} is not a supported PQA mask".format(s))
+
+
+def dataset_type_arg(s):
+    if s in DatasetType._member_names_:
+        return DatasetType[s]
+    raise argparse.ArgumentTypeError("{0} is not a supported dataset type".format(s))
+
+
+class DatasetRetrievalWorkflow():
 
     application_name = None
 
-    latitude = None
-    longitude = None
+    x = None
+    y = None
 
     acq_min = None
     acq_max = None
@@ -66,30 +87,33 @@ class TimeSeriesRetrievalWorkflow():
 
     satellites = None
 
-    apply_pq_filter = None
-    output_no_data = None
+    apply_pqa_filter = None
+    pqa_mask = None
 
-    nbar = None
-    pqa = None
-    fc = None
-    wofs = None
+    dataset_types = None
 
-    delimiter = None
     output_directory = None
+    overwrite = None
+    list_only = None
 
     def __init__(self, application_name):
         self.application_name = application_name
 
     def parse_arguments(self):
-        _log.debug("Workflow.parse_arguments()")
-
         parser = argparse.ArgumentParser(prog=__name__, description=self.application_name)
 
-        parser.add_argument("--lat", help="Latitude value of pixel", action="store", dest="latitude", type=float, required=True)
-        parser.add_argument("--lon", help="Longitude value of pixel", action="store", dest="longitude", type=float, required=True)
+        group = parser.add_mutually_exclusive_group()
 
-        parser.add_argument("--acq-min", help="Acquisition Date", action="store", dest="acq_min", type=str)
-        parser.add_argument("--acq-max", help="Acquisition Date", action="store", dest="acq_max", type=str)
+        group.add_argument("--quiet", help="Less output", action="store_const", dest="log_level", const=logging.WARN)
+        group.add_argument("--verbose", help="More output", action="store_const", dest="log_level", const=logging.DEBUG)
+
+        parser.set_defaults(log_level=logging.INFO)
+
+        parser.add_argument("--x", help="x grid reference", action="store", dest="x", type=int, choices=range(110, 155+1), required=True)
+        parser.add_argument("--y", help="y grid reference", action="store", dest="y", type=int, choices=range(-45, -10+1), required=True)
+
+        parser.add_argument("--acq-min", help="Acquisition Date", action="store", dest="acq_min", type=str, required=True)
+        parser.add_argument("--acq-max", help="Acquisition Date", action="store", dest="acq_max", type=str, required=True)
 
         parser.add_argument("--process-min", help="Process Date", action="store", dest="process_min", type=str)
         parser.add_argument("--process-max", help="Process Date", action="store", dest="process_max", type=str)
@@ -97,29 +121,32 @@ class TimeSeriesRetrievalWorkflow():
         parser.add_argument("--ingest-min", help="Ingest Date", action="store", dest="ingest_min", type=str)
         parser.add_argument("--ingest-max", help="Ingest Date", action="store", dest="ingest_max", type=str)
 
-        parser.add_argument("--satellites", help="satellites", action="store", dest="satellites", type=str, nargs="+",
-                            choices=["LS5", "LS7", "LS8"], default=["LS5", "LS7"])
+        parser.add_argument("--satellite", help="The satellite(s) to include", action="store", dest="satellite",
+                            type=satellite_arg, nargs="+", choices=Satellite, default=[Satellite.LS5, Satellite.LS7])
 
-        parser.add_argument("--skip-pq", help="Don't apply PQA mask", action="store_false", dest="pqfilter", default=True)
-        parser.add_argument("--hide-no-data", help="Don't output records that are completely no data value(s)", action="store_false", dest="output_no_data", default=True)
+        parser.add_argument("--apply-pqa", help="Apply PQA mask", action="store_true", dest="apply_pqa", default=False)
+        parser.add_argument("--pqa-mask", help="The PQA mask to apply", action="store", dest="pqa_mask",
+                            type=pqa_mask_arg, nargs="+", choices=PqaMask, default=[PqaMask.PQ_MASK_CLEAR])
 
-        # For the moment making these mutually exclusive - i.e. you can only do one at a time - just for simplicity
-        group = parser.add_mutually_exclusive_group()
-
-        group.add_argument("--nbar", help="Retrieve NBAR values", action="store_true", dest="nbar", default=False)
-        group.add_argument("--pqa", help="Retrieve PQA values", action="store_true", dest="pqa", default=False)
-        group.add_argument("--fc", help="Retrieve FC values", action="store_true", dest="fc", default=False)
-        group.add_argument("--wofs", help="Retrieve WOFS values", action="store_true", dest="wofs", default=False)
-
-        parser.add_argument("--delimiter", help="Field delimiter in output file", action="store", dest="delimiter", type=str, default=",")
+        parser.add_argument("--dataset-type", help="The types of dataset to retrieve", action="store",
+                            dest="dataset_type",
+                            type=dataset_type_arg,
+                            nargs="+",
+                            choices=DatasetType, default=DatasetType.ARG25)
 
         parser.add_argument("--output-directory", help="Output directory", action="store", dest="output_directory",
                             type=writeable_dir, required=True)
 
+        parser.add_argument("--overwrite", help="Over write existing output file", action="store_true", dest="overwrite", default=False)
+
+        parser.add_argument("--list-only", help="List the datasets that would be retrieved rather than retrieving them", action="store_true", dest="list_only", default=False)
+
         args = parser.parse_args()
 
-        self.latitude = args.latitude
-        self.longitude = args.longitude
+        _log.setLevel(args.log_level)
+
+        self.x = args.x
+        self.y = args.y
 
         def parse_date_min(s):
             from datetime import datetime
@@ -137,7 +164,7 @@ class TimeSeriesRetrievalWorkflow():
             return None
 
         def parse_date_max(s):
-            from datetime import date, datetime
+            from datetime import datetime
             import calendar
 
             if s:
@@ -168,41 +195,40 @@ class TimeSeriesRetrievalWorkflow():
         self.ingest_min = parse_date_min(args.ingest_min)
         self.ingest_max = parse_date_max(args.ingest_max)
 
-        self.satellites = args.satellites
-        self.apply_pq_filter = args.pqfilter
-        self.output_no_data = args.output_no_data
+        self.satellites = args.satellite
 
-        self.nbar = args.nbar
-        self.pqa = args.pqa
-        self.fc = args.fc
-        self.wofs = args.wofs
+        self.apply_pqa_filter = args.apply_pqa
+        self.pqa_mask = args.pqa_mask
 
-        self.delimiter = args.delimiter
+        self.dataset_types = args.dataset_type
+
         self.output_directory = args.output_directory
+        self.overwrite = args.overwrite
+        self.list_only = args.list_only
 
-        _log.debug("""
-        longitude = {longitude:f}
-        latitude = {latitude:f}
+        _log.info("""
+        x = {x:03d}
+        y = {y:04d}
         acq = {acq_min} to {acq_max}
         process = {process_min} to {process_max}
         ingest = {ingest_min} to {ingest_max}
         satellites = {satellites}
-        apply PQ filter = {apply_pq_filter}
-        retrieve NBAR = {nbar}
-        retrieve PQA = {pqa}
-        retrieve FC = {fc}
-        retrieve WOFS = {wofs}
-        output no data values = {output_no_data}
-        output directory = {output_directory}
-        delimiter = {delimiter}
-        """.format(longitude=self.longitude, latitude=self.latitude,
+        apply PQA filter = {apply_pqa_filter}
+        PQA mask = {pqa_mask}
+        datasets to retrieve = {dataset_type}
+        output directory = {output}
+        over write existing = {overwrite}
+        list only = {list_only}
+        """.format(x=self.x, y=self.y,
                    acq_min=self.acq_min, acq_max=self.acq_max,
                    process_min=self.process_min, process_max=self.process_max,
                    ingest_min=self.ingest_min, ingest_max=self.ingest_max,
-                   satellites=self.satellites, apply_pq_filter=self.apply_pq_filter,
-                   nbar=self.nbar, pqa=self.pqa, fc=self.fc, wofs=self.wofs,
-                   output_no_data=self.output_no_data, output_directory=self.output_directory,
-                   delimiter=self.delimiter))
+                   satellites=self.satellites,
+                   apply_pqa_filter=self.apply_pqa_filter, pqa_mask=self.pqa_mask,
+                   dataset_type=[decode_dataset_type(t) for t in self.dataset_types],
+                   output=self.output_directory,
+                   overwrite=self.overwrite,
+                   list_only=self.list_only))
 
     def run(self):
         self.parse_arguments()
@@ -210,225 +236,122 @@ class TimeSeriesRetrievalWorkflow():
         config = Config(os.path.expanduser("~/.datacube/config"))
         _log.debug(config.to_str())
 
-        cell_x, cell_y = latlon_to_cell(self.latitude, self.longitude)
-
-        dataset = None
-
-        if self.nbar:
-            dataset = DatasetType.ARG25
-
-        if self.pqa:
-            dataset = DatasetType.PQ25
-
-        if self.fc:
-            dataset = DatasetType.FC25
-
         # TODO once WOFS is in the cube
 
-        if dataset:
+        for tile in list_tiles(x=[self.x], y=[self.y], acq_min=self.acq_min, acq_max=self.acq_max,
+                               satellites=[satellite for satellite in self.satellites],
+                               datasets=intersection(self.dataset_types, dataset_type_database),
+                               database=config.get_db_database(),
+                               user=config.get_db_username(),
+                               password=config.get_db_password(),
+                               host=config.get_db_host(), port=config.get_db_port()):
 
-            _log.debug("***** [%s]", self.get_output_filename(dataset))
+            if self.list_only:
+                _log.info("Would retrieve datasets [%s]", [tile.datasets[t].path for t in self.dataset_types])
+                continue
 
-            headered = False
+            pqa = None
 
-            with open(self.get_output_filename(dataset), "wb") as csv_file:
+            # Apply PQA if specified - but NOT if retrieving PQA data itself - that's crazy talk!!!
 
-                csv_writer = csv.writer(csv_file, delimiter=self.delimiter)
+            if self.apply_pqa_filter and self.dataset_types != DatasetType.PQ25:
+                pqa = tile.datasets[DatasetType.PQ25]
 
-                for tile in list_tiles(x=[cell_x], y=[cell_y], acq_min=self.acq_min, acq_max=self.acq_max,
-                                       satellites=[satellite for satellite in self.satellites],
-                                       datasets=[dataset],
-                                       database=config.get_db_database(),
-                                       user=config.get_db_username(),
-                                       password=config.get_db_password(),
-                                       host=config.get_db_host(), port=config.get_db_port()):
+            for dataset_type in intersection(self.dataset_types, dataset_type_database):
+                retrieve_data(tile.datasets[dataset_type], pqa, self.pqa_mask, self.get_output_filename(tile.datasets[dataset_type]), self.overwrite)
 
-                    # Output a HEADER
-                    if not headered:
-                        header_fields = ["SATELLITE", "ACQUISITION DATE"] + [b.name for b in tile.datasets[dataset].bands]
-                        csv_writer.writerow(header_fields)
-                        headered = True
+            nbar = tile.datasets[DatasetType.ARG25]
 
-                    pqa = None
+            self.generate_derived_nbar(intersection(self.dataset_types, dataset_type_derived_nbar), nbar, pqa, self.pqa_mask, self.overwrite)
 
-                    # Apply PQA if specified - but NOT if retrieving PQA data itself - that's crazy talk!!!
+    def generate_derived_nbar(self, dataset_types, nbar, pqa, pqa_masks, overwrite=False):
+        for dataset_type in dataset_types:
+            filename = self.get_output_filename_derived_nbar(nbar, dataset_type)
+            _log.info("Generating data from [%s] with pq [%s] and pq mask [%s] to [%s]", nbar.path, pqa and pqa.path or "", pqa and pqa_masks or "", filename)
 
-                    if self.apply_pq_filter and dataset != DatasetType.PQ25:
-                        pqa = tile.datasets[DatasetType.PQ25]
+            metadata = get_dataset_metadata(nbar)
 
-                    data = retrieve_pixel_value(tile.datasets[dataset], pqa, self.latitude, self.longitude)
-                    _log.info("data is [%s]", data)
-                    if has_data(tile.datasets[dataset], data) or self.output_no_data:
-                        csv_writer.writerow([tile.datasets[dataset].satellite.value, str(tile.end_datetime)] + decode_data(tile.datasets[dataset], data))
+            data = None
 
-        if self.wofs:
-            base = "/g/data/u46/wofs/water_f7q/extents/{x:03d}_{y:04d}/LS*_WATER_{x:03d}_{y:04d}_*.tif".format(x=cell_x, y=cell_y)
+            if pqa:
+                data = get_dataset_data_with_pq(nbar, pqa, pq_masks=pqa_masks)
+            else:
+                data = get_dataset_data(nbar)
 
-            headered = False
+            _log.debug("data is [%s]", data)
 
-            _log.debug("***** [%s]", self.get_output_filename_wofs())
+            if dataset_type == DatasetType.NDVI:
+                ndvi = calculate_ndvi(data[nbar.bands.RED], data[nbar.bands.NEAR_INFRARED])
 
-            with open(self.get_output_filename_wofs(), "wb") as csv_file:
-
-                csv_writer = csv.writer(csv_file, delimiter=self.delimiter)
-
-                for f in glob.glob(base):
-                    _log.debug(" *** Found WOFS file [%s]", f)
-
-                    satellite, dataset_type, x, y, acq_dt = extract_fields_from_filename(os.path.basename(f))
-
-                    if acq_dt.date() < self.acq_min or acq_dt.date() > self.acq_max:
-                        continue
-
-                    dataset = DatasetTile.from_path(f)
-                    _log.debug("Found dataset [%s]", dataset)
-
-                    # Output a HEADER
-                    if not headered:
-                        header_fields = ["SATELLITE", "ACQUISITION DATE"] + [b.name for b in dataset.bands]
-                        csv_writer.writerow(header_fields)
-                        headered = True
-
-                    data = retrieve_pixel_value(dataset, None, self.latitude, self.longitude)
-                    _log.info("data is [%s]", data)
-
-                    # TODO
-                    if True or self.output_no_data:
-                        csv_writer.writerow([satellite.value, str(acq_dt), decode_wofs_water_value(data[Wofs25Bands.WATER][0][0]), str(data[Wofs25Bands.WATER][0][0])])
-
+                raster_create(filename, [ndvi], metadata.transform, metadata.projection, NDV, gdal.GDT_Float32)
 
     def get_output_filename(self, dataset):
 
-        satellite_str = ""
+        filename = os.path.basename(dataset.path)
 
-        if Satellite.LS5.value in self.satellites or Satellite.LS7.value in self.satellites or Satellite.LS8.value in self.satellites:
-            satellite_str += "LS"
+        if filename.endswith(".vrt"):
+            filename = filename.replace(".vrt", ".tif")
 
-        if Satellite.LS5.value in self.satellites:
-            satellite_str += "5"
+        if self.apply_pqa_filter and dataset.dataset_type != DatasetType.PQ25:
+            dataset_type_string = {
+                DatasetType.ARG25: "_NBAR_",
+                DatasetType.PQ25: "_PQA_",
+                DatasetType.FC25: "_FC_"
+            }[dataset.dataset_type]
 
-        if Satellite.LS7.value in self.satellites:
-            satellite_str += "7"
+            filename = filename.replace(dataset_type_string, dataset_type_string + "WITH_PQA_")
 
-        if Satellite.LS8.value in self.satellites:
-            satellite_str += "8"
+        return os.path.join(self.output_directory, filename)
 
-        dataset_str = ""
+    def get_output_filename_derived_nbar(self, nbar, dataset_type):
 
-        if dataset == DatasetType.ARG25:
-            dataset_str += "NBAR"
+        filename = os.path.basename(nbar.path)
 
-        elif dataset == DatasetType.PQ25:
-            dataset_str += "PQA"
+        if filename.endswith(".vrt"):
+            filename = filename.replace(".vrt", ".tif")
 
-        elif dataset == DatasetType.FC25:
-            dataset_str += "FC"
+        dataset_type_string = {
+            DatasetType.NDVI: "_NDVI_"
+        }[dataset_type]
 
-        elif dataset == DatasetType.WATER:
-            dataset_str += "WOFS"
+        if self.apply_pqa_filter:
+            dataset_type_string += "WITH_PQA_"
 
-        if self.apply_pq_filter and dataset != DatasetType.PQ25:
-            dataset_str += "_WITH_PQA"
+        filename = filename.replace("_NBAR_", dataset_type_string)
 
-        return os.path.join(self.output_directory,
-                            "{satellite}_{dataset}_{longitude:03.5f}_{latitude:03.5f}_{acq_min}_{acq_max}.csv".format(satellite=satellite_str, dataset=dataset_str, latitude=self.latitude,
-                                                                                          longitude=self.longitude,
-                                                                                          acq_min=self.acq_min,
-                                                                                          acq_max=self.acq_max))
+        return os.path.join(self.output_directory, filename)
 
-    def get_output_filename_wofs(self):
-        return os.path.join(self.output_directory,"LS_WOFS_{longitude:03.5f}_{latitude:03.5f}_{acq_min}_{acq_max}.csv".format(latitude=self.latitude,
-                                                                                          longitude=self.longitude,
-                                                                                          acq_min=self.acq_min,
-                                                                                          acq_max=self.acq_max))
+def decode_dataset_type(dataset_type):
+    return {DatasetType.ARG25: "Surface Reflectance",
+              DatasetType.PQ25: "Pixel Quality",
+              DatasetType.FC25: "Fractional Cover",
+              DatasetType.WATER: "WOFS Woffle",
+              DatasetType.NDVI: "NDVI"}[dataset_type]
 
 
-def has_data(dataset, data, no_data_value=NDV):
-    for value in [data[band][0][0] for band in dataset.bands]:
-        if value != no_data_value:
-            return True
+def retrieve_data(dataset, pq, pq_masks, path, overwrite=False):
+    _log.info("Retrieving data from [%s] with pq [%s] and pq mask [%s] to [%s]", dataset.path, pq and pq.path or "", pq and pq_masks or "", path)
 
-    return False
-
-
-def decode_data(dataset, data):
-
-    return [str(data[band][0][0]) for band in dataset.bands]
-
-
-def retrieve_pixel_value(dataset, pq, latitude, longitude):
-    _log.info("Retrieving pixel value(s) at lat=[%f] lon=[%f] from [%s] with pq [%s]", latitude, longitude, dataset.path, pq and pq.path or "")
-
-    metadata = get_dataset_metadata(dataset)
-    x, y = latlon_to_xy(latitude, longitude, metadata.transform)
-
-    _log.debug("Retrieving value at x=[%d] y=[%d]", x, y)
+    if os.path.exists(path) and not overwrite:
+        _log.error("Output file [%s] exists", path)
+        raise Exception("Output file [%s] already exists" % path)
 
     data = None
 
+    metadata = get_dataset_metadata(dataset)
+
     if pq:
-        data = get_dataset_data_with_pq(dataset, pq, x=x, y=y, x_size=1, y_size=1)
+        data = get_dataset_data_with_pq(dataset, pq, pq_masks=pq_masks)
     else:
-        data = get_dataset_data(dataset, x=x, y=y, x_size=1, y_size=1)
+        data = get_dataset_data(dataset)
 
-    _log.info("data is [%s]", data)
+    _log.debug("data is [%s]", data)
 
-    return data
-
-
-# A WaterTile stores 1 data layer encoded as unsigned BYTE values as described in the WaterConstants.py file.
-#
-# Note - legal (decimal) values are:
-#
-#        0:  no water in pixel
-#        1:  no data (one or more bands) in source NBAR image
-#    2-127:  pixel masked for some reason (refer to MASKED bits)
-#      128:  water in pixel
-#
-# Values 129-255 are illegal (i.e. if bit 7 set, all others must be unset)
-#
-#
-# WATER_PRESENT             (dec 128) bit 7: 1=water present, 0=no water if all other bits zero
-# MASKED_CLOUD              (dec 64)  bit 6: 1=pixel masked out due to cloud, 0=unmasked
-# MASKED_CLOUD_SHADOW       (dec 32)  bit 5: 1=pixel masked out due to cloud shadow, 0=unmasked
-# MASKED_HIGH_SLOPE         (dec 16)  bit 4: 1=pixel masked out due to high slope, 0=unmasked
-# MASKED_TERRAIN_SHADOW     (dec 8)   bit 3: 1=pixel masked out due to terrain shadow or low incident angle, 0=unmasked
-# MASKED_SEA_WATER          (dec 4)   bit 2: 1=pixel masked out due to being over sea, 0=unmasked
-# MASKED_NO_CONTIGUITY      (dec 2)   bit 1: 1=pixel masked out due to lack of data contiguity, 0=unmasked
-# NO_DATA                   (dec 1)   bit 0: 1=pixel masked out due to NO_DATA in NBAR source, 0=valid data in NBAR
-# WATER_NOT_PRESENT         (dec 0)          All bits zero indicated valid observation, no water present
-
-
-def decode_wofs_water_value(value):
-
-    # values = {
-    #     0: "Dry|7",
-    #     1: "No Data|0",
-    #     2: "Saturation/Contiguity|1",
-    #     4: "Sea Water|2",
-    #     8: "Terrain Shadow|3",
-    #     16: "High Slope|4",
-    #     32: "Cloud Shadow|5",
-    #     64: "Cloud|6",
-    #     128: "Wet|8"
-    #     }
-
-    values = {
-        0: "Dry",
-        1: "No Data",
-        2: "Saturation/Contiguity",
-        4: "Sea Water",
-        8: "Terrain Shadow",
-        16: "High Slope",
-        32: "Cloud Shadow",
-        64: "Cloud",
-        128: "Wet"
-        }
-
-    return values[value]
+    raster_create(path, [data[b] for b in dataset.bands],
+              metadata.transform, metadata.projection, NDV, gdal.GDT_Int16)
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
 
-    TimeSeriesRetrievalWorkflow("Time Series Retrieval").run()
+    DatasetRetrievalWorkflow("Dataset Retrieval").run()

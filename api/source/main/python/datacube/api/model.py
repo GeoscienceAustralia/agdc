@@ -139,6 +139,16 @@ class DatasetType(Enum):
     FC25 = "FC25"
     DSM = "DSM"
     WATER = "WATER"
+    NDVI = "NDVI"
+    EVI = "EVI"
+    SAVI = "SAVI"
+    TCI = "TCI"
+    NBR = "NBR"
+
+
+dataset_type_database = [DatasetType.ARG25, DatasetType.PQ25, DatasetType.FC25]
+dataset_type_filesystem = [DatasetType.WATER]
+dataset_type_derived_nbar = [DatasetType.NDVI, DatasetType.EVI, DatasetType.TCI, DatasetType.NBR]
 
 
 class DatasetTile:
