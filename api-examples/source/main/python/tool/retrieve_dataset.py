@@ -41,7 +41,8 @@ import sys
 from datacube.api.model import DatasetType, DatasetTile, Wofs25Bands, Satellite, dataset_type_database, \
     dataset_type_derived_nbar
 from datacube.api.query import list_tiles
-from datacube.api.utils import latlon_to_cell, latlon_to_xy, PqaMask, raster_create, intersection, calculate_ndvi
+from datacube.api.utils import latlon_to_cell, latlon_to_xy, PqaMask, raster_create, intersection, calculate_ndvi, \
+    calculate_evi, calculate_nbr
 from datacube.api.utils import get_dataset_data, get_dataset_data_with_pq, get_dataset_metadata
 from datacube.api.utils import extract_fields_from_filename, NDV
 from datacube.api.workflow import writeable_dir
@@ -247,7 +248,7 @@ class DatasetRetrievalWorkflow():
                                host=config.get_db_host(), port=config.get_db_port()):
 
             if self.list_only:
-                _log.info("Would retrieve datasets [%s]", [tile.datasets[t].path for t in self.dataset_types])
+                _log.info("Would retrieve datasets [%s]", [tile.datasets[t].path for t in intersection(self.dataset_types, dataset_type_database)])
                 continue
 
             pqa = None
@@ -282,8 +283,15 @@ class DatasetRetrievalWorkflow():
 
             if dataset_type == DatasetType.NDVI:
                 ndvi = calculate_ndvi(data[nbar.bands.RED], data[nbar.bands.NEAR_INFRARED])
-
                 raster_create(filename, [ndvi], metadata.transform, metadata.projection, NDV, gdal.GDT_Float32)
+
+            elif dataset_type == DatasetType.EVI:
+                evi = calculate_evi(data[nbar.bands.RED], data[nbar.bands.BLUE], data[nbar.bands.NEAR_INFRARED])
+                raster_create(filename, [evi], metadata.transform, metadata.projection, NDV, gdal.GDT_Float32)
+
+            elif dataset_type == DatasetType.NBR:
+                nbr = calculate_nbr(data[nbar.bands.NEAR_INFRARED], data[nbar.bands.SHORT_WAVE_INFRARED_2])
+                raster_create(filename, [nbr], metadata.transform, metadata.projection, NDV, gdal.GDT_Float32)
 
     def get_output_filename(self, dataset):
 
@@ -311,7 +319,9 @@ class DatasetRetrievalWorkflow():
             filename = filename.replace(".vrt", ".tif")
 
         dataset_type_string = {
-            DatasetType.NDVI: "_NDVI_"
+            DatasetType.NDVI: "_NDVI_",
+            DatasetType.EVI: "_EVI_",
+            DatasetType.NBR: "_NBR_"
         }[dataset_type]
 
         if self.apply_pqa_filter:
@@ -326,7 +336,9 @@ def decode_dataset_type(dataset_type):
               DatasetType.PQ25: "Pixel Quality",
               DatasetType.FC25: "Fractional Cover",
               DatasetType.WATER: "WOFS Woffle",
-              DatasetType.NDVI: "NDVI"}[dataset_type]
+              DatasetType.NDVI: "NDVI",
+              DatasetType.EVI: "EVI",
+              DatasetType.NBR: "Normalised Burn Ratio"}[dataset_type]
 
 
 def retrieve_data(dataset, pq, pq_masks, path, overwrite=False):

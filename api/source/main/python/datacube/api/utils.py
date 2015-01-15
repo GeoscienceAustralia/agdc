@@ -345,13 +345,54 @@ def propagate_using_selected_pixel(a, b, c, d, ndv=NDV):
 
 
 def calculate_ndvi(red, nir, input_ndv=NDV, output_ndv=NDV):
-    m_red = numpy.ma.masked_equal(red, input_ndv)
-    m_nir = numpy.ma.masked_equal(nir, input_ndv)
+    """
+    Calculate the Normalised Difference Vegetation Index (NDVI) from a Landsat dataset
 
-    ndvi = numpy.true_divide(m_nir - m_red, m_nir + m_red)
+    NDVI is defined as (NIR - RED) / (NIR + RED)
+    """
+
+    red = numpy.ma.masked_equal(red, input_ndv)
+    nir = numpy.ma.masked_equal(nir, input_ndv)
+
+    ndvi = numpy.true_divide(nir - red, nir + red)
     ndvi = ndvi.filled(output_ndv)
 
     return ndvi
+
+
+def calculate_evi(red, blue, nir, l=1, c1=6, c2=7.5, input_ndv=NDV, output_ndv=NDV):
+    """
+    Calculate the Enhanced Vegetation Index (EVI) from a Landsat dataset first applying Pixel Quality indicators
+
+    EVI is defined as 2.5 * (NIR - RED) / (NIR + C1 * RED - C2 * BLUE + L)
+
+    Defaults to the standard MODIS EVI of L=1 C1=6 C2=7.5
+    """
+
+    red = numpy.ma.masked_equal(red, input_ndv)
+    blue = numpy.ma.masked_equal(blue, input_ndv)
+    nir = numpy.ma.masked_equal(nir, input_ndv)
+
+    evi = 2.5 * numpy.true_divide(nir - red, nir + c1 * red - c2 * blue + 1)
+    evi = evi.filled(output_ndv)
+
+    return evi
+
+
+def calculate_nbr(nir, swir, input_ndv=NDV, output_ndv=NDV):
+    """
+    Calculate the Normalised Burn Ratio (NBR) from a Landsat dataset
+
+    NBR is defined as (NIR - SWIR 2) / (NIR + SWIR 2)
+    """
+
+    nir = numpy.ma.masked_equal(nir, input_ndv)
+    swir = numpy.ma.masked_equal(swir, input_ndv)
+
+    nbr = numpy.true_divide(nir - swir, nir + swir)
+    nbr = nbr.filled(output_ndv)
+
+    return nbr
 
 
 class TasselCapIndex(Enum):
@@ -488,13 +529,7 @@ def calculate_tassel_cap_index(bands, coefficients, input_ndv=NDV, output_ndv=nu
 
     tci = 0
 
-    for b in [Ls57Arg25Bands.BLUE,
-              Ls57Arg25Bands.GREEN,
-              Ls57Arg25Bands.RED,
-              Ls57Arg25Bands.NEAR_INFRARED,
-              Ls57Arg25Bands.SHORT_WAVE_INFRARED_1,
-              Ls57Arg25Bands.SHORT_WAVE_INFRARED_2]:
-
+    for b in bands:
         tci += bands_masked[b] * coefficients[b]
 
     tci = tci.filled(output_ndv)
