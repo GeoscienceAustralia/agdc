@@ -26,25 +26,21 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ===============================================================================
-import gdal
+import subprocess
 
 
 __author__ = "Simon Oldfield"
 
 
 import argparse
-import csv
-import glob
+import gdal
+import itertools
 import logging
 import os
-import sys
-from datacube.api.model import DatasetType, DatasetTile, Wofs25Bands, Satellite, dataset_type_database, \
-    dataset_type_derived_nbar
+from datacube.api.model import DatasetType, Satellite, dataset_type_database, dataset_type_derived_nbar, BANDS
 from datacube.api.query import list_tiles
-from datacube.api.utils import latlon_to_cell, latlon_to_xy, PqaMask, raster_create, intersection, calculate_ndvi, \
-    calculate_evi, calculate_nbr
-from datacube.api.utils import get_dataset_data, get_dataset_data_with_pq, get_dataset_metadata
-from datacube.api.utils import extract_fields_from_filename, NDV
+from datacube.api.utils import PqaMask, raster_create, intersection, calculate_ndvi, calculate_evi, calculate_nbr
+from datacube.api.utils import get_dataset_data, get_dataset_data_with_pq, get_dataset_metadata, NDV
 from datacube.api.workflow import writeable_dir
 from datacube.config import Config
 
@@ -97,6 +93,8 @@ class DatasetRetrievalWorkflow():
     overwrite = None
     list_only = None
 
+    stack_vrt = None
+
     def __init__(self, application_name):
         self.application_name = application_name
 
@@ -141,6 +139,8 @@ class DatasetRetrievalWorkflow():
         parser.add_argument("--overwrite", help="Over write existing output file", action="store_true", dest="overwrite", default=False)
 
         parser.add_argument("--list-only", help="List the datasets that would be retrieved rather than retrieving them", action="store_true", dest="list_only", default=False)
+
+        parser.add_argument("--stack-vrt", help="Create a band stack VRT", action="store_true", dest="stack_vrt", default=False)
 
         args = parser.parse_args()
 
@@ -207,6 +207,8 @@ class DatasetRetrievalWorkflow():
         self.overwrite = args.overwrite
         self.list_only = args.list_only
 
+        self.stack_vrt = args.stack_vrt
+
         _log.info("""
         x = {x:03d}
         y = {y:04d}
@@ -220,6 +222,7 @@ class DatasetRetrievalWorkflow():
         output directory = {output}
         over write existing = {overwrite}
         list only = {list_only}
+        stack (VRT) = {stack_vrt}
         """.format(x=self.x, y=self.y,
                    acq_min=self.acq_min, acq_max=self.acq_max,
                    process_min=self.process_min, process_max=self.process_max,
@@ -229,13 +232,22 @@ class DatasetRetrievalWorkflow():
                    dataset_type=[decode_dataset_type(t) for t in self.dataset_types],
                    output=self.output_directory,
                    overwrite=self.overwrite,
-                   list_only=self.list_only))
+                   list_only=self.list_only,
+                   stack_vrt=self.stack_vrt))
 
     def run(self):
         self.parse_arguments()
 
         config = Config(os.path.expanduser("~/.datacube/config"))
         _log.debug(config.to_str())
+
+        # Clear stack files
+        # TODO - filename consistency and safety and so on
+
+        if self.stack_vrt:
+            for satellite, dataset_type in itertools.product(self.satellites, self.dataset_types):
+                path = os.path.join(self.output_directory, get_filename_file_list(satellite, dataset_type, self.x, self.y))
+                check_overwrite_remove_or_fail(path, self.overwrite)
 
         # TODO once WOFS is in the cube
 
@@ -259,11 +271,22 @@ class DatasetRetrievalWorkflow():
                 pqa = tile.datasets[DatasetType.PQ25]
 
             for dataset_type in intersection(self.dataset_types, dataset_type_database):
-                retrieve_data(tile.datasets[dataset_type], pqa, self.pqa_mask, self.get_output_filename(tile.datasets[dataset_type]), self.overwrite)
+                retrieve_data(tile.datasets[dataset_type], pqa, self.pqa_mask, self.get_output_filename(tile.datasets[dataset_type]), tile.x, tile.y, self.overwrite, self.stack_vrt)
 
             nbar = tile.datasets[DatasetType.ARG25]
 
             self.generate_derived_nbar(intersection(self.dataset_types, dataset_type_derived_nbar), nbar, pqa, self.pqa_mask, self.overwrite)
+
+        # Generate VRT stack
+        if self.stack_vrt:
+            for satellite, dataset_type in itertools.product(self.satellites, self.dataset_types):
+                path = os.path.join(self.output_directory, get_filename_file_list(satellite, dataset_type, self.x, self.y))
+                if os.path.exists(path):
+                    for band in BANDS[dataset_type, satellite]:
+                        path_vrt = os.path.join(self.output_directory, get_filename_stack_vrt(satellite, dataset_type, self.x, self.y, band))
+                        _log.info("Generating VRT file [%s] for band [%s]", path_vrt, band)
+                        # gdalbuildrt -separate -b <band> -input_file_list <input file> <vrt file>
+                        subprocess.call(["gdalbuildvrt", "-separate", "-b", str(band.value), "-input_file_list", path, path_vrt])
 
     def generate_derived_nbar(self, dataset_types, nbar, pqa, pqa_masks, overwrite=False):
         for dataset_type in dataset_types:
@@ -331,6 +354,7 @@ class DatasetRetrievalWorkflow():
 
         return os.path.join(self.output_directory, filename)
 
+
 def decode_dataset_type(dataset_type):
     return {DatasetType.ARG25: "Surface Reflectance",
               DatasetType.PQ25: "Pixel Quality",
@@ -341,7 +365,7 @@ def decode_dataset_type(dataset_type):
               DatasetType.NBR: "Normalised Burn Ratio"}[dataset_type]
 
 
-def retrieve_data(dataset, pq, pq_masks, path, overwrite=False):
+def retrieve_data(dataset, pq, pq_masks, path, x, y, overwrite=False, stack=False):
     _log.info("Retrieving data from [%s] with pq [%s] and pq mask [%s] to [%s]", dataset.path, pq and pq.path or "", pq and pq_masks or "", path)
 
     if os.path.exists(path) and not overwrite:
@@ -362,6 +386,58 @@ def retrieve_data(dataset, pq, pq_masks, path, overwrite=False):
     raster_create(path, [data[b] for b in dataset.bands],
               metadata.transform, metadata.projection, NDV, gdal.GDT_Int16)
 
+    # If we are creating a stack then also add to a file list file...
+    if stack:
+        path_file_list = os.path.join(os.path.dirname(path), get_filename_file_list(dataset.satellite, dataset.dataset_type, x, y))
+        _log.info("Also going to write file list to [%s]", path_file_list)
+        with open(path_file_list, "ab") as f:
+            print >>f, path
+
+
+def get_filename_file_list(satellite, dataset_type, x, y):
+
+    satellite_str = "LS"
+
+    if satellite == Satellite.LS8 and dataset_type == DatasetType.ARG25:
+        satellite_str += "8"
+
+    dataset_type_str = {
+        DatasetType.ARG25: "NBAR",
+        DatasetType.PQ25: "PQA",
+        DatasetType.FC25: "FC",
+        DatasetType.NDVI: "NDVI",
+        DatasetType.EVI: "EVI",
+        DatasetType.NBR: "NBR"
+    }[dataset_type]
+
+    return "{satellite}_{dataset}_{x:03d}_{y:04d}.files.txt".format(satellite=satellite_str, dataset=dataset_type, x=x, y=y)
+
+
+def get_filename_stack_vrt(satellite, dataset_type, x, y, band):
+
+    satellite_str = "LS"
+
+    if satellite == Satellite.LS8 and dataset_type == DatasetType.ARG25:
+        satellite_str += "8"
+
+    dataset_type_str = {
+        DatasetType.ARG25: "NBAR",
+        DatasetType.PQ25: "PQA",
+        DatasetType.FC25: "FC",
+        DatasetType.NDVI: "NDVI",
+        DatasetType.EVI: "EVI",
+        DatasetType.NBR: "NBR"
+    }[dataset_type]
+
+    return "{satellite}_{dataset}_{x:03d}_{y:04d}_{band}.vrt".format(satellite=satellite_str, dataset=dataset_type, x=x, y=y, band=band.name)
+
+
+def check_overwrite_remove_or_fail(path, overwrite):
+    if os.path.exists(path):
+        if overwrite:
+            os.remove(path)
+        else:
+            raise Exception("File [%s] exists" % path)
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
