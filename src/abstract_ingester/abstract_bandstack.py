@@ -50,6 +50,12 @@ class AbstractBandstack(object):
     the information for each source band.
     """
 
+    def __init__(self, dataset_mdd):
+        """
+        :type dataset_mdd: dict of (str, str)
+        """
+        self.dataset_mdd = dataset_mdd
+
     __metaclass__ = ABCMeta
 
     #
