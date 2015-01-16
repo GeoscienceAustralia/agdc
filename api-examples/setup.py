@@ -32,10 +32,10 @@ __author__ = "Simon Oldfield"
 from setuptools import setup
 
 setup(name="agdc-api-examples",
-      version="0.0.1-2015-01-14-001",
+      version="0.0.1-2015-01-16-001",
       # package_dir={"": "source/main/python", "test": "source/test/python"},
       # packages=["datacube", "datacube.api", "datacube.api.raster"],
-      scripts=["source/main/python/tool/retrieve_time_series_pixel.py",
+      scripts=["source/main/python/tool/retrieve_pixel_time_series.py",
                "source/main/python/tool/retrieve_dataset.py"],
       author="Geoscience Australia",
       maintainer="Geoscience Australia",
