@@ -24,6 +24,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ===============================================================================
+from datetime import datetime
+import math
 
 
 __author__ = "Simon Oldfield"
@@ -34,7 +36,7 @@ import numpy
 import gdal
 from gdalconst import *
 from enum import Enum
-from datacube.api.model import Pq25Bands, Ls57Arg25Bands, Satellite
+from datacube.api.model import Pq25Bands, Ls57Arg25Bands, Satellite, DatasetType
 
 
 _log = logging.getLogger(__name__)
@@ -57,22 +59,44 @@ _log = logging.getLogger(__name__)
 #       - 12 = not cloud shadow (ACCA test)
 #       - 13 = not cloud shadow (FMASK test)
 
-PQA_MASK = 0x3fff  # This represents bits 0-13 set
-PQA_MASK_CONTIGUITY = 0x01FF
-PQA_MASK_CLOUD = 0x0C00
-PQA_MASK_CLOUD_SHADOW = 0x3000
-PQA_MASK_SEA_WATER = 0x0200
+# ### DEPRECATE AND REMOVE THESE IN FAVOUR OF THE ENUM!!!
+#
+# PQA_MASK = 0x3fff  # This represents bits 0-13 set
+# PQA_MASK_CONTIGUITY = 0x01FF
+# PQA_MASK_CLOUD = 0x0C00
+# PQA_MASK_CLOUD_SHADOW = 0x3000
+# PQA_MASK_SEA_WATER = 0x0200
+#
+# PQ_MASK_CLEAR = 16383               # bits 0 - 13 set
+# PQ_MASK_SATURATION = 255            # bits 0 - 7 set
+# PQ_MASK_SATURATION_OPTICAL = 159    # bits 0-4 and 7 set
+# PQ_MASK_SATURATION_THERMAL = 96     # bits 5,6 set
+# PQ_MASK_CONTIGUITY = 256            # bit 8 set
+# PQ_MASK_LAND = 512                  # bit 9 set
+# PQ_MASK_CLOUD_ACCA = 1024           # bit 10 set
+# PQ_MASK_CLOUD_FMASK = 2048          # bit 11 set
+# PQ_MASK_CLOUD_SHADOW_ACCA = 4096    # bit 12 set
+# PQ_MASK_CLOUD_SHADOW_FMASK = 8192   # bit 13 set
 
-PQ_MASK_CLEAR = 16383               # bits 0 - 13 set
-PQ_MASK_SATURATION = 255            # bits 0 - 7 set
-PQ_MASK_SATURATION_OPTICAL = 159    # bits 0-4 and 7 set
-PQ_MASK_SATURATION_THERMAL = 96     # bits 5,6 set
-PQ_MASK_CONTIGUITY = 256            # bit 8 set
-PQ_MASK_LAND = 512                  # bit 9 set
-PQ_MASK_CLOUD_ACCA = 1024           # bit 10 set
-PQ_MASK_CLOUD_FMASK = 2048          # bit 11 set
-PQ_MASK_CLOUD_SHADOW_ACCA = 4096    # bit 12 set
-PQ_MASK_CLOUD_SHADOW_FMASK = 8192   # bit 13 set
+class PqaMask(Enum):
+    PQ_MASK_CLEAR = 16383               # bits 0 - 13 set
+
+    PQ_MASK_SATURATION = 255            # bits 0 - 7 set
+    PQ_MASK_SATURATION_OPTICAL = 159    # bits 0-4 and 7 set
+    PQ_MASK_SATURATION_THERMAL = 96     # bits 5,6 set
+
+    PQ_MASK_CONTIGUITY = 256            # bit 8 set
+
+    PQ_MASK_LAND = 512                  # bit 9 set
+
+    PQ_MASK_CLOUD = 15360               # bits 10-13
+
+    PQ_MASK_CLOUD_ACCA = 1024           # bit 10 set
+    PQ_MASK_CLOUD_FMASK = 2048          # bit 11 set
+
+    PQ_MASK_CLOUD_SHADOW_ACCA = 4096    # bit 12 set
+    PQ_MASK_CLOUD_SHADOW_FMASK = 8192   # bit 13 set
+
 
 # Standard no data value
 NDV = -999
@@ -164,6 +188,10 @@ def get_dataset_data(dataset, bands=None, x=0, y=0, x_size=None, y_size=None):
 
     :param dataset: The dataset from which to read the band
     :param bands: A list of bands to read from the dataset
+    :param x:
+    :param y:
+    :param x_size:
+    :param y_size:
     :return: dictionary of band/data as numpy array
     """
 
@@ -192,14 +220,20 @@ def get_dataset_data(dataset, bands=None, x=0, y=0, x_size=None, y_size=None):
     return out
 
 
-def get_dataset_data_with_pq(dataset, pq_dataset, bands=None, pq_mask=PQA_MASK):
+DEFAULT_PQA_MASK = [PqaMask.PQ_MASK_CLEAR]
+
+def get_dataset_data_with_pq(dataset, pq_dataset, bands=None, x=0, y=0, x_size=None, y_size=None, pq_masks=DEFAULT_PQA_MASK):
 
     """
     Return one or more bands from the dataset with pixel quality applied
 
     :param dataset: The dataset from which to read the band
-    :param bands: A list of bands to read from the dataset
     :param pq_dataset: The pixel quality dataset
+    :param bands: A list of bands to read from the dataset
+    :param x:
+    :param y:
+    :param x_size:
+    :param y_size:
     :param pq_mask: Required pixel quality mask to apply
     :return: dictionary of band/data as numpy array
     """
@@ -207,25 +241,27 @@ def get_dataset_data_with_pq(dataset, pq_dataset, bands=None, pq_mask=PQA_MASK):
     if not bands:
         bands = dataset.bands
 
-    out = get_dataset_data(dataset, bands)
+    out = get_dataset_data(dataset, bands, x=x, y=y, x_size=x_size, y_size=y_size)
 
-    data_pq = get_dataset_data(pq_dataset, [Pq25Bands.PQ])[Pq25Bands.PQ]
+    data_pq = get_dataset_data(pq_dataset, [Pq25Bands.PQ], x=x, y=y, x_size=x_size, y_size=y_size)[Pq25Bands.PQ]
 
     for band in bands:
 
-        out[band] = apply_pq(out[band], data_pq, mask=pq_mask)
+        out[band] = apply_pq(out[band], data_pq, pq_masks=pq_masks)
 
     return out
 
 
-def apply_pq(dataset, pq, ndv=NDV, mask=PQA_MASK):
+def apply_pq(dataset, pq, ndv=NDV, pq_masks=DEFAULT_PQA_MASK):
 
-    pq_mask = numpy.ma.masked_not_equal(pq, mask).mask
+    # Get the PQ mask
+    mask = get_pq_mask(pq, pq_masks)
 
-    return numpy.ma.array(dataset, mask=pq_mask).filled(ndv)
+    # Apply the PQ mask to the dataset and fill masked entries with no data value
+    return numpy.ma.array(dataset, mask=mask).filled(ndv)
 
 
-def get_pq_mask(pq, mask=PQA_MASK):
+def get_pq_mask(pq, pq_masks=DEFAULT_PQA_MASK):
 
     """
     Return a pixel quality mask
@@ -235,7 +271,20 @@ def get_pq_mask(pq, mask=PQA_MASK):
     :return: the PQ mask
     """
 
-    return numpy.ma.masked_not_equal(pq, mask).mask
+    # Consolidate the list of (bit) masks into a single (bit) mask
+    pq_mask = consolidate_pq_mask(pq_masks)
+
+    # Mask out values where the requested bits in the PQ value are not set
+    return numpy.ma.masked_where(pq & pq_mask != pq_mask, pq).mask
+
+
+def consolidate_pq_mask(masks):
+    mask = 0x0000
+
+    for m in masks:
+        mask |= m.value
+
+    return mask
 
 
 def raster_create(path, data, transform, projection, no_data_value, data_type,
@@ -254,7 +303,7 @@ def raster_create(path, data, transform, projection, no_data_value, data_type,
     :param options: raster creation options
     """
 
-    _log.info("creating output raster %s", path)
+    _log.debug("creating output raster %s", path)
     _log.debug("filename=%s | shape = %s | bands = %d | data type = %s", path, (numpy.shape(data[0])[0], numpy.shape(data[0])[1]),
                len(data), data_type)
 
@@ -270,7 +319,7 @@ def raster_create(path, data, transform, projection, no_data_value, data_type,
     dataset.SetProjection(projection)
 
     for i in range(0, len(data)):
-        _log.info("Writing band %d", i + 1)
+        _log.debug("Writing band %d", i + 1)
         dataset.GetRasterBand(i + 1).SetNoDataValue(no_data_value)
         dataset.GetRasterBand(i + 1).WriteArray(data[i])
         dataset.GetRasterBand(i + 1).ComputeStatistics(True)
@@ -296,13 +345,54 @@ def propagate_using_selected_pixel(a, b, c, d, ndv=NDV):
 
 
 def calculate_ndvi(red, nir, input_ndv=NDV, output_ndv=NDV):
-    m_red = numpy.ma.masked_equal(red, input_ndv)
-    m_nir = numpy.ma.masked_equal(nir, input_ndv)
+    """
+    Calculate the Normalised Difference Vegetation Index (NDVI) from a Landsat dataset
 
-    ndvi = numpy.true_divide(m_nir - m_red, m_nir + m_red)
+    NDVI is defined as (NIR - RED) / (NIR + RED)
+    """
+
+    red = numpy.ma.masked_equal(red, input_ndv)
+    nir = numpy.ma.masked_equal(nir, input_ndv)
+
+    ndvi = numpy.true_divide(nir - red, nir + red)
     ndvi = ndvi.filled(output_ndv)
 
     return ndvi
+
+
+def calculate_evi(red, blue, nir, l=1, c1=6, c2=7.5, input_ndv=NDV, output_ndv=NDV):
+    """
+    Calculate the Enhanced Vegetation Index (EVI) from a Landsat dataset first applying Pixel Quality indicators
+
+    EVI is defined as 2.5 * (NIR - RED) / (NIR + C1 * RED - C2 * BLUE + L)
+
+    Defaults to the standard MODIS EVI of L=1 C1=6 C2=7.5
+    """
+
+    red = numpy.ma.masked_equal(red, input_ndv)
+    blue = numpy.ma.masked_equal(blue, input_ndv)
+    nir = numpy.ma.masked_equal(nir, input_ndv)
+
+    evi = 2.5 * numpy.true_divide(nir - red, nir + c1 * red - c2 * blue + 1)
+    evi = evi.filled(output_ndv)
+
+    return evi
+
+
+def calculate_nbr(nir, swir, input_ndv=NDV, output_ndv=NDV):
+    """
+    Calculate the Normalised Burn Ratio (NBR) from a Landsat dataset
+
+    NBR is defined as (NIR - SWIR 2) / (NIR + SWIR 2)
+    """
+
+    nir = numpy.ma.masked_equal(nir, input_ndv)
+    swir = numpy.ma.masked_equal(swir, input_ndv)
+
+    nbr = numpy.true_divide(nir - swir, nir + swir)
+    nbr = nbr.filled(output_ndv)
+
+    return nbr
 
 
 class TasselCapIndex(Enum):
@@ -421,31 +511,15 @@ TCI_COEFFICIENTS = {
 }
 
 
-# def calculate_tassel_cap_indice(bands, coefficients, input_ndv=NDV, output_ndv=NDV):
-#
-#     bands_m = dict()
-#
-#     # Drop out no data values - do I need this???
-#
-#     for b in bands.iterkeys():
-#         bands_m[b] = numpy.ma.masked_equal(bands[b], input_ndv)
-#
-#     tci = 0
-#
-#     for b in [Arg25Bands.BLUE, Arg25Bands.GREEN, Arg25Bands.RED, Arg25Bands.NEAR_INFRARED,
-#               Arg25Bands.SHORT_WAVE_INFRARED_1, Arg25Bands.SHORT_WAVE_INFRARED_2]:
-#         tci += bands_m[b] * coefficients[b]
-#
-#     # Dunno about the scaling factor and the no data value???
-#
-#     tci = (tci * 10000).astype(numpy.int16)
-#     tci = tci.filled(output_ndv)
-#
-#     return tci
-
-
 def calculate_tassel_cap_index(bands, coefficients, input_ndv=NDV, output_ndv=numpy.nan):
+    """
 
+    :param bands:
+    :param coefficients:
+    :param input_ndv:
+    :param output_ndv:
+    :return:
+    """
     bands_masked = dict()
 
     # Drop out no data values - do I need this???
@@ -455,13 +529,7 @@ def calculate_tassel_cap_index(bands, coefficients, input_ndv=NDV, output_ndv=nu
 
     tci = 0
 
-    for b in [Ls57Arg25Bands.BLUE,
-              Ls57Arg25Bands.GREEN,
-              Ls57Arg25Bands.RED,
-              Ls57Arg25Bands.NEAR_INFRARED,
-              Ls57Arg25Bands.SHORT_WAVE_INFRARED_1,
-              Ls57Arg25Bands.SHORT_WAVE_INFRARED_2]:
-
+    for b in bands:
         tci += bands_masked[b] * coefficients[b]
 
     tci = tci.filled(output_ndv)
@@ -498,3 +566,93 @@ def calculate_medoid(X, dist=None):
 #
 #     ndx = vectormedian(imagestack)
 #     medianimg = selectmedianimage(imagestack, ndx)
+
+
+def latlon_to_xy(lat, lon, transform):
+    """
+    Convert lat/lon to x/y for raster
+    NOTE: No projection done - assumes raster has native lat/lon projection
+
+    :param lat: latitude
+    :param lon: longitude
+    :param transform: GDAL GeoTransform
+    :return: x, y pair
+    """
+    # Get the reverse direction GeoTransform
+    _, transform = gdal.InvGeoTransform(transform)
+
+    ulx, uly = transform[0], transform[3]
+    psx, psy = transform[1], transform[5]
+
+    x = int(math.floor(ulx + psx * lon))
+    y = int(math.floor(uly + psy * lat))
+
+    return x, y
+
+
+def latlon_to_cell(lat, lon):
+    """
+    Return the cell that contains the given lat/lon pair
+
+    NOTE: x of cell represents min (contained) lon value but y of cell represents max (not contained) lat value
+        that is, 120_-20 contains lon values 120->120.99999 but lat values -19->-19.99999
+        that is, that is, 120_-20 does NOT contain lat value of -20
+
+    :param lat: latitude
+    :param lon: longitude
+    :return: cell as x, y pair
+    """
+    x = int(lon)
+    y = int(lat) - 1
+
+    return x, y
+
+
+# TODO this is a bit of dodginess until the WOFS tiles are ingested
+# DO NOT USE THIS IT WON'T STAY!!!!
+
+def extract_fields_from_filename(filename):
+    """
+
+    :param filename:
+    :return:
+    """
+
+    # At the moment I only need this to work for the WOFS WATER extent tile files....
+    #  LS5_TM_WATER_120_-021_2004-09-20T01-40-14.409038.tif
+    #  LS7_ETM_WATER_120_-021_2006-06-30T01-45-48.187525.tif
+
+    if filename.endswith(".tif"):
+        filename = filename[:-len(".tif")]
+
+    elif filename.endswith(".tiff"):
+        filename = filename[:-len(".tiff")]
+
+    elif filename.endswith(".vrt"):
+        filename = filename[:-len(".vrt")]
+
+    fields = filename.split("_")
+
+    # Satellite
+    satellite = Satellite[fields[0]]
+
+    # Dataset Type
+    dataset_type = DatasetType[fields[2]]
+
+    # Cell
+    x, y = int(fields[3]), int(fields[4])
+
+    # Acquisition Date/Time
+    acq_str = fields[5].split(".")[0] # go from "2006-06-30T01-45-48.187525" to "2006-06-30T01-45-48"
+    acq_dt = datetime.strptime(acq_str, "%Y-%m-%dT%H-%M-%S")
+
+    return satellite, dataset_type, x, y, acq_dt
+
+def intersection(a, b):
+    return list(set(a) & set(b))
+
+def union(a, b):
+    return list(set(a) | set(b))
+
+def subset(a, b):
+    return set(a) <= set(b)

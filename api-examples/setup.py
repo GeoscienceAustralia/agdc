@@ -25,19 +25,21 @@
 # ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#===============================================================================
+# ===============================================================================
 
 __author__ = "Simon Oldfield"
 
 from setuptools import setup
 
-setup(name="agdc-api",
+setup(name="agdc-api-examples",
       version="0.0.1-2015-01-16-001",
-      package_dir={"": "source/main/python", "test": "source/test/python"},
-      packages=["datacube", "datacube.api", "datacube.api.raster"],
+      # package_dir={"": "source/main/python", "test": "source/test/python"},
+      # packages=["datacube", "datacube.api", "datacube.api.raster"],
+      scripts=["source/main/python/tool/retrieve_pixel_time_series.py",
+               "source/main/python/tool/retrieve_dataset.py"],
       author="Geoscience Australia",
       maintainer="Geoscience Australia",
-      description="AGDC API",
-      license="BSD 3",
-      requires = ["gdal", "numpy", "psycopg2", "enum34"]
+      description="AGDC API Examples",
+      license="BSD 3"#,
+      # requires = ["agdc-api"]
 )

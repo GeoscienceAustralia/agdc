@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/bin/bash
 
 # ===============================================================================
 # Copyright (c)  2014 Geoscience Australia
@@ -25,19 +25,13 @@
 # ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#===============================================================================
+# ===============================================================================
 
-__author__ = "Simon Oldfield"
+BASE_DIR="/g/data/u46/sjo/clean_pixel/LS8/geoserver/2013-12-31"
 
-from setuptools import setup
+PBS_SCRIPT="$HOME/source/agdc-api/api-examples/source/main/python/landsat_mosaic_pyramid.pbs.sh"
 
-setup(name="agdc-api",
-      version="0.0.1-2015-01-16-001",
-      package_dir={"": "source/main/python", "test": "source/test/python"},
-      packages=["datacube", "datacube.api", "datacube.api.raster"],
-      author="Geoscience Australia",
-      maintainer="Geoscience Australia",
-      description="AGDC API",
-      license="BSD 3",
-      requires = ["gdal", "numpy", "psycopg2", "enum34"]
-)
+for i in DATE NBAR SAT
+do
+	qsub -v dir="${BASE_DIR}/${i}/pyramid" "${PBS_SCRIPT}"
+done

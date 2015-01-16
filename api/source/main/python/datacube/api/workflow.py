@@ -38,7 +38,7 @@ import logging
 import luigi
 from datacube.config import Config
 from datacube.api.model import DatasetType, Tile
-from datacube.api.query import list_cells, list_tiles_to_file, list_tiles
+from datacube.api.query import list_cells, list_tiles_to_file, list_tiles, SortType
 import os.path
 
 
@@ -171,11 +171,11 @@ class CellTask(luigi.Task):
         else:
             self.doit()
 
-    def get_tiles(self):
+    def get_tiles(self, sort=SortType.ASC):
         if self.csv:
             return self.get_tiles_csv()
         else:
-            return self.get_tiles_db()
+            return self.get_tiles_db(sort=sort)
 
     def get_tiles_csv(self):
         with open(self.input().path, "rb") as f:
@@ -183,15 +183,15 @@ class CellTask(luigi.Task):
             for record in reader:
                 tile = Tile.from_csv_record(record)
 
-                # Copy input files if requested
-                if self.save_input_files:
-                    input_file_save_dir = self.output_directory + "_input_files"
-                    for dataset in tile.datasets:
-                        os.link(dataset.path, input_file_save_dir)
+                # # Copy input files if requested
+                # if self.save_input_files:
+                #     input_file_save_dir = self.output_directory + "_input_files"
+                #     for dataset in tile.datasets:
+                #         os.link(dataset.path, input_file_save_dir)
 
                 yield tile
 
-    def get_tiles_db(self):
+    def get_tiles_db(self, sort=SortType.ASC):
         from datacube.config import Config
 
         config = Config(os.path.expanduser("~/.datacube/config"))
@@ -200,16 +200,17 @@ class CellTask(luigi.Task):
         for tile in list_tiles(x=[self.x], y=[self.y], acq_min=self.acq_min, acq_max=self.acq_max,
                                satellites=[satellite for satellite in self.satellites],
                                datasets=[DatasetType.ARG25, DatasetType.PQ25, DatasetType.FC25],
+                               sort=sort,
                                database=config.get_db_database(),
                                user=config.get_db_username(),
                                password=config.get_db_password(),
                                host=config.get_db_host(), port=config.get_db_port()):
 
-            # Copy input files if requested
-            if self.save_input_files:
-                input_file_save_dir = self.output_directory + "_input_files"
-                for dataset in tile.datasets:
-                    os.link(dataset.path, input_file_save_dir)
+            # # Copy input files if requested
+            # if self.save_input_files:
+            #     input_file_save_dir = self.output_directory + "_input_files"
+            #     for dataset in tile.datasets:
+            #         os.link(dataset.path, input_file_save_dir)
 
             yield tile
 
@@ -415,6 +416,7 @@ class Workflow(object):
         output directory = {output_directory}
         csv = {csv}
         dummy = {dummy}
+        save input files = {save_input_files}
         apply PQ filter = {apply_pq_filter}
         local scheduler = {local_scheduler}
         """.format(x_min=self.x_min, x_max=self.x_max, y_min=self.y_min, y_max=self.y_max,
@@ -422,7 +424,7 @@ class Workflow(object):
                    process_min=self.process_min, process_max=self.process_max,
                    ingest_min=self.ingest_min, ingest_max=self.ingest_max,
                    satellites=self.satellites, output_directory=self.output_directory, csv=self.csv, dummy=self.dummy,
-                   apply_pq_filter=self.apply_pq_filter,
+                   save_input_files=self.save_input_files, apply_pq_filter=self.apply_pq_filter,
                    local_scheduler=self.local_scheduler))
 
 
