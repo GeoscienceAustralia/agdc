@@ -62,15 +62,19 @@ class TileRecord(object):
                             'ctime'
     ]
 
-    def __init__(self, dataset_id, tile_footprint, tile_type_id):
+    def __init__(self, dataset_id, tile_footprint, tile_extents, tile_type_id, path, size_mb):
         self.dataset_id = dataset_id
         self.tile_footprint = tile_footprint
         self.tile_type_id = tile_type_id
+        self.path = path
+        self.size_mb = size_mb
 
         # Tile starts as pending
         self.tile_class_id = TC_PENDING
         # Tile ID will be set when persisted.
         self.tile_id = None
+
+        self.tile_extents = tile_extents
 
 
 class TileRepository(object):
@@ -81,25 +85,28 @@ class TileRepository(object):
         self.db = IngestDBWrapper(self.datacube.db_connection)
 
     def persist_tile(self, tile):
+        """
+        :type tile: TileRecord
+        """
         # Fill a dictionary with data for the tile
         tile_dict = {
             'x_index': tile.tile_footprint[0],
             'y_index': tile.tile_footprint[1],
             'tile_type_id': tile.tile_type_id,
-            'dataset_id': tile.dataset_record.dataset_id,
+            'dataset_id': tile.dataset_id,
             # Store final destination in the 'tile_pathname' field
             # The physical file may currently be in the temporary location
-            'tile_pathname': tile.tile_contents.tile_output_path,
+            'tile_pathname': tile.path,
             'tile_class_id': 1,
-            'tile_size': get_file_size_mb(tile.tile_contents.temp_tile_output_path)
+            'tile_size': tile.size_mb
         }
 
         self._update_tile_footprint(tile, tile_dict)
 
         # Make the tile record entry on the database:
-        tile.tile_id = tile.db.get_tile_id(tile_dict)
+        tile.tile_id = self.db.get_tile_id(tile_dict)
         if tile.tile_id is None:
-            tile.tile_id = tile.db.insert_tile_record(tile_dict)
+            tile.tile_id = self.db.insert_tile_record(tile_dict)
         else:
             # If there was any existing tile corresponding to tile_dict then
             # it should already have been removed.
@@ -115,10 +122,10 @@ class TileRepository(object):
                 'x_index': tile.tile_footprint[0],
                 'y_index': tile.tile_footprint[1],
                 'tile_type_id': tile.tile_type_id,
-                'x_min': tile.tile_contents.tile_extents[0],
-                'y_min': tile.tile_contents.tile_extents[1],
-                'x_max': tile.tile_contents.tile_extents[2],
-                'y_max': tile.tile_contents.tile_extents[3],
+                'x_min': tile.tile_extents[0],
+                'y_min': tile.tile_extents[1],
+                'x_max': tile.tile_extents[2],
+                'y_max': tile.tile_extents[3],
                 'bbox': 'Populate this within sql query?'
             }
 

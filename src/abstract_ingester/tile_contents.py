@@ -49,7 +49,7 @@ import numpy as np
 
 from EOtools.execute import execute
 from EOtools.utils import log_multiline
-from agdc.cube_util import DatasetError, create_directory
+from ..cube_util import DatasetError, create_directory, get_file_size_mb
 
 
 # Set up LOGGER.
@@ -66,7 +66,7 @@ PQA_CONTIGUITY = 256  # contiguity = bit 8
 class TileContents(object):
     """TileContents database interface class."""
     # pylint: disable=too-many-instance-attributes
-    def __init__(self, tile_root, tile_type_info,
+    def __init__(self, tile_output_path, tile_type_info,
                  tile_footprint, provisional_directory, band_stack):
         """Set the tile_footprint over which we want to resample this dataset.
 
@@ -77,30 +77,8 @@ class TileContents(object):
         self.tile_footprint = tile_footprint
         self._band_stack = band_stack
 
-        x_index, y_index = tile_footprint
-        tile_output_root = os.path.join(
-            tile_root,
-            tile_type_info['tile_directory'],
-            '%s_%s' % (band_stack.dataset_mdd['satellite_tag'],
-                       re.sub(r'\W', '', band_stack.dataset_mdd['sensor_name']))
-        )
+        self.tile_output_path = tile_output_path
 
-        tile_output_dir = os.path.join(
-            tile_output_root,
-            re.sub(r'\+', '', ('%+04d_%+04d' % (tile_footprint[0],
-                                                tile_footprint[1]))),
-            '%04d' % band_stack.dataset_mdd['start_datetime'].year
-        )
-
-        self.tile_output_path = os.path.join(
-            tile_output_dir,
-            '_'.join([band_stack.dataset_mdd['satellite_tag'],
-                      re.sub(r'\W', '', band_stack.dataset_mdd['sensor_name']),
-                      band_stack.dataset_mdd['processing_level'],
-                      re.sub(r'\+', '', '%+04d_%+04d' % (x_index, y_index)),
-                      re.sub(':', '-', band_stack.dataset_mdd['start_datetime'].isoformat())
-            ]) + tile_type_info['file_extension']
-        )
         #Set the provisional tile location to be the same as the vrt created
         #for the scenes
         self._temp_tile_output_path = os.path.join(provisional_directory, os.path.basename(self.tile_output_path))
@@ -120,6 +98,9 @@ class TileContents(object):
         return _tile_extents(self.tile_footprint, self.tile_type_info)
 
     def has_data(self):
+        if not os.path.exists(self._temp_tile_output_path):
+            raise DatasetError('No reprojected tile has been produced.')
+
         return _has_data(self._temp_tile_output_path, self._band_stack)
 
     def reproject(self):
@@ -143,6 +124,12 @@ class TileContents(object):
 
     def make_permanent(self):
         """Move the tile file to its permanent location."""
+
+        if os.path.exists(self.tile_output_path) \
+                and not os.path.exists(self._temp_tile_output_path)\
+                and self.nc_temp_tile_output_path is None:
+            LOGGER.info('Tile already in place: %r', self.tile_output_path)
+            return
 
         source_dir = os.path.abspath(os.path.dirname(self._temp_tile_output_path))
         dest_dir = os.path.abspath(os.path.dirname(self.tile_output_path))
@@ -171,6 +158,14 @@ class TileContents(object):
         """Return the final location for the tile."""
 
         return self.tile_output_path
+
+    def get_output_size_mb(self):
+        path = self._temp_tile_output_path
+
+        if not os.path.exists(path):
+            path = self.tile_output_path
+
+        return get_file_size_mb(path)
 
 
 def _tile_extents(tile_footprint, tile_type_info):

@@ -199,7 +199,10 @@ class DatasetRecord(object):
         self.db.update_dataset_record(self.dataset_dict)
 
     def make_tiles(self, tile_type_id, band_stack):
-        """Tile the dataset, returning a list of tile_content objects."""
+        """Tile the dataset, returning a list of tile_content objects.
+
+        :rtype list of TileContents
+        """
 
         tile_list = []
         tile_footprint_list = sorted(self.get_coverage(tile_type_id))
@@ -310,9 +313,12 @@ class DatasetRecord(object):
         tile = TileRecord(
             self.dataset_id,
             tile_footprint=tile_contents.tile_footprint,
-            tile_type_id=tile_contents.tile_type_id
+            tile_type_id=tile_contents.tile_type_id,
+            path=tile_contents.get_output_path(),
+            size_mb=tile_contents.get_output_size_mb(),
+            tile_extents=tile_contents.tile_extents
         )
-        TileRepository.persist_tile(tile)
+        TileRepository(self.collection).persist_tile(tile)
         return tile
 
     def mark_as_tiled(self):

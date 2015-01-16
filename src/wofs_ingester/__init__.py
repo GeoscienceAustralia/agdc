@@ -31,14 +31,12 @@ Ingestion of water tiles.
 """
 
 import logging
-import argparse
 import os
 from osgeo import gdal
 from datetime import datetime
 
-from ..abstract_ingester import AbstractIngester, AbstractDataset
-from agdc.wofs_ingester.band import WofsBand
-
+from ..abstract_ingester import AbstractIngester, AbstractDataset, AbstractBandstack
+from collections import OrderedDict
 
 _LOG = logging.getLogger(__name__)
 
@@ -92,37 +90,35 @@ class TiledIngester(AbstractIngester):
     """Ingest data that is already tiled"""
 
     def tile(self, dataset_record, dataset):
-        """Create tiles for a newly created or updated dataset."""
+        """Create tiles for a newly created or updated dataset.
 
-        tile_list = []
-        for tile_type_id in dataset_record.list_tile_types():
-            if not self.filter_tile_type(tile_type_id):
-                continue
+        This is similar to the parent method, but performs
+        no reprojections, and adds the tile in place (no file moves).
 
-            tile_bands = dataset_record.get_tile_bands(tile_type_id)
-            band_stack = dataset.stack_bands(tile_bands)
+        TODO: This could share more code with parent.
 
-            tile_footprint_list = sorted(dataset_record.get_coverage(tile_type_id))
-            _LOG.info('%d tile footprints cover dataset', len(tile_footprint_list))
+        :type dataset_record: DatasetRecord
+        :type dataset: AbstractDataset
+        """
 
-            for tile_footprint in tile_footprint_list:
-                tile_contents = dataset_record.collection.create_tile_contents(
-                    tile_type_id,
-                    tile_footprint,
-                    band_stack
-                )
+        # TODO: Access these fields cleanly.
+        tile_type_id = int(dataset._md['tile_type_id'])
+        tile_footprint = int(dataset._md['x_index']), int(dataset._md['y_index'])
 
-                if tile_contents.has_data():
-                    tile_list.append(tile_contents)
-                else:
-                    _LOG.info('Empty tile, skipping %r', tile_contents)
-                    tile_contents.remove()
+        tile_bands = dataset_record.get_tile_bands(tile_type_id)
+        band_stack = dataset.stack_bands(tile_bands)
 
-        _LOG.info('%d non-empty tiles logged', len(tile_list))
+        tile_contents = dataset_record.collection.create_tile_contents(
+            tile_type_id,
+            tile_footprint,
+            band_stack,
+            # Use existing path: we're not creating new tiles.
+            tile_output_path=dataset.get_dataset_path()
+        )
 
         with self.collection.lock_datasets([dataset_record.dataset_id]):
             with self.collection.transaction():
-                dataset_record.store_tiles(tile_list)
+                dataset_record.store_tiles([tile_contents])
 
 
 class WofsIngester(TiledIngester):
@@ -350,6 +346,49 @@ class WofsDataset(AbstractDataset):
 
     def stack_bands(self, band_dict):
         return WofsBand(self, band_dict)
+
+
+class WofsBand(AbstractBandstack):
+    """Trivial bandstack for WOfS.
+
+    This can probably be eliminated as a complement to the TiledIngester type"""
+
+    def __init__(self, dataset, band_dict):
+        """The bandstack allows for the construction of a list, or stack, of
+            bands from the given dataset."""
+        super(WofsBand, self).__init__(dataset.metadata_dict)
+        self.dataset = dataset
+        self.band_dict = OrderedDict(sorted(band_dict.items(), key=lambda t: t[0]))
+        self.source_file_list = None
+        self.nodata_list = None
+        self.vrt_name = None
+        self.vrt_band_stack = None
+
+    def list_source_files(self):
+        """Given the dictionary of band source information, form a list
+        of scene file names from which a vrt can be constructed. Also return a
+        list of nodata values for use by add_metadata"""
+
+        file_list = []
+        nodata_list = []
+        for file_number in self.band_dict:
+            pattern = self.band_dict[file_number]['file_pattern']
+            this_file = self.dataset.find_band_file(pattern)
+            file_list.append(this_file)
+            nodata_list.append(self.band_dict[file_number]['nodata_value'])
+
+        return file_list, nodata_list
+
+    def get_vrt_name(self, vrt_dir):
+        """Use the dataset's metadata to form the vrt file name"""
+        raise RuntimeError('No VRT for tiled datasets.')
+
+    def add_metadata(self, vrt_filename):
+        """Add metadata to the VRT."""
+        raise RuntimeError('No VRT for tiled datasets.')
+
+    def buildvrt(self, temporary_directory):
+        raise RuntimeError('WOfS does not need reprojection: No VRT option available.')
 
 
 if __name__ == "__main__":
