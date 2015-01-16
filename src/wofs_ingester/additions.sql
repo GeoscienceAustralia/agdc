@@ -19,3 +19,6 @@ values (1,
         (select level_id from processing_level where level_name='WATER'),
         1 -- ??
 );
+
+
+alter table dataset add constraint acquisition_ref foreign key (acquisition_id) references acquisition;
