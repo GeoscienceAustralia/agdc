@@ -72,6 +72,9 @@ def _find_water_files(source_path):
     :return: A list of absolute paths
     :rtype: list of str
     """
+
+    source_path = os.path.abspath(source_path)
+
     # Allow an individual file to be supplied as the source
     if os.path.isfile(source_path) and source_path.endswith(".tif"):
         _LOG.debug('%r is a single tiff file', source_path)
@@ -251,10 +254,12 @@ class WofsDataset(AbstractDataset):
         return self._ds.GetGeoTransform()
 
     def get_x_ref(self):
-        pass  # N/A? We could extract the path for landsat datasets.
+        # Path for landsat, otherwise none. Should we support other Satellite schemes?
+        return self._md.get('path')
 
     def get_y_ref(self):
-        pass  # N/A? We could extract the row for landsat datasets.
+        # TODO: We have a row range, not a specific row, which doesn't fit this model.
+        return None
 
     def get_satellite_tag(self):
         return self._md.get('satellite_tag')
