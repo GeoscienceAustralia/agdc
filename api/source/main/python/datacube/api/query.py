@@ -66,6 +66,47 @@ def print_tile(tile):
 
 def list_cells(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
 
+    """
+    Return a list of cells matching the criteria as a SINGLE-USE generator
+
+    Deprecated: Move to using explicit as_list or as_generator
+
+    :param x:
+    :param y:
+    :param satellites:
+    :param acq_min:
+    :param acq_max:
+    :param datasets:
+    :param database:
+    :param user:
+    :param password:
+    :param host:
+    :param port:
+    :param sort:
+    :return:
+    """
+    return list_cells_as_generator(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host, port, sort)
+
+
+def list_cells_as_generator(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
+
+    """
+    Return a list of cells matching the criteria as a SINGLE-USE generator
+
+    :param x:
+    :param y:
+    :param satellites:
+    :param acq_min:
+    :param acq_max:
+    :param datasets:
+    :param database:
+    :param user:
+    :param password:
+    :param host:
+    :param port:
+    :param sort:
+    :return:
+    """
     conn, cursor = None, None
 
     try:
@@ -166,7 +207,71 @@ def list_cells(x, y, satellites, acq_min, acq_max, datasets, database, user, pas
         conn.rollback()
 
 
+def list_cells_as_list(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
+
+    """
+    Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
+
+    :param x:
+    :param y:
+    :param satellites:
+    :param acq_min:
+    :param acq_max:
+    :param datasets:
+    :param database:
+    :param user:
+    :param password:
+    :param host:
+    :param port:
+    :param sort:
+    :return:
+    """
+    return list(list_cells(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host, port, sort))
+
+
 def list_tiles(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
+
+    """
+    Return a list of cells matching the criteria as a SINGLE-USE generator
+
+    Deprecated: Move to using explicit as_list or as_generator
+
+    :param x:
+    :param y:
+    :param satellites:
+    :param acq_min:
+    :param acq_max:
+    :param datasets:
+    :param database:
+    :param user:
+    :param password:
+    :param host:
+    :param port:
+    :param sort:
+    :return:
+    """
+    return list_tiles_as_generator(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host, port, sort)
+
+
+def list_tiles_as_generator(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
+
+    """
+    Return a list of cells matching the criteria as a SINGLE-USE generator
+
+    :param x:
+    :param y:
+    :param satellites:
+    :param acq_min:
+    :param acq_max:
+    :param datasets:
+    :param database:
+    :param user:
+    :param password:
+    :param host:
+    :param port:
+    :param sort:
+    :return:
+    """
 
     conn, cursor = None, None
 
@@ -274,6 +379,28 @@ def list_tiles(x, y, satellites, acq_min, acq_max, datasets, database, user, pas
 
         _log.error("Caught exception %s", e)
         conn.rollback()
+
+
+def list_tiles_as_list(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
+
+    """
+    Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
+
+    :param x:
+    :param y:
+    :param satellites:
+    :param acq_min:
+    :param acq_max:
+    :param datasets:
+    :param database:
+    :param user:
+    :param password:
+    :param host:
+    :param port:
+    :param sort:
+    :return:
+    """
+    return list(list_tiles(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host, port, sort))
 
 
 # TODO rename this to be the "standard" list_tiles and the above to be list_tiles_for_year or something

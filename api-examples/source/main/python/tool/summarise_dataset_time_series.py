@@ -26,19 +26,20 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ===============================================================================
-import numpy
 
 
 __author__ = "Simon Oldfield"
 
 
 import argparse
+import gdal
+import numpy
+from gdalconst import GA_ReadOnly, GA_Update
 import logging
 import os
-from datacube.api.model import DatasetType, Satellite, Ls8Arg25Bands
-from datacube.api.query import list_tiles
-from datacube.api.utils import PqaMask
-from datacube.api.utils import get_dataset_data, get_dataset_data_with_pq, NDV
+from datacube.api.model import DatasetType, Satellite, Ls8Arg25Bands, get_bands
+from datacube.api.query import list_tiles_as_list
+from datacube.api.utils import PqaMask, get_dataset_metadata, get_dataset_data, get_dataset_data_with_pq, NDV
 from datacube.api.workflow import writeable_dir
 from datacube.config import Config
 from enum import Enum
@@ -72,7 +73,7 @@ def summary_method_arg(s):
 
 
 class TimeSeriesSummaryMethod(Enum):
-    __order__ = "YOUNGEST_PIXEL COUNT MIN MAX MEAN MEDIAN SUM"
+    __order__ = "YOUNGEST_PIXEL COUNT MIN MAX MEAN MEDIAN MEDIAN_NON_INTERPOLATED SUM STANDARD_DEVIATION VARIANCE PERCENTILE"
 
     YOUNGEST_PIXEL = 1
     COUNT = 2
@@ -115,6 +116,9 @@ class SummariseDatasetTimeSeriesWorkflow():
     list_only = None
 
     summary_method = None
+
+    chunk_size_x = None
+    chunk_size_y = None
 
     def __init__(self, application_name):
         self.application_name = application_name
@@ -166,6 +170,9 @@ class SummariseDatasetTimeSeriesWorkflow():
                             type=summary_method_arg,
                             #nargs="+",
                             choices=TimeSeriesSummaryMethod, required=True)
+
+        parser.add_argument("--chunk-size-x", help="Number of X pixels to process at once", action="store", dest="chunk_size_x", type=int, choices=range(0, 4000+1), default=1000)
+        parser.add_argument("--chunk-size-y", help="Number of Y pixels to process at once", action="store", dest="chunk_size_y", type=int, choices=range(0, 4000+1), default=1000)
 
         args = parser.parse_args()
 
@@ -234,6 +241,9 @@ class SummariseDatasetTimeSeriesWorkflow():
 
         self.summary_method = args.summary_method
 
+        self.chunk_size_x = args.chunk_size_x
+        self.chunk_size_y = args.chunk_size_y
+
         _log.info("""
         x = {x:03d}
         y = {y:04d}
@@ -248,6 +258,7 @@ class SummariseDatasetTimeSeriesWorkflow():
         over write existing = {overwrite}
         list only = {list_only}
         summary method = {summary_method}
+        chunk size = {chunk_size_x:4d} x {chunk_size_y:4d} pixels
         """.format(x=self.x, y=self.y,
                    acq_min=self.acq_min, acq_max=self.acq_max,
                    process_min=self.process_min, process_max=self.process_max,
@@ -258,7 +269,9 @@ class SummariseDatasetTimeSeriesWorkflow():
                    output=self.output_directory,
                    overwrite=self.overwrite,
                    list_only=self.list_only,
-                   summary_method=self.summary_method))
+                   summary_method=self.summary_method,
+                   chunk_size_x=self.chunk_size_x,
+                   chunk_size_y=self.chunk_size_y))
 
     def run(self):
         self.parse_arguments()
@@ -266,93 +279,187 @@ class SummariseDatasetTimeSeriesWorkflow():
         config = Config(os.path.expanduser("~/.datacube/config"))
         _log.debug(config.to_str())
 
+        path = self.get_output_filename(self.dataset_type)
+        _log.info("Output file is [%s]", path)
+
+        if os.path.exists(path) and not self.overwrite:
+            _log.error("Output file [%s] exists", path)
+            raise Exception("Output file [%s] already exists" % path)
+
+        # TODO
+        # bands = [Ls8Arg25Bands.COASTAL_AEROSOL]
+        bands = get_bands(self.dataset_type, self.satellites[0])
+
         # TODO once WOFS is in the cube
 
-        stack = dict()
+        tiles = list_tiles_as_list(x=[self.x], y=[self.y], acq_min=self.acq_min, acq_max=self.acq_max,
+                                   satellites=[satellite for satellite in self.satellites],
+                                   datasets=[self.dataset_type],
+                                   database=config.get_db_database(),
+                                   user=config.get_db_username(),
+                                   password=config.get_db_password(),
+                                   host=config.get_db_host(), port=config.get_db_port())
 
-        bands = [Ls8Arg25Bands.COASTAL_AEROSOL]
+        raster = None
+        metadata = None
 
-        for tile in list_tiles(x=[self.x], y=[self.y], acq_min=self.acq_min, acq_max=self.acq_max,
-                               satellites=[satellite for satellite in self.satellites],
-                               datasets=[self.dataset_type],
-                               database=config.get_db_database(),
-                               user=config.get_db_username(),
-                               password=config.get_db_password(),
-                               host=config.get_db_host(), port=config.get_db_port()):
+        import itertools
+        for x, y in itertools.product(range(0, 4000, self.chunk_size_x), range(0, 4000, self.chunk_size_y)):
 
-            if self.list_only:
-                _log.info("Would summarise dataset [%s]", tile.datasets[self.dataset_type].path)
-                continue
+            _log.info("About to read data chunk {xmin},{ymin} to {xmax},{ymax}".format(xmin=x, ymin=y, xmax=x+self.chunk_size_x-1, ymax=y+self.chunk_size_y-1))
 
-            pqa = None
+            stack = dict()
 
-            _log.info("Reading dataset [%s]", tile.datasets[self.dataset_type].path)
+            for tile in tiles:
 
-            # Apply PQA if specified - but NOT if retrieving PQA data itself - that's crazy talk!!!
+                if self.list_only:
+                    _log.info("Would summarise dataset [%s]", tile.datasets[self.dataset_type].path)
+                    continue
 
-            if self.apply_pqa_filter and self.dataset_type != DatasetType.PQ25:
-                data = get_dataset_data_with_pq(tile.datasets[self.dataset_type], tile.datasets[DatasetType.PQ25], bands=bands, x=0, y=0, x_size=2000, y_size=2000, pq_masks=self.pqa_mask)
+                pqa = None
 
-            else:
-                data = get_dataset_data(tile.datasets[self.dataset_type], bands=bands, x=0, y=0, x_size=2000, y_size=2000)
+                _log.info("Reading dataset [%s]", tile.datasets[self.dataset_type].path)
 
-            for band in bands:
-                if band in stack:
-                    stack[band].append(data[band])
+                if not metadata:
+                    metadata = get_dataset_metadata(tile.datasets[self.dataset_type])
+
+                # Apply PQA if specified - but NOT if retrieving PQA data itself - that's crazy talk!!!
+
+                if self.apply_pqa_filter and self.dataset_type != DatasetType.PQ25:
+                    data = get_dataset_data_with_pq(tile.datasets[self.dataset_type], tile.datasets[DatasetType.PQ25], bands=bands, x=x, y=y, x_size=self.chunk_size_x, y_size=self.chunk_size_y, pq_masks=self.pqa_mask)
 
                 else:
-                    stack[band] = [data[band]]
+                    data = get_dataset_data(tile.datasets[self.dataset_type], bands=bands, x=x, y=y, x_size=self.chunk_size_x, y_size=self.chunk_size_y)
 
-                _log.info("data[%s] has shape [%s] and MB [%s]", band.name, numpy.shape(data[band]), data[band].nbytes/1000/1000)
-                _log.info("stack[%s] has [%s] elements", band.name, len(stack[band]))
+                for band in bands:
+                    if band in stack:
+                        stack[band].append(data[band])
 
-        # Apply summary method
+                    else:
+                        stack[band] = [data[band]]
 
-        masked_stack = dict()
+                    _log.info("data[%s] has shape [%s] and MB [%s]", band.name, numpy.shape(data[band]), data[band].nbytes/1000/1000)
+                    _log.info("stack[%s] has [%s] elements", band.name, len(stack[band]))
 
-        for band in bands:
-            masked_stack[band] = numpy.ma.masked_equal(stack[band], NDV)
-            _log.info("masked stack[%s] has shape [%s] and MB [%s]", band.name, numpy.shape(masked_stack[band]), masked_stack[band].nbytes/1000/1000)
+            # Apply summary method
 
-            if self.summary_method == TimeSeriesSummaryMethod.MIN:
-                masked_summary = numpy.min(masked_stack[band], axis=0)
+            masked_stack = dict()
 
-            elif self.summary_method == TimeSeriesSummaryMethod.MAX:
-                masked_summary = numpy.max(masked_stack[band], axis=0)
+            for band in bands:
+                masked_stack[band] = numpy.ma.masked_equal(stack[band], NDV)
+                _log.info("masked stack[%s] has shape [%s] and MB [%s]", band.name, numpy.shape(masked_stack[band]), masked_stack[band].nbytes/1000/1000)
 
-            elif self.summary_method == TimeSeriesSummaryMethod.MEAN:
-                masked_summary = numpy.mean(masked_stack[band], axis=0)
+                if self.summary_method == TimeSeriesSummaryMethod.MIN:
+                    masked_summary = numpy.min(masked_stack[band], axis=0)
 
-            elif self.summary_method == TimeSeriesSummaryMethod.MEDIAN:
-                masked_summary = numpy.median(masked_stack[band], axis=0)
+                elif self.summary_method == TimeSeriesSummaryMethod.MAX:
+                    masked_summary = numpy.max(masked_stack[band], axis=0)
 
-            # aka 50th percentile
+                elif self.summary_method == TimeSeriesSummaryMethod.MEAN:
+                    masked_summary = numpy.mean(masked_stack[band], axis=0)
 
-            elif self.summary_method == TimeSeriesSummaryMethod.MEDIAN_NON_INTERPOLATED:
-                masked_sorted = numpy.ma.sort(masked_stack[band], axis=0)
-                masked_percentile_index = numpy.ma.floor(numpy.ma.count(masked_sorted, axis=0) * 0.95).astype(numpy.int16)
-                masked_summary = numpy.ma.choose(masked_percentile_index, masked_sorted)
+                elif self.summary_method == TimeSeriesSummaryMethod.MEDIAN:
+                    masked_summary = numpy.median(masked_stack[band], axis=0)
 
-            elif self.summary_method == TimeSeriesSummaryMethod.COUNT:
-                masked_summary = masked_stack[band].count(axis=0)
+                # aka 50th percentile
 
-            elif self.summary_method == TimeSeriesSummaryMethod.SUM:
-                masked_summary = numpy.sum(masked_stack[band], axis=0)
+                elif self.summary_method == TimeSeriesSummaryMethod.MEDIAN_NON_INTERPOLATED:
+                    masked_sorted = numpy.ma.sort(masked_stack[band], axis=0)
+                    masked_percentile_index = numpy.ma.floor(numpy.ma.count(masked_sorted, axis=0) * 0.95).astype(numpy.int16)
+                    masked_summary = numpy.ma.choose(masked_percentile_index, masked_sorted)
 
-            elif self.summary_method == TimeSeriesSummaryMethod.STANDARD_DEVIATION:
-                masked_summary = numpy.std(masked_stack[band], axis=0)
+                elif self.summary_method == TimeSeriesSummaryMethod.COUNT:
+                    masked_summary = masked_stack[band].count(axis=0)
 
-            elif self.summary_method == TimeSeriesSummaryMethod.VARIANCE:
-                masked_summary = numpy.var(masked_stack[band], axis=0)
+                elif self.summary_method == TimeSeriesSummaryMethod.SUM:
+                    masked_summary = numpy.sum(masked_stack[band], axis=0)
 
-            # currently 95th percentile
+                elif self.summary_method == TimeSeriesSummaryMethod.STANDARD_DEVIATION:
+                    masked_summary = numpy.std(masked_stack[band], axis=0)
 
-            elif self.summary_method == TimeSeriesSummaryMethod.PERCENTILE:
-                masked_sorted = numpy.ma.sort(masked_stack[band], axis=0)
-                masked_percentile_index = numpy.ma.floor(numpy.ma.count(masked_sorted, axis=0) * 0.95).astype(numpy.int16)
-                masked_summary = numpy.ma.choose(masked_percentile_index, masked_sorted)
+                elif self.summary_method == TimeSeriesSummaryMethod.VARIANCE:
+                    masked_summary = numpy.var(masked_stack[band], axis=0)
 
-            _log.info("masked summary is [%s]", masked_summary)
+                # currently 95th percentile
+
+                elif self.summary_method == TimeSeriesSummaryMethod.PERCENTILE:
+                    masked_sorted = numpy.ma.sort(masked_stack[band], axis=0)
+                    masked_percentile_index = numpy.ma.floor(numpy.ma.count(masked_sorted, axis=0) * 0.95).astype(numpy.int16)
+                    masked_summary = numpy.ma.choose(masked_percentile_index, masked_sorted)
+
+                _log.info("masked summary is [%s]", masked_summary)
+
+                # Create the output file
+
+                if not os.path.exists(path):
+                    _log.info("Creating raster [%s]", path)
+
+                    driver = gdal.GetDriverByName("GTiff")
+                    assert driver
+
+                    raster = driver.Create(path, metadata.shape[0], metadata.shape[1], len(bands), gdal.GDT_Int16)
+                    assert raster
+
+                    raster.SetGeoTransform(metadata.transform)
+                    raster.SetProjection(metadata.projection)
+
+                    for b in bands:
+                        raster.GetRasterBand(b.value).SetNoDataValue(NDV)
+
+                _log.info("Writing band [%s] data to raster [%s]", band.name, path)
+
+                raster.GetRasterBand(band.value).WriteArray(masked_summary.filled(NDV), xoff=x, yoff=y)
+                raster.GetRasterBand(band.value).ComputeStatistics(True)
+
+                raster.FlushCache()
+
+        raster = None
+
+    def get_output_filename(self, dataset_type):
+
+        if dataset_type == DatasetType.WATER:
+            return os.path.join(self.output_directory,
+                                "LS_WOFS_SUMMARY_{x:03d}_{y:04d}_{acq_min}_{acq_max}.tif".format(latitude=self.x,
+                                                                                         longitude=self.y,
+                                                                                         acq_min=self.acq_min,
+                                                                                         acq_max=self.acq_max))
+        satellite_str = ""
+
+        if Satellite.LS5 in self.satellites or Satellite.LS7 in self.satellites or Satellite.LS8 in self.satellites:
+            satellite_str += "LS"
+
+        if Satellite.LS5 in self.satellites:
+            satellite_str += "5"
+
+        if Satellite.LS7 in self.satellites:
+            satellite_str += "7"
+
+        if Satellite.LS8 in self.satellites:
+            satellite_str += "8"
+
+        dataset_str = ""
+
+        if dataset_type == DatasetType.ARG25:
+            dataset_str += "NBAR"
+
+        elif dataset_type == DatasetType.PQ25:
+            dataset_str += "PQA"
+
+        elif dataset_type == DatasetType.FC25:
+            dataset_str += "FC"
+
+        elif dataset_type == DatasetType.WATER:
+            dataset_str += "WOFS"
+
+        if self.apply_pqa_filter and dataset_type != DatasetType.PQ25:
+            dataset_str += "_WITH_PQA"
+
+        return os.path.join(self.output_directory,
+                            "{satellite}_{dataset}_SUMMARY_{x:03d}_{y:04d}_{acq_min}_{acq_max}.tif".format(
+                                satellite=satellite_str, dataset=dataset_str, x=self.x,
+                                y=self.y,
+                                acq_min=self.acq_min,
+                                acq_max=self.acq_max))
 
 
 def decode_dataset_type(dataset_type):

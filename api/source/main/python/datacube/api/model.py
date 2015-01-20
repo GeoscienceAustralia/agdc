@@ -148,7 +148,7 @@ class DatasetType(Enum):
 
 dataset_type_database = [DatasetType.ARG25, DatasetType.PQ25, DatasetType.FC25]
 dataset_type_filesystem = [DatasetType.WATER]
-dataset_type_derived_nbar = [DatasetType.NDVI, DatasetType.EVI, DatasetType.TCI, DatasetType.NBR]
+dataset_type_derived_nbar = [DatasetType.NDVI, DatasetType.EVI, DatasetType.NBR] # TCI, SAVI, etc...
 
 
 class DatasetTile:
@@ -325,6 +325,13 @@ BANDS = {
     (DatasetType.WATER, Satellite.LS7): Wofs25Bands,
     (DatasetType.WATER, Satellite.LS8): Wofs25Bands
 }
+
+
+def get_bands(dataset_type, satellite):
+    if (dataset_type, satellite) in BANDS:
+        return BANDS[(dataset_type, satellite)]
+
+    return None
 
 
 # NOTE only on dev machine while database paths are incorrect

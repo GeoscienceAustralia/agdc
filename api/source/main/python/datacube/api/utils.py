@@ -290,7 +290,7 @@ def consolidate_pq_mask(masks):
 def raster_create(path, data, transform, projection, no_data_value, data_type,
                   # options=["INTERLEAVE=PIXEL", "COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=9"]):
                   # options=["INTERLEAVE=PIXEL", "COMPRESS=DEFLATE", "PREDICTOR=1", "ZLEVEL=6"]):
-                  options=["INTERLEAVE=PIXEL"]):
+                  options=["INTERLEAVE=PIXEL"], width=None, height=None):
     """
     Create a raster from a list of numpy arrays
 
@@ -310,9 +310,10 @@ def raster_create(path, data, transform, projection, no_data_value, data_type,
     driver = gdal.GetDriverByName("GTiff")
     assert driver
 
-    dataset = driver.Create(path, numpy.shape(data[0])[1], numpy.shape(data[0])[0],
-                            len(data), data_type,
-                            options)
+    width = width or numpy.shape(data[0])[1]
+    height = height or numpy.shape(data[0])[0]
+
+    dataset = driver.Create(path, width, height, len(data), data_type, options)
     assert dataset
 
     dataset.SetGeoTransform(transform)
