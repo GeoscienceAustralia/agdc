@@ -33,15 +33,12 @@
 
 import os
 import sys
-import datetime
-import re
 import logging
-import argparse
 
 from os.path import basename
 from osgeo import gdal
 from EOtools.execute import execute
-from agdc.abstract_ingester import AbstractIngester
+from ..abstract_ingester import SourceFileIngester
 from modis_dataset import ModisDataset
 
 #
@@ -66,45 +63,23 @@ LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
 
-class ModisIngester(AbstractIngester):
+def _is_modis_file(source_dir):
+    """
+    Does the given file match a Modis NetCDF file?
+
+    (we could make this more extensive in the future, but it's directly derived from the old find_files() logic.
+
+    :type source_dir: str
+    :rtype: bool
+    """
+    return os.path.isfile(source_dir) and source_dir.endswith(".nc")
+
+
+class ModisIngester(SourceFileIngester):
     """Ingester class for Modis datasets."""
 
-    @classmethod
-    def arg_parser(cls):
-        """Make a parser for required args."""
-
-        # Extend the default parser
-        _arg_parser = super(ModisIngester, cls).arg_parser()
-
-        _arg_parser.add_argument('--source', dest='source_dir',
-            required=True,
-            help='Source root directory containing datasets')
-
-        return _arg_parser
-
-    def find_datasets(self, source_dir):
-        """Return a list of path to the netCDF datasets under 'source_dir' or a single-item list
-        if source_dir is a netCDF file path
-        """
-        
-        # Allow an individual netCDF file to be nominated as the source
-        if os.path.isfile(source_dir) and source_dir.endswith(".nc"):
-            LOGGER.debug('%s is a netCDF file')
-            return [source_dir]
-
-        assert os.path.isdir(source_dir), '%s is not a directory' % source_dir
-        LOGGER.info('Searching for datasets in %s', source_dir)
-
-        # Get all .nc files under source_dir (all levels)
-        dataset_list = []
-        for root, _dirs, files in os.walk(source_dir):
-            dataset_list += [os.path.join(root, nc) for nc in files if nc.endswith('.nc')]
-            
-        dataset_list = sorted(dataset_list)
-        
-        LOGGER.debug('dataset_list = %s', dataset_list)
-        return dataset_list
-
+    def __init__(self, datacube=None, collection=None):
+        super(ModisIngester, self).__init__(_is_modis_file, datacube, collection)
 
     def open_dataset(self, dataset_path):
         """Create and return a dataset object.

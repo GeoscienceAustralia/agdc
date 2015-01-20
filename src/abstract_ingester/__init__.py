@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#===============================================================================
+# ===============================================================================
 # Copyright (c)  2014 Geoscience Australia
 # All rights reserved.
 # 
@@ -25,7 +25,7 @@
 # ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#===============================================================================
+# ===============================================================================
 
 """
     abstract_ingester.py - top level ingestion algorithm.
@@ -39,13 +39,11 @@ import json
 from abc import ABCMeta, abstractmethod
 import psycopg2
 
-from agdc import DataCube
-from agdc.cube_util import DatasetError, DatasetSkipError, parse_date_from_string
+from ..datacube import DataCube
+from ..cube_util import DatasetError, DatasetSkipError, parse_date_from_string
 from collection import Collection
 from abstract_dataset import AbstractDataset
 from abstract_bandstack import AbstractBandstack
-#from cube_util import synchronize
-#import time
 
 #
 # Set up logger.
@@ -251,7 +249,7 @@ class AbstractIngester(object):
                         acquisition_record.create_dataset_record(dataset)
                 break
             except psycopg2.IntegrityError:
-                tries = tries + 1
+                tries += 1
                 LOGGER.exception("Integrity error (attempt %d of %d)", tries, self.CATALOG_MAX_TRIES)
         else:
             raise DatasetError('Unable to catalog: ' +
@@ -375,7 +373,7 @@ class AbstractIngester(object):
         except AttributeError:
             end_date = None
 
-        return (start_date, end_date)
+        return start_date, end_date
 
     def get_path_range(self):
         """Return the path range for the ingest as a (min, max) tuple.
@@ -394,7 +392,7 @@ class AbstractIngester(object):
         except (AttributeError, ValueError):
             max_path = None
 
-        return (min_path, max_path)
+        return min_path, max_path
 
     def get_row_range(self):
         """Return the row range for the ingest as a (min, max) tuple.
@@ -413,7 +411,7 @@ class AbstractIngester(object):
         except (AttributeError, ValueError):
             max_row = None
 
-        return (min_row, max_row)
+        return min_row, max_row
 
     def get_tile_type_set(self):
         """Return the allowable tile types for an ingest as a set.
@@ -431,7 +429,7 @@ class AbstractIngester(object):
                 tt_set = set(json.loads(tile_types))
             except (TypeError, ValueError):
                 try:
-                    tt_set = set([int(tile_types)])
+                    tt_set = {int(tile_types)}
                 except ValueError:
                     raise AssertionError("Unable to parse the 'tile_types' " +
                                          "configuration file item.")
@@ -478,7 +476,7 @@ class AbstractIngester(object):
     def log_ingestion_process_complete(self, source_dir, elapsed_time):
 
         LOGGER.info("Ingestion process complete for source directory " +
-                    "'%s' in %s.", source_dir, elapsed_time)
+                    "'%s' in %s.", os.path.abspath(source_dir), elapsed_time)
 
     def log_dataset_fail(self, dataset_path, err, elapsed_time):
 
@@ -500,3 +498,69 @@ class AbstractIngester(object):
                     "'%s' in %s.", dataset_path, elapsed_time)
 
     # pylint: enable=missing-docstring, no-self-use
+
+
+def _find_files(source_path, matcher):
+    """
+    Find source files in the given path that return true using the given matcher.
+
+    This may be a directory to search, or a single image.
+
+    :type source_path: str
+    :type matcher: (str) -> bool
+    :return: A list of absolute paths
+    :rtype: list of str
+    """
+
+    source_path = os.path.abspath(source_path)
+
+    # Allow an individual file to be supplied as the source
+    if os.path.isfile(source_path) and matcher(source_path):
+        LOGGER.debug('%r is a single file', source_path)
+        return [source_path]
+
+    assert os.path.isdir(source_path), '%s is not a directory' % source_path
+
+    dataset_list = []
+    for root, _dirs, files in os.walk(source_path):
+        dataset_list += [os.path.join(root, f) for f in files if matcher(f)]
+
+    return sorted(dataset_list)
+
+
+class SourceFileIngester(AbstractIngester):
+    """
+    An ingester that takes a source_path argument and does a simple filename match within that path.
+    """
+
+    def __init__(self, is_valid_file, datacube=None, collection=None):
+        """
+        :type is_valid_file: (str) -> bool
+        :param is_valid_file: Function taking a file_path, returns true if a file for ingestion.
+        :type datacube: agdc.datacube.DataCube
+        :type collection: agdc.abstract_ingester.collection.Collection
+        """
+        super(SourceFileIngester, self).__init__(datacube, collection)
+        self.is_valid_file = is_valid_file
+
+    @classmethod
+    def arg_parser(cls):
+        """Get a parser for required args."""
+
+        # Extend the default parser
+        _arg_parser = super(SourceFileIngester, cls).arg_parser()
+
+        _arg_parser.add_argument('--source', dest='source_dir',
+                                 required=True,
+                                 help='Source root directory containing datasets')
+
+        return _arg_parser
+
+    def find_datasets(self, source_path):
+        """Return a list of path to the datasets under 'source_dir' or a single-item list
+        if source_dir is a file path
+        """
+        dataset_list = _find_files(source_path, self.is_valid_file)
+        LOGGER.debug('%s dataset found: %r', len(dataset_list), dataset_list)
+        return dataset_list
+
