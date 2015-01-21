@@ -37,7 +37,7 @@ import glob
 import logging
 import os
 import sys
-from datacube.api.model import DatasetType, DatasetTile, Wofs25Bands, Satellite
+from datacube.api.model import DatasetType, DatasetTile, Wofs25Bands, Satellite, dataset_type_database
 from datacube.api.query import list_tiles
 from datacube.api.utils import latlon_to_cell, latlon_to_xy, PqaMask
 from datacube.api.utils import get_dataset_data, get_dataset_data_with_pq, get_dataset_metadata
@@ -247,7 +247,7 @@ class TimeSeriesRetrievalWorkflow():
 
         # TODO once WOFS is in the cube
 
-        if self.dataset_type in [DatasetType.ARG25, DatasetType.PQ25, DatasetType.FC25]:
+        if self.dataset_type in dataset_type_database:
 
             headered = False
 
@@ -271,9 +271,9 @@ class TimeSeriesRetrievalWorkflow():
 
                     pqa = None
 
-                    # Apply PQA if specified - but NOT if retrieving PQA data itself - that's crazy talk!!!
+                    # Apply PQA if specified
 
-                    if self.apply_pqa_filter and self.dataset_type != DatasetType.PQ25:
+                    if self.apply_pqa_filter:
                         pqa = tile.datasets[DatasetType.PQ25]
 
                     data = retrieve_pixel_value(tile.datasets[self.dataset_type], pqa, self.pqa_mask, self.latitude, self.longitude)
@@ -366,7 +366,7 @@ class TimeSeriesRetrievalWorkflow():
         elif dataset_type == DatasetType.WATER:
             dataset_str += "WOFS"
 
-        if self.apply_pqa_filter and dataset_type != DatasetType.PQ25:
+        if self.apply_pqa_filter:
             dataset_str += "_WITH_PQA"
 
         return os.path.join(self.output_directory,

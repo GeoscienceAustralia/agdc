@@ -265,9 +265,9 @@ class DatasetRetrievalWorkflow():
 
             pqa = None
 
-            # Apply PQA if specified - but NOT if retrieving PQA data itself - that's crazy talk!!!
+            # Apply PQA if specified
 
-            if self.apply_pqa_filter and self.dataset_types != DatasetType.PQ25:
+            if self.apply_pqa_filter:
                 pqa = tile.datasets[DatasetType.PQ25]
 
             for dataset_type in intersection(self.dataset_types, dataset_type_database):
@@ -323,7 +323,7 @@ class DatasetRetrievalWorkflow():
         if filename.endswith(".vrt"):
             filename = filename.replace(".vrt", ".tif")
 
-        if self.apply_pqa_filter and dataset.dataset_type != DatasetType.PQ25:
+        if self.apply_pqa_filter:
             dataset_type_string = {
                 DatasetType.ARG25: "_NBAR_",
                 DatasetType.PQ25: "_PQA_",

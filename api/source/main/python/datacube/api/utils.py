@@ -24,19 +24,19 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ===============================================================================
-from datetime import datetime
-import math
 
 
 __author__ = "Simon Oldfield"
 
 
+import math
 import logging
 import numpy
 import gdal
 from gdalconst import *
 from enum import Enum
 from datacube.api.model import Pq25Bands, Ls57Arg25Bands, Satellite, DatasetType
+from datetime import datetime
 
 
 _log = logging.getLogger(__name__)
@@ -103,6 +103,9 @@ NDV = -999
 
 INT16_MIN = numpy.iinfo(numpy.int16).min
 INT16_MAX = numpy.iinfo(numpy.int16).max
+
+UINT16_MIN = numpy.iinfo(numpy.uint16).min
+UINT16_MAX = numpy.iinfo(numpy.uint16).max
 
 
 def empty_array(shape, dtype=numpy.int16, ndv=-999):
@@ -222,20 +225,20 @@ def get_dataset_data(dataset, bands=None, x=0, y=0, x_size=None, y_size=None):
 
 DEFAULT_PQA_MASK = [PqaMask.PQ_MASK_CLEAR]
 
-def get_dataset_data_with_pq(dataset, pq_dataset, bands=None, x=0, y=0, x_size=None, y_size=None, pq_masks=DEFAULT_PQA_MASK):
+def get_dataset_data_with_pq(dataset, pq_dataset, bands=None, x=0, y=0, x_size=None, y_size=None, pq_masks=DEFAULT_PQA_MASK, ndv=NDV):
 
     """
     Return one or more bands from the dataset with pixel quality applied
 
-    :param dataset: The dataset from which to read the band
-    :param pq_dataset: The pixel quality dataset
-    :param bands: A list of bands to read from the dataset
-    :param x:
-    :param y:
-    :param x_size:
-    :param y_size:
-    :param pq_mask: Required pixel quality mask to apply
-    :return: dictionary of band/data as numpy array
+    :type dataset: datacube.api.model.Dataset
+    :type pq_dataset: datacube.api.model.Dataset
+    :type bands: list[Band]
+    :type x: int
+    :type y: int
+    :type x_size: int
+    :type y_size: int
+    :type pq_masks: list[datacube.api.util.PqaMask]
+    :rtype: dict[numpy.array]
     """
 
     if not bands:
@@ -247,7 +250,7 @@ def get_dataset_data_with_pq(dataset, pq_dataset, bands=None, x=0, y=0, x_size=N
 
     for band in bands:
 
-        out[band] = apply_pq(out[band], data_pq, pq_masks=pq_masks)
+        out[band] = apply_pq(out[band], data_pq, pq_masks=pq_masks, ndv=ndv)
 
     return out
 

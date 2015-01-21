@@ -71,19 +71,19 @@ def list_cells(x, y, satellites, acq_min, acq_max, datasets, database, user, pas
 
     Deprecated: Move to using explicit as_list or as_generator
 
-    :param x:
-    :param y:
-    :param satellites:
-    :param acq_min:
-    :param acq_max:
-    :param datasets:
-    :param database:
-    :param user:
-    :param password:
-    :param host:
-    :param port:
-    :param sort:
-    :return:
+    :type x: int
+    :type y: int
+    :type satellites: list[datacube.api.model.Satellite]
+    :type acq_min: datetime.date
+    :type acq_max: datetime.date
+    :type datasets: list[datacube.api.model.DatasetType]
+    :type database: str
+    :type user: str
+    :type password: str
+    :type host: str
+    :type port: int
+    :type sort: SortType
+    :rtype: list[datacube.api.model.Cell]
     """
     return list_cells_as_generator(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host, port, sort)
 
@@ -93,19 +93,19 @@ def list_cells_as_generator(x, y, satellites, acq_min, acq_max, datasets, databa
     """
     Return a list of cells matching the criteria as a SINGLE-USE generator
 
-    :param x:
-    :param y:
-    :param satellites:
-    :param acq_min:
-    :param acq_max:
-    :param datasets:
-    :param database:
-    :param user:
-    :param password:
-    :param host:
-    :param port:
-    :param sort:
-    :return:
+    :type x: int
+    :type y: int
+    :type satellites: list[datacube.api.model.Satellite]
+    :type acq_min: datetime.date
+    :type acq_max: datetime.date
+    :type datasets: list[datacube.api.model.DatasetType]
+    :type database: str
+    :type user: str
+    :type password: str
+    :type host: str
+    :type port: int
+    :type sort: SortType
+    :rtype: list[datacube.api.model.Cell]
     """
     conn, cursor = None, None
 
@@ -212,19 +212,19 @@ def list_cells_as_list(x, y, satellites, acq_min, acq_max, datasets, database, u
     """
     Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
 
-    :param x:
-    :param y:
-    :param satellites:
-    :param acq_min:
-    :param acq_max:
-    :param datasets:
-    :param database:
-    :param user:
-    :param password:
-    :param host:
-    :param port:
-    :param sort:
-    :return:
+    :type x: int
+    :type y: int
+    :type satellites: list[datacube.api.model.Satellite]
+    :type acq_min: datetime.date
+    :type acq_max: datetime.date
+    :type datasets: list[datacube.api.model.DatasetType]
+    :type database: str
+    :type user: str
+    :type password: str
+    :type host: str
+    :type port: int
+    :type sort: SortType
+    :rtype: list[datacube.api.model.Cell]
     """
     return list(list_cells(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host, port, sort))
 
@@ -236,19 +236,19 @@ def list_tiles(x, y, satellites, acq_min, acq_max, datasets, database, user, pas
 
     Deprecated: Move to using explicit as_list or as_generator
 
-    :param x:
-    :param y:
-    :param satellites:
-    :param acq_min:
-    :param acq_max:
-    :param datasets:
-    :param database:
-    :param user:
-    :param password:
-    :param host:
-    :param port:
-    :param sort:
-    :return:
+    :type x: int
+    :type y: int
+    :type satellites: list[datacube.api.model.Satellite]
+    :type acq_min: datetime.date
+    :type acq_max: datetime.date
+    :type datasets: list[datacube.api.model.DatasetType]
+    :type database: str
+    :type user: str
+    :type password: str
+    :type host: str
+    :type port: int
+    :type sort: SortType
+    :rtype: list[datacube.api.model.Tile]
     """
     return list_tiles_as_generator(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host, port, sort)
 
@@ -258,19 +258,19 @@ def list_tiles_as_generator(x, y, satellites, acq_min, acq_max, datasets, databa
     """
     Return a list of cells matching the criteria as a SINGLE-USE generator
 
-    :param x:
-    :param y:
-    :param satellites:
-    :param acq_min:
-    :param acq_max:
-    :param datasets:
-    :param database:
-    :param user:
-    :param password:
-    :param host:
-    :param port:
-    :param sort:
-    :return:
+    :type x: int
+    :type y: int
+    :type satellites: list[datacube.api.model.Satellite]
+    :type acq_min: datetime.date
+    :type acq_max: datetime.date
+    :type datasets: list[datacube.api.model.DatasetType]
+    :type database: str
+    :type user: str
+    :type password: str
+    :type host: str
+    :type port: int
+    :type sort: SortType
+    :rtype: list[datacube.api.model.Tile]
     """
 
     conn, cursor = None, None
@@ -386,19 +386,19 @@ def list_tiles_as_list(x, y, satellites, acq_min, acq_max, datasets, database, u
     """
     Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
 
-    :param x:
-    :param y:
-    :param satellites:
-    :param acq_min:
-    :param acq_max:
-    :param datasets:
-    :param database:
-    :param user:
-    :param password:
-    :param host:
-    :param port:
-    :param sort:
-    :return:
+    :type x: int
+    :type y: int
+    :type satellites: list[datacube.api.model.Satellite]
+    :type acq_min: datetime.date
+    :type acq_max: datetime.date
+    :type datasets: list[datacube.api.model.DatasetType]
+    :type database: str
+    :type user: str
+    :type password: str
+    :type host: str
+    :type port: int
+    :type sort: SortType
+    :rtype: list[datacube.api.model.Tile]
     """
     return list(list_tiles(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host, port, sort))
 

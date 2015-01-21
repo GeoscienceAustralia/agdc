@@ -26,6 +26,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ===============================================================================
+from datetime import datetime, timedelta
 
 
 __author__ = "Simon Oldfield"
@@ -37,9 +38,11 @@ import numpy
 from gdalconst import GA_ReadOnly, GA_Update
 import logging
 import os
-from datacube.api.model import DatasetType, Satellite, Ls8Arg25Bands, get_bands
+import resource
+from datacube.api.model import DatasetType, Satellite, get_bands
 from datacube.api.query import list_tiles_as_list
-from datacube.api.utils import PqaMask, get_dataset_metadata, get_dataset_data, get_dataset_data_with_pq, NDV
+from datacube.api.utils import PqaMask, get_dataset_metadata, get_dataset_data, get_dataset_data_with_pq
+from datacube.api.utils import NDV, UINT16_MAX
 from datacube.api.workflow import writeable_dir
 from datacube.config import Config
 from enum import Enum
@@ -171,8 +174,8 @@ class SummariseDatasetTimeSeriesWorkflow():
                             #nargs="+",
                             choices=TimeSeriesSummaryMethod, required=True)
 
-        parser.add_argument("--chunk-size-x", help="Number of X pixels to process at once", action="store", dest="chunk_size_x", type=int, choices=range(0, 4000+1), default=1000)
-        parser.add_argument("--chunk-size-y", help="Number of Y pixels to process at once", action="store", dest="chunk_size_y", type=int, choices=range(0, 4000+1), default=1000)
+        parser.add_argument("--chunk-size-x", help="Number of X pixels to process at once", action="store", dest="chunk_size_x", type=int, choices=range(0, 4000+1), default=4000)
+        parser.add_argument("--chunk-size-y", help="Number of Y pixels to process at once", action="store", dest="chunk_size_y", type=int, choices=range(0, 4000+1), default=4000)
 
         args = parser.parse_args()
 
@@ -282,12 +285,15 @@ class SummariseDatasetTimeSeriesWorkflow():
         path = self.get_output_filename(self.dataset_type)
         _log.info("Output file is [%s]", path)
 
-        if os.path.exists(path) and not self.overwrite:
-            _log.error("Output file [%s] exists", path)
-            raise Exception("Output file [%s] already exists" % path)
+        if os.path.exists(path):
+            if self.overwrite:
+                _log.info("Removing existing output file [%s]", path)
+                os.remove(path)
+            else:
+                _log.error("Output file [%s] exists", path)
+                raise Exception("Output file [%s] already exists" % path)
 
         # TODO
-        # bands = [Ls8Arg25Bands.COASTAL_AEROSOL]
         bands = get_bands(self.dataset_type, self.satellites[0])
 
         # TODO once WOFS is in the cube
@@ -303,10 +309,17 @@ class SummariseDatasetTimeSeriesWorkflow():
         raster = None
         metadata = None
 
+        # TODO - PQ is UNIT16 (others are INT16) and so -999 NDV doesn't work
+        ndv = self.dataset_type == DatasetType.PQ25 and UINT16_MAX or NDV
+
+        _log.debug("Current MAX RSS  usage is [%d] MB",  resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+
         import itertools
         for x, y in itertools.product(range(0, 4000, self.chunk_size_x), range(0, 4000, self.chunk_size_y)):
 
-            _log.info("About to read data chunk {xmin},{ymin} to {xmax},{ymax}".format(xmin=x, ymin=y, xmax=x+self.chunk_size_x-1, ymax=y+self.chunk_size_y-1))
+            _log.info("About to read data chunk ({xmin:4d},{ymin:4d}) to ({xmax:4d},{ymax:4d})".format(xmin=x, ymin=y, xmax=x+self.chunk_size_x-1, ymax=y+self.chunk_size_y-1))
+            _log.debug("Current MAX RSS  usage is [%d] MB",  resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+
 
             stack = dict()
 
@@ -318,15 +331,15 @@ class SummariseDatasetTimeSeriesWorkflow():
 
                 pqa = None
 
-                _log.info("Reading dataset [%s]", tile.datasets[self.dataset_type].path)
+                _log.debug("Reading dataset [%s]", tile.datasets[self.dataset_type].path)
 
                 if not metadata:
                     metadata = get_dataset_metadata(tile.datasets[self.dataset_type])
 
-                # Apply PQA if specified - but NOT if retrieving PQA data itself - that's crazy talk!!!
+                # Apply PQA if specified
 
-                if self.apply_pqa_filter and self.dataset_type != DatasetType.PQ25:
-                    data = get_dataset_data_with_pq(tile.datasets[self.dataset_type], tile.datasets[DatasetType.PQ25], bands=bands, x=x, y=y, x_size=self.chunk_size_x, y_size=self.chunk_size_y, pq_masks=self.pqa_mask)
+                if self.apply_pqa_filter:
+                    data = get_dataset_data_with_pq(tile.datasets[self.dataset_type], tile.datasets[DatasetType.PQ25], bands=bands, x=x, y=y, x_size=self.chunk_size_x, y_size=self.chunk_size_y, pq_masks=self.pqa_mask, ndv=ndv)
 
                 else:
                     data = get_dataset_data(tile.datasets[self.dataset_type], bands=bands, x=x, y=y, x_size=self.chunk_size_x, y_size=self.chunk_size_y)
@@ -338,16 +351,21 @@ class SummariseDatasetTimeSeriesWorkflow():
                     else:
                         stack[band] = [data[band]]
 
-                    _log.info("data[%s] has shape [%s] and MB [%s]", band.name, numpy.shape(data[band]), data[band].nbytes/1000/1000)
-                    _log.info("stack[%s] has [%s] elements", band.name, len(stack[band]))
+                    _log.debug("data[%s] has shape [%s] and MB [%s]", band.name, numpy.shape(data[band]), data[band].nbytes/1000/1000)
+                    _log.debug("stack[%s] has [%s] elements", band.name, len(stack[band]))
 
             # Apply summary method
+
+            _log.info("Finished reading {count} datasets for chunk ({xmin:4d},{ymin:4d}) to ({xmax:4d},{ymax:4d}) - about to summarise them".format(count=len(tiles), xmin=x, ymin=y, xmax=x+self.chunk_size_x-1, ymax=y+self.chunk_size_y-1))
+            _log.debug("Current MAX RSS  usage is [%d] MB",  resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
 
             masked_stack = dict()
 
             for band in bands:
-                masked_stack[band] = numpy.ma.masked_equal(stack[band], NDV)
-                _log.info("masked stack[%s] has shape [%s] and MB [%s]", band.name, numpy.shape(masked_stack[band]), masked_stack[band].nbytes/1000/1000)
+                masked_stack[band] = numpy.ma.masked_equal(stack[band], ndv)
+                _log.debug("masked_stack[%s] is %s", band.name, masked_stack[band])
+                _log.debug("masked stack[%s] has shape [%s] and MB [%s]", band.name, numpy.shape(masked_stack[band]), masked_stack[band].nbytes/1000/1000)
+                _log.debug("Current MAX RSS  usage is [%d] MB",  resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
 
                 if self.summary_method == TimeSeriesSummaryMethod.MIN:
                     masked_summary = numpy.min(masked_stack[band], axis=0)
@@ -369,7 +387,8 @@ class SummariseDatasetTimeSeriesWorkflow():
                     masked_summary = numpy.ma.choose(masked_percentile_index, masked_sorted)
 
                 elif self.summary_method == TimeSeriesSummaryMethod.COUNT:
-                    masked_summary = masked_stack[band].count(axis=0)
+                    # TODO Need to artificially create masked array here since it is being expected/filled below!!!
+                    masked_summary = numpy.ma.masked_equal(masked_stack[band].count(axis=0), ndv)
 
                 elif self.summary_method == TimeSeriesSummaryMethod.SUM:
                     masked_summary = numpy.sum(masked_stack[band], axis=0)
@@ -387,7 +406,12 @@ class SummariseDatasetTimeSeriesWorkflow():
                     masked_percentile_index = numpy.ma.floor(numpy.ma.count(masked_sorted, axis=0) * 0.95).astype(numpy.int16)
                     masked_summary = numpy.ma.choose(masked_percentile_index, masked_sorted)
 
-                _log.info("masked summary is [%s]", masked_summary)
+                masked_stack[band] = None
+                _log.debug("NONE-ing masked stack[%s]", band.name)
+                _log.debug("Current MAX RSS  usage is [%d] MB",  resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+
+                _log.debug("masked summary is [%s]", masked_summary)
+                _log.debug("Current MAX RSS  usage is [%d] MB",  resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
 
                 # Create the output file
 
@@ -404,16 +428,31 @@ class SummariseDatasetTimeSeriesWorkflow():
                     raster.SetProjection(metadata.projection)
 
                     for b in bands:
-                        raster.GetRasterBand(b.value).SetNoDataValue(NDV)
+                        raster.GetRasterBand(b.value).SetNoDataValue(ndv)
 
                 _log.info("Writing band [%s] data to raster [%s]", band.name, path)
+                _log.debug("Current MAX RSS  usage is [%d] MB",  resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
 
-                raster.GetRasterBand(band.value).WriteArray(masked_summary.filled(NDV), xoff=x, yoff=y)
+                raster.GetRasterBand(band.value).WriteArray(masked_summary.filled(ndv), xoff=x, yoff=y)
                 raster.GetRasterBand(band.value).ComputeStatistics(True)
 
                 raster.FlushCache()
 
+                masked_summary = None
+                _log.debug("NONE-ing the masked summary")
+                _log.debug("Current MAX RSS  usage is [%d] MB",  resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+
+            stack = None
+            _log.debug("Just NONE-ed the stack")
+            _log.debug("Current MAX RSS  usage is [%d] MB",  resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+
         raster = None
+
+        _log.debug("Just NONE'd the raster")
+        _log.debug("Current MAX RSS  usage is [%d] MB",  resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+
+        _log.info("Memory usage was [%d MB]", resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+        _log.info("CPU time used [%s]", timedelta(seconds=int(resource.getrusage(resource.RUSAGE_SELF).ru_utime)))
 
     def get_output_filename(self, dataset_type):
 
