@@ -40,7 +40,7 @@ import sys
 from datacube.api.model import DatasetType, DatasetTile, Wofs25Bands, Satellite, dataset_type_database, \
     dataset_type_filesystem, dataset_type_derived_nbar
 from datacube.api.query import list_tiles
-from datacube.api.utils import latlon_to_cell, latlon_to_xy, PqaMask
+from datacube.api.utils import latlon_to_cell, latlon_to_xy, PqaMask, UINT16_MAX
 from datacube.api.utils import get_dataset_data, get_dataset_data_with_pq, get_dataset_metadata
 from datacube.api.utils import extract_fields_from_filename, NDV
 from datacube.api.workflow import writeable_dir
@@ -252,6 +252,9 @@ class TimeSeriesRetrievalWorkflow():
 
         if self.dataset_type in dataset_type_database:
 
+            # TODO - PQ is UNIT16 (others are INT16) and so -999 NDV doesn't work
+            ndv = self.dataset_type == DatasetType.PQ25 and UINT16_MAX or NDV
+
             headered = False
 
             with self.get_output_file(self.dataset_type, self.overwrite) as csv_file:
@@ -279,9 +282,9 @@ class TimeSeriesRetrievalWorkflow():
                     if self.apply_pqa_filter:
                         pqa = tile.datasets[DatasetType.PQ25]
 
-                    data = retrieve_pixel_value(tile.datasets[self.dataset_type], pqa, self.pqa_mask, self.latitude, self.longitude)
+                    data = retrieve_pixel_value(tile.datasets[self.dataset_type], pqa, self.pqa_mask, self.latitude, self.longitude, ndv=ndv)
                     _log.debug("data is [%s]", data)
-                    if has_data(tile.datasets[self.dataset_type], data) or self.output_no_data:
+                    if has_data(tile.datasets[self.dataset_type], data, no_data_value=ndv) or self.output_no_data:
                         csv_writer.writerow([tile.datasets[self.dataset_type].satellite.value, str(tile.end_datetime)] + decode_data(tile.datasets[self.dataset_type], data))
 
         elif self.dataset_type == DatasetType.WATER:
@@ -333,7 +336,6 @@ class TimeSeriesRetrievalWorkflow():
 
         return open(self.get_output_filename(dataset_type), "wb")
 
-
     def get_output_filename(self, dataset_type):
 
         if dataset_type == DatasetType.WATER:
@@ -378,6 +380,7 @@ class TimeSeriesRetrievalWorkflow():
                                                                                           acq_min=self.acq_min,
                                                                                           acq_max=self.acq_max))
 
+
 def decode_dataset_type(dataset_type):
     return {DatasetType.ARG25: "Surface Reflectance",
               DatasetType.PQ25: "Pixel Quality",
@@ -398,7 +401,7 @@ def decode_data(dataset, data):
     return [str(data[band][0][0]) for band in dataset.bands]
 
 
-def retrieve_pixel_value(dataset, pq, pq_masks, latitude, longitude):
+def retrieve_pixel_value(dataset, pq, pq_masks, latitude, longitude, ndv=NDV):
     _log.debug("Retrieving pixel value(s) at lat=[%f] lon=[%f] from [%s] with pq [%s] and pq mask [%s]", latitude, longitude, dataset.path, pq and pq.path or "", pq and pq_masks or "")
 
     metadata = get_dataset_metadata(dataset)
@@ -409,7 +412,7 @@ def retrieve_pixel_value(dataset, pq, pq_masks, latitude, longitude):
     data = None
 
     if pq:
-        data = get_dataset_data_with_pq(dataset, pq, x=x, y=y, x_size=1, y_size=1, pq_masks=pq_masks)
+        data = get_dataset_data_with_pq(dataset, pq, x=x, y=y, x_size=1, y_size=1, pq_masks=pq_masks, ndv=ndv)
     else:
         data = get_dataset_data(dataset, x=x, y=y, x_size=1, y_size=1)
 

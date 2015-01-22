@@ -195,7 +195,7 @@ def list_cells_as_generator(x, y, satellites, acq_min, acq_max, datasets, databa
             ;
         """.format(sort=sort.value)
 
-        params = {"tile_type": [1], "tile_class": TILE_CLASSES,
+        params = {"tile_type": [1], "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
                   "satellite": satellites,
                   "x": x, "y": y,
                   "acq_min": acq_min, "acq_max": acq_max}
@@ -369,7 +369,7 @@ def list_tiles_as_generator(x, y, satellites, acq_min, acq_max, datasets, databa
             ;
         """.format(sort=sort.value)
 
-        params = {"tile_type": [1], "tile_class": TILE_CLASSES,
+        params = {"tile_type": [1], "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
                   "satellite": [satellite.value for satellite in satellites],
                   "x": x, "y": y,
                   "acq_min": acq_min, "acq_max": acq_max}
@@ -503,7 +503,7 @@ def list_tiles_between_dates(x, y, satellites, start_dt, stop_dt, datasets, data
             ;
         """.format(sort=sort.value)
 
-        params = {"tile_type": [1], "tile_class": TILE_CLASSES,
+        params = {"tile_type": [1], "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
                   "satellite": satellites,
                   "x": x, "y": y,
                   "start_dt": start_dt,
@@ -637,8 +637,8 @@ def list_tiles_to_file(x, y, satellites, years, datasets, filename, database, us
             ;
         """.format(sort=sort.value)
 
-        params = {"tile_type": [1], "tile_class": TILE_CLASSES,
-                  "satellite": satellites,
+        params = {"tile_type": [1], "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
+                  "satellite": [satellite.value for satellite in satellites],
                   "x": x, "y": y,
                   "year": years}
 
@@ -745,8 +745,8 @@ def list_cells_to_file(x, y, satellites, years, datasets, filename, database, us
 
         # TODO - think about the sort here for the y value?
 
-        params = {"tile_type": [1], "tile_class": TILE_CLASSES,
-                  "satellite": satellites,
+        params = {"tile_type": [1], "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
+                  "satellite": [satellite.value for satellite in satellites],
                   "x": x, "y": y,
                   "year": years}
 
@@ -899,8 +899,8 @@ def visit_tiles(x, y, satellites, years, datasets, database, user, password, hos
             ;
         """
 
-        params = {"tile_type": [1], "tile_class": TILE_CLASSES,
-                  "satellite": [1, 2, 3],
+        params = {"tile_type": [1], "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
+                  "satellite": [satellite.value for satellite in satellites],
                   "x": [x], "y": [y],
                   "year": years}
 
@@ -1014,8 +1014,8 @@ def list_tiles_wkt(wkt, satellites, years, datasets, database, user, password, h
             ;
         """
 
-        params = {"tile_type": [1], "tile_class": TILE_CLASSES,
-                  "satellite": satellites,
+        params = {"tile_type": [1], "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
+                  "satellite": [satellite.value for satellite in satellites],
                   "polygon": wkt,
                   "year": years}
 
