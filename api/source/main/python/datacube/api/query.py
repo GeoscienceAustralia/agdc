@@ -42,7 +42,14 @@ from model import Tile, Cell
 _log = logging.getLogger(__name__)
 
 
-TILE_CLASSES = [1, 4]   # Change to [1, 4] when database contains overlap mosaic tiles
+class TileClass(Enum):
+    __order__ = "SINGLE MOSAIC"
+
+    SINGLE = 1
+    MOSAIC = 4
+
+
+TILE_CLASSES = [TileClass.SINGLE, TileClass.MOSAIC]
 
 
 class SortType(Enum):
@@ -71,8 +78,8 @@ def list_cells(x, y, satellites, acq_min, acq_max, datasets, database, user, pas
 
     Deprecated: Move to using explicit as_list or as_generator
 
-    :type x: int
-    :type y: int
+    :type x: list[int]
+    :type y: list[int]
     :type satellites: list[datacube.api.model.Satellite]
     :type acq_min: datetime.date
     :type acq_max: datetime.date
@@ -93,8 +100,8 @@ def list_cells_as_generator(x, y, satellites, acq_min, acq_max, datasets, databa
     """
     Return a list of cells matching the criteria as a SINGLE-USE generator
 
-    :type x: int
-    :type y: int
+    :type x: list[int]
+    :type y: list[int]
     :type satellites: list[datacube.api.model.Satellite]
     :type acq_min: datetime.date
     :type acq_max: datetime.date
@@ -212,8 +219,8 @@ def list_cells_as_list(x, y, satellites, acq_min, acq_max, datasets, database, u
     """
     Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
 
-    :type x: int
-    :type y: int
+    :type x: list[int]
+    :type y: list[int]
     :type satellites: list[datacube.api.model.Satellite]
     :type acq_min: datetime.date
     :type acq_max: datetime.date
@@ -236,8 +243,8 @@ def list_tiles(x, y, satellites, acq_min, acq_max, datasets, database, user, pas
 
     Deprecated: Move to using explicit as_list or as_generator
 
-    :type x: int
-    :type y: int
+    :type x: list[int]
+    :type y: list[int]
     :type satellites: list[datacube.api.model.Satellite]
     :type acq_min: datetime.date
     :type acq_max: datetime.date
@@ -258,8 +265,8 @@ def list_tiles_as_generator(x, y, satellites, acq_min, acq_max, datasets, databa
     """
     Return a list of cells matching the criteria as a SINGLE-USE generator
 
-    :type x: int
-    :type y: int
+    :type x: list[int]
+    :type y: list[int]
     :type satellites: list[datacube.api.model.Satellite]
     :type acq_min: datetime.date
     :type acq_max: datetime.date
@@ -386,8 +393,8 @@ def list_tiles_as_list(x, y, satellites, acq_min, acq_max, datasets, database, u
     """
     Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
 
-    :type x: int
-    :type y: int
+    :type x: list[int]
+    :type y: list[int]
     :type satellites: list[datacube.api.model.Satellite]
     :type acq_min: datetime.date
     :type acq_max: datetime.date
