@@ -39,7 +39,7 @@ from gdalconst import GA_ReadOnly, GA_Update
 import logging
 import os
 import resource
-from datacube.api.model import DatasetType, Satellite, get_bands
+from datacube.api.model import DatasetType, Satellite, get_bands, dataset_type_database
 from datacube.api.query import list_tiles_as_list
 from datacube.api.utils import PqaMask, get_dataset_metadata, get_dataset_data, get_dataset_data_with_pq
 from datacube.api.utils import NDV, UINT16_MAX
@@ -136,30 +136,32 @@ class SummariseDatasetTimeSeriesWorkflow():
 
         parser.set_defaults(log_level=logging.INFO)
 
-        parser.add_argument("--x", help="x grid reference", action="store", dest="x", type=int, choices=range(110, 155+1), required=True)
-        parser.add_argument("--y", help="y grid reference", action="store", dest="y", type=int, choices=range(-45, -10+1), required=True)
+        parser.add_argument("--x", help="X grid reference", action="store", dest="x", type=int, choices=range(110, 155+1), required=True, metavar="[110 - 155]")
+        parser.add_argument("--y", help="Y grid reference", action="store", dest="y", type=int, choices=range(-45, -10+1), required=True, metavar="[-45 - -10]")
 
-        parser.add_argument("--acq-min", help="Acquisition Date", action="store", dest="acq_min", type=str, required=True)
-        parser.add_argument("--acq-max", help="Acquisition Date", action="store", dest="acq_max", type=str, required=True)
+        parser.add_argument("--acq-min", help="Acquisition Date (YYYY or YYYY-MM or YYYY-MM-DD)", action="store", dest="acq_min", type=str, required=True)
+        parser.add_argument("--acq-max", help="Acquisition Date (YYYY or YYYY-MM or YYYY-MM-DD)", action="store", dest="acq_max", type=str, required=True)
 
-        parser.add_argument("--process-min", help="Process Date", action="store", dest="process_min", type=str)
-        parser.add_argument("--process-max", help="Process Date", action="store", dest="process_max", type=str)
-
-        parser.add_argument("--ingest-min", help="Ingest Date", action="store", dest="ingest_min", type=str)
-        parser.add_argument("--ingest-max", help="Ingest Date", action="store", dest="ingest_max", type=str)
+        # parser.add_argument("--process-min", help="Process Date", action="store", dest="process_min", type=str)
+        # parser.add_argument("--process-max", help="Process Date", action="store", dest="process_max", type=str)
+        #
+        # parser.add_argument("--ingest-min", help="Ingest Date", action="store", dest="ingest_min", type=str)
+        # parser.add_argument("--ingest-max", help="Ingest Date", action="store", dest="ingest_max", type=str)
 
         parser.add_argument("--satellite", help="The satellite(s) to include", action="store", dest="satellite",
-                            type=satellite_arg, nargs="+", choices=Satellite, default=[Satellite.LS5, Satellite.LS7])
+                            type=satellite_arg, nargs="+", choices=Satellite, default=[Satellite.LS5, Satellite.LS7], metavar=" ".join([s.name for s in Satellite]))
 
         parser.add_argument("--apply-pqa", help="Apply PQA mask", action="store_true", dest="apply_pqa", default=False)
         parser.add_argument("--pqa-mask", help="The PQA mask to apply", action="store", dest="pqa_mask",
-                            type=pqa_mask_arg, nargs="+", choices=PqaMask, default=[PqaMask.PQ_MASK_CLEAR])
+                            type=pqa_mask_arg, nargs="+", choices=PqaMask, default=[PqaMask.PQ_MASK_CLEAR], metavar=" ".join([s.name for s in PqaMask]))
+
+        supported_dataset_types = dataset_type_database
 
         parser.add_argument("--dataset-type", help="The types of dataset to retrieve", action="store",
                             dest="dataset_type",
                             type=dataset_type_arg,
                             #nargs="+",
-                            choices=DatasetType, default=DatasetType.ARG25)
+                            choices=supported_dataset_types, default=DatasetType.ARG25, metavar=" ".join([s.name for s in supported_dataset_types]))
 
         parser.add_argument("--output-directory", help="Output directory", action="store", dest="output_directory",
                             type=writeable_dir, required=True)
@@ -168,14 +170,27 @@ class SummariseDatasetTimeSeriesWorkflow():
 
         parser.add_argument("--list-only", help="List the datasets that would be retrieved rather than retrieving them", action="store_true", dest="list_only", default=False)
 
+        supported_summary_methods = [
+            # TimeSeriesSummaryMethod.YOUNGEST_PIXEL,
+            TimeSeriesSummaryMethod.COUNT,
+            TimeSeriesSummaryMethod.MIN,
+            TimeSeriesSummaryMethod.MAX,
+            TimeSeriesSummaryMethod.MEAN,
+            TimeSeriesSummaryMethod.MEDIAN,
+            TimeSeriesSummaryMethod.MEDIAN_NON_INTERPOLATED,
+            TimeSeriesSummaryMethod.SUM,
+            TimeSeriesSummaryMethod.STANDARD_DEVIATION,
+            TimeSeriesSummaryMethod.VARIANCE,
+            TimeSeriesSummaryMethod.PERCENTILE]
+
         parser.add_argument("--summary-method", help="The summary method to apply", action="store",
                             dest="summary_method",
                             type=summary_method_arg,
                             #nargs="+",
-                            choices=TimeSeriesSummaryMethod, required=True)
+                            choices=supported_summary_methods, required=True, metavar=" ".join([s.name for s in supported_summary_methods]))
 
-        parser.add_argument("--chunk-size-x", help="Number of X pixels to process at once", action="store", dest="chunk_size_x", type=int, choices=range(0, 4000+1), default=4000)
-        parser.add_argument("--chunk-size-y", help="Number of Y pixels to process at once", action="store", dest="chunk_size_y", type=int, choices=range(0, 4000+1), default=4000)
+        parser.add_argument("--chunk-size-x", help="Number of X pixels to process at once", action="store", dest="chunk_size_x", type=int, choices=range(0, 4000+1), default=4000, metavar="[1 - 4000]")
+        parser.add_argument("--chunk-size-y", help="Number of Y pixels to process at once", action="store", dest="chunk_size_y", type=int, choices=range(0, 4000+1), default=4000, metavar="[1 - 4000]")
 
         args = parser.parse_args()
 
@@ -225,11 +240,11 @@ class SummariseDatasetTimeSeriesWorkflow():
         self.acq_min = parse_date_min(args.acq_min)
         self.acq_max = parse_date_max(args.acq_max)
 
-        self.process_min = parse_date_min(args.process_min)
-        self.process_max = parse_date_max(args.process_max)
-
-        self.ingest_min = parse_date_min(args.ingest_min)
-        self.ingest_max = parse_date_max(args.ingest_max)
+        # self.process_min = parse_date_min(args.process_min)
+        # self.process_max = parse_date_max(args.process_max)
+        #
+        # self.ingest_min = parse_date_min(args.ingest_min)
+        # self.ingest_max = parse_date_max(args.ingest_max)
 
         self.satellites = args.satellite
 

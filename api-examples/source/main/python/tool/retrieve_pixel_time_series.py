@@ -37,7 +37,8 @@ import glob
 import logging
 import os
 import sys
-from datacube.api.model import DatasetType, DatasetTile, Wofs25Bands, Satellite, dataset_type_database
+from datacube.api.model import DatasetType, DatasetTile, Wofs25Bands, Satellite, dataset_type_database, \
+    dataset_type_filesystem, dataset_type_derived_nbar
 from datacube.api.query import list_tiles
 from datacube.api.utils import latlon_to_cell, latlon_to_xy, PqaMask
 from datacube.api.utils import get_dataset_data, get_dataset_data_with_pq, get_dataset_metadata
@@ -115,27 +116,29 @@ class TimeSeriesRetrievalWorkflow():
         parser.add_argument("--acq-min", help="Acquisition Date", action="store", dest="acq_min", type=str)
         parser.add_argument("--acq-max", help="Acquisition Date", action="store", dest="acq_max", type=str)
 
-        parser.add_argument("--process-min", help="Process Date", action="store", dest="process_min", type=str)
-        parser.add_argument("--process-max", help="Process Date", action="store", dest="process_max", type=str)
-
-        parser.add_argument("--ingest-min", help="Ingest Date", action="store", dest="ingest_min", type=str)
-        parser.add_argument("--ingest-max", help="Ingest Date", action="store", dest="ingest_max", type=str)
+        # parser.add_argument("--process-min", help="Process Date", action="store", dest="process_min", type=str)
+        # parser.add_argument("--process-max", help="Process Date", action="store", dest="process_max", type=str)
+        #
+        # parser.add_argument("--ingest-min", help="Ingest Date", action="store", dest="ingest_min", type=str)
+        # parser.add_argument("--ingest-max", help="Ingest Date", action="store", dest="ingest_max", type=str)
 
         parser.add_argument("--satellite", help="The satellite(s) to include", action="store", dest="satellite",
-                            type=satellite_arg, nargs="+", choices=Satellite, default=[Satellite.LS5, Satellite.LS7])
+                            type=satellite_arg, nargs="+", choices=Satellite, default=[Satellite.LS5, Satellite.LS7], metavar=" ".join([s.name for s in Satellite]))
 
         parser.add_argument("--apply-pqa", help="Apply PQA mask", action="store_true", dest="apply_pqa", default=False)
         parser.add_argument("--pqa-mask", help="The PQA mask to apply", action="store", dest="pqa_mask",
-                            type=pqa_mask_arg, nargs="+", choices=PqaMask, default=[PqaMask.PQ_MASK_CLEAR])
+                            type=pqa_mask_arg, nargs="+", choices=PqaMask, default=[PqaMask.PQ_MASK_CLEAR], metavar=" ".join([s.name for s in PqaMask]))
 
         parser.add_argument("--hide-no-data", help="Don't output records that are completely no data value(s)", action="store_false", dest="output_no_data", default=True)
+
+        supported_dataset_types = dataset_type_database + dataset_type_filesystem + dataset_type_derived_nbar
 
         # For now only only one type of dataset per customer
         parser.add_argument("--dataset-type", help="The type of dataset from which values will be retrieved", action="store",
                             dest="dataset_type",
                             type=dataset_type_arg,
                             #nargs="+",
-                            choices=DatasetType, default=DatasetType.ARG25, required=True)
+                            choices=supported_dataset_types, default=DatasetType.ARG25, required=True, metavar=" ".join([s.name for s in supported_dataset_types]))
 
         parser.add_argument("--delimiter", help="Field delimiter in output file", action="store", dest="delimiter", type=str, default=",")
 
@@ -192,11 +195,11 @@ class TimeSeriesRetrievalWorkflow():
         self.acq_min = parse_date_min(args.acq_min)
         self.acq_max = parse_date_max(args.acq_max)
 
-        self.process_min = parse_date_min(args.process_min)
-        self.process_max = parse_date_max(args.process_max)
-
-        self.ingest_min = parse_date_min(args.ingest_min)
-        self.ingest_max = parse_date_max(args.ingest_max)
+        # self.process_min = parse_date_min(args.process_min)
+        # self.process_max = parse_date_max(args.process_max)
+        #
+        # self.ingest_min = parse_date_min(args.ingest_min)
+        # self.ingest_max = parse_date_max(args.ingest_max)
 
         self.satellites = args.satellite
 
