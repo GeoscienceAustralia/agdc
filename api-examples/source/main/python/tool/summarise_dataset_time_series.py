@@ -41,7 +41,7 @@ import os
 import resource
 from datacube.api.model import DatasetType, Satellite, get_bands, dataset_type_database
 from datacube.api.query import list_tiles_as_list
-from datacube.api.utils import PqaMask, get_dataset_metadata, get_dataset_data, get_dataset_data_with_pq
+from datacube.api.utils import PqaMask, get_dataset_metadata, get_dataset_data, get_dataset_data_with_pq, empty_array
 from datacube.api.utils import NDV, UINT16_MAX
 from datacube.api.workflow import writeable_dir
 from datacube.config import Config
@@ -76,19 +76,21 @@ def summary_method_arg(s):
 
 
 class TimeSeriesSummaryMethod(Enum):
-    __order__ = "YOUNGEST_PIXEL COUNT MIN MAX MEAN MEDIAN MEDIAN_NON_INTERPOLATED SUM STANDARD_DEVIATION VARIANCE PERCENTILE"
+    __order__ = "YOUNGEST_PIXEL OLDEST_PIXEL MEDOID_PIXEL COUNT MIN MAX MEAN MEDIAN MEDIAN_NON_INTERPOLATED SUM STANDARD_DEVIATION VARIANCE PERCENTILE"
 
     YOUNGEST_PIXEL = 1
-    COUNT = 2
-    MIN = 3
-    MAX = 4
-    MEAN = 5
-    MEDIAN = 6
-    MEDIAN_NON_INTERPOLATED = 7
-    SUM = 8
-    STANDARD_DEVIATION = 9
-    VARIANCE = 10
-    PERCENTILE = 11
+    OLDEST_PIXEL = 2
+    MEDOID_PIXEL = 3
+    COUNT = 4
+    MIN = 5
+    MAX = 6
+    MEAN = 7
+    MEDIAN = 8
+    MEDIAN_NON_INTERPOLATED = 9
+    SUM = 10
+    STANDARD_DEVIATION = 11
+    VARIANCE = 12
+    PERCENTILE = 13
 
 
 class SummariseDatasetTimeSeriesWorkflow():
@@ -171,7 +173,9 @@ class SummariseDatasetTimeSeriesWorkflow():
         parser.add_argument("--list-only", help="List the datasets that would be retrieved rather than retrieving them", action="store_true", dest="list_only", default=False)
 
         supported_summary_methods = [
-            # TimeSeriesSummaryMethod.YOUNGEST_PIXEL,
+            TimeSeriesSummaryMethod.YOUNGEST_PIXEL,
+            TimeSeriesSummaryMethod.OLDEST_PIXEL,
+            # TimeSeriesSummaryMethod.MEDOID_PIXEL,
             TimeSeriesSummaryMethod.COUNT,
             TimeSeriesSummaryMethod.MIN,
             TimeSeriesSummaryMethod.MAX,
@@ -335,7 +339,6 @@ class SummariseDatasetTimeSeriesWorkflow():
             _log.info("About to read data chunk ({xmin:4d},{ymin:4d}) to ({xmax:4d},{ymax:4d})".format(xmin=x, ymin=y, xmax=x+self.chunk_size_x-1, ymax=y+self.chunk_size_y-1))
             _log.debug("Current MAX RSS  usage is [%d] MB",  resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
 
-
             stack = dict()
 
             for tile in tiles:
@@ -420,6 +423,44 @@ class SummariseDatasetTimeSeriesWorkflow():
                     masked_sorted = numpy.ma.sort(masked_stack[band], axis=0)
                     masked_percentile_index = numpy.ma.floor(numpy.ma.count(masked_sorted, axis=0) * 0.95).astype(numpy.int16)
                     masked_summary = numpy.ma.choose(masked_percentile_index, masked_sorted)
+
+                elif self.summary_method == TimeSeriesSummaryMethod.YOUNGEST_PIXEL:
+
+                    # TODO the fact that this is band at a time might be problematic.  We really should be considering
+                    # all bands at once (that is what the landsat_mosaic logic did).  If PQA is being applied then
+                    # it's probably all good but if not then we might get odd results....
+
+                    masked_summary = empty_array(shape=(self.chunk_size_x, self.chunk_size_x), dtype=numpy.int16, ndv=ndv)
+
+                    # Note the reversed as the stack is created oldest first
+                    for d in reversed(stack[band]):
+                        masked_summary = numpy.where(masked_summary == ndv, d, masked_summary)
+
+                        # If the summary doesn't contain an no data values then we can stop
+                        if not numpy.any(masked_summary == ndv):
+                            break
+
+                    # TODO Need to artificially create masked array here since it is being expected/filled below!!!
+                    masked_summary = numpy.ma.masked_equal(masked_summary, ndv)
+
+                elif self.summary_method == TimeSeriesSummaryMethod.OLDEST_PIXEL:
+
+                    # TODO the fact that this is band at a time might be problematic.  We really should be considering
+                    # all bands at once (that is what the landsat_mosaic logic did).  If PQA is being applied then
+                    # it's probably all good but if not then we might get odd results....
+
+                    masked_summary = empty_array(shape=(self.chunk_size_x, self.chunk_size_x), dtype=numpy.int16, ndv=ndv)
+
+                    # Note the NOT reversed as the stack is created oldest first
+                    for d in stack[band]:
+                        masked_summary = numpy.where(masked_summary == ndv, d, masked_summary)
+
+                        # If the summary doesn't contain an no data values then we can stop
+                        if not numpy.any(masked_summary == ndv):
+                            break
+
+                    # TODO Need to artificially create masked array here since it is being expected/filled below!!!
+                    masked_summary = numpy.ma.masked_equal(masked_summary, ndv)
 
                 masked_stack[band] = None
                 _log.debug("NONE-ing masked stack[%s]", band.name)
