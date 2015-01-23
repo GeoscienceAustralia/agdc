@@ -1,0 +1,8 @@
+#!/bin/bash
+#PBS -q normal
+#PBS -l walltime=08:00:00,mem=4096MB,ncpus=1
+#PBS -l wd
+
+MODULEPATH=/projects/el8/opt/modules/modulefiles:$MODULEPATH
+module load agdc
+

@@ -43,11 +43,13 @@ import logging
 import os
 import re
 from EOtools.execute import execute
+from EOtools.utils import log_multiline
 from agdc.cube_util import DatasetError, create_directory
 from osgeo import gdal
 import numpy as np
+from datetime import datetime
 
-# Set up logger.
+# Set up LOGGER.
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
@@ -106,7 +108,35 @@ class TileContents(object):
             os.path.basename(self.tile_output_path)
             )
         self.tile_extents = None
+        
+        # Work-around to allow existing GDAL code to work with netCDF subdatasets as band stacks
+        # N.B: file_extension must be set to ".vrt" when used with netCDF
+        #TODO: Change all code to use netCDF libraries instead of GDAL for netCDF file handling
+        if self.tile_type_info['file_format'] == 'netCDF' and tile_type_info['file_extension'] == '.vrt':
+            self.nc_temp_tile_output_path = re.sub('\.vrt$', '.nc', self.temp_tile_output_path) 
+            self.nc_tile_output_path = re.sub('\.vrt$', '.nc', self.tile_output_path)
+        else:
+            self.nc_temp_tile_output_path = None
+            self.nc_tile_output_path = None
 
+
+    
+    def nc2vrt(self, nc_path, vrt_path):
+        """Create a VRT file to present a netCDF file with multiple subdatasets to GDAL as a band stack"""
+        
+        nc_abs_path = os.path.abspath(nc_path)
+        vrt_abs_path = os.path.abspath(vrt_path)
+        
+        # Create VRT file using absolute pathnames
+        nc2vrt_cmd = "gdalbuildvrt -separate -allow_projection_difference -overwrite %s %s" % (vrt_abs_path, nc_abs_path)
+        LOGGER.debug('nc2vrt_cmd = %s', nc2vrt_cmd)
+        result = execute(nc2vrt_cmd) #, shell=False)
+        if result['returncode'] != 0:
+            raise DatasetError('Unable to perform gdalbuildvrt: ' +
+                               '"%s" failed: %s' % (nc2vrt_cmd,
+                                                    result['stderr']))
+            
+    
     def reproject(self):
         """Reproject the scene dataset into tile coordinate reference system
         and extent. This method uses gdalwarp to do the reprojection."""
@@ -143,9 +173,15 @@ class TileContents(object):
         format_spec = []
         for format_option in self.tile_type_info['format_options'].split(','):
             format_spec.extend(["-co", "%s" % format_option])
+            
+        # Work-around to allow existing code to work with netCDF subdatasets as GDAL band stacks
+        temp_tile_output_path = self.nc_temp_tile_output_path or self.temp_tile_output_path
 
+        
         reproject_cmd = ["gdalwarp",
                          "-q",
+                         "-of",
+                         "%s" % self.tile_type_info['file_format'],
                          "-t_srs",
                          "%s" % self.tile_type_info['crs'],
                          "-te",
@@ -165,47 +201,116 @@ class TileContents(object):
         reproject_cmd.extend(format_spec)
         reproject_cmd.extend(["-overwrite",
                               "%s" % self.band_stack.vrt_name,
-                              "%s" % self.temp_tile_output_path
+                              "%s" % temp_tile_output_path # Use locally-defined output path, not class instance value
                               ])
-        result = execute(reproject_cmd, shell=False)
-        if result['returncode'] != 0:
-            raise DatasetError('Unable to perform gdalwarp: ' +
-                               '"%s" failed: %s' % (reproject_cmd,
-                                                    result['stderr']))
+        
+        command_string = ' '.join(reproject_cmd)
+        LOGGER.info('Performing gdalwarp for tile %s', self.tile_footprint)
+        retry=True
+        while retry:
+            LOGGER.debug('command_string = %s', command_string)
+            start_datetime = datetime.now()
+            result = execute(command_string)
+            LOGGER.debug('gdalwarp time = %s', datetime.now() - start_datetime)
 
+            if result['stdout']:
+                log_multiline(LOGGER.debug, result['stdout'], 'stdout from ' + command_string, '\t')
+
+            if result['returncode']: # Return code is non-zero
+                log_multiline(LOGGER.error, result['stderr'], 'stderr from ' + command_string, '\t')
+
+                # Work-around for gdalwarp error writing LZW-compressed GeoTIFFs 
+                if (result['stderr'].find('LZW') > -1 # LZW-related error
+                    and self.tile_type_info['file_format'] == 'GTiff' # Output format is GeoTIFF
+                    and 'COMPRESS=LZW' in format_spec): # LZW compression requested
+                        
+                    uncompressed_tile_path = temp_tile_output_path + '.tmp'
+
+                    # Write uncompressed tile to a temporary path
+                    command_string = command_string.replace('COMPRESS=LZW', 'COMPRESS=NONE')
+                    command_string = command_string.replace(temp_tile_output_path, uncompressed_tile_path)
+
+                    # Translate temporary uncompressed tile to final compressed tile
+                    command_string += '; gdal_translate -of GTiff'
+                    command_string += ' ' + ' '.join(format_spec)
+                    command_string += ' %s %s' % (
+                                                  uncompressed_tile_path,
+                                                  temp_tile_output_path
+                                                  )
+                    
+                    LOGGER.info('Creating compressed GeoTIFF tile via temporary uncompressed GeoTIFF')
+                else:
+                    raise DatasetError('Unable to perform gdalwarp: ' +
+                                       '"%s" failed: %s' % (command_string,
+                                                            result['stderr']))
+
+            else:
+                retry = False # No retry on success
+        
+        # Work-around to allow existing code to work with netCDF subdatasets as GDAL band stacks
+        if self.nc_temp_tile_output_path:
+            self.nc2vrt(self.nc_temp_tile_output_path, self.temp_tile_output_path)
+        
+            
     def has_data(self):
         """Check if the reprojection gave rise to a tile with valid data.
 
         Open the file and check if there is data"""
         tile_dataset = gdal.Open(self.temp_tile_output_path)
-        data = tile_dataset.ReadAsArray()
-        if len(data.shape) == 2:
-            data = data[None, :]
-        if data.shape[0] != len(self.band_stack.band_dict):
+        start_datetime = datetime.now()
+        
+        if tile_dataset.RasterCount != len(self.band_stack.band_dict):
             raise DatasetError(("Number of layers (%d) in tile file\n %s\n" +
                                 "does not match number of bands " +
                                 "(%d) from database."
-                                ) % (data.shape[0],
+                                ) % (tile_dataset.RasterCount,
                                      self.temp_tile_output_path,
                                      len(self.band_stack.band_dict)
                                      )
                                )
-        for file_number in self.band_stack.band_dict:
-            nodata_val = self.band_stack.band_dict[file_number]['nodata_value']
+            
+        # Convert self.band_stack.band_dict into list of elements sorted by tile_layer
+        band_list = [self.band_stack.band_dict[file_number] for file_number in sorted(self.band_stack.band_dict.keys(), key=lambda file_number: self.band_stack.band_dict[file_number]['tile_layer'])]
+        
+        result = False
+        
+        # Read each band in individually - will be quicker for non-empty tiles but slower for empty ones
+        for band_index in range(tile_dataset.RasterCount):
+            band_no = band_index + 1
+            band = tile_dataset.GetRasterBand(band_no)
+            band_data = band.ReadAsArray()
+            
+            # Use DB value: Should actually be the same for all bands in a given processing level       
+            nodata_val = band_list[band_index]['nodata_value'] 
+            
             if nodata_val is None:
-                if (self.band_stack.band_dict[file_number]['level_name'] ==
-                        'PQA'):
-                    #Check if any pixel has the contiguity bit set
-                    if (np.bitwise_and(data, PQA_CONTIGUITY) > 0).any():
-                        return True
+                # Use value defined in tile dataset (inherited from source dataset)
+                nodata_val = band.GetNoDataValue() 
+                
+            LOGGER.debug('nodata_val = %s for layer %d', nodata_val, band_no)
+
+            if nodata_val is None:
+                # Special case for PQA with no no-data value defined
+                if (self.band_stack.band_dict[file_number]['level_name'] == 'PQA'):
+                    if (np.bitwise_and(band_data, PQA_CONTIGUITY) > 0).any():
+                        LOGGER.debug('Tile is not empty: PQA data contains some contiguous data')
+                        result = True                
+                        break
                 else:
                     #nodata_value of None means all array data is valid
-                    return True
-            else:
-                if (data != nodata_val).any():
-                    return True
-        #If all comparisons have shown that all array contents are nodata:
-        return False
+                    LOGGER.debug('Tile is not empty: No-data value is not set')
+                    result = True
+                    break
+                
+            elif (band_data != nodata_val).any():
+                LOGGER.debug('Tile is not empty: Some values != %s', nodata_val)
+                result = True
+                break
+            
+        # All comparisons have shown that all band contents are no-data:
+        LOGGER.info('Tile ' + ('has data' if result else 'is empty') + '.')
+        LOGGER.debug('Empty tile detection time = %s', datetime.now() - start_datetime)
+        return result
 
     def remove(self):
         """Remove tiles that were in coverage but have no data. Also remove
@@ -216,8 +321,28 @@ class TileContents(object):
     def make_permanent(self):
         """Move the tile file to its permanent location."""
 
-        create_directory(os.path.dirname(self.tile_output_path))
-        shutil.move(self.temp_tile_output_path, self.tile_output_path)
+        source_dir = os.path.abspath(os.path.dirname(self.temp_tile_output_path))
+        dest_dir = os.path.abspath(os.path.dirname(self.tile_output_path))
+        
+        create_directory(dest_dir)
+        
+        # If required, edit paths in re-written .vrt file and move .nc file 
+        if self.nc_tile_output_path:
+            vrt_file = open(self.temp_tile_output_path, 'r')
+            vrt_string = vrt_file.read()
+            vrt_file.close()
+            
+            vrt_string = vrt_string.replace(source_dir, dest_dir) # Update all paths in VRT file
+            
+            vrt_file = open(self.tile_output_path, 'w')
+            vrt_file.write(vrt_string)
+            vrt_file.close()
+            
+            # Move .nc file
+            shutil.move(self.nc_temp_tile_output_path, self.nc_tile_output_path)
+
+        else: # No .vrt file required - just move the tile file
+            shutil.move(self.temp_tile_output_path, self.tile_output_path)
 
     def get_output_path(self):
         """Return the final location for the tile."""

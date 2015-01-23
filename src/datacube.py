@@ -56,7 +56,7 @@ console_handler.setFormatter(console_formatter)
 
 logger = logging.getLogger(__name__)
 if not logger.level:
-    logger.setLevel(logging.DEBUG) # Default logging level for all modules
+    logger.setLevel(logging.INFO) # Default logging level for all modules
     logger.addHandler(console_handler)
                 
 class DataCube(object):
@@ -235,6 +235,7 @@ where tile_type_id = %(tile_type_id)s
         self.debug = args.debug
         if self.debug:
             console_handler.setLevel(logging.DEBUG)            
+            logger.debug('datacube module logging level set to DEBUG')
             
         log_multiline(logger.debug, args.__dict__, 'args.__dict__',  '\t')
 
