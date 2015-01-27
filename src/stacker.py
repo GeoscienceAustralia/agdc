@@ -796,80 +796,16 @@ order by
                                                                                                                              block_size['y']) + \
                     '<SrcRect xOff="%i" yOff="%i" xSize="%i" ySize="%i"/>' % (0, 0, raster_size['x'], raster_size['y']) + \
                     '<DstRect xOff="%i" yOff="%i" xSize="%i" ySize="%i"/>' % (0, 0, raster_size['x'], raster_size['y']) + \
-                    ('<NODATA>%d</NODATA>' % tile_info['nodata_value'] if tile_info['nodata_value'] else "") + \
+                    ('<NODATA>%d</NODATA>' % tile_info['nodata_value'] if tile_info['nodata_value'] is not None else "") + \
                     '</ComplexSource>'
                     
                     log_multiline(logger.debug, complex_source, 'complex_source', '\t')
                     output_band.SetMetadataItem("source_0", complex_source, "new_vrt_sources")
                     output_band.SetMetadata({key: str(tile_info[key]) for key in tile_info.keys()})
-     
+                    # No data value needs to be set separately
+                    if tile_info['nodata_value'] is not None:
+                        output_band.SetNoDataValue(tile_info['nodata_value'])
             
-#===============================================================================
-#         # Create stack files for each band
-#         stack_info_dict = {}
-#         if create_band_stacks:
-#             for level_name in sorted(band_stack_dict.keys()):
-#                 band1_stack_filename = None
-#                 for band_tag in sorted(band_stack_dict[level_name].keys()):
-#                     stack_dict = band_stack_dict[level_name][band_tag]
-#                     timeslice_info_list = []
-#                     stack_filename = None
-#                     for start_time in sorted(stack_dict.keys()):
-#                         timeslice_info_list.append(stack_dict[start_time])
-#                    
-#                     stack_filename = stack_filename or os.path.join(stack_output_dir,
-#                                                                     '_'.join([timeslice_info_list[0]['level_name'],
-#                                                                               re.sub('\+', '', '%+04d_%+04d' % (x_index, y_index)),
-#                                                                               timeslice_info_list[0]['band_tag']]) + '.vrt')
-#         
-#                     self.stack_files(timeslice_info_list, stack_filename, band1_stack_filename, overwrite=True)
-#                     
-#                     # Convert the virtual file to a physical file, ie VRT to ENVI
-#                     if self.out_format:
-#                         #if (len(self.suffix) > 0):
-#                         if self.suffix:
-#                             outfname = re.sub('.vrt', '.%s'%self.suffix, stack_filename)
-#                         else:
-#                             # Strip the suffix of the existing file name and output to disk
-#                             outfname = os.path.splitext(stack_filename)[0]
-# 
-#                         # Base commandline string
-#                         command_string = 'gdal_translate -of %s %s %s' %(self.out_format, stack_filename, outfname)
-#                     
-#                         logger.debug('command_string = %s', command_string)
-# 
-#                         print 'Creating Physical File'
-#                         print 'File Format: %s' %self.out_format
-#                         print 'Filename: %s' %outfname
-# 
-#                         result = execute(command_string=command_string)
-# 
-#                         if result['stdout']:
-#                             log_multiline(logger.info, result['stdout'], 'stdout from ' + command_string, '\t')
-# 
-#                         if result['stderr']:
-#                             log_multiline(logger.debug, result['stderr'], 'stderr from ' + command_string, '\t')
-# 
-#                         if result['returncode']:
-#                             raise Exception('%s failed', command_string)
-#                         if timeslice_info_list[0]['tile_layer'] == 1:
-#                             band1_stack_filename = stack_filename
-#                     
-#         #            log_multiline(logger.info, timeslice_info_list, 'stack_info_dict[%s]' % stack_filename, '\t')
-#                     stack_info_dict[stack_filename] = timeslice_info_list
-#                     
-#         else: # Don't create stacks - just return a dict of tiles for each level   
-#             for level_name in sorted(band_stack_dict.keys()):
-#                 for band_tag in sorted(band_stack_dict[level_name].keys()):
-#                     # Only look at bands at layer 1 - all other bands share the same file
-#                     if band_stack_dict[level_name][band_tag].values()[0]['tile_layer'] == 1: # N.B: All the same layer
-#                         stack_dict = stack_info_dict.get(level_name, {})
-#                         if not stack_dict: # New dict keyed by start_datetime
-#                             stack_info_dict[level_name] = stack_dict
-#                         stack_dict.update(band_stack_dict[level_name][band_tag]) # Merge band 1 dict into layer dict
-#===============================================================================
-
-                                           
         return stack_info_dict
     
     def get_pqa_mask(self, pqa_dataset_path, good_pixel_masks=[32767,16383,2457], dilation=3):
