@@ -32,7 +32,7 @@ __author__ = "Simon Oldfield"
 from setuptools import setup
 
 setup(name="agdc-api",
-      version="0.0.1-2015-01-16-001",
+      version="0.0.1-2015-01-27-001",
       package_dir={"": "source/main/python", "test": "source/test/python"},
       packages=["datacube", "datacube.api", "datacube.api.raster"],
       author="Geoscience Australia",

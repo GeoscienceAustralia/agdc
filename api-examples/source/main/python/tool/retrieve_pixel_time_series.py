@@ -37,9 +37,10 @@ import glob
 import logging
 import os
 import sys
-from datacube.api.model import DatasetType, DatasetTile, Wofs25Bands, Satellite
+from datacube.api.model import DatasetType, DatasetTile, Wofs25Bands, Satellite, dataset_type_database, \
+    dataset_type_filesystem, dataset_type_derived_nbar
 from datacube.api.query import list_tiles
-from datacube.api.utils import latlon_to_cell, latlon_to_xy, PqaMask
+from datacube.api.utils import latlon_to_cell, latlon_to_xy, PqaMask, UINT16_MAX
 from datacube.api.utils import get_dataset_data, get_dataset_data_with_pq, get_dataset_metadata
 from datacube.api.utils import extract_fields_from_filename, NDV
 from datacube.api.workflow import writeable_dir
@@ -115,27 +116,29 @@ class TimeSeriesRetrievalWorkflow():
         parser.add_argument("--acq-min", help="Acquisition Date", action="store", dest="acq_min", type=str)
         parser.add_argument("--acq-max", help="Acquisition Date", action="store", dest="acq_max", type=str)
 
-        parser.add_argument("--process-min", help="Process Date", action="store", dest="process_min", type=str)
-        parser.add_argument("--process-max", help="Process Date", action="store", dest="process_max", type=str)
-
-        parser.add_argument("--ingest-min", help="Ingest Date", action="store", dest="ingest_min", type=str)
-        parser.add_argument("--ingest-max", help="Ingest Date", action="store", dest="ingest_max", type=str)
+        # parser.add_argument("--process-min", help="Process Date", action="store", dest="process_min", type=str)
+        # parser.add_argument("--process-max", help="Process Date", action="store", dest="process_max", type=str)
+        #
+        # parser.add_argument("--ingest-min", help="Ingest Date", action="store", dest="ingest_min", type=str)
+        # parser.add_argument("--ingest-max", help="Ingest Date", action="store", dest="ingest_max", type=str)
 
         parser.add_argument("--satellite", help="The satellite(s) to include", action="store", dest="satellite",
-                            type=satellite_arg, nargs="+", choices=Satellite, default=[Satellite.LS5, Satellite.LS7])
+                            type=satellite_arg, nargs="+", choices=Satellite, default=[Satellite.LS5, Satellite.LS7], metavar=" ".join([s.name for s in Satellite]))
 
         parser.add_argument("--apply-pqa", help="Apply PQA mask", action="store_true", dest="apply_pqa", default=False)
         parser.add_argument("--pqa-mask", help="The PQA mask to apply", action="store", dest="pqa_mask",
-                            type=pqa_mask_arg, nargs="+", choices=PqaMask, default=[PqaMask.PQ_MASK_CLEAR])
+                            type=pqa_mask_arg, nargs="+", choices=PqaMask, default=[PqaMask.PQ_MASK_CLEAR], metavar=" ".join([s.name for s in PqaMask]))
 
         parser.add_argument("--hide-no-data", help="Don't output records that are completely no data value(s)", action="store_false", dest="output_no_data", default=True)
+
+        supported_dataset_types = dataset_type_database + dataset_type_filesystem + dataset_type_derived_nbar
 
         # For now only only one type of dataset per customer
         parser.add_argument("--dataset-type", help="The type of dataset from which values will be retrieved", action="store",
                             dest="dataset_type",
                             type=dataset_type_arg,
                             #nargs="+",
-                            choices=DatasetType, default=DatasetType.ARG25, required=True)
+                            choices=supported_dataset_types, default=DatasetType.ARG25, required=True, metavar=" ".join([s.name for s in supported_dataset_types]))
 
         parser.add_argument("--delimiter", help="Field delimiter in output file", action="store", dest="delimiter", type=str, default=",")
 
@@ -192,11 +195,11 @@ class TimeSeriesRetrievalWorkflow():
         self.acq_min = parse_date_min(args.acq_min)
         self.acq_max = parse_date_max(args.acq_max)
 
-        self.process_min = parse_date_min(args.process_min)
-        self.process_max = parse_date_max(args.process_max)
-
-        self.ingest_min = parse_date_min(args.ingest_min)
-        self.ingest_max = parse_date_max(args.ingest_max)
+        # self.process_min = parse_date_min(args.process_min)
+        # self.process_max = parse_date_max(args.process_max)
+        #
+        # self.ingest_min = parse_date_min(args.ingest_min)
+        # self.ingest_max = parse_date_max(args.ingest_max)
 
         self.satellites = args.satellite
 
@@ -247,7 +250,10 @@ class TimeSeriesRetrievalWorkflow():
 
         # TODO once WOFS is in the cube
 
-        if self.dataset_type in [DatasetType.ARG25, DatasetType.PQ25, DatasetType.FC25]:
+        if self.dataset_type in dataset_type_database:
+
+            # TODO - PQ is UNIT16 (others are INT16) and so -999 NDV doesn't work
+            ndv = self.dataset_type == DatasetType.PQ25 and UINT16_MAX or NDV
 
             headered = False
 
@@ -271,14 +277,14 @@ class TimeSeriesRetrievalWorkflow():
 
                     pqa = None
 
-                    # Apply PQA if specified - but NOT if retrieving PQA data itself - that's crazy talk!!!
+                    # Apply PQA if specified
 
-                    if self.apply_pqa_filter and self.dataset_type != DatasetType.PQ25:
+                    if self.apply_pqa_filter:
                         pqa = tile.datasets[DatasetType.PQ25]
 
-                    data = retrieve_pixel_value(tile.datasets[self.dataset_type], pqa, self.pqa_mask, self.latitude, self.longitude)
+                    data = retrieve_pixel_value(tile.datasets[self.dataset_type], pqa, self.pqa_mask, self.latitude, self.longitude, ndv=ndv)
                     _log.debug("data is [%s]", data)
-                    if has_data(tile.datasets[self.dataset_type], data) or self.output_no_data:
+                    if has_data(tile.datasets[self.dataset_type], data, no_data_value=ndv) or self.output_no_data:
                         csv_writer.writerow([tile.datasets[self.dataset_type].satellite.value, str(tile.end_datetime)] + decode_data(tile.datasets[self.dataset_type], data))
 
         elif self.dataset_type == DatasetType.WATER:
@@ -330,7 +336,6 @@ class TimeSeriesRetrievalWorkflow():
 
         return open(self.get_output_filename(dataset_type), "wb")
 
-
     def get_output_filename(self, dataset_type):
 
         if dataset_type == DatasetType.WATER:
@@ -366,7 +371,7 @@ class TimeSeriesRetrievalWorkflow():
         elif dataset_type == DatasetType.WATER:
             dataset_str += "WOFS"
 
-        if self.apply_pqa_filter and dataset_type != DatasetType.PQ25:
+        if self.apply_pqa_filter:
             dataset_str += "_WITH_PQA"
 
         return os.path.join(self.output_directory,
@@ -374,6 +379,7 @@ class TimeSeriesRetrievalWorkflow():
                                                                                           longitude=self.longitude,
                                                                                           acq_min=self.acq_min,
                                                                                           acq_max=self.acq_max))
+
 
 def decode_dataset_type(dataset_type):
     return {DatasetType.ARG25: "Surface Reflectance",
@@ -395,7 +401,7 @@ def decode_data(dataset, data):
     return [str(data[band][0][0]) for band in dataset.bands]
 
 
-def retrieve_pixel_value(dataset, pq, pq_masks, latitude, longitude):
+def retrieve_pixel_value(dataset, pq, pq_masks, latitude, longitude, ndv=NDV):
     _log.debug("Retrieving pixel value(s) at lat=[%f] lon=[%f] from [%s] with pq [%s] and pq mask [%s]", latitude, longitude, dataset.path, pq and pq.path or "", pq and pq_masks or "")
 
     metadata = get_dataset_metadata(dataset)
@@ -406,7 +412,7 @@ def retrieve_pixel_value(dataset, pq, pq_masks, latitude, longitude):
     data = None
 
     if pq:
-        data = get_dataset_data_with_pq(dataset, pq, x=x, y=y, x_size=1, y_size=1, pq_masks=pq_masks)
+        data = get_dataset_data_with_pq(dataset, pq, x=x, y=y, x_size=1, y_size=1, pq_masks=pq_masks, ndv=ndv)
     else:
         data = get_dataset_data(dataset, x=x, y=y, x_size=1, y_size=1)
 

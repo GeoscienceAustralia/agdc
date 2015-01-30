@@ -31,14 +31,14 @@
 __author__ = "Simon Oldfield"
 
 
-from datacube.api.model import DatasetType, Tile, Cell
+from datacube.api.model import DatasetType, Tile, Cell, Satellite
 from datacube.api.query import list_tiles, list_tiles_wkt, list_tiles_to_file, list_tiles_between_dates, list_cells, \
     list_cells_to_file
 import logging
 import os
 from datacube.config import Config
 import csv
-from datetime import datetime
+from datetime import datetime, date
 
 
 _log = logging.getLogger()
@@ -50,7 +50,7 @@ def main():
     config = Config(os.path.expanduser("~/.datacube/config"))
     _log.debug(config.to_str())
 
-    # do_list_tiles_by_xy_single(config)
+    do_list_tiles_by_xy_single(config)
     # do_list_cells_by_xy_single(config)
 
     # do_list_tiles_by_xy_multiple(config)
@@ -61,13 +61,14 @@ def main():
     # do_list_tiles_by_xy_single_date_range(config)
 
     # do_list_tiles_by_xy_single_csv(config)
-    do_list_cells_by_xy_single_csv(config)
+    # do_list_cells_by_xy_single_csv(config)
 
 # Records DB -> model classes
 
 
 def do_list_tiles_by_xy_single(config):
-    tiles = list_tiles(x=[123], y=[-25], years=[2002], satellites=["LS7"],
+    tiles = list_tiles(x=[123], y=[-25], acq_min=date(2002, 1, 1), acq_max=date(2002 ,12, 31),
+                       satellites=[Satellite.LS7],
                        datasets=[DatasetType.ARG25, DatasetType.PQ25, DatasetType.FC25],
                        database=config.get_db_database(), user=config.get_db_username(),
                        password=config.get_db_password(),

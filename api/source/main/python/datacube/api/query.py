@@ -42,7 +42,14 @@ from model import Tile, Cell
 _log = logging.getLogger(__name__)
 
 
-TILE_CLASSES = [1, 4]   # Change to [1, 4] when database contains overlap mosaic tiles
+class TileClass(Enum):
+    __order__ = "SINGLE MOSAIC"
+
+    SINGLE = 1
+    MOSAIC = 4
+
+
+TILE_CLASSES = [TileClass.SINGLE, TileClass.MOSAIC]
 
 
 class SortType(Enum):
@@ -66,6 +73,47 @@ def print_tile(tile):
 
 def list_cells(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
 
+    """
+    Return a list of cells matching the criteria as a SINGLE-USE generator
+
+    Deprecated: Move to using explicit as_list or as_generator
+
+    :type x: list[int]
+    :type y: list[int]
+    :type satellites: list[datacube.api.model.Satellite]
+    :type acq_min: datetime.date
+    :type acq_max: datetime.date
+    :type datasets: list[datacube.api.model.DatasetType]
+    :type database: str
+    :type user: str
+    :type password: str
+    :type host: str
+    :type port: int
+    :type sort: SortType
+    :rtype: list[datacube.api.model.Cell]
+    """
+    return list_cells_as_generator(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host, port, sort)
+
+
+def list_cells_as_generator(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
+
+    """
+    Return a list of cells matching the criteria as a SINGLE-USE generator
+
+    :type x: list[int]
+    :type y: list[int]
+    :type satellites: list[datacube.api.model.Satellite]
+    :type acq_min: datetime.date
+    :type acq_max: datetime.date
+    :type datasets: list[datacube.api.model.DatasetType]
+    :type database: str
+    :type user: str
+    :type password: str
+    :type host: str
+    :type port: int
+    :type sort: SortType
+    :rtype: list[datacube.api.model.Cell]
+    """
     conn, cursor = None, None
 
     try:
@@ -147,7 +195,7 @@ def list_cells(x, y, satellites, acq_min, acq_max, datasets, database, user, pas
             ;
         """.format(sort=sort.value)
 
-        params = {"tile_type": [1], "tile_class": TILE_CLASSES,
+        params = {"tile_type": [1], "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
                   "satellite": satellites,
                   "x": x, "y": y,
                   "acq_min": acq_min, "acq_max": acq_max}
@@ -166,7 +214,71 @@ def list_cells(x, y, satellites, acq_min, acq_max, datasets, database, user, pas
         conn.rollback()
 
 
+def list_cells_as_list(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
+
+    """
+    Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
+
+    :type x: list[int]
+    :type y: list[int]
+    :type satellites: list[datacube.api.model.Satellite]
+    :type acq_min: datetime.date
+    :type acq_max: datetime.date
+    :type datasets: list[datacube.api.model.DatasetType]
+    :type database: str
+    :type user: str
+    :type password: str
+    :type host: str
+    :type port: int
+    :type sort: SortType
+    :rtype: list[datacube.api.model.Cell]
+    """
+    return list(list_cells(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host, port, sort))
+
+
 def list_tiles(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
+
+    """
+    Return a list of cells matching the criteria as a SINGLE-USE generator
+
+    Deprecated: Move to using explicit as_list or as_generator
+
+    :type x: list[int]
+    :type y: list[int]
+    :type satellites: list[datacube.api.model.Satellite]
+    :type acq_min: datetime.date
+    :type acq_max: datetime.date
+    :type datasets: list[datacube.api.model.DatasetType]
+    :type database: str
+    :type user: str
+    :type password: str
+    :type host: str
+    :type port: int
+    :type sort: SortType
+    :rtype: list[datacube.api.model.Tile]
+    """
+    return list_tiles_as_generator(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host, port, sort)
+
+
+def list_tiles_as_generator(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
+
+    """
+    Return a list of cells matching the criteria as a SINGLE-USE generator
+
+    :type x: list[int]
+    :type y: list[int]
+    :type satellites: list[datacube.api.model.Satellite]
+    :type acq_min: datetime.date
+    :type acq_max: datetime.date
+    :type datasets: list[datacube.api.model.DatasetType]
+    :type database: str
+    :type user: str
+    :type password: str
+    :type host: str
+    :type port: int
+    :type sort: SortType
+    :rtype: list[datacube.api.model.Tile]
+    """
 
     conn, cursor = None, None
 
@@ -213,7 +325,11 @@ def list_tiles(x, y, satellites, acq_min, acq_max, datasets, database, user, pas
                 ARRAY[
                     ['ARG25', nbar.tile_pathname],
                     ['PQ25', pq.tile_pathname],
-                    ['FC25', fc.tile_pathname]
+                    ['FC25', fc.tile_pathname],
+                    ['DSM', DSM.tile_pathname],
+                    ['DEM', DEM.tile_pathname],
+                    ['DEM_HYDROLOGICALLY_ENFORCED', DEM_H.tile_pathname],
+                    ['DEM_SMOOTHED', DEM_S.tile_pathname]
                     ] as datasets
             from acquisition
             join satellite on satellite.satellite_id=acquisition.satellite_id
@@ -247,6 +363,46 @@ def list_tiles(x, y, satellites, acq_min, acq_max, datasets, database, user, pas
                     fc.acquisition_id=acquisition.acquisition_id
                     and fc.x_index=nbar.x_index and fc.y_index=nbar.y_index
                     and fc.tile_type_id=nbar.tile_type_id and fc.tile_class_id=nbar.tile_class_id
+            join
+                (
+                select
+                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+                from tile
+                join dataset on dataset.dataset_id=tile.dataset_id
+                where dataset.level_id = 100
+                ) as DSM on
+                        DSM.x_index=nbar.x_index and DSM.y_index=nbar.y_index
+                    and DSM.tile_type_id=nbar.tile_type_id and DSM.tile_class_id=nbar.tile_class_id
+            join
+                (
+                select
+                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+                from tile
+                join dataset on dataset.dataset_id=tile.dataset_id
+                where dataset.level_id = 110
+                ) as DEM on
+                        DEM.x_index=nbar.x_index and DEM.y_index=nbar.y_index
+                    and DEM.tile_type_id=nbar.tile_type_id and DEM.tile_class_id=nbar.tile_class_id
+            join
+                (
+                select
+                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+                from tile
+                join dataset on dataset.dataset_id=tile.dataset_id
+                where dataset.level_id = 120
+                ) as DEM_S on
+                        DEM_S.x_index=nbar.x_index and DEM_S.y_index=nbar.y_index
+                    and DEM_S.tile_type_id=nbar.tile_type_id and DEM_S.tile_class_id=nbar.tile_class_id
+            join
+                (
+                select
+                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+                from tile
+                join dataset on dataset.dataset_id=tile.dataset_id
+                where dataset.level_id = 130
+                ) as DEM_H on
+                        DEM_H.x_index=nbar.x_index and DEM_H.y_index=nbar.y_index
+                    and DEM_H.tile_type_id=nbar.tile_type_id and DEM_H.tile_class_id=nbar.tile_class_id
             where
                 nbar.tile_type_id = ANY(%(tile_type)s) and nbar.tile_class_id = ANY(%(tile_class)s) -- mandatory
                 and satellite.satellite_tag = ANY(%(satellite)s)
@@ -257,7 +413,7 @@ def list_tiles(x, y, satellites, acq_min, acq_max, datasets, database, user, pas
             ;
         """.format(sort=sort.value)
 
-        params = {"tile_type": [1], "tile_class": TILE_CLASSES,
+        params = {"tile_type": [1], "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
                   "satellite": [satellite.value for satellite in satellites],
                   "x": x, "y": y,
                   "acq_min": acq_min, "acq_max": acq_max}
@@ -274,6 +430,28 @@ def list_tiles(x, y, satellites, acq_min, acq_max, datasets, database, user, pas
 
         _log.error("Caught exception %s", e)
         conn.rollback()
+
+
+def list_tiles_as_list(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
+
+    """
+    Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
+
+    :type x: list[int]
+    :type y: list[int]
+    :type satellites: list[datacube.api.model.Satellite]
+    :type acq_min: datetime.date
+    :type acq_max: datetime.date
+    :type datasets: list[datacube.api.model.DatasetType]
+    :type database: str
+    :type user: str
+    :type password: str
+    :type host: str
+    :type port: int
+    :type sort: SortType
+    :rtype: list[datacube.api.model.Tile]
+    """
+    return list(list_tiles(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host, port, sort))
 
 
 # TODO rename this to be the "standard" list_tiles and the above to be list_tiles_for_year or something
@@ -369,7 +547,7 @@ def list_tiles_between_dates(x, y, satellites, start_dt, stop_dt, datasets, data
             ;
         """.format(sort=sort.value)
 
-        params = {"tile_type": [1], "tile_class": TILE_CLASSES,
+        params = {"tile_type": [1], "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
                   "satellite": satellites,
                   "x": x, "y": y,
                   "start_dt": start_dt,
@@ -503,8 +681,8 @@ def list_tiles_to_file(x, y, satellites, years, datasets, filename, database, us
             ;
         """.format(sort=sort.value)
 
-        params = {"tile_type": [1], "tile_class": TILE_CLASSES,
-                  "satellite": satellites,
+        params = {"tile_type": [1], "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
+                  "satellite": [satellite.value for satellite in satellites],
                   "x": x, "y": y,
                   "year": years}
 
@@ -611,8 +789,8 @@ def list_cells_to_file(x, y, satellites, years, datasets, filename, database, us
 
         # TODO - think about the sort here for the y value?
 
-        params = {"tile_type": [1], "tile_class": TILE_CLASSES,
-                  "satellite": satellites,
+        params = {"tile_type": [1], "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
+                  "satellite": [satellite.value for satellite in satellites],
                   "x": x, "y": y,
                   "year": years}
 
@@ -765,8 +943,8 @@ def visit_tiles(x, y, satellites, years, datasets, database, user, password, hos
             ;
         """
 
-        params = {"tile_type": [1], "tile_class": TILE_CLASSES,
-                  "satellite": [1, 2, 3],
+        params = {"tile_type": [1], "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
+                  "satellite": [satellite.value for satellite in satellites],
                   "x": [x], "y": [y],
                   "year": years}
 
@@ -880,8 +1058,8 @@ def list_tiles_wkt(wkt, satellites, years, datasets, database, user, password, h
             ;
         """
 
-        params = {"tile_type": [1], "tile_class": TILE_CLASSES,
-                  "satellite": satellites,
+        params = {"tile_type": [1], "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
+                  "satellite": [satellite.value for satellite in satellites],
                   "polygon": wkt,
                   "year": years}
 

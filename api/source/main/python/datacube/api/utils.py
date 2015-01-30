@@ -24,19 +24,19 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ===============================================================================
-from datetime import datetime
-import math
 
 
 __author__ = "Simon Oldfield"
 
 
+import math
 import logging
 import numpy
 import gdal
 from gdalconst import *
 from enum import Enum
-from datacube.api.model import Pq25Bands, Ls57Arg25Bands, Satellite, DatasetType
+from datacube.api.model import Pq25Bands, Ls57Arg25Bands, Satellite, DatasetType, Ls8Arg25Bands
+from datetime import datetime
 
 
 _log = logging.getLogger(__name__)
@@ -103,6 +103,9 @@ NDV = -999
 
 INT16_MIN = numpy.iinfo(numpy.int16).min
 INT16_MAX = numpy.iinfo(numpy.int16).max
+
+UINT16_MIN = numpy.iinfo(numpy.uint16).min
+UINT16_MAX = numpy.iinfo(numpy.uint16).max
 
 
 def empty_array(shape, dtype=numpy.int16, ndv=-999):
@@ -222,20 +225,20 @@ def get_dataset_data(dataset, bands=None, x=0, y=0, x_size=None, y_size=None):
 
 DEFAULT_PQA_MASK = [PqaMask.PQ_MASK_CLEAR]
 
-def get_dataset_data_with_pq(dataset, pq_dataset, bands=None, x=0, y=0, x_size=None, y_size=None, pq_masks=DEFAULT_PQA_MASK):
+def get_dataset_data_with_pq(dataset, pq_dataset, bands=None, x=0, y=0, x_size=None, y_size=None, pq_masks=DEFAULT_PQA_MASK, ndv=NDV):
 
     """
     Return one or more bands from the dataset with pixel quality applied
 
-    :param dataset: The dataset from which to read the band
-    :param pq_dataset: The pixel quality dataset
-    :param bands: A list of bands to read from the dataset
-    :param x:
-    :param y:
-    :param x_size:
-    :param y_size:
-    :param pq_mask: Required pixel quality mask to apply
-    :return: dictionary of band/data as numpy array
+    :type dataset: datacube.api.model.Dataset
+    :type pq_dataset: datacube.api.model.Dataset
+    :type bands: list[Band]
+    :type x: int
+    :type y: int
+    :type x_size: int
+    :type y_size: int
+    :type pq_masks: list[datacube.api.util.PqaMask]
+    :rtype: dict[numpy.array]
     """
 
     if not bands:
@@ -247,7 +250,7 @@ def get_dataset_data_with_pq(dataset, pq_dataset, bands=None, x=0, y=0, x_size=N
 
     for band in bands:
 
-        out[band] = apply_pq(out[band], data_pq, pq_masks=pq_masks)
+        out[band] = apply_pq(out[band], data_pq, pq_masks=pq_masks, ndv=ndv)
 
     return out
 
@@ -290,7 +293,7 @@ def consolidate_pq_mask(masks):
 def raster_create(path, data, transform, projection, no_data_value, data_type,
                   # options=["INTERLEAVE=PIXEL", "COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=9"]):
                   # options=["INTERLEAVE=PIXEL", "COMPRESS=DEFLATE", "PREDICTOR=1", "ZLEVEL=6"]):
-                  options=["INTERLEAVE=PIXEL"]):
+                  options=["INTERLEAVE=PIXEL"], width=None, height=None):
     """
     Create a raster from a list of numpy arrays
 
@@ -310,9 +313,10 @@ def raster_create(path, data, transform, projection, no_data_value, data_type,
     driver = gdal.GetDriverByName("GTiff")
     assert driver
 
-    dataset = driver.Create(path, numpy.shape(data[0])[1], numpy.shape(data[0])[0],
-                            len(data), data_type,
-                            options)
+    width = width or numpy.shape(data[0])[1]
+    height = height or numpy.shape(data[0])[0]
+
+    dataset = driver.Create(path, width, height, len(data), data_type, options)
     assert dataset
 
     dataset.SetGeoTransform(transform)
@@ -507,6 +511,57 @@ TCI_COEFFICIENTS = {
             Ls57Arg25Bands.NEAR_INFRARED: 0.0602,
             Ls57Arg25Bands.SHORT_WAVE_INFRARED_1: -0.1095,
             Ls57Arg25Bands.SHORT_WAVE_INFRARED_2: 0.0985}
+    },
+
+    Satellite.LS8:
+    {
+        TasselCapIndex.BRIGHTNESS: {
+            Ls8Arg25Bands.BLUE: 0.3029,
+            Ls8Arg25Bands.GREEN: 0.2786,
+            Ls8Arg25Bands.RED: 0.4733,
+            Ls8Arg25Bands.NEAR_INFRARED: 0.5599,
+            Ls8Arg25Bands.SHORT_WAVE_INFRARED_1: 0.508,
+            Ls8Arg25Bands.SHORT_WAVE_INFRARED_2: 0.1872},
+
+        TasselCapIndex.GREENNESS: {
+            Ls8Arg25Bands.BLUE: -0.2941,
+            Ls8Arg25Bands.GREEN: -0.2430,
+            Ls8Arg25Bands.RED: -0.5424,
+            Ls8Arg25Bands.NEAR_INFRARED: 0.7276,
+            Ls8Arg25Bands.SHORT_WAVE_INFRARED_1: 0.0713,
+            Ls8Arg25Bands.SHORT_WAVE_INFRARED_2: -0.1608},
+
+        TasselCapIndex.WETNESS: {
+            Ls8Arg25Bands.BLUE: 0.1511,
+            Ls8Arg25Bands.GREEN: 0.1973,
+            Ls8Arg25Bands.RED: 0.3283,
+            Ls8Arg25Bands.NEAR_INFRARED: 0.3407,
+            Ls8Arg25Bands.SHORT_WAVE_INFRARED_1: -0.7117,
+            Ls8Arg25Bands.SHORT_WAVE_INFRARED_2: -0.4559},
+
+        TasselCapIndex.FOURTH: {
+            Ls8Arg25Bands.BLUE: -0.8239,
+            Ls8Arg25Bands.GREEN: 0.0849,
+            Ls8Arg25Bands.RED: 0.4396,
+            Ls8Arg25Bands.NEAR_INFRARED: -0.058,
+            Ls8Arg25Bands.SHORT_WAVE_INFRARED_1: 0.2013,
+            Ls8Arg25Bands.SHORT_WAVE_INFRARED_2: -0.2773},
+
+        TasselCapIndex.FIFTH: {
+            Ls8Arg25Bands.BLUE: -0.3294,
+            Ls8Arg25Bands.GREEN: 0.0557,
+            Ls8Arg25Bands.RED: 0.1056,
+            Ls8Arg25Bands.NEAR_INFRARED: 0.1855,
+            Ls8Arg25Bands.SHORT_WAVE_INFRARED_1: -0.4349,
+            Ls8Arg25Bands.SHORT_WAVE_INFRARED_2: 0.8085},
+
+        TasselCapIndex.SIXTH: {
+            Ls8Arg25Bands.BLUE: 0.1079,
+            Ls8Arg25Bands.GREEN: -0.9023,
+            Ls8Arg25Bands.RED: 0.4119,
+            Ls8Arg25Bands.NEAR_INFRARED: 0.0575,
+            Ls8Arg25Bands.SHORT_WAVE_INFRARED_1: -0.0259,
+            Ls8Arg25Bands.SHORT_WAVE_INFRARED_2: 0.0252}
     }
 }
 
