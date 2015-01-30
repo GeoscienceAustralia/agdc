@@ -131,13 +131,24 @@ class Wofs25Bands(Enum):
     WATER = 1
 
 
+class DsmBands(Enum):
+    __order__ = "SLOPE ELEVATION ASPECT"
+
+    SLOPE = 1
+    ELEVATION = 2
+    ASPECT = 3
+
+
 class DatasetType(Enum):
-    __order__ = "ARG25 PQ25 FC25 DSM WATER"
+    __order__ = "ARG25 PQ25 FC25 DSM DEM DEM_SMOOTHED DEM_HYDROLOGICALLY_ENFORCED WATER NDVI EVI SAVI TCI NBR"
 
     ARG25 = "ARG25"
     PQ25 = "PQ25"
     FC25 = "FC25"
     DSM = "DSM"
+    DEM = "DEM"
+    DEM_SMOOTHED = "DEM_SMOOTHED"
+    DEM_HYDROLOGICALLY_ENFORCED = "DEM_HYDROLOGICALLY_ENFORCED"
     WATER = "WATER"
     NDVI = "NDVI"
     EVI = "EVI"
@@ -163,7 +174,9 @@ class DatasetTile:
     bands = None
 
     def __init__(self, satellite_id, type_id, path):
-        self.satellite = Satellite[satellite_id]
+        _log.debug("Creating DatasetTile from satellite_id=[%s] type_id=[%s] path=[%s]", satellite_id, type_id, path)
+
+        self.satellite = satellite_id and Satellite[satellite_id] or None
         self.dataset_type = DatasetType[type_id]
         self.path = warp_file_paths(path)
         self.bands = BANDS[(self.dataset_type, self.satellite)]
@@ -308,6 +321,7 @@ class Tile:
             datasets=DatasetTile.from_db_array(record["satellite"], record["datasets"]))
 
 
+# TODO Need to deal with the fact that some datasets don't have a satellite
 BANDS = {
     (DatasetType.ARG25, Satellite.LS5): Ls57Arg25Bands,
     (DatasetType.ARG25, Satellite.LS7): Ls57Arg25Bands,
@@ -323,7 +337,23 @@ BANDS = {
 
     (DatasetType.WATER, Satellite.LS5): Wofs25Bands,
     (DatasetType.WATER, Satellite.LS7): Wofs25Bands,
-    (DatasetType.WATER, Satellite.LS8): Wofs25Bands
+    (DatasetType.WATER, Satellite.LS8): Wofs25Bands,
+
+    (DatasetType.DSM, Satellite.LS5): DsmBands,
+    (DatasetType.DSM, Satellite.LS7): DsmBands,
+    (DatasetType.DSM, Satellite.LS8): DsmBands,
+
+    (DatasetType.DEM, Satellite.LS5): DsmBands,
+    (DatasetType.DEM, Satellite.LS7): DsmBands,
+    (DatasetType.DEM, Satellite.LS8): DsmBands,
+
+    (DatasetType.DEM_SMOOTHED, Satellite.LS5): DsmBands,
+    (DatasetType.DEM_SMOOTHED, Satellite.LS7): DsmBands,
+    (DatasetType.DEM_SMOOTHED, Satellite.LS8): DsmBands,
+
+    (DatasetType.DEM_HYDROLOGICALLY_ENFORCED, Satellite.LS5): DsmBands,
+    (DatasetType.DEM_HYDROLOGICALLY_ENFORCED, Satellite.LS7): DsmBands,
+    (DatasetType.DEM_HYDROLOGICALLY_ENFORCED, Satellite.LS8): DsmBands
 }
 
 

@@ -325,7 +325,11 @@ def list_tiles_as_generator(x, y, satellites, acq_min, acq_max, datasets, databa
                 ARRAY[
                     ['ARG25', nbar.tile_pathname],
                     ['PQ25', pq.tile_pathname],
-                    ['FC25', fc.tile_pathname]
+                    ['FC25', fc.tile_pathname],
+                    ['DSM', DSM.tile_pathname],
+                    ['DEM', DEM.tile_pathname],
+                    ['DEM_HYDROLOGICALLY_ENFORCED', DEM_H.tile_pathname],
+                    ['DEM_SMOOTHED', DEM_S.tile_pathname]
                     ] as datasets
             from acquisition
             join satellite on satellite.satellite_id=acquisition.satellite_id
@@ -359,6 +363,46 @@ def list_tiles_as_generator(x, y, satellites, acq_min, acq_max, datasets, databa
                     fc.acquisition_id=acquisition.acquisition_id
                     and fc.x_index=nbar.x_index and fc.y_index=nbar.y_index
                     and fc.tile_type_id=nbar.tile_type_id and fc.tile_class_id=nbar.tile_class_id
+            join
+                (
+                select
+                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+                from tile
+                join dataset on dataset.dataset_id=tile.dataset_id
+                where dataset.level_id = 100
+                ) as DSM on
+                        DSM.x_index=nbar.x_index and DSM.y_index=nbar.y_index
+                    and DSM.tile_type_id=nbar.tile_type_id and DSM.tile_class_id=nbar.tile_class_id
+            join
+                (
+                select
+                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+                from tile
+                join dataset on dataset.dataset_id=tile.dataset_id
+                where dataset.level_id = 110
+                ) as DEM on
+                        DEM.x_index=nbar.x_index and DEM.y_index=nbar.y_index
+                    and DEM.tile_type_id=nbar.tile_type_id and DEM.tile_class_id=nbar.tile_class_id
+            join
+                (
+                select
+                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+                from tile
+                join dataset on dataset.dataset_id=tile.dataset_id
+                where dataset.level_id = 120
+                ) as DEM_S on
+                        DEM_S.x_index=nbar.x_index and DEM_S.y_index=nbar.y_index
+                    and DEM_S.tile_type_id=nbar.tile_type_id and DEM_S.tile_class_id=nbar.tile_class_id
+            join
+                (
+                select
+                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+                from tile
+                join dataset on dataset.dataset_id=tile.dataset_id
+                where dataset.level_id = 130
+                ) as DEM_H on
+                        DEM_H.x_index=nbar.x_index and DEM_H.y_index=nbar.y_index
+                    and DEM_H.tile_type_id=nbar.tile_type_id and DEM_H.tile_class_id=nbar.tile_class_id
             where
                 nbar.tile_type_id = ANY(%(tile_type)s) and nbar.tile_class_id = ANY(%(tile_class)s) -- mandatory
                 and satellite.satellite_tag = ANY(%(satellite)s)
