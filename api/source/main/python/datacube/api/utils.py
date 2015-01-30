@@ -35,7 +35,7 @@ import numpy
 import gdal
 from gdalconst import *
 from enum import Enum
-from datacube.api.model import Pq25Bands, Ls57Arg25Bands, Satellite, DatasetType
+from datacube.api.model import Pq25Bands, Ls57Arg25Bands, Satellite, DatasetType, Ls8Arg25Bands
 from datetime import datetime
 
 
@@ -511,6 +511,57 @@ TCI_COEFFICIENTS = {
             Ls57Arg25Bands.NEAR_INFRARED: 0.0602,
             Ls57Arg25Bands.SHORT_WAVE_INFRARED_1: -0.1095,
             Ls57Arg25Bands.SHORT_WAVE_INFRARED_2: 0.0985}
+    },
+
+    Satellite.LS8:
+    {
+        TasselCapIndex.BRIGHTNESS: {
+            Ls8Arg25Bands.BLUE: 0.3029,
+            Ls8Arg25Bands.GREEN: 0.2786,
+            Ls8Arg25Bands.RED: 0.4733,
+            Ls8Arg25Bands.NEAR_INFRARED: 0.5599,
+            Ls8Arg25Bands.SHORT_WAVE_INFRARED_1: 0.508,
+            Ls8Arg25Bands.SHORT_WAVE_INFRARED_2: 0.1872},
+
+        TasselCapIndex.GREENNESS: {
+            Ls8Arg25Bands.BLUE: -0.2941,
+            Ls8Arg25Bands.GREEN: -0.2430,
+            Ls8Arg25Bands.RED: -0.5424,
+            Ls8Arg25Bands.NEAR_INFRARED: 0.7276,
+            Ls8Arg25Bands.SHORT_WAVE_INFRARED_1: 0.0713,
+            Ls8Arg25Bands.SHORT_WAVE_INFRARED_2: -0.1608},
+
+        TasselCapIndex.WETNESS: {
+            Ls8Arg25Bands.BLUE: 0.1511,
+            Ls8Arg25Bands.GREEN: 0.1973,
+            Ls8Arg25Bands.RED: 0.3283,
+            Ls8Arg25Bands.NEAR_INFRARED: 0.3407,
+            Ls8Arg25Bands.SHORT_WAVE_INFRARED_1: -0.7117,
+            Ls8Arg25Bands.SHORT_WAVE_INFRARED_2: -0.4559},
+
+        TasselCapIndex.FOURTH: {
+            Ls8Arg25Bands.BLUE: -0.8239,
+            Ls8Arg25Bands.GREEN: 0.0849,
+            Ls8Arg25Bands.RED: 0.4396,
+            Ls8Arg25Bands.NEAR_INFRARED: -0.058,
+            Ls8Arg25Bands.SHORT_WAVE_INFRARED_1: 0.2013,
+            Ls8Arg25Bands.SHORT_WAVE_INFRARED_2: -0.2773},
+
+        TasselCapIndex.FIFTH: {
+            Ls8Arg25Bands.BLUE: -0.3294,
+            Ls8Arg25Bands.GREEN: 0.0557,
+            Ls8Arg25Bands.RED: 0.1056,
+            Ls8Arg25Bands.NEAR_INFRARED: 0.1855,
+            Ls8Arg25Bands.SHORT_WAVE_INFRARED_1: -0.4349,
+            Ls8Arg25Bands.SHORT_WAVE_INFRARED_2: 0.8085},
+
+        TasselCapIndex.SIXTH: {
+            Ls8Arg25Bands.BLUE: 0.1079,
+            Ls8Arg25Bands.GREEN: -0.9023,
+            Ls8Arg25Bands.RED: 0.4119,
+            Ls8Arg25Bands.NEAR_INFRARED: 0.0575,
+            Ls8Arg25Bands.SHORT_WAVE_INFRARED_1: -0.0259,
+            Ls8Arg25Bands.SHORT_WAVE_INFRARED_2: 0.0252}
     }
 }
 
