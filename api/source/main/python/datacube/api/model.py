@@ -174,8 +174,6 @@ class DatasetTile:
     bands = None
 
     def __init__(self, satellite_id, type_id, path):
-        _log.debug("Creating DatasetTile from satellite_id=[%s] type_id=[%s] path=[%s]", satellite_id, type_id, path)
-
         self.satellite = satellite_id and Satellite[satellite_id] or None
         self.dataset_type = DatasetType[type_id]
         self.path = warp_file_paths(path)

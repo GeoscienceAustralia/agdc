@@ -196,7 +196,7 @@ def list_cells_as_generator(x, y, satellites, acq_min, acq_max, datasets, databa
         """.format(sort=sort.value)
 
         params = {"tile_type": [1], "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
-                  "satellite": satellites,
+                  "satellite": [satellite.value for satellite in satellites],
                   "x": x, "y": y,
                   "acq_min": acq_min, "acq_max": acq_max}
 
