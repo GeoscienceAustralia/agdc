@@ -45,7 +45,7 @@ _log = logging.getLogger()
 
 
 def main():
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.INFO)
 
     config = Config(os.path.expanduser("~/.datacube/config"))
     _log.debug(config.to_str())
@@ -69,6 +69,7 @@ def main():
 
 
 def do_list_tiles_by_xy_single(config):
+    _log.info("Testing list_tiles...")
     tiles = list_tiles(x=[123], y=[-25], acq_min=date(2002, 1, 1), acq_max=date(2002 ,12, 31),
                        satellites=[Satellite.LS7],
                        datasets=[DatasetType.ARG25, DatasetType.PQ25, DatasetType.FC25],
@@ -77,10 +78,11 @@ def do_list_tiles_by_xy_single(config):
                        host=config.get_db_host(), port=config.get_db_port())
 
     for tile in tiles:
-        _log.debug("Found tile xy = %s acq date = [%s]", tile.xy, tile.end_datetime)
+        _log.info("Found tile xy = %s acq date = [%s] NBAR = [%s]", tile.xy, tile.end_datetime, tile.datasets[DatasetType.ARG25].path)
 
 
 def do_list_tiles_dtm_by_xy_single(config):
+    _log.info("Testing list_tiles_dtm...")
     tiles = list_tiles_dtm(x=[123], y=[-25],
                            datasets=[DatasetType.DSM, DatasetType.DEM, DatasetType.DEM_HYDROLOGICALLY_ENFORCED,
                                      DatasetType.DEM_SMOOTHED],
@@ -89,7 +91,7 @@ def do_list_tiles_dtm_by_xy_single(config):
                            host=config.get_db_host(), port=config.get_db_port())
 
     for tile in tiles:
-        _log.debug("Found tile xy = %s acq date = [%s]", tile.xy, tile.end_datetime)
+        _log.info("Found tile xy = %s acq date = [%s] NBAR = [%s]", tile.xy, tile.end_datetime, tile.datasets[DatasetType.DSM].path)
 
 
 def do_list_cells_by_xy_single(config):
