@@ -37,12 +37,18 @@ import csv
 import logging
 import luigi
 from datacube.config import Config
-from datacube.api.model import DatasetType, Tile
+from datacube.api.model import DatasetType, Tile, Satellite
 from datacube.api.query import list_cells, list_tiles_to_file, list_tiles, SortType
 import os.path
 
 
 _log = logging.getLogger()
+
+
+def satellite_arg(s):
+    if s in Satellite._member_names_:
+        return Satellite[s]
+    raise argparse.ArgumentTypeError("{0} is not a supported satellite".format(s))
 
 
 def writeable_dir(prospective_dir):
@@ -300,25 +306,18 @@ class Workflow(object):
         parser.add_argument("--y-max", help="Y index of tiles", action="store", dest="y_max", type=int,
                             choices=range(-45, -10 + 1), required=True)
 
-        # TODO
-        parser.add_argument("--year-min", help="year", action="store", dest="year_min", type=int,
-                            choices=range(1987, 2014 + 1),
-                            default=1987)
-        parser.add_argument("--year-max", help="year", action="store", dest="year_max", type=int,
-                            choices=range(1987, 2014 + 1),
-                            default=2014)
-
         parser.add_argument("--acq-min", help="Acquisition Date", action="store", dest="acq_min", type=str)
         parser.add_argument("--acq-max", help="Acquisition Date", action="store", dest="acq_max", type=str)
 
-        parser.add_argument("--process-min", help="Process Date", action="store", dest="process_min", type=str)
-        parser.add_argument("--process-max", help="Process Date", action="store", dest="process_max", type=str)
+        # parser.add_argument("--process-min", help="Process Date", action="store", dest="process_min", type=str)
+        # parser.add_argument("--process-max", help="Process Date", action="store", dest="process_max", type=str)
+        #
+        # parser.add_argument("--ingest-min", help="Ingest Date", action="store", dest="ingest_min", type=str)
+        # parser.add_argument("--ingest-max", help="Ingest Date", action="store", dest="ingest_max", type=str)
 
-        parser.add_argument("--ingest-min", help="Ingest Date", action="store", dest="ingest_min", type=str)
-        parser.add_argument("--ingest-max", help="Ingest Date", action="store", dest="ingest_max", type=str)
-
-        parser.add_argument("--satellites", help="satellites", action="store", dest="satellites", type=str, nargs="+",
-                            choices=["LS5", "LS7", "LS8"], default=["LS5", "LS7"])
+        parser.add_argument("--satellite", help="The satellite(s) to include", action="store", dest="satellite",
+                            type=satellite_arg, nargs="+", choices=Satellite, default=[Satellite.LS5, Satellite.LS7],
+                            metavar=" ".join([s.name for s in Satellite]))
 
         group = parser.add_mutually_exclusive_group()
 
@@ -386,20 +385,20 @@ class Workflow(object):
         self.acq_min = parse_date_min(args.acq_min)
         self.acq_max = parse_date_max(args.acq_max)
 
-        if args.year_min:
-            self.process_min = parse_date_min(str(args.year_min))
-
-        if args.year_max:
-            self.process_max = parse_date_max(str(args.year_max))
-
-        self.process_min = parse_date_min(args.process_min)
-        self.process_max = parse_date_max(args.process_max)
-
         # NOTE : overrides the year_min/max params - should make this explicit in the argparse config
-        self.ingest_min = parse_date_min(args.ingest_min)
-        self.ingest_max = parse_date_max(args.ingest_max)
+        # if args.year_min:
+        #     self.process_min = parse_date_min(str(args.year_min))
+        #
+        # if args.year_max:
+        #     self.process_max = parse_date_max(str(args.year_max))
 
-        self.satellites = args.satellites
+        # self.process_min = parse_date_min(args.process_min)
+        # self.process_max = parse_date_max(args.process_max)
+        #
+        # self.ingest_min = parse_date_min(args.ingest_min)
+        # self.ingest_max = parse_date_max(args.ingest_max)
+
+        self.satellites = args.satellite
         self.csv = args.csv
         self.dummy = args.dummy
         self.save_input_files = args.save_input_files
