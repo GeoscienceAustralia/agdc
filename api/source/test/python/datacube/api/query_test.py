@@ -33,7 +33,7 @@ __author__ = "Simon Oldfield"
 
 from datacube.api.model import DatasetType, Tile, Cell, Satellite
 from datacube.api.query import list_tiles, list_tiles_wkt, list_tiles_to_file, list_tiles_between_dates, list_cells, \
-    list_cells_to_file
+    list_cells_to_file, list_tiles_dtm
 import logging
 import os
 from datacube.config import Config
@@ -52,6 +52,8 @@ def main():
 
     do_list_tiles_by_xy_single(config)
     # do_list_cells_by_xy_single(config)
+
+    do_list_tiles_dtm_by_xy_single(config)
 
     # do_list_tiles_by_xy_multiple(config)
     # do_list_cells_by_xy_multiple(config)
@@ -73,6 +75,18 @@ def do_list_tiles_by_xy_single(config):
                        database=config.get_db_database(), user=config.get_db_username(),
                        password=config.get_db_password(),
                        host=config.get_db_host(), port=config.get_db_port())
+
+    for tile in tiles:
+        _log.debug("Found tile xy = %s acq date = [%s]", tile.xy, tile.end_datetime)
+
+
+def do_list_tiles_dtm_by_xy_single(config):
+    tiles = list_tiles_dtm(x=[123], y=[-25],
+                           datasets=[DatasetType.DSM, DatasetType.DEM, DatasetType.DEM_HYDROLOGICALLY_ENFORCED,
+                                     DatasetType.DEM_SMOOTHED],
+                           database=config.get_db_database(), user=config.get_db_username(),
+                           password=config.get_db_password(),
+                           host=config.get_db_host(), port=config.get_db_port())
 
     for tile in tiles:
         _log.debug("Found tile xy = %s acq date = [%s]", tile.xy, tile.end_datetime)

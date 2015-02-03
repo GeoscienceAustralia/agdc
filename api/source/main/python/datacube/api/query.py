@@ -95,6 +95,28 @@ def list_cells(x, y, satellites, acq_min, acq_max, datasets, database, user, pas
     return list_cells_as_generator(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host, port, sort)
 
 
+def list_cells_as_list(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
+
+    """
+    Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
+
+    :type x: list[int]
+    :type y: list[int]
+    :type satellites: list[datacube.api.model.Satellite]
+    :type acq_min: datetime.date
+    :type acq_max: datetime.date
+    :type datasets: list[datacube.api.model.DatasetType]
+    :type database: str
+    :type user: str
+    :type password: str
+    :type host: str
+    :type port: int
+    :type sort: SortType
+    :rtype: list[datacube.api.model.Cell]
+    """
+    return list(list_cells(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host, port, sort))
+
+
 def list_cells_as_generator(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
 
     """
@@ -214,28 +236,6 @@ def list_cells_as_generator(x, y, satellites, acq_min, acq_max, datasets, databa
         conn.rollback()
 
 
-def list_cells_as_list(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
-
-    """
-    Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
-
-    :type x: list[int]
-    :type y: list[int]
-    :type satellites: list[datacube.api.model.Satellite]
-    :type acq_min: datetime.date
-    :type acq_max: datetime.date
-    :type datasets: list[datacube.api.model.DatasetType]
-    :type database: str
-    :type user: str
-    :type password: str
-    :type host: str
-    :type port: int
-    :type sort: SortType
-    :rtype: list[datacube.api.model.Cell]
-    """
-    return list(list_cells(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host, port, sort))
-
-
 def list_tiles(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
 
     """
@@ -258,6 +258,28 @@ def list_tiles(x, y, satellites, acq_min, acq_max, datasets, database, user, pas
     :rtype: list[datacube.api.model.Tile]
     """
     return list_tiles_as_generator(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host, port, sort)
+
+
+def list_tiles_as_list(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
+
+    """
+    Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
+
+    :type x: list[int]
+    :type y: list[int]
+    :type satellites: list[datacube.api.model.Satellite]
+    :type acq_min: datetime.date
+    :type acq_max: datetime.date
+    :type datasets: list[datacube.api.model.DatasetType]
+    :type database: str
+    :type user: str
+    :type password: str
+    :type host: str
+    :type port: int
+    :type sort: SortType
+    :rtype: list[datacube.api.model.Tile]
+    """
+    return list(list_tiles(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host, port, sort))
 
 
 def list_tiles_as_generator(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
@@ -432,16 +454,17 @@ def list_tiles_as_generator(x, y, satellites, acq_min, acq_max, datasets, databa
         conn.rollback()
 
 
-def list_tiles_as_list(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
+# Quickie to get DEM/DSM tiles for WOFS - note they have no acquisition information!!!!
+
+def list_tiles_dtm(x, y, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
 
     """
-    Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
+    Return a list of cells matching the criteria as a SINGLE-USE generator
+
+    Deprecated: Move to using explicit as_list or as_generator
 
     :type x: list[int]
     :type y: list[int]
-    :type satellites: list[datacube.api.model.Satellite]
-    :type acq_min: datetime.date
-    :type acq_max: datetime.date
     :type datasets: list[datacube.api.model.DatasetType]
     :type database: str
     :type user: str
@@ -451,7 +474,157 @@ def list_tiles_as_list(x, y, satellites, acq_min, acq_max, datasets, database, u
     :type sort: SortType
     :rtype: list[datacube.api.model.Tile]
     """
-    return list(list_tiles(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host, port, sort))
+    return list_tiles_dtm_as_generator(x, y, datasets, database, user, password, host, port, sort)
+
+
+def list_tiles_dtm_as_list(x, y, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
+
+    """
+    Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
+
+    :type x: list[int]
+    :type y: list[int]
+    :type datasets: list[datacube.api.model.DatasetType]
+    :type database: str
+    :type user: str
+    :type password: str
+    :type host: str
+    :type port: int
+    :type sort: SortType
+    :rtype: list[datacube.api.model.Tile]
+    """
+    return list(list_tiles(x, y, datasets, database, user, password, host, port, sort))
+
+
+def list_tiles_dtm_as_generator(x, y, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
+
+    """
+    Return a list of cells matching the criteria as a SINGLE-USE generator
+
+    :type x: list[int]
+    :type y: list[int]
+    :type datasets: list[datacube.api.model.DatasetType]
+    :type database: str
+    :type user: str
+    :type password: str
+    :type host: str
+    :type port: int
+    :type sort: SortType
+    :rtype: list[datacube.api.model.Tile]
+    """
+
+    conn, cursor = None, None
+
+    try:
+        # connect to database
+
+        connection_string = ""
+
+        if host:
+            connection_string += "host={host}".format(host=host)
+
+        if port:
+            connection_string += " port={port}".format(port=port)
+
+        connection_string += " dbname={database} user={user} password={password}".format(database=database, user=user, password=password)
+
+        conn = psycopg2.connect(connection_string)
+
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        cursor.execute("set search_path to {schema}, public".format(schema="gis, topology, ztmp"))
+
+        # Should the DB model be changed so that DATASET FKs to TILE not TILE FKs to DATASET?
+
+        # This query allows the user to specify
+        #   filter results by
+        #       x/y range
+        #
+        #   request which datasets they want
+        #       DSM
+        #       DEM
+        #       DEM SMOOTHED
+        #       DEM HYDROLOGICALLY ENFORCED
+
+        # It also needs to internally filter to
+        #   tile.tile_type_id in (1)
+        #   tile.tile_class_id in (1,3)
+
+        # select
+        #   dem.acquisition_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+        # from tile
+        # join dataset dem on dem.dataset_id=tile.dataset_id and dem.level_id=100
+        # where tile.tile_type_id = 1 and tile.tile_class_id in (1,4) and tile.x_index in (120) and tile.y_index in (-20) ;
+
+        sql = """
+            select
+                null acquisition_id, null satellite, null start_datetime, null end_datetime,
+                null end_datetime_year, null end_datetime_month,
+                dsm.x_index, dsm.y_index, point(dsm.x_index, dsm.y_index) as xy,
+                ARRAY[
+                    ['DSM', DSM.tile_pathname],
+                    ['DEM', DEM.tile_pathname],
+                    ['DEM_HYDROLOGICALLY_ENFORCED', DEM_H.tile_pathname],
+                    ['DEM_SMOOTHED', DEM_S.tile_pathname]
+                    ] as datasets
+            from
+                (
+                select
+                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+                from tile
+                join dataset on dataset.dataset_id=tile.dataset_id
+                where dataset.level_id = 100
+                ) as DSM
+            join
+                (
+                select
+                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+                from tile
+                join dataset on dataset.dataset_id=tile.dataset_id
+                where dataset.level_id = 110
+                ) as DEM on
+                        DEM.x_index=DSM.x_index and DEM.y_index=DSM.y_index
+                    and DEM.tile_type_id=DSM.tile_type_id and DEM.tile_class_id=DSM.tile_class_id
+            join
+                (
+                select
+                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+                from tile
+                join dataset on dataset.dataset_id=tile.dataset_id
+                where dataset.level_id = 120
+                ) as DEM_S on
+                        DEM_S.x_index=DSM.x_index and DEM_S.y_index=DSM.y_index
+                    and DEM_S.tile_type_id=DSM.tile_type_id and DEM_S.tile_class_id=DSM.tile_class_id
+            join
+                (
+                select
+                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+                from tile
+                join dataset on dataset.dataset_id=tile.dataset_id
+                where dataset.level_id = 130
+                ) as DEM_H on
+                        DEM_H.x_index=DSM.x_index and DEM_H.y_index=DSM.y_index
+                    and DEM_H.tile_type_id=DSM.tile_type_id and DEM_H.tile_class_id=DSM.tile_class_id
+            where
+                DSM.tile_type_id = ANY(%(tile_type)s) and DSM.tile_class_id = ANY(%(tile_class)s) -- mandatory
+                and DSM.x_index = ANY(%(x)s) and DSM.y_index = ANY(%(y)s)
+            ;
+        """.format()
+
+        params = {"tile_type": [1], "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
+                  "x": x, "y": y}
+
+        _log.debug(cursor.mogrify(sql, params))
+
+        cursor.execute(sql, params)
+
+        for record in result_generator(cursor):
+            _log.debug(record)
+            yield Tile.from_db_record(record)
+
+    except Exception as e:
+
+        _log.error("Caught exception %s", e)
+        conn.rollback()
 
 
 # TODO rename this to be the "standard" list_tiles and the above to be list_tiles_for_year or something

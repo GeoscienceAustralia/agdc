@@ -157,7 +157,7 @@ class DatasetType(Enum):
     NBR = "NBR"
 
 
-dataset_type_database = [DatasetType.ARG25, DatasetType.PQ25, DatasetType.FC25]
+dataset_type_database = [DatasetType.ARG25, DatasetType.PQ25, DatasetType.FC25, DatasetType.DSM, DatasetType.DEM, DatasetType.DEM_HYDROLOGICALLY_ENFORCED, DatasetType.DEM_SMOOTHED]
 dataset_type_filesystem = [DatasetType.WATER]
 dataset_type_derived_nbar = [DatasetType.NDVI, DatasetType.EVI, DatasetType.NBR] # TCI, SAVI, etc...
 
@@ -289,8 +289,8 @@ class Tile:
         self.xy = (self.x, self.y)  # TODO
         self.start_datetime = start_datetime
         self.end_datetime = end_datetime
-        self.end_datetime_year = int(end_datetime_year)
-        self.end_datetime_month = int(end_datetime_month)
+        self.end_datetime_year = end_datetime_year and int(end_datetime_year) or None
+        self.end_datetime_month = end_datetime_month and int(end_datetime_month) or None
         self.datasets = datasets
 
     @staticmethod
@@ -319,7 +319,8 @@ class Tile:
             datasets=DatasetTile.from_db_array(record["satellite"], record["datasets"]))
 
 
-# TODO Need to deal with the fact that some datasets don't have a satellite
+# TODO Need to deal with the fact that some datasets don't have a satellite and stuff
+
 BANDS = {
     (DatasetType.ARG25, Satellite.LS5): Ls57Arg25Bands,
     (DatasetType.ARG25, Satellite.LS7): Ls57Arg25Bands,
@@ -337,21 +338,10 @@ BANDS = {
     (DatasetType.WATER, Satellite.LS7): Wofs25Bands,
     (DatasetType.WATER, Satellite.LS8): Wofs25Bands,
 
-    (DatasetType.DSM, Satellite.LS5): DsmBands,
-    (DatasetType.DSM, Satellite.LS7): DsmBands,
-    (DatasetType.DSM, Satellite.LS8): DsmBands,
-
-    (DatasetType.DEM, Satellite.LS5): DsmBands,
-    (DatasetType.DEM, Satellite.LS7): DsmBands,
-    (DatasetType.DEM, Satellite.LS8): DsmBands,
-
-    (DatasetType.DEM_SMOOTHED, Satellite.LS5): DsmBands,
-    (DatasetType.DEM_SMOOTHED, Satellite.LS7): DsmBands,
-    (DatasetType.DEM_SMOOTHED, Satellite.LS8): DsmBands,
-
-    (DatasetType.DEM_HYDROLOGICALLY_ENFORCED, Satellite.LS5): DsmBands,
-    (DatasetType.DEM_HYDROLOGICALLY_ENFORCED, Satellite.LS7): DsmBands,
-    (DatasetType.DEM_HYDROLOGICALLY_ENFORCED, Satellite.LS8): DsmBands
+    (DatasetType.DSM, None): DsmBands,
+    (DatasetType.DEM, None): DsmBands,
+    (DatasetType.DEM_SMOOTHED, None): DsmBands,
+    (DatasetType.DEM_HYDROLOGICALLY_ENFORCED, None): DsmBands,
 }
 
 
