@@ -56,6 +56,7 @@ setup(name='agdc',
                   'gdal',
                   'numexpr',
                   'scipy',
+                  'dateutil',
                   'pytz'
                   ],
       url = 'https://github.com/GeoscienceAustralia/ga-datacube',

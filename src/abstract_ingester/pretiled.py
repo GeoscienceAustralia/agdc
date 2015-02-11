@@ -2,8 +2,11 @@ from collections import OrderedDict
 from datetime import datetime
 import logging
 import os
+import dateutil.parser
+import dateutil.tz
 from osgeo import gdal
 from . import AbstractBandstack, AbstractDataset, SourceFileIngester
+
 
 _LOG = logging.getLogger(__name__)
 
@@ -173,8 +176,8 @@ class GdalMdDataset(AbstractDataset):
         return None  # N/A?
 
     def _get_date_param(self, param_name):
-        start = self._md[param_name]
-        return datetime.strptime(start, '%Y-%m-%d %H:%M:%S.%f')
+        t = self._md[param_name]
+        return dateutil.parser.parse(t, tzinfos=dateutil.tz.tzutc)
 
     def get_start_datetime(self):
         return self._get_date_param('start_datetime')
