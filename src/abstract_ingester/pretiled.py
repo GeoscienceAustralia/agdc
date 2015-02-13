@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from collections import OrderedDict
 from datetime import datetime
 import logging
@@ -107,9 +108,28 @@ class PreTiledBandstack(AbstractBandstack):
         raise RuntimeError('Pre-tiled ingestion does not need reprojection: No VRT option available.')
 
 
-class GdalMdDataset(AbstractDataset):
+class PreTiledDataset(AbstractDataset):
     """
-    A Dataset whose metadata is read from Gdal metadata.
+    A dataset that has already been tiled: It should provide type
+    and footprint (x,y) information.
+    """
+    @abstractmethod
+    def get_tile_type_id(self):
+        """The tile type id.
+        :rtype int"""
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_tile_footprint(self):
+        """(x,y) footprint of tile.
+        :rtype: (int, int)
+        """
+        raise NotImplementedError
+
+
+class GdalMdDataset(PreTiledDataset):
+    """
+    A Pre-tiled Dataset whose metadata is read from Gdal metadata.
     """
 
     def __init__(self, dataset_path):
@@ -238,6 +258,14 @@ class GdalMdDataset(AbstractDataset):
     def stack_bands(self, band_dict):
         return PreTiledBandstack(self, band_dict)
 
+    # Pre-tiled information:
+
+    def get_tile_type_id(self):
+        return int(self._md['tile_type_id'])
+
+    def get_tile_footprint(self):
+        return int(self._md['x_index']), int(self._md['y_index'])
+
 
 class PreTiledIngester(SourceFileIngester):
     """Ingest data that is already tiled"""
@@ -251,19 +279,16 @@ class PreTiledIngester(SourceFileIngester):
         TODO: This could share more code with parent.
 
         :type dataset_record: DatasetRecord
-        :type dataset: AbstractDataset
+        :type dataset: PreTiledDataset
         """
-
-        # TODO: Access these fields cleanly.
-        tile_type_id = int(dataset._md['tile_type_id'])
-        tile_footprint = int(dataset._md['x_index']), int(dataset._md['y_index'])
+        tile_type_id = dataset.get_tile_type_id()
 
         tile_bands = dataset_record.get_tile_bands(tile_type_id)
         band_stack = dataset.stack_bands(tile_bands)
 
         tile_contents = dataset_record.collection.create_tile_contents(
             tile_type_id,
-            tile_footprint,
+            dataset.get_tile_footprint(),
             band_stack,
             # Use existing path: we're not creating new tiles.
             tile_output_path=dataset.get_dataset_path()
