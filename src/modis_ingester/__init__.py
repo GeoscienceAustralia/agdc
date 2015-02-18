@@ -63,16 +63,25 @@ LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)
 
 
-def _is_modis_file(source_dir):
+def _is_modis_file(filename):
     """
     Does the given file match a Modis NetCDF file?
 
     (we could make this more extensive in the future, but it's directly derived from the old find_files() logic.
 
-    :type source_dir: str
+    :type filename: str
     :rtype: bool
+    >>> d = '/g/data/u39/public/data/modis/datacube/mod09-swath/terra/2010/12/31'
+    >>> f = 'MOD09_L2.2010365.2300.20130130162407.remapped_swath_500mbands_0.005deg.nc'
+    >>> _is_modis_file(f)
+    True
+    >>> _is_modis_file(os.path.join(d, f))
+    True
+    >>> _is_modis_file(d)
+    False
     """
-    return os.path.isfile(source_dir) and source_dir.endswith(".nc")
+    basename = os.path.basename(filename).lower()
+    return basename.startswith('mod') and filename.endswith(".nc")
 
 
 class ModisIngester(SourceFileIngester):
@@ -159,3 +168,6 @@ class ModisIngester(SourceFileIngester):
 
         return vrt_list
 
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()

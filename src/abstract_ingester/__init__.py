@@ -523,6 +523,8 @@ def _find_files(source_path, matcher):
         LOGGER.debug('%r is a single file', source_path)
         return [source_path]
 
+    LOGGER.debug('Source is a directory: %s', source_path)
+
     assert os.path.isdir(source_path), '%s is not a directory' % source_path
 
     dataset_list = []
