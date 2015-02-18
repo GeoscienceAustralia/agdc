@@ -60,7 +60,6 @@ logging.basicConfig(stream=sys.stdout,
 #
 
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.INFO)
 
 
 def _is_modis_file(filename):

@@ -61,7 +61,6 @@ logging.basicConfig(stream=sys.stdout,
 #
 
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.INFO)
 
 
 class LandsatIngester(AbstractIngester):
