@@ -112,7 +112,7 @@ class Stacker(DataCube):
             required=False, default=None,
             help='Sensor Name (e.g. TM, ETM+)')
         _arg_parser.add_argument('-t', '--tile_type', dest='default_tile_type_id',
-            required=False, default=1,
+            required=False, default=None,
             help='Tile type ID of tiles to be stacked')
         _arg_parser.add_argument('-p', '--path', dest='path',
             required=False, default=None,
@@ -136,11 +136,12 @@ class Stacker(DataCube):
         args, unknown_args = _arg_parser.parse_known_args()
         return args
         
-    def __init__(self, source_datacube=None, default_tile_type_id=1):
+    def __init__(self, source_datacube=None, default_tile_type_id=None, config=None):
         """Constructor
         Arguments:
             source_datacube: Optional DataCube object whose connection and data will be shared
-            tile_type_id: Optional tile_type_id value (defaults to 1)
+            tile_type_id: Optional tile_type_id value (defaults to config file value)
+            config: Optional configuration file path. Will use command line supplied value or default if not given
         """
         
         if source_datacube:
@@ -154,16 +155,14 @@ class Stacker(DataCube):
                 self.__setattr__(attribute_name, attribute_value)
 
         else:
-            DataCube.__init__(self) # Call inherited constructor
+            DataCube.__init__(self, config) # Call inherited constructor
             
         if self.debug:
             console_handler.setLevel(logging.DEBUG)
             
         # Attempt to parse dates from command line arguments or config file
-        try:
-            self.default_tile_type_id = int(self.default_tile_type_id) 
-        except:
-            self.default_tile_type_id = default_tile_type_id # Use function argument value if not in command-line args
+        self.default_tile_type_id = default_tile_type_id or int(self.default_tile_type_id) 
+
         try:
             self.start_date = datetime.strptime(self.start_date, '%Y%m%d').date()
         except:

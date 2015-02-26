@@ -158,7 +158,7 @@ class DataCube(object):
         return resultArray
     
     def get_tile_ordinates(self, point_x, point_y, point_date, 
-                      processing_level='NBAR', satellite=None, tile_type_id=1):
+                      processing_level='NBAR', satellite=None, tile_type_id=None):
         """
         Function to return tile path and pixel coordinates.
         Arguments should be self explanatory
@@ -210,7 +210,7 @@ where tile_type_id = %(tile_type_id)s
         else:
             return None
    
-    def __init__(self):
+    def __init__(self, config=None):
         self.agdc_root = os.path.dirname(__file__)
 
         self.db_connection = None
@@ -240,7 +240,7 @@ where tile_type_id = %(tile_type_id)s
         log_multiline(logger.debug, args.__dict__, 'args.__dict__',  '\t')
 
         # Default conf file is agdc_default.conf - show absolute pathname in error messages
-        config_file = os.path.abspath(args.config_file or
+        config_file = config or os.path.abspath(args.config_file or
                                       os.path.join(self.agdc_root, 'agdc_default.conf'))
         
         config_parser = open_config(config_file)
@@ -253,7 +253,8 @@ where tile_type_id = %(tile_type_id)s
         # Set instance attributes for every value in command line arguments file
         for attribute_name in args.__dict__.keys():
             attribute_value = args.__dict__[attribute_name]
-            self.__setattr__(attribute_name, attribute_value)
+            if attribute_value:
+                self.__setattr__(attribute_name, attribute_value)
             
         self.create_directory(self.temp_dir)
         
@@ -555,7 +556,7 @@ where (%(lock_type_id)s is null or lock_type_id = %(lock_type_id)s)
             new_file.write(output + '\n')
         new_file.close()
                 
-    def cell_has_data(self, x_index, y_index, start_datetime=None, end_datetime=None, tile_type_id=1):
+    def cell_has_data(self, x_index, y_index, start_datetime=None, end_datetime=None, tile_type_id=None):
         db_cursor = self.db_connection.cursor()
         sql = """-- count of acquisitions which have tiles covering the matching indices
 select count(distinct acquisition_id) as acquisition_count
@@ -568,6 +569,7 @@ where tile_type_id = %(tile_type_id)s
   and (%(start_datetime)s is null or start_datetime >= %(start_datetime)s)
   and (%(end_datetime)s is null or end_datetime <= %(end_datetime)s);      
 """        
+        tile_type_id = tile_type_id or self.default_tile_type_id
         params = {'x_index': x_index,
                   'y_index': y_index,
                   'start_datetime': start_datetime,
