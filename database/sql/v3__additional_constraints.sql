@@ -14,6 +14,10 @@ alter table dataset
 
 drop index dataset_dataset_path_idx;
 
+
+create unique index dataset_dataset_path_level_id_idx
+    on public.dataset(dataset_path, level_id);
+
 alter table dataset
-    add constraint dataset_path_level
-    unique (dataset_path, level_id);
+    add constraint dataset_path_level_uniq
+    unique using index dataset_dataset_path_level_id_idx;
