@@ -161,11 +161,11 @@ class GdalMdDataset(PreTiledDataset):
 
     def get_x_ref(self):
         # Path for landsat, otherwise none. Should we support other Satellite schemes?
-        return self._md.get('path')
+        return self._get_int_param('path')
 
     def get_y_ref(self):
         # TODO: WoFS has a row range, not a specific row, which doesn't fit this model.
-        return None
+        return self._get_int_param('row', 'start_row')
 
     def get_satellite_tag(self):
         return self._md.get('satellite_tag')
@@ -211,6 +211,16 @@ class GdalMdDataset(PreTiledDataset):
             return None
 
         return float(val)
+
+    def _get_int_param(self, *param_names):
+        for param_name in param_names:
+            val = self._md.get(param_name)
+            if not val or val == 'None':
+                continue
+
+            return int(val)
+
+        return None
 
     def get_cloud_cover(self):
         return self._get_float_param('cloud_cover')

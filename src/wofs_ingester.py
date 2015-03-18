@@ -86,7 +86,9 @@ class WofsDataset(GdalMdDataset):
     """
     Water extent tile.
 
-    All metadata is read from gdal properties.
+    All metadata is read from our default gdal properties.
+
+    We may want to read some of the custom WOfS properties here in the future (?)
     """
     pass
 
