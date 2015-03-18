@@ -81,19 +81,6 @@ class WofsIngester(PreTiledIngester):
         """
         return WofsDataset(dataset_path)
 
-    def filter_dataset(self, path, row, date):
-        """Return True if the dataset should be included, False otherwise.
-
-        TODO: Should we include path/row filtering where applicable? Do we always have it?
-        """
-
-        start_date, end_date = self.get_date_range()
-
-        include = ((end_date is None or date is None or date <= end_date) and
-                   (start_date is None or date is None or date >= start_date))
-
-        return include
-
 
 class WofsDataset(GdalMdDataset):
     """
