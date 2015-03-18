@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#===============================================================================
+# ===============================================================================
 # Copyright (c)  2014 Geoscience Australia
 # All rights reserved.
 #
@@ -25,28 +25,15 @@
 # ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#===============================================================================
+# ===============================================================================
 
 """
     landsat_ingester.py - Ingester script for landsat datasets.
 """
 
-import logging
 from agdc.landsat_ingester import LandsatIngester
+from agdc.abstract_ingester import run_ingest
 
-# Start ingest process
 if __name__ == "__main__":
+    run_ingest(LandsatIngester)
 
-    #pylint:disable=invalid-name
-    #
-    # Top level variables are OK if this is the top level script.
-    #
-
-    ingester = LandsatIngester()
-
-    if ingester.args.debug:
-        logging.getLogger().setLevel(logging.DEBUG)
-
-    ingester.ingest(ingester.args.source_dir)
-
-    ingester.collection.cleanup()

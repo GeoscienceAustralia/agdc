@@ -42,8 +42,8 @@ Or a specific dataset:
 """
 
 import logging
-from ..abstract_ingester.pretiled import GdalMdDataset, PreTiledIngester
-import sys
+from abstract_ingester.pretiled import GdalMdDataset, PreTiledIngester
+import abstract_ingester
 
 
 _LOG = logging.getLogger(__name__)
@@ -104,23 +104,5 @@ class WofsDataset(GdalMdDataset):
     pass
 
 
-def run_ingest():
-    """
-
-    :return:
-    """
-    logging.basicConfig(stream=sys.stdout,
-                        format='%(asctime)s %(name)s %(levelname)s %(message)s',
-                        level=logging.INFO)
-
-    ingester = WofsIngester()
-
-    if ingester.args.debug:
-        logging.getLogger().setLevel(logging.DEBUG)
-
-    ingester.ingest(ingester.args.source_dir)
-
-    ingester.collection.cleanup()
-
 if __name__ == '__main__':
-    run_ingest()
+    abstract_ingester.run_ingest(WofsIngester)

@@ -32,6 +32,7 @@
 """
 
 import os
+import sys
 import logging
 import argparse
 from datetime import datetime
@@ -569,3 +570,22 @@ class SourceFileIngester(AbstractIngester):
         LOGGER.debug('%s dataset found: %r', len(dataset_list), dataset_list)
         return dataset_list
 
+
+def run_ingest(ingester_class):
+    """
+    Do ingestion, with default environment settings.
+
+    The ingester_class is expected to be a class that implements SourceFileIngester.
+    """
+    logging.basicConfig(stream=sys.stdout,
+                        format='%(asctime)s %(name)s %(levelname)s %(message)s',
+                        level=logging.INFO)
+
+    ingester = ingester_class()
+
+    if ingester.args.debug:
+        logging.getLogger().setLevel(logging.DEBUG)
+
+    ingester.ingest(ingester.args.source_dir)
+
+    ingester.collection.cleanup()
