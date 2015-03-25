@@ -706,8 +706,15 @@ def extract_fields_from_filename(filename):
 def intersection(a, b):
     return list(set(a) & set(b))
 
+
 def union(a, b):
     return list(set(a) | set(b))
 
+
 def subset(a, b):
     return set(a) <= set(b)
+
+
+def get_satellite_string(satellites):
+    # TODO this assumes everything is Landsat!!!!
+    return "LS" + "".join([s.value.replace("LS", "") for s in satellites])
