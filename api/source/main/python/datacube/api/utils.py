@@ -33,9 +33,10 @@ import math
 import logging
 import numpy
 import gdal
+import os
 from gdalconst import *
 from enum import Enum
-from datacube.api.model import Pq25Bands, Ls57Arg25Bands, Satellite, DatasetType, Ls8Arg25Bands
+from datacube.api.model import Pq25Bands, Ls57Arg25Bands, Satellite, DatasetType, Ls8Arg25Bands, Wofs25Bands
 from datetime import datetime
 
 
@@ -59,25 +60,6 @@ _log = logging.getLogger(__name__)
 #       - 12 = not cloud shadow (ACCA test)
 #       - 13 = not cloud shadow (FMASK test)
 
-# ### DEPRECATE AND REMOVE THESE IN FAVOUR OF THE ENUM!!!
-#
-# PQA_MASK = 0x3fff  # This represents bits 0-13 set
-# PQA_MASK_CONTIGUITY = 0x01FF
-# PQA_MASK_CLOUD = 0x0C00
-# PQA_MASK_CLOUD_SHADOW = 0x3000
-# PQA_MASK_SEA_WATER = 0x0200
-#
-# PQ_MASK_CLEAR = 16383               # bits 0 - 13 set
-# PQ_MASK_SATURATION = 255            # bits 0 - 7 set
-# PQ_MASK_SATURATION_OPTICAL = 159    # bits 0-4 and 7 set
-# PQ_MASK_SATURATION_THERMAL = 96     # bits 5,6 set
-# PQ_MASK_CONTIGUITY = 256            # bit 8 set
-# PQ_MASK_LAND = 512                  # bit 9 set
-# PQ_MASK_CLOUD_ACCA = 1024           # bit 10 set
-# PQ_MASK_CLOUD_FMASK = 2048          # bit 11 set
-# PQ_MASK_CLOUD_SHADOW_ACCA = 4096    # bit 12 set
-# PQ_MASK_CLOUD_SHADOW_FMASK = 8192   # bit 13 set
-
 class PqaMask(Enum):
     PQ_MASK_CLEAR = 16383               # bits 0 - 13 set
 
@@ -98,6 +80,18 @@ class PqaMask(Enum):
     PQ_MASK_CLOUD_SHADOW_FMASK = 8192   # bit 13 set
 
 
+class WofsMask(Enum):
+    DRY = 0
+    NO_DATA = 1
+    SATURATION_CONTIGUITY = 2
+    SEA_WATER = 4
+    TERRAIN_SHADOW = 8
+    HIGH_SLOPE = 16
+    CLOUD_SHADOW = 32
+    CLOUD = 64
+    WET = 128
+
+
 # Standard no data value
 NDV = -999
 
@@ -106,6 +100,9 @@ INT16_MAX = numpy.iinfo(numpy.int16).max
 
 UINT16_MIN = numpy.iinfo(numpy.uint16).min
 UINT16_MAX = numpy.iinfo(numpy.uint16).max
+
+BYTE_MIN = numpy.iinfo(numpy.ubyte).min
+BYTE_MAX = numpy.iinfo(numpy.ubyte).max
 
 
 def empty_array(shape, dtype=numpy.int16, ndv=-999):
@@ -175,11 +172,13 @@ def get_dataset_metadata(dataset):
 
         band_metadata[band] = DatasetBandMetaData(raster_band.GetNoDataValue(), raster_band.DataType)
 
-        raster_band = None
+        raster_band.FlushCache()
+        del raster_band
 
     dataset_metadata = DatasetMetaData((raster.RasterXSize, raster.RasterYSize), raster.GetGeoTransform(), raster.GetProjection(), band_metadata)
 
-    raster = None
+    raster.FlushCache()
+    del raster
 
     return dataset_metadata
 
@@ -220,24 +219,31 @@ def get_dataset_data(dataset, bands=None, x=0, y=0, x_size=None, y_size=None):
         data = band.ReadAsArray(x, y, x_size, y_size)
         out[b] = data
 
+        band.FlushCache()
+        del band
+
+    raster.FlushCache()
+    del raster
+
     return out
 
 
-DEFAULT_PQA_MASK = [PqaMask.PQ_MASK_CLEAR]
+DEFAULT_MASK_PQA = [PqaMask.PQ_MASK_CLEAR]
 
-def get_dataset_data_with_pq(dataset, pq_dataset, bands=None, x=0, y=0, x_size=None, y_size=None, pq_masks=DEFAULT_PQA_MASK, ndv=NDV):
+
+def get_dataset_data_masked(dataset, bands=None, x=0, y=0, x_size=None, y_size=None, ndv=NDV, mask=None):
 
     """
     Return one or more bands from the dataset with pixel quality applied
 
     :type dataset: datacube.api.model.Dataset
-    :type pq_dataset: datacube.api.model.Dataset
     :type bands: list[Band]
     :type x: int
     :type y: int
     :type x_size: int
     :type y_size: int
-    :type pq_masks: list[datacube.api.util.PqaMask]
+    :type ndv: int
+    :type mask: numpy.array
     :rtype: dict[numpy.array]
     """
 
@@ -246,42 +252,71 @@ def get_dataset_data_with_pq(dataset, pq_dataset, bands=None, x=0, y=0, x_size=N
 
     out = get_dataset_data(dataset, bands, x=x, y=y, x_size=x_size, y_size=y_size)
 
-    data_pq = get_dataset_data(pq_dataset, [Pq25Bands.PQ], x=x, y=y, x_size=x_size, y_size=y_size)[Pq25Bands.PQ]
-
-    for band in bands:
-
-        out[band] = apply_pq(out[band], data_pq, pq_masks=pq_masks, ndv=ndv)
+    if mask is not None:
+        for band in bands:
+            out[band] = apply_mask(out[band], mask=mask, ndv=ndv)
 
     return out
 
 
-def apply_pq(dataset, pq, ndv=NDV, pq_masks=DEFAULT_PQA_MASK):
+def get_dataset_data_with_pq(dataset, dataset_pqa, bands=None, x=0, y=0, x_size=None, y_size=None, masks_pqa=DEFAULT_MASK_PQA, ndv=NDV):
 
-    # Get the PQ mask
-    mask = get_pq_mask(pq, pq_masks)
+    """
+    Return one or more bands from the dataset with pixel quality applied
 
-    # Apply the PQ mask to the dataset and fill masked entries with no data value
-    return numpy.ma.array(dataset, mask=mask).filled(ndv)
+    :type dataset: datacube.api.model.Dataset
+    :type dataset_pqa: datacube.api.model.Dataset
+    :type bands: list[Band]
+    :type x: int
+    :type y: int
+    :type x_size: int
+    :type y_size: int
+    :type masks_pqa: list[datacube.api.util.PqaMask]
+    :rtype: dict[numpy.array]
+    """
+
+    if not bands:
+        bands = dataset.bands
+
+    mask_pqa = get_mask_pqa(dataset_pqa, x=x, y=y, x_size=x_size, y_size=y_size, pqa_masks=masks_pqa)
+
+    out = get_dataset_data_masked(dataset, bands, x=x, y=y, x_size=x_size, y_size=y_size, mask=mask_pqa, ndv=ndv)
+
+    return out
 
 
-def get_pq_mask(pq, pq_masks=DEFAULT_PQA_MASK):
+def apply_mask(data, mask, ndv=NDV):
+    return numpy.ma.array(data, mask=mask).filled(ndv)
+
+
+def get_mask_pqa(pqa, pqa_masks=DEFAULT_MASK_PQA, x=0, y=0, x_size=None, y_size=None, mask=None):
 
     """
     Return a pixel quality mask
 
-    :param pq: Pixel Quality dataset
-    :param mask: which PQ flags to use
-    :return: the PQ mask
+    :param pqa: Pixel Quality dataset
+    :param pqa_masks: which PQ flags to use
+    :param mask: an optional existing mask to update
+    :return: the mask
     """
 
     # Consolidate the list of (bit) masks into a single (bit) mask
-    pq_mask = consolidate_pq_mask(pq_masks)
+    pqa_mask = consolidate_masks(pqa_masks)
+
+    # Read the PQA dataset
+    data = get_dataset_data(pqa, [Pq25Bands.PQ], x=x, y=y, x_size=x_size, y_size=y_size)[Pq25Bands.PQ]
+
+    # Create an empty mask if none provided - just to avoid an if below :)
+    if mask is None:
+        mask = numpy.ma.make_mask_none(numpy.shape(data))
 
     # Mask out values where the requested bits in the PQ value are not set
-    return numpy.ma.masked_where(pq & pq_mask != pq_mask, pq).mask
+    mask = numpy.ma.mask_or(mask, numpy.ma.masked_where(data & pqa_mask != pqa_mask, data).mask)
+
+    return mask
 
 
-def consolidate_pq_mask(masks):
+def consolidate_masks(masks):
     mask = 0x0000
 
     for m in masks:
@@ -290,10 +325,43 @@ def consolidate_pq_mask(masks):
     return mask
 
 
+DEFAULT_MASK_WOFS = [WofsMask.WET]
+
+
+def get_mask_wofs(wofs, wofs_masks=DEFAULT_MASK_WOFS, x=0, y=0, x_size=None, y_size=None, mask=None):
+
+    """
+    Return a WOFS mask
+
+    :param wofs: WOFS dataset
+    :param wofs_masks: which WOFS values to mask
+    :param mask: an optional existing mask to update
+    :return: the mask
+    """
+
+    # Read the WOFS dataset
+    data = get_dataset_data(wofs, bands=[Wofs25Bands.WATER], x=x, y=y, x_size=x_size, y_size=y_size)[Wofs25Bands.WATER]
+
+    if mask is None:
+        mask = numpy.ma.make_mask_none(numpy.shape(data))
+
+    # Mask out values where the WOFS value is one of the requested mask values
+    for wofs_mask in wofs_masks:
+        mask = numpy.ma.mask_or(mask, numpy.ma.masked_equal(data, wofs_mask.value).mask)
+
+    return mask
+
+
+# TODO I've dodgied this to get band names in.  Should redo it properly so you pass in a lit of band data structures
+# that have a name, the data, the NDV, etc
+
 def raster_create(path, data, transform, projection, no_data_value, data_type,
                   # options=["INTERLEAVE=PIXEL", "COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=9"]):
                   # options=["INTERLEAVE=PIXEL", "COMPRESS=DEFLATE", "PREDICTOR=1", "ZLEVEL=6"]):
-                  options=["INTERLEAVE=PIXEL"], width=None, height=None):
+                  options=["INTERLEAVE=PIXEL"],
+                  # options=["INTERLEAVE=PIXEL", "COMPRESS=LZW"],
+                  # options=["INTERLEAVE=PIXEL", "COMPRESS=LZW", "TILED=YES"],
+                  width=None, height=None, dataset_metadata=None, band_ids=None):
     """
     Create a raster from a list of numpy arrays
 
@@ -316,21 +384,31 @@ def raster_create(path, data, transform, projection, no_data_value, data_type,
     width = width or numpy.shape(data[0])[1]
     height = height or numpy.shape(data[0])[0]
 
-    dataset = driver.Create(path, width, height, len(data), data_type, options)
-    assert dataset
+    raster = driver.Create(path, width, height, len(data), data_type, options)
+    assert raster
 
-    dataset.SetGeoTransform(transform)
-    dataset.SetProjection(projection)
+    raster.SetGeoTransform(transform)
+    raster.SetProjection(projection)
+
+    if dataset_metadata:
+        raster.SetMetadata(dataset_metadata)
 
     for i in range(0, len(data)):
         _log.debug("Writing band %d", i + 1)
-        dataset.GetRasterBand(i + 1).SetNoDataValue(no_data_value)
-        dataset.GetRasterBand(i + 1).WriteArray(data[i])
-        dataset.GetRasterBand(i + 1).ComputeStatistics(True)
 
-    dataset.FlushCache()
+        band = raster.GetRasterBand(i + 1)
 
-    dataset = None
+        if band_ids and len(band_ids) - 1 >= i:
+            band.SetDescription(band_ids[i])
+        band.SetNoDataValue(no_data_value)
+        band.WriteArray(data[i])
+        band.ComputeStatistics(True)
+
+        band.FlushCache()
+        del band
+
+    raster.FlushCache()
+    del raster
 
 
 def propagate_using_selected_pixel(a, b, c, d, ndv=NDV):
@@ -703,6 +781,7 @@ def extract_fields_from_filename(filename):
 
     return satellite, dataset_type, x, y, acq_dt
 
+
 def intersection(a, b):
     return list(set(a) & set(b))
 
@@ -718,3 +797,34 @@ def subset(a, b):
 def get_satellite_string(satellites):
     # TODO this assumes everything is Landsat!!!!
     return "LS" + "".join([s.value.replace("LS", "") for s in satellites])
+
+
+def check_overwrite_remove_or_fail(path, overwrite):
+
+    if os.path.exists(path):
+        if overwrite:
+            _log.info("Removing existing output file [%s]", path)
+            os.remove(path)
+        else:
+            _log.error("Output file [%s] exists", path)
+            raise Exception("File [%s] exists" % path)
+
+
+def log_mem(s=None):
+
+    if s and len(s) > 0:
+        _log.info(s)
+
+    import psutil
+
+    _log.debug("Current memory usage is [%s]", psutil.Process().memory_info())
+    _log.debug("Current memory usage is [%d] MB", psutil.Process().memory_info().rss / 1024 / 1024)
+
+    import resource
+
+    _log.debug("Current MAX RSS  usage is [%d] MB", resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+
+
+def date_to_integer(d):
+    # Return an integer representing the YYYYMMDD value
+    return d.year * 10000 + d.month * 100 + d.day

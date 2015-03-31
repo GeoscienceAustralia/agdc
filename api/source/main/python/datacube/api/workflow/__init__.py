@@ -174,24 +174,27 @@ class Workflow(object):
     def setup_arguments(self):
 
         self.parser.add_argument("--output-directory", help="output directory", action="store", dest="output_directory",
-                            type=writeable_dir, required=True)
+                                 type=writeable_dir, required=True)
 
         self.parser.add_argument("--x-min", help="X index of tiles", action="store", dest="x_min", type=int,
-                            choices=range(110, 155 + 1), required=True)
+                                 choices=range(110, 155 + 1), required=True)
         self.parser.add_argument("--x-max", help="X index of tiles", action="store", dest="x_max", type=int,
-                            choices=range(110, 155 + 1), required=True)
+                                 choices=range(110, 155 + 1), required=True)
 
         self.parser.add_argument("--y-min", help="Y index of tiles", action="store", dest="y_min", type=int,
-                            choices=range(-45, -10 + 1), required=True)
+                                 choices=range(-45, -10 + 1), required=True)
         self.parser.add_argument("--y-max", help="Y index of tiles", action="store", dest="y_max", type=int,
-                            choices=range(-45, -10 + 1), required=True)
+                                 choices=range(-45, -10 + 1), required=True)
 
-        self.parser.add_argument("--acq-min", help="Acquisition Date", action="store", dest="acq_min", type=str, default="1980")
-        self.parser.add_argument("--acq-max", help="Acquisition Date", action="store", dest="acq_max", type=str, default="2020")
+        self.parser.add_argument("--acq-min", help="Acquisition Date", action="store", dest="acq_min", type=str,
+                                 default="1980")
+        self.parser.add_argument("--acq-max", help="Acquisition Date", action="store", dest="acq_max", type=str,
+                                 default="2020")
 
         self.parser.add_argument("--satellite", help="The satellite(s) to include", action="store", dest="satellite",
-                            type=satellite_arg, nargs="+", choices=Satellite, default=[Satellite.LS5, Satellite.LS7],
-                            metavar=" ".join([s.name for s in Satellite]))
+                                 type=satellite_arg, nargs="+", choices=Satellite,
+                                 default=[Satellite.LS5, Satellite.LS7],
+                                 metavar=" ".join([s.name for s in Satellite]))
 
         self.parser.add_argument("--mask-pqa-apply", help="Apply PQA mask", action="store_true", dest="mask_pqa_apply",
                                  default=False)
@@ -200,12 +203,20 @@ class Workflow(object):
                                  metavar=" ".join([s.name for s in PqaMask]))
 
         self.parser.add_argument("--csv", help="Get cell/dataset info from pre-created CSV rather than querying DB",
-                           action="store_true", dest="csv", default=False)
+                                 action="store_true", dest="csv", default=False)
 
         self.parser.add_argument("--dummy", help="Dummy run", action="store_true", dest="dummy", default=False)
 
-        self.parser.add_argument("--local-scheduler", help="Use local luigi scheduler rather than MPI", action="store_true",
-                            dest="local_scheduler", default=False)
+        self.parser.add_argument("--local-scheduler", help="Use local luigi scheduler rather than MPI",
+                                 action="store_true",
+                                 dest="local_scheduler", default=False)
+
+        group = self.parser.add_mutually_exclusive_group()
+
+        group.add_argument("--quiet", help="Less output", action="store_const", dest="log_level", const=logging.WARN)
+        group.add_argument("--verbose", help="More output", action="store_const", dest="log_level", const=logging.DEBUG)
+
+        self.parser.set_defaults(log_level=logging.INFO)
 
     def process_arguments(self, args):
 
@@ -229,6 +240,8 @@ class Workflow(object):
         self.mask_pqa_mask = args.mask_pqa_mask
 
         self.local_scheduler = args.local_scheduler
+
+        _log.setLevel(args.log_level)
 
     def log_arguments(self):
 
