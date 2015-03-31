@@ -132,6 +132,9 @@ class Stacker(DataCube):
         _arg_parser.add_argument('-b', '--band_lookup_scheme', dest='band_lookup_scheme',
             required=False, default=DEFAULT_BAND_LOOKUP_SCHEME,
             help='Specify a valid band lookup scheme name (default="%s")' % DEFAULT_BAND_LOOKUP_SCHEME)
+        _arg_parser.add_argument('-c', '--complete-only', dest='complete_only',
+            default=False, action='store_const', const=True,
+            help='Only return complete sets (i.e NBAR & PQ)')
     
         args, unknown_args = _arg_parser.parse_known_args()
         return args
@@ -674,8 +677,9 @@ order by
         if disregard_incomplete_data:
             stack_info_dict = {start_datetime: stack_info_dict[start_datetime] 
                                for start_datetime in stack_info_dict.keys()
-                               if {'L1T', 'ORTHO'} & set(stack_info_dict[start_datetime].keys()) # Either L1T or ORTHO
-                               and {'NBAR','PQA'} <= set(stack_info_dict[start_datetime].keys()) # Both NBAR & PQA
+#                               if {'L1T', 'ORTHO'} & set(stack_info_dict[start_datetime].keys()) # Either L1T or ORTHO
+#                               and {'NBAR','PQA'} <= set(stack_info_dict[start_datetime].keys()) # Both NBAR & PQA
+                               if {'NBAR','PQA'} <= set(stack_info_dict[start_datetime].keys()) # Both NBAR & PQA
                                }
             logger.debug('stack_info_dict has %s timeslices after removal of incomplete datasets', len(stack_info_dict))
         
@@ -1273,7 +1277,7 @@ if __name__ == '__main__':
                                          row=stacker.row, 
                                          tile_type_id=None,
                                          create_band_stacks=True,
-                                         disregard_incomplete_data=False)
+                                         disregard_incomplete_data=stacker.complete_only)
     
     log_multiline(logger.debug, stack_info_dict, 'stack_info_dict', '\t')
     logger.info('Finished creating %d temporal stack files in %s.', len(stack_info_dict), stacker.output_dir)
