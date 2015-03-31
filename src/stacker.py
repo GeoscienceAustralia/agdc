@@ -135,6 +135,9 @@ class Stacker(DataCube):
         _arg_parser.add_argument('-c', '--complete-only', dest='complete_only',
             default=False, action='store_const', const=True,
             help='Only return complete sets (i.e NBAR & PQ)')
+        _arg_parser.add_argument('-l', '--levels', dest='levels',
+            required=False, default=None,
+            help='Comma-separated list of level names which must be present for a timeslice to be included, e.g: NBAR,PQA')
     
         args, unknown_args = _arg_parser.parse_known_args()
         return args
@@ -217,6 +220,10 @@ class Stacker(DataCube):
             self.max_row = int(self.max_row) 
         except:
             self.max_row = None
+
+        # Convert comma-separated strings into list
+        if self.levels:
+            self.levels = self.levels.split(',')
 
         # Create nested dict for given lookup_scheme_name with levels keyed by:
         # tile_type_id, satellite_tag, sensor_name, level_name, band_tag
@@ -317,7 +324,9 @@ class Stacker(DataCube):
                    path=None, 
                    row=None, 
                    create_band_stacks=True,
-                   disregard_incomplete_data=False):
+                   disregard_incomplete_data=False,
+                   levels=[]
+                   ):
         """
         Function which returns a data structure and optionally creates band-wise VRT dataset stacks
         
@@ -682,6 +691,13 @@ order by
                                if {'NBAR','PQA'} <= set(stack_info_dict[start_datetime].keys()) # Both NBAR & PQA
                                }
             logger.debug('stack_info_dict has %s timeslices after removal of incomplete datasets', len(stack_info_dict))
+
+        if levels:
+            stack_info_dict = {start_datetime: stack_info_dict[start_datetime]
+                               for start_datetime in stack_info_dict.keys()
+                               if set(levels) <= set(stack_info_dict[start_datetime].keys()) # All specified levels exist
+                               }
+
         
         if (stack_output_dir):
             self.create_directory(stack_output_dir)
@@ -1277,7 +1293,9 @@ if __name__ == '__main__':
                                          row=stacker.row, 
                                          tile_type_id=None,
                                          create_band_stacks=True,
-                                         disregard_incomplete_data=stacker.complete_only)
+                                         disregard_incomplete_data=stacker.complete_only,
+                                         levels=stacker.levels
+                                         )
     
     log_multiline(logger.debug, stack_info_dict, 'stack_info_dict', '\t')
     logger.info('Finished creating %d temporal stack files in %s.', len(stack_info_dict), stacker.output_dir)
