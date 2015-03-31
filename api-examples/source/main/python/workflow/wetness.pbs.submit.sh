@@ -29,7 +29,7 @@
 
 PBS_SCRIPT="$HOME/source/agdc-api-stable/api-examples/source/main/python/workflow/wetness.pbs.sh"
 
-OUTPUT_DIR="/g/data/u46/sjo/output/wetness"
+OUTPUT_DIR="/g/data/u46/sjo/output/wetness/2015-04-01"
 
 # Lower Darling
 

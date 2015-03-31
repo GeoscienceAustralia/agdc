@@ -23,7 +23,7 @@ module load numpy/1.9.1
 #COMMAND="python $HOME/source/agdc-api/api-examples/source/main/python/bare_soil.py --output-dir $outputdir --x-min $xmin --x-max $xmax --y-min $ymin --y-max $ymax --acq-min $acqmin --acq-max $acqmax"
 
 export PYTHONPATH=$HOME/source/agdc-api-stable/api-examples/source/main/python:$HOME/source/agdc-api-stable/api/source/main/python:$HOME/tmp/enum34-1.0-py2.7.egg:$PYTHONPATH
-COMMAND="python $HOME/source/agdc-api-stable/api-examples/source/main/python/workflow/bare_soil.py --output-dir $outputdir --x-min $xmin --x-max $xmax --y-min $ymin --y-max $ymax --acq-min $acqmin --acq-max $acqmax --mask-pqa-apply"
+COMMAND="python $HOME/source/agdc-api-stable/api-examples/source/main/python/workflow/wetness.py --output-dir $outputdir --x-min $xmin --x-max $xmax --y-min $ymin --y-max $ymax --acq-min $acqmin --acq-max $acqmax --mask-pqa-apply"
 
 # MPI
 mpirun -n 8 $COMMAND
