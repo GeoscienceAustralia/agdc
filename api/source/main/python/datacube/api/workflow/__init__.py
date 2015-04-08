@@ -170,6 +170,7 @@ class Workflow(object):
         self.mask_pqa_mask = None
 
         self.local_scheduler = None
+        self.workers = None
 
     def setup_arguments(self):
 
@@ -211,6 +212,9 @@ class Workflow(object):
                                  action="store_true",
                                  dest="local_scheduler", default=False)
 
+        self.parser.add_argument("--workers", help="Number of worker tasks", action="store", dest="workers", type=int,
+                                 default=1)
+
         group = self.parser.add_mutually_exclusive_group()
 
         group.add_argument("--quiet", help="Less output", action="store_const", dest="log_level", const=logging.WARN)
@@ -240,6 +244,7 @@ class Workflow(object):
         self.mask_pqa_mask = args.mask_pqa_mask
 
         self.local_scheduler = args.local_scheduler
+        self.workers = args.workers
 
         _log.setLevel(args.log_level)
 
@@ -255,11 +260,13 @@ class Workflow(object):
         dummy = {dummy}
         PQA mask = {pqa_mask}
         local scheduler = {local_scheduler}
+        workers = {workers}
         """.format(x_min=self.x_min, x_max=self.x_max, y_min=self.y_min, y_max=self.y_max,
                    acq_min=self.acq_min, acq_max=self.acq_max,
                    satellites=self.satellites, output_directory=self.output_directory, csv=self.csv, dummy=self.dummy,
                    pqa_mask=self.mask_pqa_apply and " ".join([mask.name for mask in self.mask_pqa_mask]) or "",
-                   local_scheduler=self.local_scheduler))
+                   local_scheduler=self.local_scheduler,
+                   workers=self.workers))
 
     @abc.abstractmethod
     def create_tasks(self):
@@ -273,7 +280,7 @@ class Workflow(object):
         self.log_arguments()
 
         if self.local_scheduler:
-            luigi.build(self.create_tasks(), local_scheduler=True)
+            luigi.build(self.create_tasks(), local_scheduler=self.local_scheduler, workers=self.workers)
 
         else:
             import luigi.contrib.mpi as mpi
