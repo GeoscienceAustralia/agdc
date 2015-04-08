@@ -74,6 +74,8 @@ class Workflow(workflow.Workflow):
 
 class SummaryTask(workflow.SummaryTask):
 
+    __metaclass__ = abc.ABCMeta
+
     @abc.abstractmethod
     def create_cell_task(self, x, y):
 

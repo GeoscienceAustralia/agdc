@@ -37,7 +37,7 @@ import logging
 import luigi
 import os
 import sys
-from datacube.api.model import Satellite, Cell, DatasetType
+from datacube.api.model import Satellite, Cell, DatasetType, Tile
 from datacube.api.utils import PqaMask, get_satellite_string
 
 
@@ -478,3 +478,11 @@ class CellTask(Task):
                                host=config.get_db_host(), port=config.get_db_port()):
             yield tile
 
+
+class ComplexParameter(luigi.Parameter):
+
+    def serialize(self, x):
+        import cPickle
+        if self.is_list:
+            return [hash(cPickle.dumps(v)) for v in x]
+        return hash(cPickle.dumps(x))

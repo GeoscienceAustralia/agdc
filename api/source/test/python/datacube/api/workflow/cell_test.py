@@ -26,8 +26,6 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ===============================================================================
-from datacube.api.model import DatasetType
-from datacube.api.query import list_cells_missing
 
 
 __author__ = "Simon Oldfield"
@@ -57,26 +55,6 @@ class CellTestWorkflow(Workflow):
 
 
 class CellTestSummaryTask(SummaryTask):
-
-    # def get_cells_from_db(self):
-    #
-    #     from datacube.config import Config
-    #     from datacube.api.query import list_cells_missing
-    #
-    #     config = Config(os.path.expanduser("~/.datacube/config"))
-    #     _log.debug(config.to_str())
-    #
-    #     x_list = range(self.x_min, self.x_max + 1)
-    #     y_list = range(self.y_min, self.y_max + 1)
-    #
-    #     for cell in list_cells_missing(x=x_list, y=y_list, acq_min=self.acq_min, acq_max=self.acq_max,
-    #                                    satellites=[satellite for satellite in self.satellites],
-    #                                    datasets=[DatasetType.ARG25, DatasetType.PQ25, DatasetType.FC25],
-    #                                    database=config.get_db_database(),
-    #                                    user=config.get_db_username(),
-    #                                    password=config.get_db_password(),
-    #                                    host=config.get_db_host(), port=config.get_db_port()):
-    #         yield cell
 
     def create_cell_task(self, x, y):
 
