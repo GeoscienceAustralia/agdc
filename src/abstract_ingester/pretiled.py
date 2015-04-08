@@ -25,7 +25,7 @@ def _get_extent(gt, cols, rows):
     """ Return the corner coordinates from a geotransform
 
     :param gt: geotransform
-    :type gt: (float, float, float, float)
+    :type gt: (float, float, float, float, float, float)
     :param cols: number of columns in the dataset
     :type cols: int
     :param rows: number of rows in the dataset
