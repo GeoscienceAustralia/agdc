@@ -263,7 +263,7 @@ class TimeSeriesRetrievalWorkflow():
 
                 for tile in list_tiles(x=[cell_x], y=[cell_y], acq_min=self.acq_min, acq_max=self.acq_max,
                                        satellites=[satellite for satellite in self.satellites],
-                                       datasets=[self.dataset_type],
+                                       dataset_types=[self.dataset_type],
                                        database=config.get_db_database(),
                                        user=config.get_db_username(),
                                        password=config.get_db_password(),

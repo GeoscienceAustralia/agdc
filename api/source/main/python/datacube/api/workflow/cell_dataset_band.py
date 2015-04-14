@@ -33,8 +33,9 @@ __author__ = "Simon Oldfield"
 
 import abc
 import datacube.api.workflow as workflow
-import luigi
 import logging
+import luigi
+from datacube.api.model import Ls57Arg25Bands, get_bands
 
 
 _log = logging.getLogger()
@@ -50,11 +51,24 @@ class Workflow(workflow.Workflow):
         # super(self.__class__, self).__init__(name)
         workflow.Workflow.__init__(self, name)
 
+        self.dataset_type = None
+        self.bands = None
+
     def setup_arguments(self):
 
         # Call method on super class
         # super(self.__class__, self).setup_arguments()
         workflow.Workflow.setup_arguments(self)
+
+        self.parser.add_argument("--dataset-type", help="The type of dataset to process", action="store",
+                                 dest="dataset_type",
+                                 type=workflow.dataset_type_arg,
+                                 choices=self.get_supported_dataset_types(), required=True,
+                                 metavar=" ".join(
+                                     [dataset_type.name for dataset_type in self.get_supported_dataset_types()]))
+
+        self.parser.add_argument("--band", help="The band(s) from the dataset to process", action="store", required=True,
+                                 dest="bands", type=str, nargs="+", metavar=" ".join([b.name for b in Ls57Arg25Bands]))
 
     def process_arguments(self, args):
 
@@ -62,18 +76,44 @@ class Workflow(workflow.Workflow):
         # super(self.__class__, self).process_arguments(args)
         workflow.Workflow.process_arguments(self, args)
 
+        self.dataset_type = args.dataset_type
+        self.bands = args.bands
+
+        # Verify that all the requested satellites have the requested bands
+
+        for satellite in self.satellites:
+            if not all(item in [b.name for b in get_bands(self.dataset_type, satellite)] for item in self.bands):
+                _log.error("Requested bands [%s] not ALL present for satellite [%s]", self.bands, satellite)
+                raise Exception("Not all bands present for all satellites")
+
     def log_arguments(self):
 
         # Call method on super class
         # super(self.__class__, self).log_arguments()
         workflow.Workflow.log_arguments(self)
 
+        _log.info("""
+        dataset to retrieve = {dataset_type}
+        bands = {bands}
+        """.format(dataset_type=self.dataset_type.name, bands=self.bands))
+
+    @abc.abstractmethod
     def create_tasks(self):
+
+        raise Exception("Abstract method should be overridden")
+
+    @abc.abstractmethod
+    def get_supported_dataset_types(self):
 
         raise Exception("Abstract method should be overridden")
 
 
 class SummaryTask(workflow.SummaryTask):
+
+    __metaclass__ = abc.ABCMeta
+
+    dataset_type = luigi.Parameter()
+    bands = luigi.Parameter(is_list=True)
 
     @abc.abstractmethod
     def create_cell_task(self, x, y):
@@ -85,21 +125,22 @@ class CellTask(workflow.CellTask):
 
     __metaclass__ = abc.ABCMeta
 
+    dataset_type = luigi.Parameter()
+    bands = luigi.Parameter(is_list=True)
+
     def requires(self):
 
-        return [self.create_tile_task(tile=tile) for tile in self.get_tiles()]
+        return [self.create_cell_dataset_band_task(band) for band in self.bands]
 
     @abc.abstractmethod
-    def create_tile_task(self, tile):
+    def create_cell_dataset_band_task(self, band):
 
         raise Exception("Abstract method should be overridden")
 
 
-class TileTask(workflow.Task):
+class CellDatasetBandTask(workflow.Task):
 
     __metaclass__ = abc.ABCMeta
-
-    tile = workflow.ComplexParameter()
 
     x = luigi.IntParameter()
     y = luigi.IntParameter()
@@ -117,5 +158,5 @@ class TileTask(workflow.Task):
     mask_pqa_apply = luigi.BooleanParameter()
     mask_pqa_mask = luigi.Parameter()
 
-    mask_wofs_apply = luigi.BooleanParameter()
-    mask_wofs_mask = luigi.Parameter()
+    dataset_type = luigi.Parameter()
+    band = luigi.Parameter()

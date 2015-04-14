@@ -23,7 +23,8 @@
 # ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#===============================================================================
+# ===============================================================================
+
 
 __author__ = "Simon Oldfield"
 
@@ -67,6 +68,11 @@ class Config:
         return int(self._config.get(section.value, key.value))
 
     def get_db_host(self):
+        '''
+        Get the DB host
+
+        :return:
+        '''
         return self._get_string(Config.Section.DATABASE, Config.DatabaseKey.HOST)
 
     def get_db_port(self):

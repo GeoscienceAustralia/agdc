@@ -36,7 +36,9 @@ import logging
 import psycopg2
 import psycopg2.extras
 import sys
-from model import Tile, Cell
+from model import Tile, Cell, DatasetType
+import os
+from datacube.config import Config
 
 
 _log = logging.getLogger(__name__)
@@ -91,6 +93,44 @@ def print_tile(tile):
                ",".join("|".join([ds.type_id, ds.path]) for ds in tile.datasets))
 
 
+def connect_to_db(config=None):
+
+    connection = cursor = None
+
+    # connect to database
+
+    if not config:
+        config = Config(os.path.expandvars("$HOME/.datacube/config"))
+        _log.debug(config.to_str())
+
+    connection_string = ""
+
+    if config.get_db_host():
+        connection_string += "host={host}".format(host=config.get_db_host())
+
+    if config.get_db_port():
+        connection_string += " port={port}".format(port=config.get_db_port())
+
+    connection_string += " dbname={database} user={user} password={password}".format(database=config.get_db_database(),
+                                                                                     user=config.get_db_username(),
+                                                                                     password=config.get_db_password())
+
+    connection = psycopg2.connect(connection_string)
+
+    cursor = connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cursor.execute("set search_path to public, {schema}".format(schema="gis, topology, ztmp"))
+
+    return connection, cursor
+
+
+def to_file_ify_sql(sql):
+    return """
+    copy (
+    {sql}
+    ) to STDOUT csv header delimiter ',' escape '"' null '' quote '"'
+    """.format(sql=sql)
+
+
 #
 # TODO refactor common code (and SQL) from these methods
 # TODO properly implement them
@@ -104,7 +144,7 @@ def print_tile(tile):
 
 # Cells that we DO have
 
-def list_cells(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
+def list_cells(x, y, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
 
     """
     Return a list of cells matching the criteria as a SINGLE-USE generator
@@ -116,19 +156,14 @@ def list_cells(x, y, satellites, acq_min, acq_max, datasets, database, user, pas
     :type satellites: list[datacube.api.model.Satellite]
     :type acq_min: datetime.date
     :type acq_max: datetime.date
-    :type datasets: list[datacube.api.model.DatasetType]
-    :type database: str
-    :type user: str
-    :type password: str
-    :type host: str
-    :type port: int
+    :type dataset_types: list[datacube.api.model.DatasetType]
     :type sort: SortType
     :rtype: list[datacube.api.model.Cell]
     """
-    return list_cells_as_generator(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host, port, sort)
+    return list_cells_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, sort, config)
 
 
-def list_cells_as_list(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
+def list_cells_as_list(x, y, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
 
     """
     Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
@@ -138,21 +173,14 @@ def list_cells_as_list(x, y, satellites, acq_min, acq_max, datasets, database, u
     :type satellites: list[datacube.api.model.Satellite]
     :type acq_min: datetime.date
     :type acq_max: datetime.date
-    :type datasets: list[datacube.api.model.DatasetType]
-    :type database: str
-    :type user: str
-    :type password: str
-    :type host: str
-    :type port: int
+    :type dataset_types: list[datacube.api.model.DatasetType]
     :type sort: SortType
     :rtype: list[datacube.api.model.Cell]
     """
-    return list(list_cells_as_generator(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host, port, sort))
+    return list(list_cells_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, sort, config))
 
 
-# For this the datasets are the REQUIRED ones (since we aren't returning datasets here)
-
-def list_cells_as_generator(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
+def list_cells_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
 
     """
     Return a list of cells matching the criteria as a SINGLE-USE generator
@@ -162,7 +190,7 @@ def list_cells_as_generator(x, y, satellites, acq_min, acq_max, datasets, databa
     :type satellites: list[datacube.api.model.Satellite]
     :type acq_min: datetime.date
     :type acq_max: datetime.date
-    :type datasets: list[datacube.api.model.DatasetType]
+    :type dataset_types: list[datacube.api.model.DatasetType]
     :type database: str
     :type user: str
     :type password: str
@@ -176,45 +204,352 @@ def list_cells_as_generator(x, y, satellites, acq_min, acq_max, datasets, databa
     try:
         # connect to database
 
-        connection_string = ""
+        conn, cursor = connect_to_db(config=config)
 
-        if host:
-            connection_string += "host={host}".format(host=host)
+        sql, params = build_list_cells_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_types, sort)
 
-        if port:
-            connection_string += " port={port}".format(port=port)
+        _log.debug(cursor.mogrify(sql, params))
 
-        connection_string += " dbname={database} user={user} password={password}".format(database=database, user=user, password=password)
+        cursor.execute(sql, params)
 
-        conn = psycopg2.connect(connection_string)
+        for record in result_generator(cursor):
+            _log.debug(record)
+            yield Cell.from_db_record(record)
 
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cursor.execute("set search_path to {schema}, public".format(schema="gis, topology, ztmp"))
+    except Exception as e:
 
-        sql = """
-            select distinct nbar.x_index, nbar.y_index
-            from acquisition
-            join satellite on satellite.satellite_id=acquisition.satellite_id
-            join
-                (
-                select
-                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
-                from tile
-                join dataset on dataset.dataset_id=tile.dataset_id
-                where dataset.level_id = %(level_nbar)s
-                ) as nbar on nbar.acquisition_id=acquisition.acquisition_id
-            join
+        _log.error("Caught exception %s", e)
+        conn.rollback()
+        raise
+
+    finally:
+
+        conn = cursor = None
+
+
+def list_cells_to_file(x, y, satellites, acq_min, acq_max, dataset_types, filename, sort=SortType.ASC, config=None):
+
+    conn = cursor = None
+
+    try:
+        # connect to database
+
+        conn, cursor = connect_to_db(config=config)
+
+        sql, params = build_list_cells_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_types, sort)
+
+        sql = to_file_ify_sql(sql)
+
+        if filename:
+            with open(filename, "w") as f:
+                cursor.copy_expert(cursor.mogrify(sql, params), f)
+        else:
+            cursor.copy_expert(cursor.mogrify(sql, params), sys.stdout)
+
+    except Exception as e:
+
+        _log.error("Caught exception %s", e)
+        conn.rollback()
+        raise
+
+    finally:
+
+        conn = cursor = None
+
+
+def build_list_cells_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC):
+
+    sql = """
+        SELECT DISTINCT nbar.x_index, nbar.y_index
+        FROM acquisition
+        JOIN satellite ON satellite.satellite_id=acquisition.satellite_id
+        """
+
+    sql += """
+        join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_nbar)s
+            ) as nbar on nbar.acquisition_id=acquisition.acquisition_id
+            """
+
+    if DatasetType.PQ25 in dataset_types:
+        sql += """
+        join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_pqa)s
+            ) as pq on
+                pq.acquisition_id=acquisition.acquisition_id
+                and pq.x_index=nbar.x_index and pq.y_index=nbar.y_index
+                and pq.tile_type_id=nbar.tile_type_id and pq.tile_class_id=nbar.tile_class_id
+
+        """
+
+    if DatasetType.FC25 in dataset_types:
+        sql += """
+        join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_fc)s
+            ) as fc on
+                fc.acquisition_id=acquisition.acquisition_id
+                and fc.x_index=nbar.x_index and fc.y_index=nbar.y_index
+                and fc.tile_type_id=nbar.tile_type_id and fc.tile_class_id=nbar.tile_class_id
+        """
+
+    if DatasetType.DSM in dataset_types:
+        sql += """
+        join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_dsm)s
+            ) as dsm on
+                    dsm.x_index=nbar.x_index and dsm.y_index=nbar.y_index
+                and dsm.tile_type_id=nbar.tile_type_id and dsm.tile_class_id=nbar.tile_class_id
+        """
+
+    if DatasetType.DEM in dataset_types:
+        sql += """
+        join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_dem)s
+            ) as dem on
+                    dem.x_index=nbar.x_index and dem.y_index=nbar.y_index
+                and dem.tile_type_id=nbar.tile_type_id and dem.tile_class_id=nbar.tile_class_id
+        """
+
+    if DatasetType.DEM_HYDROLOGICALLY_ENFORCED in dataset_types:
+        sql += """
+        join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_dem_h)s
+            ) as dem_h on
+                    dem_h.x_index=nbar.x_index and dem_h.y_index=nbar.y_index
+                and dem_h.tile_type_id=nbar.tile_type_id and dem_h.tile_class_id=nbar.tile_class_id
+        """
+
+    if DatasetType.DEM_SMOOTHED in dataset_types:
+        sql += """
+        join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_dem_s)s
+            ) as dem_s on
+                    dem_s.x_index=nbar.x_index and dem_s.y_index=nbar.y_index
+                and dem_s.tile_type_id=nbar.tile_type_id and dem_s.tile_class_id=nbar.tile_class_id
+        """
+
+    sql += """
+        where
+            nbar.tile_type_id = ANY(%(tile_type)s) and nbar.tile_class_id = ANY(%(tile_class)s) -- mandatory
+            and satellite.satellite_tag = ANY(%(satellite)s)
+            and nbar.x_index = ANY(%(x)s) and nbar.y_index = ANY(%(y)s)
+            and end_datetime::date between %(acq_min)s and %(acq_max)s
+        """
+
+    sql += """
+        order by nbar.x_index {sort}, nbar.y_index {sort}
+    """.format(sort=sort.value)
+
+    params = {"tile_type": [TILE_TYPE.value],
+              "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
+              "satellite": [satellite.value for satellite in satellites],
+              "x": x, "y": y,
+              "acq_min": acq_min, "acq_max": acq_max,
+              "level_nbar": ProcessingLevel.NBAR.value}
+
+    if DatasetType.PQ25 in dataset_types:
+        params["level_pqa"] = ProcessingLevel.PQA.value
+
+    if DatasetType.FC25 in dataset_types:
+        params["level_fc"] = ProcessingLevel.FC.value
+
+    if DatasetType.DSM in dataset_types:
+        params["level_dsm"] = ProcessingLevel.DSM.value
+
+    if DatasetType.DEM in dataset_types:
+        params["level_dem"] = ProcessingLevel.DEM.value
+
+    if DatasetType.DEM_HYDROLOGICALLY_ENFORCED in dataset_types:
+        params["level_dem_h"] = ProcessingLevel.DEM_H.value
+
+    if DatasetType.DEM_SMOOTHED in dataset_types:
+        params["level_dem_s"] = ProcessingLevel.DEM_S.value
+
+    return sql, params
+
+
+# Cells that we DON'T have
+
+# TODO currently hard coded to fractional cover
+
+def list_cells_missing(x, y, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
+
+    """
+    Return a list of cells matching the criteria as a SINGLE-USE generator
+
+    Deprecated: Move to using explicit as_list or as_generator
+
+    :type x: list[int]
+    :type y: list[int]
+    :type satellites: list[datacube.api.model.Satellite]
+    :type acq_min: datetime.date
+    :type acq_max: datetime.date
+    :type dataset_types: list[datacube.api.model.DatasetType]
+    :type database: str
+    :type user: str
+    :type password: str
+    :type host: str
+    :type port: int
+    :type sort: SortType
+    :rtype: list[datacube.api.model.Cell]
+    """
+    return list_cells_missing_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, sort, config)
+
+
+def list_cells_missing_as_list(x, y, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
+
+    """
+    Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
+
+    :type x: list[int]
+    :type y: list[int]
+    :type satellites: list[datacube.api.model.Satellite]
+    :type acq_min: datetime.date
+    :type acq_max: datetime.date
+    :type dataset_types: list[datacube.api.model.DatasetType]
+    :type database: str
+    :type user: str
+    :type password: str
+    :type host: str
+    :type port: int
+    :type sort: SortType
+    :rtype: list[datacube.api.model.Cell]
+    """
+    return list(list_cells_missing_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, sort, config))
+
+
+def list_cells_missing_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
+
+    conn, cursor = None, None
+
+    try:
+        # connect to database
+
+        conn, cursor = connect_to_db(config=config)
+
+        sql, params = build_list_cells_missing_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_types, sort)
+
+        _log.debug(cursor.mogrify(sql, params))
+
+        cursor.execute(sql, params)
+
+        for record in result_generator(cursor):
+            _log.debug(record)
+            yield Cell.from_db_record(record)
+
+    except Exception as e:
+
+        _log.error("Caught exception %s", e)
+        conn.rollback()
+        raise
+
+    finally:
+
+        conn = cursor = None
+
+
+def list_cells_missing_to_file(x, y, satellites, acq_min, acq_max, dataset_types, filename, sort=SortType.ASC, config=None):
+
+    conn = cursor = None
+
+    try:
+        # connect to database
+
+        conn, cursor = connect_to_db(config=config)
+
+        sql, params = build_list_cells_missing_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_types, sort)
+
+        sql = to_file_ify_sql(sql)
+
+        if filename:
+            with open(filename, "w") as f:
+                cursor.copy_expert(cursor.mogrify(sql, params), f)
+        else:
+            cursor.copy_expert(cursor.mogrify(sql, params), sys.stdout)
+
+    except Exception as e:
+
+        _log.error("Caught exception %s", e)
+        conn.rollback()
+        raise
+
+    finally:
+
+        conn = cursor = None
+
+
+def build_list_cells_missing_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC):
+
+    sql = """
+        select distinct nbar.x_index, nbar.y_index
+        from acquisition
+        join satellite on satellite.satellite_id=acquisition.satellite_id
+        """
+
+    sql += """
+        join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_nbar)s
+            ) as nbar on nbar.acquisition_id=acquisition.acquisition_id
+        """
+
+    if DatasetType.PQ25 in dataset_types:
+        sql += """
+            left outer join
                 (
                 select
                     dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
                 from tile
                 join dataset on dataset.dataset_id=tile.dataset_id
                 where dataset.level_id = %(level_pqa)s
-                ) as pq on
-                    pq.acquisition_id=acquisition.acquisition_id
-                    and pq.x_index=nbar.x_index and pq.y_index=nbar.y_index
-                    and pq.tile_type_id=nbar.tile_type_id and pq.tile_class_id=nbar.tile_class_id
-            join
+                ) as pqa on
+                    pqa.acquisition_id=acquisition.acquisition_id
+                    and pqa.x_index=nbar.x_index and pqa.y_index=nbar.y_index
+                    and pqa.tile_type_id=nbar.tile_type_id and pqa.tile_class_id=nbar.tile_class_id
+            """
+
+    if DatasetType.FC25 in dataset_types:
+        sql += """
+            left outer join
                 (
                 select
                     dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
@@ -225,368 +560,131 @@ def list_cells_as_generator(x, y, satellites, acq_min, acq_max, datasets, databa
                     fc.acquisition_id=acquisition.acquisition_id
                     and fc.x_index=nbar.x_index and fc.y_index=nbar.y_index
                     and fc.tile_type_id=nbar.tile_type_id and fc.tile_class_id=nbar.tile_class_id
-            where
-                nbar.tile_type_id = ANY(%(tile_type)s) and nbar.tile_class_id = ANY(%(tile_class)s) -- mandatory
-                and satellite.satellite_tag = ANY(%(satellite)s)
-                and nbar.x_index = ANY(%(x)s) and nbar.y_index = ANY(%(y)s)
-                and end_datetime::date between %(acq_min)s and %(acq_max)s
+            """
 
-            order by nbar.x_index {sort}, nbar.y_index {sort}
-            ;
-        """.format(sort=sort.value)
-
-        params = {"tile_type": [TILE_TYPE.value],
-                  "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
-                  "satellite": [satellite.value for satellite in satellites],
-                  "x": x, "y": y,
-                  "acq_min": acq_min, "acq_max": acq_max,
-                  "level_nbar": ProcessingLevel.NBAR.value,
-                  "level_pqa": ProcessingLevel.PQA.value,
-                  "level_fc": ProcessingLevel.FC.value}
-
-        _log.debug(cursor.mogrify(sql, params))
-
-        cursor.execute(sql, params)
-
-        for record in result_generator(cursor):
-            _log.debug(record)
-            yield Cell.from_db_record(record)
-
-    except Exception as e:
-
-        _log.error("Caught exception %s", e)
-        conn.rollback()
-
-
-def list_cells_to_file(x, y, satellites, years, datasets, filename, database, user, password, host=None, port=None, sort=SortType.ASC):
-
-    conn = cursor = None
-
-    try:
-        # connect to database
-
-        connection_string = ""
-
-        if host:
-            connection_string += "host={host}".format(host=host)
-
-        if port:
-            connection_string += " port={port}".format(port=port)
-
-        connection_string += " dbname={database} user={user} password={password}".format(database=database, user=user, password=password)
-
-        conn = psycopg2.connect(connection_string)
-
-        cursor = conn.cursor()
-        cursor.execute("set search_path to {schema}, public".format(schema="gis, topology, ztmp"))
-
-        # Should the DB model be changed so that DATASET FKs to TILE not TILE FKs to DATASET?
-
-        # This query allows the user to specify
-        #   filter results by
-        #       satellite
-        #       x/y range
-        #       time range (use end_datetime)?
-        #
-        #   request which datasets they want
-        #       NBAR
-        #       PQ
-        #       FC
-
-        # It also needs to internally filter to
-        #   tile.tile_type_id in (1)
-        #   tile.tile_class_id in (1,3)
-
-        sql = """
-            copy (
-            select distinct nbar.x_index, nbar.y_index
-            from acquisition
-            join satellite on satellite.satellite_id=acquisition.satellite_id
-            join
-                (
-                select
-                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
-                from tile
-                join dataset on dataset.dataset_id=tile.dataset_id
-                where dataset.level_id = 2
-                ) as nbar on nbar.acquisition_id=acquisition.acquisition_id
-            join
-                (
-                select
-                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
-                from tile
-                join dataset on dataset.dataset_id=tile.dataset_id
-                where dataset.level_id = 3
-                ) as pq on
-                    pq.acquisition_id=acquisition.acquisition_id
-                    and pq.x_index=nbar.x_index and pq.y_index=nbar.y_index
-                    and pq.tile_type_id=nbar.tile_type_id and pq.tile_class_id=nbar.tile_class_id
-            join
-                (
-                select
-                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
-                from tile
-                join dataset on dataset.dataset_id=tile.dataset_id
-                where dataset.level_id = 4
-                ) as fc on
-                    fc.acquisition_id=acquisition.acquisition_id
-                    and fc.x_index=nbar.x_index and fc.y_index=nbar.y_index
-                    and fc.tile_type_id=nbar.tile_type_id and fc.tile_class_id=nbar.tile_class_id
-            where
-                nbar.tile_type_id = ANY(%(tile_type)s) and nbar.tile_class_id = ANY(%(tile_class)s) -- mandatory
-                and satellite.satellite_tag = ANY(%(satellite)s)
-                and nbar.x_index = ANY(%(x)s) and nbar.y_index = ANY(%(y)s)
-                and extract(year from end_datetime) = ANY(%(year)s)
-
-            order by nbar.x_index {sort}, nbar.y_index {sort}
-            ) to STDOUT csv header delimiter ',' escape '"' null '' quote '"'
-            ;
-        """.format(sort=sort.value)
-
-        # TODO - think about the sort here for the y value?
-
-        params = {"tile_type": [1], "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
-                  "satellite": [satellite.value for satellite in satellites],
-                  "x": x, "y": y,
-                  "year": years}
-
-        if filename:
-            with open(filename, "w") as f:
-                cursor.copy_expert(cursor.mogrify(sql, params), f)
-        else:
-            cursor.copy_expert(cursor.mogrify(sql, params), sys.stdout)
-
-    except Exception as e:
-
-        _log.error("Caught exception %s", e)
-        conn.rollback()
-
-    finally:
-
-        conn = cursor = None
-
-
-# Cells that we DON'T have
-
-# TODO currently hard coded to fractional cover
-
-def list_cells_missing(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
-
-    """
-    Return a list of cells matching the criteria as a SINGLE-USE generator
-
-    Deprecated: Move to using explicit as_list or as_generator
-
-    :type x: list[int]
-    :type y: list[int]
-    :type satellites: list[datacube.api.model.Satellite]
-    :type acq_min: datetime.date
-    :type acq_max: datetime.date
-    :type datasets: list[datacube.api.model.DatasetType]
-    :type database: str
-    :type user: str
-    :type password: str
-    :type host: str
-    :type port: int
-    :type sort: SortType
-    :rtype: list[datacube.api.model.Cell]
-    """
-    return list_cells_missing_as_generator(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host, port, sort)
-
-
-def list_cells_missing_as_list(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
-
-    """
-    Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
-
-    :type x: list[int]
-    :type y: list[int]
-    :type satellites: list[datacube.api.model.Satellite]
-    :type acq_min: datetime.date
-    :type acq_max: datetime.date
-    :type datasets: list[datacube.api.model.DatasetType]
-    :type database: str
-    :type user: str
-    :type password: str
-    :type host: str
-    :type port: int
-    :type sort: SortType
-    :rtype: list[datacube.api.model.Cell]
-    """
-    return list(list_cells_missing_as_generator(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host, port, sort))
-
-
-def list_cells_missing_as_generator(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
-
-    conn, cursor = None, None
-
-    try:
-        # connect to database
-
-        connection_string = ""
-
-        if host:
-            connection_string += "host={host}".format(host=host)
-
-        if port:
-            connection_string += " port={port}".format(port=port)
-
-        connection_string += " dbname={database} user={user} password={password}".format(database=database, user=user, password=password)
-
-        conn = psycopg2.connect(connection_string)
-
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cursor.execute("set search_path to {schema}, public".format(schema="gis, topology, ztmp"))
-
-        sql = """
-            select distinct nbar.x_index, nbar.y_index
-            from acquisition
-            join satellite on satellite.satellite_id=acquisition.satellite_id
-            join
-                (
-                select
-                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
-                from tile
-                join dataset on dataset.dataset_id=tile.dataset_id
-                where dataset.level_id = 2
-                ) as nbar on nbar.acquisition_id=acquisition.acquisition_id
+    if DatasetType.DSM in dataset_types:
+        sql += """
             left outer join
-                (
-                select
-                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
-                from tile
-                join dataset on dataset.dataset_id=tile.dataset_id
-                where dataset.level_id = 4
-                ) as fc on
-                    fc.acquisition_id=acquisition.acquisition_id
-                    and fc.x_index=nbar.x_index and fc.y_index=nbar.y_index
-                    and fc.tile_type_id=nbar.tile_type_id and fc.tile_class_id=nbar.tile_class_id
-            where
-                nbar.tile_type_id = ANY(%(tile_type)s) and nbar.tile_class_id = ANY(%(tile_class)s) -- mandatory
-                and satellite.satellite_tag = ANY(%(satellite)s)
-                and nbar.x_index = ANY(%(x)s) and nbar.y_index = ANY(%(y)s)
-                and end_datetime::date between %(acq_min)s and %(acq_max)s
-                and fc.acquisition_id is null
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_dsm)s
+            ) as dsm on
+                    dsm.x_index=nbar.x_index and dsm.y_index=nbar.y_index
+                and dsm.tile_type_id=nbar.tile_type_id and dsm.tile_class_id=nbar.tile_class_id
+        """
 
-            order by nbar.x_index {sort}, nbar.y_index {sort}
-            ;
-        """.format(sort=sort.value)
-
-        params = {"tile_type": [1], "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
-                  "satellite": [satellite.value for satellite in satellites],
-                  "x": x, "y": y,
-                  "acq_min": acq_min, "acq_max": acq_max}
-
-        _log.debug(cursor.mogrify(sql, params))
-
-        cursor.execute(sql, params)
-
-        for record in result_generator(cursor):
-            _log.debug(record)
-            yield Cell.from_db_record(record)
-
-    except Exception as e:
-
-        _log.error("Caught exception %s", e)
-        conn.rollback()
-
-
-def list_cells_missing_to_file(x, y, satellites, years, datasets, filename, database, user, password, host=None, port=None, sort=SortType.ASC):
-
-    conn = cursor = None
-
-    try:
-        # connect to database
-
-        connection_string = ""
-
-        if host:
-            connection_string += "host={host}".format(host=host)
-
-        if port:
-            connection_string += " port={port}".format(port=port)
-
-        connection_string += " dbname={database} user={user} password={password}".format(database=database, user=user, password=password)
-
-        conn = psycopg2.connect(connection_string)
-
-        cursor = conn.cursor()
-        cursor.execute("set search_path to {schema}, public".format(schema="gis, topology, ztmp"))
-
-        # Should the DB model be changed so that DATASET FKs to TILE not TILE FKs to DATASET?
-
-        # This query allows the user to specify
-        #   filter results by
-        #       satellite
-        #       x/y range
-        #       time range (use end_datetime)?
-        #
-        #   request which datasets they want
-        #       NBAR
-        #       PQ
-        #       FC
-
-        # It also needs to internally filter to
-        #   tile.tile_type_id in (1)
-        #   tile.tile_class_id in (1,3)
-
-        sql = """
-            copy (
-            select distinct nbar.x_index, nbar.y_index
-            from acquisition
-            join satellite on satellite.satellite_id=acquisition.satellite_id
-            join
-                (
-                select
-                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
-                from tile
-                join dataset on dataset.dataset_id=tile.dataset_id
-                where dataset.level_id = 2
-                ) as nbar on nbar.acquisition_id=acquisition.acquisition_id
+    if DatasetType.DEM in dataset_types:
+        sql += """
             left outer join
-                (
-                select
-                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
-                from tile
-                join dataset on dataset.dataset_id=tile.dataset_id
-                where dataset.level_id = 4
-                ) as fc on
-                    fc.acquisition_id=acquisition.acquisition_id
-                    and fc.x_index=nbar.x_index and fc.y_index=nbar.y_index
-                    and fc.tile_type_id=nbar.tile_type_id and fc.tile_class_id=nbar.tile_class_id
-            where
-                nbar.tile_type_id = ANY(%(tile_type)s) and nbar.tile_class_id = ANY(%(tile_class)s) -- mandatory
-                and satellite.satellite_tag = ANY(%(satellite)s)
-                and nbar.x_index = ANY(%(x)s) and nbar.y_index = ANY(%(y)s)
-                and end_datetime::date between %(acq_min)s and %(acq_max)s
-                and fc.acquisition_id is null
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_dem)s
+            ) as dem on
+                    dem.x_index=nbar.x_index and dem.y_index=nbar.y_index
+                and dem.tile_type_id=nbar.tile_type_id and dem.tile_class_id=nbar.tile_class_id
+        """
 
-            order by nbar.x_index {sort}, nbar.y_index {sort}
-            ) to STDOUT csv header delimiter ',' escape '"' null '' quote '"'
-            ;
-        """.format(sort=sort.value)
+    if DatasetType.DEM_HYDROLOGICALLY_ENFORCED in dataset_types:
+        sql += """
+            left outer join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_dem_h)s
+            ) as dem_h on
+                    dem_h.x_index=nbar.x_index and dem_h.y_index=nbar.y_index
+                and dem_h.tile_type_id=nbar.tile_type_id and dem_h.tile_class_id=nbar.tile_class_id
+        """
 
-        # TODO - think about the sort here for the y value?
+    if DatasetType.DEM_SMOOTHED in dataset_types:
+        sql += """
+            left outer join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_dem_s)s
+            ) as dem_s on
+                    dem_s.x_index=nbar.x_index and dem_s.y_index=nbar.y_index
+                and dem_s.tile_type_id=nbar.tile_type_id and dem_s.tile_class_id=nbar.tile_class_id
+        """
 
-        params = {"tile_type": [1], "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
-                  "satellite": [satellite.value for satellite in satellites],
-                  "x": x, "y": y,
-                  "year": years}
+    sql += """
+        where
+            nbar.tile_type_id = ANY(%(tile_type)s) and nbar.tile_class_id = ANY(%(tile_class)s) -- mandatory
+            and satellite.satellite_tag = ANY(%(satellite)s)
+            and nbar.x_index = ANY(%(x)s) and nbar.y_index = ANY(%(y)s)
+            and end_datetime::date between %(acq_min)s and %(acq_max)s
+        """
 
-        if filename:
-            with open(filename, "w") as f:
-                cursor.copy_expert(cursor.mogrify(sql, params), f)
-        else:
-            cursor.copy_expert(cursor.mogrify(sql, params), sys.stdout)
+    if DatasetType.PQ25 in dataset_types:
+        sql += """
+            and pqa.x_index is null
+        """
 
-    except Exception as e:
+    if DatasetType.FC25 in dataset_types:
+        sql += """
+            and fc.x_index is null
+        """
 
-        _log.error("Caught exception %s", e)
-        conn.rollback()
+    if DatasetType.DSM in dataset_types:
+        sql += """
+            and dsm.x_index is null
+        """
 
-    finally:
+    if DatasetType.DEM in dataset_types:
+        sql += """
+            and dem.x_index is null
+        """
 
-        conn = cursor = None
+    if DatasetType.DEM_HYDROLOGICALLY_ENFORCED in dataset_types:
+        sql += """
+            and dem_h.x_index is null
+        """
+
+    if DatasetType.DEM_SMOOTHED in dataset_types:
+        sql += """
+            and dem_s.x_index is null
+        """
+
+    sql += """
+        order by nbar.x_index {sort}, nbar.y_index {sort}
+    """.format(sort=sort.value)
+
+    params = {"tile_type": [TILE_TYPE.value], "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
+              "satellite": [satellite.value for satellite in satellites],
+              "x": x, "y": y,
+              "acq_min": acq_min, "acq_max": acq_max,
+              "level_nbar": ProcessingLevel.NBAR.value}
+
+    if DatasetType.PQ25 in dataset_types:
+        params["level_pqa"] = ProcessingLevel.PQA.value
+
+    if DatasetType.FC25 in dataset_types:
+        params["level_fc"] = ProcessingLevel.FC.value
+
+    if DatasetType.DSM in dataset_types:
+        params["level_dsm"] = ProcessingLevel.DSM.value
+
+    if DatasetType.DEM in dataset_types:
+        params["level_dem"] = ProcessingLevel.DEM.value
+
+    if DatasetType.DEM_HYDROLOGICALLY_ENFORCED in dataset_types:
+        params["level_dem_h"] = ProcessingLevel.DEM_H.value
+
+    if DatasetType.DEM_SMOOTHED in dataset_types:
+        params["level_dem_s"] = ProcessingLevel.DEM_S.value
+
+    return sql, params
 
 
 ###
@@ -595,7 +693,7 @@ def list_cells_missing_to_file(x, y, satellites, years, datasets, filename, data
 
 # Tiles that we DO have
 
-def list_tiles(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
+def list_tiles(x, y, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
 
     """
     Return a list of cells matching the criteria as a SINGLE-USE generator
@@ -607,19 +705,14 @@ def list_tiles(x, y, satellites, acq_min, acq_max, datasets, database, user, pas
     :type satellites: list[datacube.api.model.Satellite]
     :type acq_min: datetime.date
     :type acq_max: datetime.date
-    :type datasets: list[datacube.api.model.DatasetType]
-    :type database: str
-    :type user: str
-    :type password: str
-    :type host: str
-    :type port: int
+    :type dataset_types: list[datacube.api.model.DatasetType]
     :type sort: SortType
     :rtype: list[datacube.api.model.Tile]
     """
-    return list_tiles_as_generator(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host, port, sort)
+    return list_tiles_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, sort, config)
 
 
-def list_tiles_as_list(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
+def list_tiles_as_list(x, y, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
 
     """
     Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
@@ -629,7 +722,7 @@ def list_tiles_as_list(x, y, satellites, acq_min, acq_max, datasets, database, u
     :type satellites: list[datacube.api.model.Satellite]
     :type acq_min: datetime.date
     :type acq_max: datetime.date
-    :type datasets: list[datacube.api.model.DatasetType]
+    :type dataset_types: list[datacube.api.model.DatasetType]
     :type database: str
     :type user: str
     :type password: str
@@ -638,10 +731,10 @@ def list_tiles_as_list(x, y, satellites, acq_min, acq_max, datasets, database, u
     :type sort: SortType
     :rtype: list[datacube.api.model.Tile]
     """
-    return list(list_tiles_as_generator(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host, port, sort))
+    return list(list_tiles_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, sort))
 
 
-def list_tiles_as_generator(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
+def list_tiles_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
 
     """
     Return a list of cells matching the criteria as a SINGLE-USE generator
@@ -651,12 +744,7 @@ def list_tiles_as_generator(x, y, satellites, acq_min, acq_max, datasets, databa
     :type satellites: list[datacube.api.model.Satellite]
     :type acq_min: datetime.date
     :type acq_max: datetime.date
-    :type datasets: list[datacube.api.model.DatasetType]
-    :type database: str
-    :type user: str
-    :type password: str
-    :type host: str
-    :type port: int
+    :type dataset_types: list[datacube.api.model.DatasetType]
     :type sort: SortType
     :rtype: list[datacube.api.model.Tile]
     """
@@ -666,94 +754,9 @@ def list_tiles_as_generator(x, y, satellites, acq_min, acq_max, datasets, databa
     try:
         # connect to database
 
-        connection_string = ""
+        conn, cursor = connect_to_db(config=config)
 
-        if host:
-            connection_string += "host={host}".format(host=host)
-
-        if port:
-            connection_string += " port={port}".format(port=port)
-
-        connection_string += " dbname={database} user={user} password={password}".format(database=database, user=user, password=password)
-
-        conn = psycopg2.connect(connection_string)
-
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cursor.execute("set search_path to {schema}, public".format(schema="gis, topology, ztmp"))
-
-        # Should the DB model be changed so that DATASET FKs to TILE not TILE FKs to DATASET?
-
-        # This query allows the user to specify
-        #   filter results by
-        #       satellite
-        #       x/y range
-        #       time range (use end_datetime)?
-        #
-        #   request which datasets they want
-        #       NBAR
-        #       PQ
-        #       FC
-
-        # It also needs to internally filter to
-        #   tile.tile_type_id in (1)
-        #   tile.tile_class_id in (1,3)
-
-        sql = """
-            select
-                acquisition.acquisition_id, satellite_tag as satellite, start_datetime, end_datetime,
-                extract(year from end_datetime) as end_datetime_year, extract(month from end_datetime) as end_datetime_month,
-                NBAR.x_index, NBAR.y_index, point(NBAR.x_index, NBAR.y_index) as xy,
-                ARRAY[
-                    ['ARG25', NBAR.tile_pathname],
-                    ['PQ25', PQA.tile_pathname],
-                    ['FC25', FC.tile_pathname]
-                    ] as datasets
-            from acquisition
-            join satellite on satellite.satellite_id=acquisition.satellite_id
-            join
-                (
-                select
-                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
-                from tile
-                join dataset on dataset.dataset_id=tile.dataset_id
-                where dataset.level_id = 2
-                ) as NBAR on nbar.acquisition_id=acquisition.acquisition_id
-            join
-                (
-                select
-                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
-                from tile
-                join dataset on dataset.dataset_id=tile.dataset_id
-                where dataset.level_id = 3
-                ) as PQA on
-                    PQA.acquisition_id=acquisition.acquisition_id
-                    and PQA.x_index=NBAR.x_index and PQA.y_index=NBAR.y_index
-                    and PQA.tile_type_id=NBAR.tile_type_id and PQA.tile_class_id=NBAR.tile_class_id
-            join
-                (
-                select
-                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
-                from tile
-                join dataset on dataset.dataset_id=tile.dataset_id
-                where dataset.level_id = 4
-                ) as FC on
-                    FC.acquisition_id=acquisition.acquisition_id
-                    and FC.x_index=NBAR.x_index and FC.y_index=NBAR.y_index
-                    and FC.tile_type_id=NBAR.tile_type_id and FC.tile_class_id=NBAR.tile_class_id
-            where
-                NBAR.tile_type_id = ANY(%(tile_type)s) and NBAR.tile_class_id = ANY(%(tile_class)s) -- mandatory
-                and satellite.satellite_tag = ANY(%(satellite)s)
-                and NBAR.x_index = ANY(%(x)s) and NBAR.y_index = ANY(%(y)s)
-                and end_datetime::date between %(acq_min)s and %(acq_max)s
-
-            order by end_datetime {sort}, satellite asc
-            ;
-        """.format(sort=sort.value)
-
-        params = {"tile_type": [1], "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
-                  "satellite": [satellite.value for satellite in satellites],
-                  "x": x, "y": y,
-                  "acq_min": acq_min, "acq_max": acq_max}
+        sql, params = build_list_tiles_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_types, sort)
 
         _log.debug(cursor.mogrify(sql, params))
 
@@ -767,46 +770,21 @@ def list_tiles_as_generator(x, y, satellites, acq_min, acq_max, datasets, databa
 
         _log.error("Caught exception %s", e)
         conn.rollback()
+        raise
+
+    finally:
+
+        conn = cursor = None
 
 
-def list_tiles_to_file(x, y, satellites, years, datasets, filename, database, user, password, host=None, port=None, sort=SortType.ASC):
+def list_tiles_to_file(x, y, satellites, years, dataset_types, filename, sort=SortType.ASC, config=None):
 
     conn = cursor = None
 
     try:
         # connect to database
 
-        connection_string = ""
-
-        if host:
-            connection_string += "host={host}".format(host=host)
-
-        if port:
-            connection_string += " port={port}".format(port=port)
-
-        connection_string += " dbname={database} user={user} password={password}".format(database=database, user=user, password=password)
-
-        conn = psycopg2.connect(connection_string)
-
-        cursor = conn.cursor()
-        cursor.execute("set search_path to {schema}, public".format(schema="gis, topology, ztmp"))
-
-        # Should the DB model be changed so that DATASET FKs to TILE not TILE FKs to DATASET?
-
-        # This query allows the user to specify
-        #   filter results by
-        #       satellite
-        #       x/y range
-        #       time range (use end_datetime)?
-        #
-        #   request which datasets they want
-        #       NBAR
-        #       PQ
-        #       FC
-
-        # It also needs to internally filter to
-        #   tile.tile_type_id in (1)
-        #   tile.tile_class_id in (1,3)
+        conn, cursor = connect_to_db(config=config)
 
         sql = """
             copy (
@@ -877,15 +855,210 @@ def list_tiles_to_file(x, y, satellites, years, datasets, filename, database, us
 
         _log.error("Caught exception %s", e)
         conn.rollback()
+        raise
 
     finally:
 
         conn = cursor = None
 
 
+def build_list_tiles_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC):
+
+    sql = """
+        select
+            acquisition.acquisition_id, satellite_tag as satellite, start_datetime, end_datetime,
+            extract(year from end_datetime) as end_datetime_year, extract(month from end_datetime) as end_datetime_month,
+            nbar.x_index, nbar.y_index, point(nbar.x_index, nbar.y_index) as xy,
+        """
+
+    sql += """
+            ARRAY[
+    """
+
+    sql += """
+            ['ARG25', nbar.tile_pathname]
+    """
+
+    if DatasetType.PQ25 in dataset_types:
+        sql += """
+            ,['PQ25', pqa.tile_pathname]
+        """
+
+    if DatasetType.FC25 in dataset_types:
+        sql += """
+            ,['FC25', fc.tile_pathname]
+        """
+
+    if DatasetType.NDVI in dataset_types:
+        sql += """
+            ,['NDVI', nbar.tile_pathname]
+        """
+
+    if DatasetType.EVI in dataset_types:
+        sql += """
+            ,['EVI', nbar.tile_pathname]
+        """
+
+    if DatasetType.NBR in dataset_types:
+        sql += """
+            ,['NBR', nbar.tile_pathname]
+        """
+
+    if DatasetType.TCI in dataset_types:
+        sql += """
+            ,['TCI', nbar.tile_pathname]
+        """
+
+    sql += """
+            ] as datasets
+    """
+
+    sql += """
+        from acquisition
+        join satellite on satellite.satellite_id=acquisition.satellite_id
+        """
+
+    sql += """
+        join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_nbar)s
+            ) as nbar on nbar.acquisition_id=acquisition.acquisition_id
+            """
+
+    if DatasetType.PQ25 in dataset_types:
+        sql += """
+        join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_pqa)s
+            ) as pqa on
+                pqa.acquisition_id=acquisition.acquisition_id
+                and pqa.x_index=nbar.x_index and pqa.y_index=nbar.y_index
+                and pqa.tile_type_id=nbar.tile_type_id and pqa.tile_class_id=nbar.tile_class_id
+
+        """
+
+    if DatasetType.FC25 in dataset_types:
+        sql += """
+        join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_fc)s
+            ) as fc on
+                fc.acquisition_id=acquisition.acquisition_id
+                and fc.x_index=nbar.x_index and fc.y_index=nbar.y_index
+                and fc.tile_type_id=nbar.tile_type_id and fc.tile_class_id=nbar.tile_class_id
+        """
+
+    if DatasetType.DSM in dataset_types:
+        sql += """
+        join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_dsm)s
+            ) as dsm on
+                    dsm.x_index=nbar.x_index and dsm.y_index=nbar.y_index
+                and dsm.tile_type_id=nbar.tile_type_id and dsm.tile_class_id=nbar.tile_class_id
+        """
+
+    if DatasetType.DEM in dataset_types:
+        sql += """
+        join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_dem)s
+            ) as dem on
+                    dem.x_index=nbar.x_index and dem.y_index=nbar.y_index
+                and dem.tile_type_id=nbar.tile_type_id and dem.tile_class_id=nbar.tile_class_id
+        """
+
+    if DatasetType.DEM_HYDROLOGICALLY_ENFORCED in dataset_types:
+        sql += """
+        join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_dem_h)s
+            ) as dem_h on
+                    dem_h.x_index=nbar.x_index and dem_h.y_index=nbar.y_index
+                and dem_h.tile_type_id=nbar.tile_type_id and dem_h.tile_class_id=nbar.tile_class_id
+        """
+
+    if DatasetType.DEM_SMOOTHED in dataset_types:
+        sql += """
+        join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_dem_s)s
+            ) as dem_s on
+                    dem_s.x_index=nbar.x_index and dem_s.y_index=nbar.y_index
+                and dem_s.tile_type_id=nbar.tile_type_id and dem_s.tile_class_id=nbar.tile_class_id
+        """
+
+    sql += """
+        where
+            nbar.tile_type_id = ANY(%(tile_type)s) and nbar.tile_class_id = ANY(%(tile_class)s) -- mandatory
+            and satellite.satellite_tag = ANY(%(satellite)s)
+            and nbar.x_index = ANY(%(x)s) and nbar.y_index = ANY(%(y)s)
+            and end_datetime::date between %(acq_min)s and %(acq_max)s
+        """
+
+    sql += """
+        order by nbar.x_index, nbar.y_index, end_datetime {sort}, satellite asc
+    """.format(sort=sort.value)
+
+    params = {"tile_type": [TILE_TYPE.value],
+              "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
+              "satellite": [satellite.value for satellite in satellites],
+              "x": x, "y": y,
+              "acq_min": acq_min, "acq_max": acq_max,
+              "level_nbar": ProcessingLevel.NBAR.value}
+
+    if DatasetType.PQ25 in dataset_types:
+        params["level_pqa"] = ProcessingLevel.PQA.value
+
+    if DatasetType.FC25 in dataset_types:
+        params["level_fc"] = ProcessingLevel.FC.value
+
+    if DatasetType.DSM in dataset_types:
+        params["level_dsm"] = ProcessingLevel.DSM.value
+
+    if DatasetType.DEM in dataset_types:
+        params["level_dem"] = ProcessingLevel.DEM.value
+
+    if DatasetType.DEM_HYDROLOGICALLY_ENFORCED in dataset_types:
+        params["level_dem_h"] = ProcessingLevel.DEM_H.value
+
+    if DatasetType.DEM_SMOOTHED in dataset_types:
+        params["level_dem_s"] = ProcessingLevel.DEM_S.value
+
+    return sql, params
+
+
 # Tiles that we DON'T have
 
-def list_tiles_missing(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
+def list_tiles_missing(x, y, satellites, acq_min, acq_max, datasets, sort=SortType.ASC, config=None):
 
     """
     Return a list of cells matching the criteria as a SINGLE-USE generator
@@ -906,10 +1079,10 @@ def list_tiles_missing(x, y, satellites, acq_min, acq_max, datasets, database, u
     :type sort: SortType
     :rtype: list[datacube.api.model.Tile]
     """
-    return list_tiles_missing_as_generator(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host, port, sort)
+    return list_tiles_missing_as_generator(x, y, satellites, acq_min, acq_max, datasets, sort, config)
 
 
-def list_tiles_missing_as_list(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
+def list_tiles_missing_as_list(x, y, satellites, acq_min, acq_max, datasets, sort=SortType.ASC, config=None):
 
     """
     Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
@@ -928,10 +1101,10 @@ def list_tiles_missing_as_list(x, y, satellites, acq_min, acq_max, datasets, dat
     :type sort: SortType
     :rtype: list[datacube.api.model.Tile]
     """
-    return list(list_tiles_missing_as_generator(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host, port, sort))
+    return list(list_tiles_missing_as_generator(x, y, satellites, acq_min, acq_max, datasets, sort, config))
 
 
-def list_tiles_missing_as_generator(x, y, satellites, acq_min, acq_max, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
+def list_tiles_missing_as_generator(x, y, satellites, acq_min, acq_max, datasets, sort=SortType.ASC, config=None):
 
     """
     Return a list of cells matching the criteria as a SINGLE-USE generator
@@ -956,20 +1129,7 @@ def list_tiles_missing_as_generator(x, y, satellites, acq_min, acq_max, datasets
     try:
         # connect to database
 
-        connection_string = ""
-
-        if host:
-            connection_string += "host={host}".format(host=host)
-
-        if port:
-            connection_string += " port={port}".format(port=port)
-
-        connection_string += " dbname={database} user={user} password={password}".format(database=database, user=user, password=password)
-
-        conn = psycopg2.connect(connection_string)
-
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cursor.execute("set search_path to {schema}, public".format(schema="gis, topology, ztmp"))
+        conn, cursor = connect_to_db(config=config)
 
         sql = """
             select
@@ -1028,29 +1188,21 @@ def list_tiles_missing_as_generator(x, y, satellites, acq_min, acq_max, datasets
 
         _log.error("Caught exception %s", e)
         conn.rollback()
+        raise
+
+    finally:
+
+        conn = cursor = None
 
 
-def list_tiles_missing_to_file(x, y, satellites, years, datasets, filename, database, user, password, host=None, port=None, sort=SortType.ASC):
+def list_tiles_missing_to_file(x, y, satellites, years, datasets, filename, sort=SortType.ASC, config=None):
 
     conn = cursor = None
 
     try:
         # connect to database
 
-        connection_string = ""
-
-        if host:
-            connection_string += "host={host}".format(host=host)
-
-        if port:
-            connection_string += " port={port}".format(port=port)
-
-        connection_string += " dbname={database} user={user} password={password}".format(database=database, user=user, password=password)
-
-        conn = psycopg2.connect(connection_string)
-
-        cursor = conn.cursor()
-        cursor.execute("set search_path to {schema}, public".format(schema="gis, topology, ztmp"))
+        conn, cursor = connect_to_db(config=config)
 
         sql = """
             copy (
@@ -1109,6 +1261,7 @@ def list_tiles_missing_to_file(x, y, satellites, years, datasets, filename, data
 
         _log.error("Caught exception %s", e)
         conn.rollback()
+        raise
 
     finally:
 
@@ -1117,7 +1270,7 @@ def list_tiles_missing_to_file(x, y, satellites, years, datasets, filename, data
 
 # DEM/DSM tiles - quickie to get DEM/DSM tiles for WOFS - note they have no acquisition information!!!!
 
-def list_tiles_dtm(x, y, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
+def list_tiles_dtm(x, y, datasets, sort=SortType.ASC, config=None):
 
     """
     Return a list of cells matching the criteria as a SINGLE-USE generator
@@ -1135,10 +1288,10 @@ def list_tiles_dtm(x, y, datasets, database, user, password, host=None, port=Non
     :type sort: SortType
     :rtype: list[datacube.api.model.Tile]
     """
-    return list_tiles_dtm_as_generator(x, y, datasets, database, user, password, host, port, sort)
+    return list_tiles_dtm_as_generator(x, y, datasets, sort, config)
 
 
-def list_tiles_dtm_as_list(x, y, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
+def list_tiles_dtm_as_list(x, y, datasets, sort=SortType.ASC, config=None):
 
     """
     Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
@@ -1154,10 +1307,10 @@ def list_tiles_dtm_as_list(x, y, datasets, database, user, password, host=None, 
     :type sort: SortType
     :rtype: list[datacube.api.model.Tile]
     """
-    return list(list_tiles(x, y, datasets, database, user, password, host, port, sort))
+    return list(list_tiles(x, y, datasets, sort, config))
 
 
-def list_tiles_dtm_as_generator(x, y, datasets, database, user, password, host=None, port=None, sort=SortType.ASC):
+def list_tiles_dtm_as_generator(x, y, datasets, sort=SortType.ASC, config=None):
 
     """
     Return a list of cells matching the criteria as a SINGLE-USE generator
@@ -1179,42 +1332,7 @@ def list_tiles_dtm_as_generator(x, y, datasets, database, user, password, host=N
     try:
         # connect to database
 
-        connection_string = ""
-
-        if host:
-            connection_string += "host={host}".format(host=host)
-
-        if port:
-            connection_string += " port={port}".format(port=port)
-
-        connection_string += " dbname={database} user={user} password={password}".format(database=database, user=user, password=password)
-
-        conn = psycopg2.connect(connection_string)
-
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cursor.execute("set search_path to {schema}, public".format(schema="gis, topology, ztmp"))
-
-        # Should the DB model be changed so that DATASET FKs to TILE not TILE FKs to DATASET?
-
-        # This query allows the user to specify
-        #   filter results by
-        #       x/y range
-        #
-        #   request which datasets they want
-        #       DSM
-        #       DEM
-        #       DEM SMOOTHED
-        #       DEM HYDROLOGICALLY ENFORCED
-
-        # It also needs to internally filter to
-        #   tile.tile_type_id in (1)
-        #   tile.tile_class_id in (1,3)
-
-        # select
-        #   dem.acquisition_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
-        # from tile
-        # join dataset dem on dem.dataset_id=tile.dataset_id and dem.level_id=100
-        # where tile.tile_type_id = 1 and tile.tile_class_id in (1,4) and tile.x_index in (120) and tile.y_index in (-20) ;
+        conn, cursor = connect_to_db(config=config)
 
         sql = """
             select
@@ -1286,94 +1404,25 @@ def list_tiles_dtm_as_generator(x, y, datasets, database, user, password, host=N
 
         _log.error("Caught exception %s", e)
         conn.rollback()
+        raise
+
+    finally:
+
+        conn = cursor = None
 
 
 ###
 # Other stuff - mostly incomplete...
 ###
 
-def visit_tiles(x, y, satellites, years, datasets, database, user, password, host=None, port=None, func=print_tile):
+def visit_tiles(x, y, satellites, years, datasets, func=print_tile, sort=SortType.ASC, config=None):
 
     conn, cursor = None, None
 
     try:
         # connect to database
 
-        connection_string = ""
-
-        if host:
-            connection_string += "host={host}".format(host=host)
-
-        if port:
-            connection_string += " port={port}".format(port=port)
-
-        connection_string += " dbname={database} user={user} password={password}".format(database=database, user=user, password=password)
-
-        conn = psycopg2.connect(connection_string)
-
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cursor.execute("set search_path to {schema}, public".format(schema="gis, topology, ztmp"))
-
-        # Should the DB model be changed so that DATASET FKs to TILE not TILE FKs to DATASET?
-
-        # This query allows the user to specify
-        #   filter results by
-        #       satellite
-        #       x/y range
-        #       time range (use end_datetime)?
-        #
-        #   request which datasets they want
-        #       NBAR
-        #       PQ
-        #       FC
-
-        # It also needs to internally filter to
-        #   tile.tile_type_id in (1)
-        #   tile.tile_class_id in (1,3)
-
-        # So in terms of SQL first filter back to that tile list
-
-        # select acquisition.acquisition_id, satellite_tag, start_datetime, end_datetime,
-        # extract(year from end_datetime) as end_datetime_year, extract(month from end_datetime) as end_datetime_month,
-        # nbar.tile_pathname, pq.tile_pathname, fc.tile_pathname
-        # from acquisition
-        # join satellite on satellite.satellite_id=acquisition.satellite_id
-        # join
-        # 	(
-        # 	select
-        # 		dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
-        # 	from tile
-        # 	join dataset on dataset.dataset_id=tile.dataset_id
-        # 	where dataset.level_id = 2
-        # 	) as nbar on nbar.acquisition_id=acquisition.acquisition_id
-        # join
-        # (
-        # select
-        # 	dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
-        # from tile
-        # join dataset on dataset.dataset_id=tile.dataset_id
-        # where dataset.level_id = 3
-        # ) as pq on
-        # 	pq.acquisition_id=acquisition.acquisition_id
-        # 	and pq.x_index=nbar.x_index and pq.y_index=nbar.y_index
-        # 	and pq.tile_type_id=nbar.tile_type_id and pq.tile_class_id=nbar.tile_class_id
-        # join
-        # (
-        # select
-        # 	dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
-        # from tile
-        # join dataset on dataset.dataset_id=tile.dataset_id
-        # where dataset.level_id = 4
-        # ) as fc on
-        # 	fc.acquisition_id=acquisition.acquisition_id
-        # 	and fc.x_index=nbar.x_index and fc.y_index=nbar.y_index
-        # 	and fc.tile_type_id=nbar.tile_type_id and fc.tile_class_id=nbar.tile_class_id
-        # where
-        # nbar.tile_type_id in (1) and nbar.tile_class_id in (1,3) -- mandatory
-        # and satellite.satellite_id in (1,2,3)
-        # and nbar.x_index in (148,149) and nbar.y_index in (-35, -36)
-        # and date_trunc('year', end_datetime) = '2012-01-01'::timestamp
-        # ;
+        conn, cursor = connect_to_db(config=config)
 
         sql = """
             select
@@ -1442,46 +1491,21 @@ def visit_tiles(x, y, satellites, years, datasets, database, user, password, hos
 
         _log.error("Caught exception %s", e)
         conn.rollback()
+        raise
+
+    finally:
+
+        conn = cursor = None
 
 
-def list_tiles_wkt(wkt, satellites, years, datasets, database, user, password, host=None, port=None):
+def list_tiles_wkt(wkt, satellites, years, datasets, sort=SortType.ASC, config=None):
 
     conn, cursor = None, None
 
     try:
         # connect to database
 
-        connection_string = ""
-
-        if host:
-            connection_string += "host={host}".format(host=host)
-
-        if port:
-            connection_string += " port={port}".format(port=port)
-
-        connection_string += " dbname={database} user={user} password={password}".format(database=database, user=user, password=password)
-
-        conn = psycopg2.connect(connection_string)
-
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cursor.execute("set search_path to {schema}, public".format(schema="gis, topology, ztmp"))
-
-        # Should the DB model be changed so that DATASET FKs to TILE not TILE FKs to DATASET?
-
-        # This query allows the user to specify
-        #   filter results by
-        #       satellite
-        #       x/y range
-        #       time range (use end_datetime)?
-        #
-        #   request which datasets they want
-        #       NBAR
-        #       PQ
-        #       FC
-
-        # It also needs to internally filter to
-        #   tile.tile_type_id in (1)
-        #   tile.tile_class_id in (1,3)
+        conn, cursor = connect_to_db(config=config)
 
         sql = """
             select
@@ -1561,13 +1585,18 @@ def list_tiles_wkt(wkt, satellites, years, datasets, database, user, password, h
 
         _log.error("Caught exception %s", e)
         conn.rollback()
+        raise
+
+    finally:
+
+        conn = cursor = None
 
 
-def list_tiles_wkt_to_file(wkt, years, datasets, format, filename, database, user, password, host=None, port=None):
+def list_tiles_wkt_to_file(wkt, years, datasets, format, filename, sort=SortType.ASC, config=None):
     pass
 
 
-def visit_tiles_wkt(wkt, years, datasets, database, user, password, host=None, port=None):
+def visit_tiles_wkt(wkt, years, datasets, sort=SortType.ASC, config=None):
     pass
 
 

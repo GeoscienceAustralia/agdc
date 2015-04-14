@@ -38,22 +38,34 @@ import luigi
 import os
 import sys
 from datacube.api.model import Satellite, Cell, DatasetType, Tile
-from datacube.api.utils import PqaMask, get_satellite_string
+from datacube.api.utils import PqaMask, get_satellite_string, WofsMask
 
 
 _log = logging.getLogger()
 
 
 def satellite_arg(s):
-    if s in Satellite._member_names_:
+    if s in [s.name for s in Satellite]:
         return Satellite[s]
     raise argparse.ArgumentTypeError("{0} is not a supported satellite".format(s))
 
 
 def pqa_mask_arg(s):
-    if s in PqaMask._member_names_:
+    if s in [m.name for m in PqaMask]:
         return PqaMask[s]
     raise argparse.ArgumentTypeError("{0} is not a supported PQA mask".format(s))
+
+
+def wofs_mask_arg(s):
+    if s in [m.name for m in WofsMask]:
+        return WofsMask[s]
+    raise argparse.ArgumentTypeError("{0} is not a supported WOFS mask".format(s))
+
+
+def dataset_type_arg(s):
+    if s in [t.name for t in DatasetType]:
+        return DatasetType[s]
+    raise argparse.ArgumentTypeError("{0} is not a supported dataset type".format(s))
 
 
 def writeable_dir(prospective_dir):
@@ -169,6 +181,9 @@ class Workflow(object):
         self.mask_pqa_apply = None
         self.mask_pqa_mask = None
 
+        self.mask_wofs_apply = None
+        self.mask_wofs_mask = None
+
         self.local_scheduler = None
         self.workers = None
 
@@ -178,14 +193,14 @@ class Workflow(object):
                                  type=writeable_dir, required=True)
 
         self.parser.add_argument("--x-min", help="X index of tiles", action="store", dest="x_min", type=int,
-                                 choices=range(110, 155 + 1), required=True)
+                                 choices=range(110, 155 + 1), required=True, metavar="110 ... 155")
         self.parser.add_argument("--x-max", help="X index of tiles", action="store", dest="x_max", type=int,
-                                 choices=range(110, 155 + 1), required=True)
+                                 choices=range(110, 155 + 1), required=True, metavar="110 ... 155")
 
         self.parser.add_argument("--y-min", help="Y index of tiles", action="store", dest="y_min", type=int,
-                                 choices=range(-45, -10 + 1), required=True)
+                                 choices=range(-45, -10 + 1), required=True, metavar="-45 ... -10")
         self.parser.add_argument("--y-max", help="Y index of tiles", action="store", dest="y_max", type=int,
-                                 choices=range(-45, -10 + 1), required=True)
+                                 choices=range(-45, -10 + 1), required=True, metavar="-45 ... -10")
 
         self.parser.add_argument("--acq-min", help="Acquisition Date", action="store", dest="acq_min", type=str,
                                  default="1980")
@@ -202,6 +217,14 @@ class Workflow(object):
         self.parser.add_argument("--mask-pqa-mask", help="The PQA mask to apply", action="store", dest="mask_pqa_mask",
                                  type=pqa_mask_arg, nargs="+", choices=PqaMask, default=[PqaMask.PQ_MASK_CLEAR],
                                  metavar=" ".join([s.name for s in PqaMask]))
+
+        self.parser.add_argument("--mask-wofs-apply", help="Apply WOFS mask", action="store_true",
+                                 dest="mask_wofs_apply",
+                                 default=False)
+        self.parser.add_argument("--mask-wofs-mask", help="The WOFS mask to apply", action="store",
+                                 dest="mask_wofs_mask",
+                                 type=wofs_mask_arg, nargs="+", choices=WofsMask, default=[WofsMask.WET],
+                                 metavar=" ".join([s.name for s in WofsMask]))
 
         self.parser.add_argument("--csv", help="Get cell/dataset info from pre-created CSV rather than querying DB",
                                  action="store_true", dest="csv", default=False)
@@ -243,6 +266,9 @@ class Workflow(object):
         self.mask_pqa_apply = args.mask_pqa_apply
         self.mask_pqa_mask = args.mask_pqa_mask
 
+        self.mask_wofs_apply = args.mask_wofs_apply
+        self.mask_wofs_mask = args.mask_wofs_mask
+
         self.local_scheduler = args.local_scheduler
         self.workers = args.workers
 
@@ -259,14 +285,16 @@ class Workflow(object):
         csv = {csv}
         dummy = {dummy}
         PQA mask = {pqa_mask}
+        WOFS mask = {wofs_mask}
         local scheduler = {local_scheduler}
         workers = {workers}
         """.format(x_min=self.x_min, x_max=self.x_max, y_min=self.y_min, y_max=self.y_max,
                    acq_min=self.acq_min, acq_max=self.acq_max,
-                   satellites=self.satellites, output_directory=self.output_directory, csv=self.csv, dummy=self.dummy,
+                   satellites=" ".join([s.name for s in self.satellites]), output_directory=self.output_directory,
+                   csv=self.csv, dummy=self.dummy,
                    pqa_mask=self.mask_pqa_apply and " ".join([mask.name for mask in self.mask_pqa_mask]) or "",
-                   local_scheduler=self.local_scheduler,
-                   workers=self.workers))
+                   wofs_mask=self.mask_wofs_apply and " ".join([mask.name for mask in self.mask_wofs_mask]) or "",
+                   local_scheduler=self.local_scheduler, workers=self.workers))
 
     @abc.abstractmethod
     def create_tasks(self):
@@ -329,6 +357,9 @@ class SummaryTask(Task):
     mask_pqa_apply = luigi.BooleanParameter()
     mask_pqa_mask = luigi.Parameter()
 
+    mask_wofs_apply = luigi.BooleanParameter()
+    mask_wofs_mask = luigi.Parameter()
+
     def get_cells(self):
 
         # get list of cells from CSV
@@ -385,7 +416,7 @@ class SummaryTask(Task):
 
         for cell in list_cells(x=x_list, y=y_list, acq_min=self.acq_min, acq_max=self.acq_max,
                                satellites=[satellite for satellite in self.satellites],
-                               datasets=[DatasetType.ARG25, DatasetType.PQ25, DatasetType.FC25],
+                               dataset_types=[DatasetType.ARG25, DatasetType.PQ25, DatasetType.FC25],
                                database=config.get_db_database(),
                                user=config.get_db_username(),
                                password=config.get_db_password(),
@@ -421,6 +452,9 @@ class CellTask(Task):
 
     mask_pqa_apply = luigi.BooleanParameter()
     mask_pqa_mask = luigi.Parameter()
+
+    mask_wofs_apply = luigi.BooleanParameter()
+    mask_wofs_mask = luigi.Parameter()
 
     def get_tiles(self):
 
@@ -478,7 +512,7 @@ class CellTask(Task):
 
         for tile in list_tiles(x=x_list, y=y_list, acq_min=self.acq_min, acq_max=self.acq_max,
                                satellites=[satellite for satellite in self.satellites],
-                               datasets=[DatasetType.ARG25, DatasetType.PQ25, DatasetType.FC25],
+                               dataset_types=[DatasetType.ARG25, DatasetType.PQ25, DatasetType.FC25],
                                database=config.get_db_database(),
                                user=config.get_db_username(),
                                password=config.get_db_password(),

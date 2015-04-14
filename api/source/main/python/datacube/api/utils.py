@@ -36,7 +36,8 @@ import gdal
 import os
 from gdalconst import *
 from enum import Enum
-from datacube.api.model import Pq25Bands, Ls57Arg25Bands, Satellite, DatasetType, Ls8Arg25Bands, Wofs25Bands
+from datacube.api.model import Pq25Bands, Ls57Arg25Bands, Satellite, DatasetType, Ls8Arg25Bands, Wofs25Bands, NdviBands, \
+    get_bands, EviBands, NbrBands, TciBands
 from datetime import datetime
 
 
@@ -184,6 +185,83 @@ def get_dataset_metadata(dataset):
 
 
 def get_dataset_data(dataset, bands=None, x=0, y=0, x_size=None, y_size=None):
+
+    dataset_types_physical = [
+        DatasetType.ARG25, DatasetType.PQ25, DatasetType.FC25,
+        DatasetType.WATER,
+        DatasetType.DSM, DatasetType.DEM, DatasetType.DEM_HYDROLOGICALLY_ENFORCED, DatasetType.DEM_SMOOTHED]
+
+    dataset_types_virtual_nbar = [
+        DatasetType.NDVI,
+        DatasetType.EVI,
+        DatasetType.NBR,
+        DatasetType.TCI
+    ]
+
+    # NDVI calculated using RED and NIR from ARG25
+
+    if dataset.dataset_type == DatasetType.NDVI:
+
+        bands = get_bands(DatasetType.ARG25, dataset.satellite)
+
+        band_red = bands[Ls57Arg25Bands.RED.name]
+        band_nir = bands[Ls57Arg25Bands.NEAR_INFRARED.name]
+
+        data = read_dataset_data(dataset, bands=[band_red, band_nir])
+        data = calculate_ndvi(data[band_red], data[band_nir])
+
+        return {NdviBands.NDVI: data}
+
+    # EVI calculated using RED, BLUE and NIR from ARG25
+
+    elif dataset.dataset_type == DatasetType.EVI:
+
+        bands = get_bands(DatasetType.ARG25, dataset.satellite)
+
+        band_red = bands[Ls57Arg25Bands.RED.name]
+        band_blue = bands[Ls57Arg25Bands.BLUE.name]
+        band_nir = bands[Ls57Arg25Bands.NEAR_INFRARED.name]
+
+        data = read_dataset_data(dataset, bands=[band_red, band_blue, band_nir])
+        data = calculate_evi(data[band_red], data[band_blue], data[band_nir])
+
+        return {EviBands.EVI: data}
+
+    # NBR calculated using NIR and SWIR-2 from ARG25
+
+    elif dataset.dataset_type == DatasetType.NBR:
+
+        bands = get_bands(DatasetType.ARG25, dataset.satellite)
+
+        band_nir = bands[Ls57Arg25Bands.NEAR_INFRARED.name]
+        band_swir = bands[Ls57Arg25Bands.SHORT_WAVE_INFRARED_2.name]
+
+        data = read_dataset_data(dataset, bands=[band_nir, band_swir])
+        data = calculate_nbr(data[band_nir], data[band_swir])
+
+        return {NbrBands.NBR: data}
+
+    # TCI calculated from ARG25
+
+    elif dataset.dataset_type == DatasetType.TCI:
+
+        bands = get_bands(DatasetType.ARG25, dataset.satellite)
+
+        data = read_dataset_data(dataset, bands=bands)
+
+        out = dict()
+
+        for index in TasselCapIndex:
+            out[TciBands[index.name]] = calculate_tassel_cap_index(data, TCI_COEFFICIENTS[dataset.satellite][index])
+
+        return out
+
+    # It is a "physical" dataset so just read it
+    else:
+        return read_dataset_data(dataset, bands, x, y, x_size, y_size)
+
+
+def read_dataset_data(dataset, bands=None, x=0, y=0, x_size=None, y_size=None):
 
     """
     Return one or more bands from a dataset
@@ -478,7 +556,7 @@ def calculate_nbr(nir, swir, input_ndv=NDV, output_ndv=NDV):
 
 
 class TasselCapIndex(Enum):
-    __order__ = "BRIGHTNESS GREENNESS WETNESS"
+    __order__ = "BRIGHTNESS GREENNESS WETNESS FOURTH FIFTH SIXTH"
 
     BRIGHTNESS = 1
     GREENNESS = 2
@@ -728,8 +806,8 @@ def latlon_to_cell(lat, lon):
     Return the cell that contains the given lat/lon pair
 
     NOTE: x of cell represents min (contained) lon value but y of cell represents max (not contained) lat value
-        that is, 120_-20 contains lon values 120->120.99999 but lat values -19->-19.99999
-        that is, that is, 120_-20 does NOT contain lat value of -20
+        that is, 120/-20 contains lon values 120->120.99999 but lat values -19->-19.99999
+        that is, that is, 120/-20 does NOT contain lat value of -20
 
     :param lat: latitude
     :param lon: longitude
@@ -828,3 +906,52 @@ def log_mem(s=None):
 def date_to_integer(d):
     # Return an integer representing the YYYYMMDD value
     return d.year * 10000 + d.month * 100 + d.day
+
+
+def get_dataset_filename(dataset, mask_pqa_apply=False, mask_wofs_apply=False):
+
+    filename = dataset.path
+
+    filename = os.path.basename(filename)
+
+    dataset_type_from_string = {
+        DatasetType.ARG25: "_NBAR_",
+        DatasetType.PQ25: "_PQA_",
+        DatasetType.FC25: "_FC_",
+        DatasetType.WATER: "_WATER_",
+        DatasetType.NDVI: "_NBAR_",
+        DatasetType.EVI: "_NBAR_",
+        DatasetType.NBR: "_NBAR_",
+        DatasetType.TCI: "_NBAR_"
+    }[dataset.dataset_type]
+
+    dataset_type_to_string = {
+        DatasetType.ARG25: "_NBAR_",
+        DatasetType.PQ25: "_PQA_",
+        DatasetType.FC25: "_FC_",
+        DatasetType.WATER: "_WATER_",
+        DatasetType.NDVI: "_NDVI_",
+        DatasetType.EVI: "_EVI_",
+        DatasetType.NBR: "_NBR_",
+        DatasetType.TCI: "_TCI_"
+    }[dataset.dataset_type]
+
+    if mask_pqa_apply and mask_wofs_apply:
+        dataset_type_to_string += "WITH_PQA_WATER_"
+
+    elif mask_pqa_apply:
+        dataset_type_to_string += "WITH_PQA_"
+
+    elif mask_wofs_apply:
+        dataset_type_to_string += + "WITH_WATER_"
+
+    filename = filename.replace(dataset_type_from_string, dataset_type_to_string)
+    filename = filename.replace(".vrt", ".tif")
+    filename = filename.replace(".tiff", ".tif")
+
+    return filename
+
+
+# TODO
+def get_dataset_ndv(dataset):
+    return NDV

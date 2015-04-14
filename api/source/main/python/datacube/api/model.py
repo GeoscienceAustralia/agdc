@@ -150,6 +150,19 @@ class NbrBands(Enum):
     NBR = 1
 
 
+# TODO - duplication with TasselCapIndex!!!!
+
+class TciBands(Enum):
+    __order__ = "BRIGHTNESS GREENNESS WETNESS FOURTH FIFTH SIXTH"
+
+    BRIGHTNESS = 1
+    GREENNESS = 2
+    WETNESS = 3
+    FOURTH = 4
+    FIFTH = 5
+    SIXTH = 6
+
+
 class DsmBands(Enum):
     __order__ = "ELEVATION SLOPE ASPECT"
 
@@ -385,6 +398,10 @@ BANDS = {
     (DatasetType.NBR, Satellite.LS7): NbrBands,
     (DatasetType.NBR, Satellite.LS8): NbrBands,
 
+    (DatasetType.TCI, Satellite.LS5): TciBands,
+    (DatasetType.TCI, Satellite.LS7): TciBands,
+    (DatasetType.TCI, Satellite.LS8): TciBands,
+
     (DatasetType.DSM, None): DsmBands,
     (DatasetType.DEM, None): DsmBands,
     (DatasetType.DEM_SMOOTHED, None): DsmBands,
@@ -401,12 +418,16 @@ def get_bands(dataset_type, satellite):
 
 # NOTE only on dev machine while database paths are incorrect
 def warp_file_paths(path):
+
     # return path.replace("/g/data1/rs0/tiles/EPSG4326_1deg_0.00025pixel", "/data/cube/tiles/EPSG4326_1deg_0.00025pixel")  # For cube-dev-01
     # return path.replace("/g/data1/rs0/tiles/EPSG4326_1deg_0.00025pixel", "/data/tmp/cube/data/tiles/EPSG4326_1deg_0.00025pixel")  # For innuendo
     # return path.replace("/g/data1/rs0/tiles/EPSG4326_1deg_0.00025pixel", "/Users/simon/tmp/datacube/data/input/g/data1/rs0/tiles/EPSG4326_1deg_0.00025pixel")  # For macbook
-    # return path.replace("/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel", "/Volumes/Seagate Expansion Drive/data/cube/tiles/EPSG4326_1deg_0.00025pixel")  # For macbook
 
-    return path # For raijin
+    # My MacBook with data on external USB
+    path = path.replace("/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel", "/Volumes/Seagate Expansion Drive/data/cube/tiles/EPSG4326_1deg_0.00025pixel")  # For macbook
+    path = path.replace("/g/data/u46/wofs/water_f7q/extents", "/Volumes/Seagate Expansion Drive/data/cube/tiles/EPSG4326_1deg_0.00025pixel/wofs_f7q/extents")  # For macbook
+
+    return path
 
 
 # TODO
@@ -440,8 +461,10 @@ def make_wofs_dataset(satellite_id, nbar):
 
         dt = fields[5].replace(".vrt", "").replace(".tif", "")
 
-    # path = "/g/data/u46/wofs/water_f7q/extents/{x:03d}_{y:04d}/{satellite}_{sensor}_WATER_{x:03d}_{y:04d}_{date}.tif".format(x=x, y=y, satellite=satellite, sensor=sensor, date=dt)
-    path = "/g/data/u46/sjo/geoserver/wofs_f7q/extents/{x:03d}_{y:04d}/{satellite}_{sensor}_WATER_{x:03d}_{y:04d}_{date}.tif".format(x=x, y=y, satellite=satellite, sensor=sensor, date=dt)
+    path = "/g/data/u46/wofs/water_f7q/extents/{x:03d}_{y:04d}/{satellite}_{sensor}_WATER_{x:03d}_{y:04d}_{date}.tif".format(x=x, y=y, satellite=satellite, sensor=sensor, date=dt)
+    # path = "/g/data/u46/sjo/geoserver/wofs_f7q/extents/{x:03d}_{y:04d}/{satellite}_{sensor}_WATER_{x:03d}_{y:04d}_{date}.tif".format(x=x, y=y, satellite=satellite, sensor=sensor, date=dt)
+
+    path = warp_file_paths(path)
 
     if os.path.isfile(path):
         return DatasetTile(satellite, DatasetType.WATER.value, path)

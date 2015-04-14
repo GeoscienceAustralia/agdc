@@ -131,13 +131,6 @@ class CellChunkTestCellChunkTask(CellChunkTask):
 
     def run(self):
 
-        # for tile in self.get_tiles():
-        # NBAR is tile.datasets[DatasetType.ARG25]
-        # PQA  is tile.datasets[DatasetType.PQ25]
-        # FC  is tile.datasets[DatasetType.FC25]
-
-        # get data with get_dataset_data() ...
-
         print "****", self.output().path
 
         # For now just create an empty output

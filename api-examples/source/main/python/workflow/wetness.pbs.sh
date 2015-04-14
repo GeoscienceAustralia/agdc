@@ -3,6 +3,7 @@
 #PBS -P u46
 #PBS -q normal
 #PBS -l ncpus=8,mem=16GB
+#PBS -l walltime=8:00:00
 #PBS -l wd
 ##PBS -l other=gdata1
 
