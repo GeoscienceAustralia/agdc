@@ -1,0 +1,563 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>datacube.api.model &mdash; agdc-api 0.1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="agdc-api 0.1.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">agdc-api 0.1.0 documentation</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for datacube.api.model</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+
+<span class="c"># ===============================================================================</span>
+<span class="c"># Copyright (c)  2014 Geoscience Australia</span>
+<span class="c"># All rights reserved.</span>
+<span class="c">#</span>
+<span class="c"># Redistribution and use in source and binary forms, with or without</span>
+<span class="c"># modification, are permitted provided that the following conditions are met:</span>
+<span class="c">#     * Redistributions of source code must retain the above copyright</span>
+<span class="c">#       notice, this list of conditions and the following disclaimer.</span>
+<span class="c">#     * Redistributions in binary form must reproduce the above copyright</span>
+<span class="c">#       notice, this list of conditions and the following disclaimer in the</span>
+<span class="c">#       documentation and/or other materials provided with the distribution.</span>
+<span class="c">#     * Neither Geoscience Australia nor the names of its contributors may be</span>
+<span class="c">#       used to endorse or promote products derived from this software</span>
+<span class="c">#       without specific prior written permission.</span>
+<span class="c">#</span>
+<span class="c"># THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot; AND</span>
+<span class="c"># ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED</span>
+<span class="c"># WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE</span>
+<span class="c"># DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY</span>
+<span class="c"># DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES</span>
+<span class="c"># (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;</span>
+<span class="c"># LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND</span>
+<span class="c"># ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT</span>
+<span class="c"># (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS</span>
+<span class="c"># SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</span>
+<span class="c"># ===============================================================================</span>
+
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s">&quot;Simon Oldfield&quot;</span>
+
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+
+<span class="n">_log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Satellite"><a class="viewcode-back" href="../../../api/datacube.api.model.html#datacube.api.model.Satellite">[docs]</a><span class="k">class</span> <span class="nc">Satellite</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">__order__</span> <span class="o">=</span> <span class="s">&quot;LS5 LS7 LS8&quot;</span>
+
+    <span class="n">LS5</span> <span class="o">=</span> <span class="s">&quot;LS5&quot;</span>
+    <span class="n">LS7</span> <span class="o">=</span> <span class="s">&quot;LS7&quot;</span>
+    <span class="n">LS8</span> <span class="o">=</span> <span class="s">&quot;LS8&quot;</span>
+
+</div>
+<div class="viewcode-block" id="Ls5TmBands"><a class="viewcode-back" href="../../../api/datacube.api.model.html#datacube.api.model.Ls5TmBands">[docs]</a><span class="k">class</span> <span class="nc">Ls5TmBands</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">__order__</span> <span class="o">=</span> <span class="s">&quot;BLUE GREEN RED NEAR_INFRARED SHORT_WAVE_INFRARED_1 THERMAL_INFRAFRED SHORT_WAVE_INFRARED_2&quot;</span>
+
+    <span class="n">BLUE</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">GREEN</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">RED</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">NEAR_INFRARED</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">SHORT_WAVE_INFRARED_1</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="n">THERMAL_INFRAFRED</span> <span class="o">=</span> <span class="mi">6</span>
+    <span class="n">SHORT_WAVE_INFRARED_2</span> <span class="o">=</span> <span class="mi">7</span>
+
+</div>
+<div class="viewcode-block" id="Ls7EtmBands"><a class="viewcode-back" href="../../../api/datacube.api.model.html#datacube.api.model.Ls7EtmBands">[docs]</a><span class="k">class</span> <span class="nc">Ls7EtmBands</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">__order__</span> <span class="o">=</span> <span class="s">&quot;BLUE GREEN RED NEAR_INFRARED SHORT_WAVE_INFRARED_1 THERMAL_INFRAFRED SHORT_WAVE_INFRARED_2 PANACHROMATIC&quot;</span>
+
+    <span class="n">BLUE</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">GREEN</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">RED</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">NEAR_INFRARED</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">SHORT_WAVE_INFRARED_1</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="n">THERMAL_INFRAFRED</span> <span class="o">=</span> <span class="mi">6</span>
+    <span class="n">SHORT_WAVE_INFRARED_2</span> <span class="o">=</span> <span class="mi">7</span>
+    <span class="n">PANACHROMATIC</span> <span class="o">=</span> <span class="mi">8</span>
+
+</div>
+<div class="viewcode-block" id="Ls8OLiTirsBands"><a class="viewcode-back" href="../../../api/datacube.api.model.html#datacube.api.model.Ls8OLiTirsBands">[docs]</a><span class="k">class</span> <span class="nc">Ls8OLiTirsBands</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">__order__</span> <span class="o">=</span> <span class="s">&quot;COASTAL_AEROSOL BLUE GREEN RED NEAR_INFRARED SHORT_WAVE_INFRARED_1 SHORT_WAVE_INFRARED_2 PANACHROMATIC CIRRUS TIRS_1 TIRS_2&quot;</span>
+
+    <span class="n">COASTAL_AEROSOL</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">BLUE</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">GREEN</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">RED</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">NEAR_INFRARED</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="n">SHORT_WAVE_INFRARED_1</span> <span class="o">=</span> <span class="mi">6</span>
+    <span class="n">SHORT_WAVE_INFRARED_2</span> <span class="o">=</span> <span class="mi">7</span>
+    <span class="n">PANACHROMATIC</span> <span class="o">=</span> <span class="mi">8</span>
+    <span class="n">CIRRUS</span> <span class="o">=</span> <span class="mi">9</span>
+    <span class="n">TIRS_1</span> <span class="o">=</span> <span class="mi">10</span>
+    <span class="n">TIRS_2</span> <span class="o">=</span> <span class="mi">11</span>
+
+</div>
+<div class="viewcode-block" id="Ls57Arg25Bands"><a class="viewcode-back" href="../../../api/datacube.api.model.html#datacube.api.model.Ls57Arg25Bands">[docs]</a><span class="k">class</span> <span class="nc">Ls57Arg25Bands</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">__order__</span> <span class="o">=</span> <span class="s">&quot;BLUE GREEN RED NEAR_INFRARED SHORT_WAVE_INFRARED_1 SHORT_WAVE_INFRARED_2&quot;</span>
+
+    <span class="n">BLUE</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">GREEN</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">RED</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">NEAR_INFRARED</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">SHORT_WAVE_INFRARED_1</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="n">SHORT_WAVE_INFRARED_2</span> <span class="o">=</span> <span class="mi">6</span>
+
+</div>
+<div class="viewcode-block" id="Ls8Arg25Bands"><a class="viewcode-back" href="../../../api/datacube.api.model.html#datacube.api.model.Ls8Arg25Bands">[docs]</a><span class="k">class</span> <span class="nc">Ls8Arg25Bands</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">__order__</span> <span class="o">=</span> <span class="s">&quot;COASTAL_AEROSOL BLUE GREEN RED NEAR_INFRARED SHORT_WAVE_INFRARED_1 SHORT_WAVE_INFRARED_2&quot;</span>
+
+    <span class="n">COASTAL_AEROSOL</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">BLUE</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">GREEN</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">RED</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">NEAR_INFRARED</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="n">SHORT_WAVE_INFRARED_1</span> <span class="o">=</span> <span class="mi">6</span>
+    <span class="n">SHORT_WAVE_INFRARED_2</span> <span class="o">=</span> <span class="mi">7</span>
+
+</div>
+<div class="viewcode-block" id="Pq25Bands"><a class="viewcode-back" href="../../../api/datacube.api.model.html#datacube.api.model.Pq25Bands">[docs]</a><span class="k">class</span> <span class="nc">Pq25Bands</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">__order__</span> <span class="o">=</span> <span class="s">&quot;PQ&quot;</span>
+
+    <span class="n">PQ</span> <span class="o">=</span> <span class="mi">1</span>
+
+</div>
+<div class="viewcode-block" id="Fc25Bands"><a class="viewcode-back" href="../../../api/datacube.api.model.html#datacube.api.model.Fc25Bands">[docs]</a><span class="k">class</span> <span class="nc">Fc25Bands</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">__order__</span> <span class="o">=</span> <span class="s">&quot;PHOTOSYNTHETIC_VEGETATION NON_PHOTOSYNTHETIC_VEGETATION BARE_SOIL UNMIXING_ERROR&quot;</span>
+
+    <span class="n">PHOTOSYNTHETIC_VEGETATION</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">NON_PHOTOSYNTHETIC_VEGETATION</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">BARE_SOIL</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">UNMIXING_ERROR</span> <span class="o">=</span> <span class="mi">4</span>
+
+</div>
+<div class="viewcode-block" id="Wofs25Bands"><a class="viewcode-back" href="../../../api/datacube.api.model.html#datacube.api.model.Wofs25Bands">[docs]</a><span class="k">class</span> <span class="nc">Wofs25Bands</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">__order__</span> <span class="o">=</span> <span class="s">&quot;WATER&quot;</span>
+
+    <span class="n">WATER</span> <span class="o">=</span> <span class="mi">1</span>
+
+</div>
+<div class="viewcode-block" id="NdviBands"><a class="viewcode-back" href="../../../api/datacube.api.model.html#datacube.api.model.NdviBands">[docs]</a><span class="k">class</span> <span class="nc">NdviBands</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">__order__</span> <span class="o">=</span> <span class="s">&quot;NDVI&quot;</span>
+
+    <span class="n">NDVI</span> <span class="o">=</span> <span class="mi">1</span>
+
+</div>
+<div class="viewcode-block" id="EviBands"><a class="viewcode-back" href="../../../api/datacube.api.model.html#datacube.api.model.EviBands">[docs]</a><span class="k">class</span> <span class="nc">EviBands</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">__order__</span> <span class="o">=</span> <span class="s">&quot;EVI&quot;</span>
+
+    <span class="n">EVI</span> <span class="o">=</span> <span class="mi">1</span>
+
+</div>
+<div class="viewcode-block" id="NbrBands"><a class="viewcode-back" href="../../../api/datacube.api.model.html#datacube.api.model.NbrBands">[docs]</a><span class="k">class</span> <span class="nc">NbrBands</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">__order__</span> <span class="o">=</span> <span class="s">&quot;NBR&quot;</span>
+
+    <span class="n">NBR</span> <span class="o">=</span> <span class="mi">1</span>
+
+
+<span class="c"># TODO - duplication with TasselCapIndex!!!!</span>
+</div>
+<div class="viewcode-block" id="TciBands"><a class="viewcode-back" href="../../../api/datacube.api.model.html#datacube.api.model.TciBands">[docs]</a><span class="k">class</span> <span class="nc">TciBands</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">__order__</span> <span class="o">=</span> <span class="s">&quot;BRIGHTNESS GREENNESS WETNESS FOURTH FIFTH SIXTH&quot;</span>
+
+    <span class="n">BRIGHTNESS</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">GREENNESS</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">WETNESS</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">FOURTH</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">FIFTH</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="n">SIXTH</span> <span class="o">=</span> <span class="mi">6</span>
+
+</div>
+<div class="viewcode-block" id="DsmBands"><a class="viewcode-back" href="../../../api/datacube.api.model.html#datacube.api.model.DsmBands">[docs]</a><span class="k">class</span> <span class="nc">DsmBands</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">__order__</span> <span class="o">=</span> <span class="s">&quot;ELEVATION SLOPE ASPECT&quot;</span>
+
+    <span class="n">ELEVATION</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">SLOPE</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">ASPECT</span> <span class="o">=</span> <span class="mi">3</span>
+
+</div>
+<div class="viewcode-block" id="DatasetType"><a class="viewcode-back" href="../../../api/datacube.api.model.html#datacube.api.model.DatasetType">[docs]</a><span class="k">class</span> <span class="nc">DatasetType</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">__order__</span> <span class="o">=</span> <span class="s">&quot;ARG25 PQ25 FC25 DSM DEM DEM_SMOOTHED DEM_HYDROLOGICALLY_ENFORCED WATER NDVI EVI SAVI TCI NBR&quot;</span>
+
+    <span class="n">ARG25</span> <span class="o">=</span> <span class="s">&quot;ARG25&quot;</span>
+    <span class="n">PQ25</span> <span class="o">=</span> <span class="s">&quot;PQ25&quot;</span>
+    <span class="n">FC25</span> <span class="o">=</span> <span class="s">&quot;FC25&quot;</span>
+    <span class="n">DSM</span> <span class="o">=</span> <span class="s">&quot;DSM&quot;</span>
+    <span class="n">DEM</span> <span class="o">=</span> <span class="s">&quot;DEM&quot;</span>
+    <span class="n">DEM_SMOOTHED</span> <span class="o">=</span> <span class="s">&quot;DEM_SMOOTHED&quot;</span>
+    <span class="n">DEM_HYDROLOGICALLY_ENFORCED</span> <span class="o">=</span> <span class="s">&quot;DEM_HYDROLOGICALLY_ENFORCED&quot;</span>
+    <span class="n">WATER</span> <span class="o">=</span> <span class="s">&quot;WATER&quot;</span>
+    <span class="n">NDVI</span> <span class="o">=</span> <span class="s">&quot;NDVI&quot;</span>
+    <span class="n">EVI</span> <span class="o">=</span> <span class="s">&quot;EVI&quot;</span>
+    <span class="n">SAVI</span> <span class="o">=</span> <span class="s">&quot;SAVI&quot;</span>
+    <span class="n">TCI</span> <span class="o">=</span> <span class="s">&quot;TCI&quot;</span>
+    <span class="n">NBR</span> <span class="o">=</span> <span class="s">&quot;NBR&quot;</span>
+
+</div>
+<span class="n">dataset_type_database</span> <span class="o">=</span> <span class="p">[</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">ARG25</span><span class="p">,</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">PQ25</span><span class="p">,</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">FC25</span><span class="p">,</span>
+                         <span class="n">DatasetType</span><span class="o">.</span><span class="n">WATER</span><span class="p">,</span>
+                         <span class="n">DatasetType</span><span class="o">.</span><span class="n">DSM</span><span class="p">,</span>
+                         <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM</span><span class="p">,</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM_HYDROLOGICALLY_ENFORCED</span><span class="p">,</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM_SMOOTHED</span><span class="p">]</span>
+<span class="n">dataset_type_filesystem</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">dataset_type_derived_nbar</span> <span class="o">=</span> <span class="p">[</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">NDVI</span><span class="p">,</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">EVI</span><span class="p">,</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">NBR</span><span class="p">,</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">TCI</span><span class="p">]</span>  <span class="c"># TCI, SAVI, etc...</span>
+
+
+<div class="viewcode-block" id="DatasetTile"><a class="viewcode-back" href="../../../api/datacube.api.model.html#datacube.api.model.DatasetTile">[docs]</a><span class="k">class</span> <span class="nc">DatasetTile</span><span class="p">:</span>
+
+    <span class="c">#: :type: Satellite</span>
+    <span class="n">satellite</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="c">#: :type: DatasetType</span>
+    <span class="n">dataset_type</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="c">#: :type: str</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="c">#: :type: enum</span>
+    <span class="n">bands</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">satellite_id</span><span class="p">,</span> <span class="n">type_id</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">satellite</span> <span class="o">=</span> <span class="n">satellite_id</span> <span class="ow">and</span> <span class="n">Satellite</span><span class="p">[</span><span class="n">satellite_id</span><span class="p">]</span> <span class="ow">or</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataset_type</span> <span class="o">=</span> <span class="n">DatasetType</span><span class="p">[</span><span class="n">type_id</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">path</span> <span class="o">=</span> <span class="n">warp_file_paths</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+        <span class="c"># TODO ???</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">satellite</span><span class="p">)</span> <span class="ow">in</span> <span class="n">BANDS</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bands</span> <span class="o">=</span> <span class="n">BANDS</span><span class="p">[(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">satellite</span><span class="p">)]</span>
+        <span class="k">elif</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_type</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span> <span class="ow">in</span> <span class="n">BANDS</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bands</span> <span class="o">=</span> <span class="n">BANDS</span><span class="p">[(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_type</span><span class="p">,</span> <span class="bp">None</span><span class="p">)]</span>
+
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="DatasetTile.from_db_array"><a class="viewcode-back" href="../../../api/datacube.api.model.html#datacube.api.model.DatasetTile.from_db_array">[docs]</a>    <span class="k">def</span> <span class="nf">from_db_array</span><span class="p">(</span><span class="n">satellite_id</span><span class="p">,</span> <span class="n">datasets</span><span class="p">):</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">dataset</span> <span class="ow">in</span> <span class="n">datasets</span><span class="p">:</span>
+            <span class="n">dst</span> <span class="o">=</span> <span class="n">DatasetTile</span><span class="p">(</span><span class="n">satellite_id</span><span class="p">,</span> <span class="n">dataset</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dataset</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">dst</span><span class="o">.</span><span class="n">dataset_type</span><span class="p">]</span> <span class="o">=</span> <span class="n">dst</span>
+
+        <span class="c"># TODO DODGINESS until WOFS is ingested into the database</span>
+
+        <span class="c"># Construct a WOFS dataset based on the NBAR dataset</span>
+        <span class="c"># If one exists on the filesystem then add it otherwise (None is returned by the make_wofs_dataset) we don&#39;t</span>
+
+        <span class="n">dst</span> <span class="o">=</span> <span class="n">make_wofs_dataset</span><span class="p">(</span><span class="n">satellite_id</span><span class="p">,</span> <span class="n">out</span><span class="p">[</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">ARG25</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="n">dst</span><span class="p">:</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">WATER</span><span class="p">]</span> <span class="o">=</span> <span class="n">dst</span>
+
+        <span class="k">return</span> <span class="n">out</span>
+</div>
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="DatasetTile.from_string_array"><a class="viewcode-back" href="../../../api/datacube.api.model.html#datacube.api.model.DatasetTile.from_string_array">[docs]</a>    <span class="k">def</span> <span class="nf">from_string_array</span><span class="p">(</span><span class="n">satellite_id</span><span class="p">,</span> <span class="n">datasets</span><span class="p">):</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c"># This is a string of the form {{type,path},{type,path},...}</span>
+        <span class="c"># TODO: This is also pretty dodgy!!!</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s">&quot;{}&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;,&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">datasets</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;},&quot;</span><span class="p">)]:</span>
+            <span class="n">dst</span> <span class="o">=</span> <span class="n">DatasetTile</span><span class="p">(</span><span class="n">satellite_id</span><span class="p">,</span> <span class="n">entry</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">entry</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">dst</span><span class="o">.</span><span class="n">dataset_type</span><span class="p">]</span> <span class="o">=</span> <span class="n">dst</span>
+
+        <span class="k">return</span> <span class="n">out</span>
+
+    <span class="c"># TODO THIS METHOD IS ONLY HERE UNTIL WOFS EXTENTS ARE INGESTED</span>
+    <span class="c"># DO NOT USE!!!</span>
+</div>
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="DatasetTile.from_path"><a class="viewcode-back" href="../../../api/datacube.api.model.html#datacube.api.model.DatasetTile.from_path">[docs]</a>    <span class="k">def</span> <span class="nf">from_path</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Dodgy as method to construct a Dataset from a filename</span>
+<span class="sd">        :param filename:</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c"># At the moment I just need this to work for the WOFS extent files</span>
+        <span class="c"># which are named like</span>
+        <span class="c">#  LS5_TM_WATER_120_-021_2004-09-20T01-40-14.409038.tif</span>
+        <span class="c">#  LS7_ETM_WATER_120_-021_2006-06-30T01-45-48.187525.tif</span>
+
+        <span class="c"># And I am writing this at 4pm on a Sunday afternoon so I can&#39;t even be bothered doing it properly dodgily</span>
+        <span class="c"># That is, using regex&#39;es or something...</span>
+        <span class="c"># Throw this away!!!</span>
+
+        <span class="kn">import</span> <span class="nn">os</span>
+        <span class="kn">from</span> <span class="nn">datacube.api.utils</span> <span class="kn">import</span> <span class="n">extract_fields_from_filename</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="n">satellite</span><span class="p">,</span> <span class="n">dataset_type</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">acq_dt</span> <span class="o">=</span> <span class="n">extract_fields_from_filename</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="n">DatasetTile</span><span class="p">(</span><span class="n">satellite</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">dataset_type</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">out</span>
+
+
+<span class="c"># TODO use Cell in Tile - probably</span>
+</div></div>
+<div class="viewcode-block" id="Cell"><a class="viewcode-back" href="../../../api/datacube.api.model.html#datacube.api.model.Cell">[docs]</a><span class="k">class</span> <span class="nc">Cell</span><span class="p">:</span>
+    <span class="c">#: :type: int</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="c">#: :type: int</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="c">#: :type: (int, int)</span>
+    <span class="n">xy</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_index</span><span class="p">,</span> <span class="n">y_index</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x_index</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">y_index</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xy</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>  <span class="c"># TODO</span>
+
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="Cell.from_csv_record"><a class="viewcode-back" href="../../../api/datacube.api.model.html#datacube.api.model.Cell.from_csv_record">[docs]</a>    <span class="k">def</span> <span class="nf">from_csv_record</span><span class="p">(</span><span class="n">record</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">Cell</span><span class="p">(</span><span class="n">x_index</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="s">&quot;x_index&quot;</span><span class="p">]),</span> <span class="n">y_index</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="s">&quot;y_index&quot;</span><span class="p">]))</span>
+
+</div>
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="Cell.from_db_record"><a class="viewcode-back" href="../../../api/datacube.api.model.html#datacube.api.model.Cell.from_db_record">[docs]</a>    <span class="k">def</span> <span class="nf">from_db_record</span><span class="p">(</span><span class="n">record</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">Cell</span><span class="p">(</span><span class="n">x_index</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s">&quot;x_index&quot;</span><span class="p">],</span> <span class="n">y_index</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s">&quot;y_index&quot;</span><span class="p">])</span>
+
+</div></div>
+<div class="viewcode-block" id="Tile"><a class="viewcode-back" href="../../../api/datacube.api.model.html#datacube.api.model.Tile">[docs]</a><span class="k">class</span> <span class="nc">Tile</span><span class="p">:</span>
+    <span class="c">#: :type: int</span>
+    <span class="n">acquisition_id</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="c">#: :type: int</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="c">#: :type: int</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="c">#: :type: (int, int)</span>
+    <span class="n">xy</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="c">#: :type: datetime</span>
+    <span class="n">start_datetime</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="c">#: :type: datetime</span>
+    <span class="n">end_datetime</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="c">#: :type: int</span>
+    <span class="n">end_datetime_year</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="c">#: :type: int</span>
+    <span class="n">end_datetime_month</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="c">#: :type: str</span>
+    <span class="n">datasets</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">acquisition_id</span><span class="p">,</span> <span class="n">x_index</span><span class="p">,</span> <span class="n">y_index</span><span class="p">,</span>
+                 <span class="n">start_datetime</span><span class="p">,</span> <span class="n">end_datetime</span><span class="p">,</span> <span class="n">end_datetime_year</span><span class="p">,</span> <span class="n">end_datetime_month</span><span class="p">,</span> <span class="n">datasets</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acquisition_id</span> <span class="o">=</span> <span class="n">acquisition_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">x_index</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">y_index</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">xy</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>  <span class="c"># TODO</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_datetime</span> <span class="o">=</span> <span class="n">start_datetime</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">end_datetime</span> <span class="o">=</span> <span class="n">end_datetime</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">end_datetime_year</span> <span class="o">=</span> <span class="n">end_datetime_year</span> <span class="ow">and</span> <span class="nb">int</span><span class="p">(</span><span class="n">end_datetime_year</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">end_datetime_month</span> <span class="o">=</span> <span class="n">end_datetime_month</span> <span class="ow">and</span> <span class="nb">int</span><span class="p">(</span><span class="n">end_datetime_month</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">datasets</span> <span class="o">=</span> <span class="n">datasets</span>
+
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="Tile.from_csv_record"><a class="viewcode-back" href="../../../api/datacube.api.model.html#datacube.api.model.Tile.from_csv_record">[docs]</a>    <span class="k">def</span> <span class="nf">from_csv_record</span><span class="p">(</span><span class="n">record</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">Tile</span><span class="p">(</span>
+            <span class="n">acquisition_id</span><span class="o">=</span><span class="nb">long</span><span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="s">&quot;acquisition_id&quot;</span><span class="p">]),</span>
+            <span class="n">x_index</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="s">&quot;x_index&quot;</span><span class="p">]),</span>
+            <span class="n">y_index</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="s">&quot;y_index&quot;</span><span class="p">]),</span>
+            <span class="n">start_datetime</span><span class="o">=</span><span class="n">parse_datetime</span><span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="s">&quot;start_datetime&quot;</span><span class="p">]),</span>
+            <span class="n">end_datetime</span><span class="o">=</span><span class="n">parse_datetime</span><span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="s">&quot;end_datetime&quot;</span><span class="p">]),</span>
+            <span class="n">end_datetime_year</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s">&quot;end_datetime_year&quot;</span><span class="p">],</span>
+            <span class="n">end_datetime_month</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s">&quot;end_datetime_month&quot;</span><span class="p">],</span>
+            <span class="n">datasets</span><span class="o">=</span><span class="n">DatasetTile</span><span class="o">.</span><span class="n">from_string_array</span><span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="s">&quot;satellite&quot;</span><span class="p">],</span> <span class="n">record</span><span class="p">[</span><span class="s">&quot;datasets&quot;</span><span class="p">]))</span>
+
+</div>
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="Tile.from_db_record"><a class="viewcode-back" href="../../../api/datacube.api.model.html#datacube.api.model.Tile.from_db_record">[docs]</a>    <span class="k">def</span> <span class="nf">from_db_record</span><span class="p">(</span><span class="n">record</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">Tile</span><span class="p">(</span>
+            <span class="n">acquisition_id</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s">&quot;acquisition_id&quot;</span><span class="p">],</span>
+            <span class="n">x_index</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s">&quot;x_index&quot;</span><span class="p">],</span>
+            <span class="n">y_index</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s">&quot;y_index&quot;</span><span class="p">],</span>
+            <span class="n">start_datetime</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s">&quot;start_datetime&quot;</span><span class="p">],</span>
+            <span class="n">end_datetime</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s">&quot;end_datetime&quot;</span><span class="p">],</span>
+            <span class="n">end_datetime_year</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s">&quot;end_datetime_year&quot;</span><span class="p">],</span>
+            <span class="n">end_datetime_month</span><span class="o">=</span><span class="n">record</span><span class="p">[</span><span class="s">&quot;end_datetime_month&quot;</span><span class="p">],</span>
+            <span class="n">datasets</span><span class="o">=</span><span class="n">DatasetTile</span><span class="o">.</span><span class="n">from_db_array</span><span class="p">(</span><span class="n">record</span><span class="p">[</span><span class="s">&quot;satellite&quot;</span><span class="p">],</span> <span class="n">record</span><span class="p">[</span><span class="s">&quot;datasets&quot;</span><span class="p">]))</span>
+
+</div></div>
+<span class="n">BANDS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">ARG25</span><span class="p">,</span> <span class="n">Satellite</span><span class="o">.</span><span class="n">LS5</span><span class="p">):</span> <span class="n">Ls57Arg25Bands</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">ARG25</span><span class="p">,</span> <span class="n">Satellite</span><span class="o">.</span><span class="n">LS7</span><span class="p">):</span> <span class="n">Ls57Arg25Bands</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">ARG25</span><span class="p">,</span> <span class="n">Satellite</span><span class="o">.</span><span class="n">LS8</span><span class="p">):</span> <span class="n">Ls8Arg25Bands</span><span class="p">,</span>
+
+    <span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">PQ25</span><span class="p">,</span> <span class="n">Satellite</span><span class="o">.</span><span class="n">LS5</span><span class="p">):</span> <span class="n">Pq25Bands</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">PQ25</span><span class="p">,</span> <span class="n">Satellite</span><span class="o">.</span><span class="n">LS7</span><span class="p">):</span> <span class="n">Pq25Bands</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">PQ25</span><span class="p">,</span> <span class="n">Satellite</span><span class="o">.</span><span class="n">LS8</span><span class="p">):</span> <span class="n">Pq25Bands</span><span class="p">,</span>
+
+    <span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">FC25</span><span class="p">,</span> <span class="n">Satellite</span><span class="o">.</span><span class="n">LS5</span><span class="p">):</span> <span class="n">Fc25Bands</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">FC25</span><span class="p">,</span> <span class="n">Satellite</span><span class="o">.</span><span class="n">LS7</span><span class="p">):</span> <span class="n">Fc25Bands</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">FC25</span><span class="p">,</span> <span class="n">Satellite</span><span class="o">.</span><span class="n">LS8</span><span class="p">):</span> <span class="n">Fc25Bands</span><span class="p">,</span>
+
+    <span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">WATER</span><span class="p">,</span> <span class="n">Satellite</span><span class="o">.</span><span class="n">LS5</span><span class="p">):</span> <span class="n">Wofs25Bands</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">WATER</span><span class="p">,</span> <span class="n">Satellite</span><span class="o">.</span><span class="n">LS7</span><span class="p">):</span> <span class="n">Wofs25Bands</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">WATER</span><span class="p">,</span> <span class="n">Satellite</span><span class="o">.</span><span class="n">LS8</span><span class="p">):</span> <span class="n">Wofs25Bands</span><span class="p">,</span>
+
+    <span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">NDVI</span><span class="p">,</span> <span class="n">Satellite</span><span class="o">.</span><span class="n">LS5</span><span class="p">):</span> <span class="n">NdviBands</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">NDVI</span><span class="p">,</span> <span class="n">Satellite</span><span class="o">.</span><span class="n">LS7</span><span class="p">):</span> <span class="n">NdviBands</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">NDVI</span><span class="p">,</span> <span class="n">Satellite</span><span class="o">.</span><span class="n">LS8</span><span class="p">):</span> <span class="n">NdviBands</span><span class="p">,</span>
+
+    <span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">EVI</span><span class="p">,</span> <span class="n">Satellite</span><span class="o">.</span><span class="n">LS5</span><span class="p">):</span> <span class="n">EviBands</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">EVI</span><span class="p">,</span> <span class="n">Satellite</span><span class="o">.</span><span class="n">LS7</span><span class="p">):</span> <span class="n">EviBands</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">EVI</span><span class="p">,</span> <span class="n">Satellite</span><span class="o">.</span><span class="n">LS8</span><span class="p">):</span> <span class="n">EviBands</span><span class="p">,</span>
+
+    <span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">NBR</span><span class="p">,</span> <span class="n">Satellite</span><span class="o">.</span><span class="n">LS5</span><span class="p">):</span> <span class="n">NbrBands</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">NBR</span><span class="p">,</span> <span class="n">Satellite</span><span class="o">.</span><span class="n">LS7</span><span class="p">):</span> <span class="n">NbrBands</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">NBR</span><span class="p">,</span> <span class="n">Satellite</span><span class="o">.</span><span class="n">LS8</span><span class="p">):</span> <span class="n">NbrBands</span><span class="p">,</span>
+
+    <span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">TCI</span><span class="p">,</span> <span class="n">Satellite</span><span class="o">.</span><span class="n">LS5</span><span class="p">):</span> <span class="n">TciBands</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">TCI</span><span class="p">,</span> <span class="n">Satellite</span><span class="o">.</span><span class="n">LS7</span><span class="p">):</span> <span class="n">TciBands</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">TCI</span><span class="p">,</span> <span class="n">Satellite</span><span class="o">.</span><span class="n">LS8</span><span class="p">):</span> <span class="n">TciBands</span><span class="p">,</span>
+
+    <span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">DSM</span><span class="p">,</span> <span class="bp">None</span><span class="p">):</span> <span class="n">DsmBands</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM</span><span class="p">,</span> <span class="bp">None</span><span class="p">):</span> <span class="n">DsmBands</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM_SMOOTHED</span><span class="p">,</span> <span class="bp">None</span><span class="p">):</span> <span class="n">DsmBands</span><span class="p">,</span>
+    <span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM_HYDROLOGICALLY_ENFORCED</span><span class="p">,</span> <span class="bp">None</span><span class="p">):</span> <span class="n">DsmBands</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="get_bands"><a class="viewcode-back" href="../../../api/datacube.api.model.html#datacube.api.model.get_bands">[docs]</a><span class="k">def</span> <span class="nf">get_bands</span><span class="p">(</span><span class="n">dataset_type</span><span class="p">,</span> <span class="n">satellite</span><span class="p">):</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">dataset_type</span><span class="p">,</span> <span class="n">satellite</span><span class="p">)</span> <span class="ow">in</span> <span class="n">BANDS</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">BANDS</span><span class="p">[(</span><span class="n">dataset_type</span><span class="p">,</span> <span class="n">satellite</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="bp">None</span>
+
+
+<span class="c"># NOTE only on dev machine while database paths are incorrect</span></div>
+<div class="viewcode-block" id="warp_file_paths"><a class="viewcode-back" href="../../../api/datacube.api.model.html#datacube.api.model.warp_file_paths">[docs]</a><span class="k">def</span> <span class="nf">warp_file_paths</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+
+    <span class="c"># return path.replace(&quot;/g/data1/rs0/tiles/EPSG4326_1deg_0.00025pixel&quot;, &quot;/data/cube/tiles/EPSG4326_1deg_0.00025pixel&quot;)  # For cube-dev-01</span>
+    <span class="c"># return path.replace(&quot;/g/data1/rs0/tiles/EPSG4326_1deg_0.00025pixel&quot;, &quot;/data/tmp/cube/data/tiles/EPSG4326_1deg_0.00025pixel&quot;)  # For innuendo</span>
+    <span class="c"># return path.replace(&quot;/g/data1/rs0/tiles/EPSG4326_1deg_0.00025pixel&quot;, &quot;/Users/simon/tmp/datacube/data/input/g/data1/rs0/tiles/EPSG4326_1deg_0.00025pixel&quot;)  # For macbook</span>
+
+    <span class="c"># My MacBook with data on external USB</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel&quot;</span><span class="p">,</span> <span class="s">&quot;/Volumes/Seagate Expansion Drive/data/cube/tiles/EPSG4326_1deg_0.00025pixel&quot;</span><span class="p">)</span>  <span class="c"># For macbook</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;/g/data/u46/wofs/water_f7q/extents&quot;</span><span class="p">,</span> <span class="s">&quot;/Volumes/Seagate Expansion Drive/data/cube/tiles/EPSG4326_1deg_0.00025pixel/wofs_f7q/extents&quot;</span><span class="p">)</span>  <span class="c"># For macbook</span>
+
+    <span class="k">return</span> <span class="n">path</span>
+
+
+<span class="c"># TODO</span></div>
+<div class="viewcode-block" id="parse_datetime"><a class="viewcode-back" href="../../../api/datacube.api.model.html#datacube.api.model.parse_datetime">[docs]</a><span class="k">def</span> <span class="nf">parse_datetime</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+    <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">s</span><span class="p">[:</span><span class="nb">len</span><span class="p">(</span><span class="s">&quot;YYYY-MM-DD HH:MM:SS&quot;</span><span class="p">)],</span> <span class="s">&quot;%Y-%m-</span><span class="si">%d</span><span class="s"> %H:%M:%S&quot;</span><span class="p">)</span>
+
+
+<span class="c"># TODO TEMPORARY UNTIL WOFS IS AVAILABLE AS INGESTED DATA</span></div>
+<div class="viewcode-block" id="make_wofs_dataset"><a class="viewcode-back" href="../../../api/datacube.api.model.html#datacube.api.model.make_wofs_dataset">[docs]</a><span class="k">def</span> <span class="nf">make_wofs_dataset</span><span class="p">(</span><span class="n">satellite_id</span><span class="p">,</span> <span class="n">nbar</span><span class="p">):</span>
+    <span class="n">fields</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">nbar</span><span class="o">.</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;_&quot;</span><span class="p">)</span>
+
+    <span class="n">satellite</span> <span class="o">=</span> <span class="n">fields</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">satellite_id</span> <span class="o">==</span> <span class="n">Satellite</span><span class="o">.</span><span class="n">LS8</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+        <span class="c"># LS8_OLI_TIRS_NBAR_123_-025_2013-04-24T01-46-06.vrt</span>
+        <span class="n">sensor</span> <span class="o">=</span> <span class="n">fields</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s">&quot;_&quot;</span> <span class="o">+</span> <span class="n">fields</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">fields</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;.vrt&quot;</span><span class="p">,</span> <span class="s">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;.tif&quot;</span><span class="p">,</span> <span class="s">&quot;&quot;</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c"># LS5_TM_NBAR_123_-025_2005-11-21T01-27-04.570000.tif</span>
+        <span class="c"># LS7_ETM_NBAR_123_-025_2005-11-29T01-28-07.511491.tif</span>
+        <span class="n">sensor</span> <span class="o">=</span> <span class="n">fields</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">fields</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;.vrt&quot;</span><span class="p">,</span> <span class="s">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;.tif&quot;</span><span class="p">,</span> <span class="s">&quot;&quot;</span><span class="p">)</span>
+
+    <span class="n">path</span> <span class="o">=</span> <span class="s">&quot;/g/data/u46/wofs/water_f7q/extents/{x:03d}_{y:04d}/{satellite}_{sensor}_WATER_{x:03d}_{y:04d}_{date}.tif&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">satellite</span><span class="o">=</span><span class="n">satellite</span><span class="p">,</span> <span class="n">sensor</span><span class="o">=</span><span class="n">sensor</span><span class="p">,</span> <span class="n">date</span><span class="o">=</span><span class="n">dt</span><span class="p">)</span>
+    <span class="c"># path = &quot;/g/data/u46/sjo/geoserver/wofs_f7q/extents/{x:03d}_{y:04d}/{satellite}_{sensor}_WATER_{x:03d}_{y:04d}_{date}.tif&quot;.format(x=x, y=y, satellite=satellite, sensor=sensor, date=dt)</span>
+
+    <span class="n">path</span> <span class="o">=</span> <span class="n">warp_file_paths</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">DatasetTile</span><span class="p">(</span><span class="n">satellite</span><span class="p">,</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">WATER</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="bp">None</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Geoscience Australia.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.3</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

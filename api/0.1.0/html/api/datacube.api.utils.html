@@ -1,0 +1,518 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>datacube.api.utils module &mdash; agdc-api 0.1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="agdc-api 0.1.0 documentation" href="../index.html" />
+    <link rel="next" title="datacube.api.workflow package" href="datacube.api.workflow.html" />
+    <link rel="prev" title="datacube.api.query module" href="datacube.api.query.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="datacube.api.workflow.html" title="datacube.api.workflow package"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="datacube.api.query.html" title="datacube.api.query module"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">agdc-api 0.1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-datacube.api.utils">
+<span id="datacube-api-utils-module"></span><h1>datacube.api.utils module<a class="headerlink" href="#module-datacube.api.utils" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="datacube.api.utils.PqaMask">
+<em class="property">class </em><code class="descclassname">datacube.api.utils.</code><code class="descname">PqaMask</code><a class="reference internal" href="../_modules/datacube/api/utils.html#PqaMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.PqaMask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.Enum</span></code></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="datacube.api.utils.WofsMask">
+<em class="property">class </em><code class="descclassname">datacube.api.utils.</code><code class="descname">WofsMask</code><a class="reference internal" href="../_modules/datacube/api/utils.html#WofsMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.WofsMask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.Enum</span></code></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.empty_array">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">empty_array</code><span class="sig-paren">(</span><em>shape</em>, <em>dtype=&lt;type 'numpy.int16'&gt;</em>, <em>ndv=-999</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#empty_array"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.empty_array" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an empty (i.e. filled with the no data value) array of the given shape and data type</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>shape</strong> &#8211; shape of the array</li>
+<li><strong>dtype</strong> &#8211; data type of the array (defaults to int32)</li>
+<li><strong>ndv</strong> &#8211; no data value (defaults to -999)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">array</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="datacube.api.utils.DatasetBandMetaData">
+<em class="property">class </em><code class="descclassname">datacube.api.utils.</code><code class="descname">DatasetBandMetaData</code><span class="sig-paren">(</span><em>no_data_value</em>, <em>data_type</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#DatasetBandMetaData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.DatasetBandMetaData" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="datacube.api.utils.DatasetBandMetaData.no_data_value">
+<code class="descname">no_data_value</code><em class="property"> = None</em><a class="headerlink" href="#datacube.api.utils.DatasetBandMetaData.no_data_value" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="datacube.api.utils.DatasetBandMetaData.data_type">
+<code class="descname">data_type</code><em class="property"> = None</em><a class="headerlink" href="#datacube.api.utils.DatasetBandMetaData.data_type" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="datacube.api.utils.DatasetMetaData">
+<em class="property">class </em><code class="descclassname">datacube.api.utils.</code><code class="descname">DatasetMetaData</code><span class="sig-paren">(</span><em>shape</em>, <em>transform</em>, <em>projection</em>, <em>bands</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#DatasetMetaData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.DatasetMetaData" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="attribute">
+<dt id="datacube.api.utils.DatasetMetaData.shape">
+<code class="descname">shape</code><em class="property"> = None</em><a class="headerlink" href="#datacube.api.utils.DatasetMetaData.shape" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="datacube.api.utils.DatasetMetaData.transform">
+<code class="descname">transform</code><em class="property"> = None</em><a class="headerlink" href="#datacube.api.utils.DatasetMetaData.transform" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="datacube.api.utils.DatasetMetaData.projection">
+<code class="descname">projection</code><em class="property"> = None</em><a class="headerlink" href="#datacube.api.utils.DatasetMetaData.projection" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="datacube.api.utils.DatasetMetaData.bands">
+<code class="descname">bands</code><em class="property"> = None</em><a class="headerlink" href="#datacube.api.utils.DatasetMetaData.bands" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="datacube.api.utils.DatasetMetaData.pixel_size_x">
+<code class="descname">pixel_size_x</code><em class="property"> = None</em><a class="headerlink" href="#datacube.api.utils.DatasetMetaData.pixel_size_x" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="datacube.api.utils.DatasetMetaData.pixel_size_y">
+<code class="descname">pixel_size_y</code><em class="property"> = None</em><a class="headerlink" href="#datacube.api.utils.DatasetMetaData.pixel_size_y" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="datacube.api.utils.DatasetMetaData.ul">
+<code class="descname">ul</code><em class="property"> = None</em><a class="headerlink" href="#datacube.api.utils.DatasetMetaData.ul" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="datacube.api.utils.DatasetMetaData.lr">
+<code class="descname">lr</code><em class="property"> = None</em><a class="headerlink" href="#datacube.api.utils.DatasetMetaData.lr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.get_dataset_metadata">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">get_dataset_metadata</code><span class="sig-paren">(</span><em>dataset</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#get_dataset_metadata"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.get_dataset_metadata" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.get_dataset_data">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">get_dataset_data</code><span class="sig-paren">(</span><em>dataset</em>, <em>bands=None</em>, <em>x=0</em>, <em>y=0</em>, <em>x_size=None</em>, <em>y_size=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#get_dataset_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.get_dataset_data" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.read_dataset_data">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">read_dataset_data</code><span class="sig-paren">(</span><em>dataset</em>, <em>bands=None</em>, <em>x=0</em>, <em>y=0</em>, <em>x_size=None</em>, <em>y_size=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#read_dataset_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.read_dataset_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return one or more bands from a dataset</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>dataset</strong> &#8211; The dataset from which to read the band</li>
+<li><strong>bands</strong> &#8211; A list of bands to read from the dataset</li>
+<li><strong>x</strong> &#8211; </li>
+<li><strong>y</strong> &#8211; </li>
+<li><strong>x_size</strong> &#8211; </li>
+<li><strong>y_size</strong> &#8211; </li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">dictionary of band/data as numpy array</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.get_dataset_data_masked">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">get_dataset_data_masked</code><span class="sig-paren">(</span><em>dataset</em>, <em>bands=None</em>, <em>x=0</em>, <em>y=0</em>, <em>x_size=None</em>, <em>y_size=None</em>, <em>ndv=-999</em>, <em>mask=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#get_dataset_data_masked"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.get_dataset_data_masked" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return one or more bands from the dataset with pixel quality applied</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">dict[numpy.array]</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.get_dataset_data_with_pq">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">get_dataset_data_with_pq</code><span class="sig-paren">(</span><em>dataset, dataset_pqa, bands=None, x=0, y=0, x_size=None, y_size=None, masks_pqa=[&lt;PqaMask.PQ_MASK_CLEAR: 16383&gt;], ndv=-999</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#get_dataset_data_with_pq"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.get_dataset_data_with_pq" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return one or more bands from the dataset with pixel quality applied</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">dict[numpy.array]</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.apply_mask">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">apply_mask</code><span class="sig-paren">(</span><em>data</em>, <em>mask</em>, <em>ndv=-999</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#apply_mask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.apply_mask" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.get_mask_pqa">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">get_mask_pqa</code><span class="sig-paren">(</span><em>pqa, pqa_masks=[&lt;PqaMask.PQ_MASK_CLEAR: 16383&gt;], x=0, y=0, x_size=None, y_size=None, mask=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#get_mask_pqa"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.get_mask_pqa" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a pixel quality mask</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>pqa</strong> &#8211; Pixel Quality dataset</li>
+<li><strong>pqa_masks</strong> &#8211; which PQ flags to use</li>
+<li><strong>mask</strong> &#8211; an optional existing mask to update</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">the mask</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.consolidate_masks">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">consolidate_masks</code><span class="sig-paren">(</span><em>masks</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#consolidate_masks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.consolidate_masks" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.get_mask_wofs">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">get_mask_wofs</code><span class="sig-paren">(</span><em>wofs, wofs_masks=[&lt;WofsMask.WET: 128&gt;], x=0, y=0, x_size=None, y_size=None, mask=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#get_mask_wofs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.get_mask_wofs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a WOFS mask</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>wofs</strong> &#8211; WOFS dataset</li>
+<li><strong>wofs_masks</strong> &#8211; which WOFS values to mask</li>
+<li><strong>mask</strong> &#8211; an optional existing mask to update</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">the mask</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.raster_create">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">raster_create</code><span class="sig-paren">(</span><em>path, data, transform, projection, no_data_value, data_type, options=['INTERLEAVE=PIXEL'], width=None, height=None, dataset_metadata=None, band_ids=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#raster_create"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.raster_create" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a raster from a list of numpy arrays</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>path</strong> &#8211; path to the output raster</li>
+<li><strong>data</strong> &#8211; list of numpy arrays</li>
+<li><strong>transform</strong> &#8211; geo transform</li>
+<li><strong>projection</strong> &#8211; projection</li>
+<li><strong>no_data_value</strong> &#8211; no data value</li>
+<li><strong>data_type</strong> &#8211; data type</li>
+<li><strong>options</strong> &#8211; raster creation options</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.propagate_using_selected_pixel">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">propagate_using_selected_pixel</code><span class="sig-paren">(</span><em>a</em>, <em>b</em>, <em>c</em>, <em>d</em>, <em>ndv=-999</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#propagate_using_selected_pixel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.propagate_using_selected_pixel" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.calculate_ndvi">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">calculate_ndvi</code><span class="sig-paren">(</span><em>red</em>, <em>nir</em>, <em>input_ndv=-999</em>, <em>output_ndv=-999</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#calculate_ndvi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.calculate_ndvi" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the Normalised Difference Vegetation Index (NDVI) from a Landsat dataset</p>
+<p>NDVI is defined as (NIR - RED) / (NIR + RED)</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.calculate_evi">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">calculate_evi</code><span class="sig-paren">(</span><em>red</em>, <em>blue</em>, <em>nir</em>, <em>l=1</em>, <em>c1=6</em>, <em>c2=7.5</em>, <em>input_ndv=-999</em>, <em>output_ndv=-999</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#calculate_evi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.calculate_evi" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the Enhanced Vegetation Index (EVI) from a Landsat dataset first applying Pixel Quality indicators</p>
+<p>EVI is defined as 2.5 * (NIR - RED) / (NIR + C1 * RED - C2 * BLUE + L)</p>
+<p>Defaults to the standard MODIS EVI of L=1 C1=6 C2=7.5</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.calculate_nbr">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">calculate_nbr</code><span class="sig-paren">(</span><em>nir</em>, <em>swir</em>, <em>input_ndv=-999</em>, <em>output_ndv=-999</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#calculate_nbr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.calculate_nbr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the Normalised Burn Ratio (NBR) from a Landsat dataset</p>
+<p>NBR is defined as (NIR - SWIR 2) / (NIR + SWIR 2)</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="datacube.api.utils.TasselCapIndex">
+<em class="property">class </em><code class="descclassname">datacube.api.utils.</code><code class="descname">TasselCapIndex</code><a class="reference internal" href="../_modules/datacube/api/utils.html#TasselCapIndex"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.TasselCapIndex" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.Enum</span></code></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.calculate_tassel_cap_index">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">calculate_tassel_cap_index</code><span class="sig-paren">(</span><em>bands</em>, <em>coefficients</em>, <em>input_ndv=-999</em>, <em>output_ndv=nan</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#calculate_tassel_cap_index"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.calculate_tassel_cap_index" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>bands</strong> &#8211; </li>
+<li><strong>coefficients</strong> &#8211; </li>
+<li><strong>input_ndv</strong> &#8211; </li>
+<li><strong>output_ndv</strong> &#8211; </li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.calculate_medoid">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">calculate_medoid</code><span class="sig-paren">(</span><em>X</em>, <em>dist=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#calculate_medoid"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.calculate_medoid" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.latlon_to_xy">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">latlon_to_xy</code><span class="sig-paren">(</span><em>lat</em>, <em>lon</em>, <em>transform</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#latlon_to_xy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.latlon_to_xy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert lat/lon to x/y for raster
+NOTE: No projection done - assumes raster has native lat/lon projection</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>lat</strong> &#8211; latitude</li>
+<li><strong>lon</strong> &#8211; longitude</li>
+<li><strong>transform</strong> &#8211; GDAL GeoTransform</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">x, y pair</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.latlon_to_cell">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">latlon_to_cell</code><span class="sig-paren">(</span><em>lat</em>, <em>lon</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#latlon_to_cell"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.latlon_to_cell" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the cell that contains the given lat/lon pair</p>
+<dl class="docutils">
+<dt>NOTE: x of cell represents min (contained) lon value but y of cell represents max (not contained) lat value</dt>
+<dd>that is, 120/-20 contains lon values 120-&gt;120.99999 but lat values -19-&gt;-19.99999
+that is, that is, 120/-20 does NOT contain lat value of -20</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>lat</strong> &#8211; latitude</li>
+<li><strong>lon</strong> &#8211; longitude</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">cell as x, y pair</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.extract_fields_from_filename">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">extract_fields_from_filename</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#extract_fields_from_filename"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.extract_fields_from_filename" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> &#8211; </td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.intersection">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">intersection</code><span class="sig-paren">(</span><em>a</em>, <em>b</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#intersection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.intersection" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.union">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">union</code><span class="sig-paren">(</span><em>a</em>, <em>b</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#union"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.union" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.subset">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">subset</code><span class="sig-paren">(</span><em>a</em>, <em>b</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#subset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.subset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.get_satellite_string">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">get_satellite_string</code><span class="sig-paren">(</span><em>satellites</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#get_satellite_string"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.get_satellite_string" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.check_overwrite_remove_or_fail">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">check_overwrite_remove_or_fail</code><span class="sig-paren">(</span><em>path</em>, <em>overwrite</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#check_overwrite_remove_or_fail"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.check_overwrite_remove_or_fail" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.log_mem">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">log_mem</code><span class="sig-paren">(</span><em>s=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#log_mem"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.log_mem" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.date_to_integer">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">date_to_integer</code><span class="sig-paren">(</span><em>d</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#date_to_integer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.date_to_integer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.get_dataset_filename">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">get_dataset_filename</code><span class="sig-paren">(</span><em>dataset</em>, <em>mask_pqa_apply=False</em>, <em>mask_wofs_apply=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#get_dataset_filename"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.get_dataset_filename" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.get_dataset_ndv">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">get_dataset_ndv</code><span class="sig-paren">(</span><em>dataset</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#get_dataset_ndv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.get_dataset_ndv" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="datacube.api.query.html"
+                        title="previous chapter">datacube.api.query module</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="datacube.api.workflow.html"
+                        title="next chapter">datacube.api.workflow package</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/api/datacube.api.utils.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Geoscience Australia.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.3</a>
+      
+      |
+      <a href="../_sources/api/datacube.api.utils.txt"
+          rel="nofollow">Page source</a></li>
+    </div>
+
+    
+
+    
+  </body>
+</html>

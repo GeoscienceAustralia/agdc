@@ -1,0 +1,620 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>datacube.api.workflow &mdash; agdc-api 0.1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="agdc-api 0.1.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">agdc-api 0.1.0 documentation</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for datacube.api.workflow</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+
+<span class="c"># ===============================================================================</span>
+<span class="c"># Copyright (c)  2014 Geoscience Australia</span>
+<span class="c"># All rights reserved.</span>
+<span class="c">#</span>
+<span class="c"># Redistribution and use in source and binary forms, with or without</span>
+<span class="c"># modification, are permitted provided that the following conditions are met:</span>
+<span class="c"># * Redistributions of source code must retain the above copyright</span>
+<span class="c"># notice, this list of conditions and the following disclaimer.</span>
+<span class="c"># * Redistributions in binary form must reproduce the above copyright</span>
+<span class="c"># notice, this list of conditions and the following disclaimer in the</span>
+<span class="c">#       documentation and/or other materials provided with the distribution.</span>
+<span class="c">#     * Neither Geoscience Australia nor the names of its contributors may be</span>
+<span class="c">#       used to endorse or promote products derived from this software</span>
+<span class="c">#       without specific prior written permission.</span>
+<span class="c">#</span>
+<span class="c"># THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot; AND</span>
+<span class="c"># ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED</span>
+<span class="c"># WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE</span>
+<span class="c"># DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY</span>
+<span class="c"># DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES</span>
+<span class="c"># (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;</span>
+<span class="c"># LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND</span>
+<span class="c"># ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT</span>
+<span class="c"># (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS</span>
+<span class="c"># SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</span>
+<span class="c"># ===============================================================================</span>
+
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s">&quot;Simon Oldfield&quot;</span>
+
+
+<span class="kn">import</span> <span class="nn">abc</span>
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">luigi</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">datacube.api.model</span> <span class="kn">import</span> <span class="n">Satellite</span><span class="p">,</span> <span class="n">Cell</span><span class="p">,</span> <span class="n">DatasetType</span><span class="p">,</span> <span class="n">Tile</span>
+<span class="kn">from</span> <span class="nn">datacube.api.utils</span> <span class="kn">import</span> <span class="n">PqaMask</span><span class="p">,</span> <span class="n">get_satellite_string</span><span class="p">,</span> <span class="n">WofsMask</span>
+
+
+<span class="n">_log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="satellite_arg"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.satellite_arg">[docs]</a><span class="k">def</span> <span class="nf">satellite_arg</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">s</span> <span class="ow">in</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">Satellite</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">Satellite</span><span class="p">[</span><span class="n">s</span><span class="p">]</span>
+    <span class="k">raise</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentTypeError</span><span class="p">(</span><span class="s">&quot;{0} is not a supported satellite&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+
+</div>
+<div class="viewcode-block" id="pqa_mask_arg"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.pqa_mask_arg">[docs]</a><span class="k">def</span> <span class="nf">pqa_mask_arg</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">s</span> <span class="ow">in</span> <span class="p">[</span><span class="n">m</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">PqaMask</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">PqaMask</span><span class="p">[</span><span class="n">s</span><span class="p">]</span>
+    <span class="k">raise</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentTypeError</span><span class="p">(</span><span class="s">&quot;{0} is not a supported PQA mask&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+
+</div>
+<div class="viewcode-block" id="wofs_mask_arg"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.wofs_mask_arg">[docs]</a><span class="k">def</span> <span class="nf">wofs_mask_arg</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">s</span> <span class="ow">in</span> <span class="p">[</span><span class="n">m</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">WofsMask</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">WofsMask</span><span class="p">[</span><span class="n">s</span><span class="p">]</span>
+    <span class="k">raise</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentTypeError</span><span class="p">(</span><span class="s">&quot;{0} is not a supported WOFS mask&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+
+</div>
+<div class="viewcode-block" id="dataset_type_arg"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.dataset_type_arg">[docs]</a><span class="k">def</span> <span class="nf">dataset_type_arg</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">s</span> <span class="ow">in</span> <span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">DatasetType</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">DatasetType</span><span class="p">[</span><span class="n">s</span><span class="p">]</span>
+    <span class="k">raise</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentTypeError</span><span class="p">(</span><span class="s">&quot;{0} is not a supported dataset type&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+
+</div>
+<div class="viewcode-block" id="writeable_dir"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.writeable_dir">[docs]</a><span class="k">def</span> <span class="nf">writeable_dir</span><span class="p">(</span><span class="n">prospective_dir</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">prospective_dir</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentTypeError</span><span class="p">(</span><span class="s">&quot;{0} doesn&#39;t exist&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">prospective_dir</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">prospective_dir</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentTypeError</span><span class="p">(</span><span class="s">&quot;{0} is not a directory&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">prospective_dir</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">access</span><span class="p">(</span><span class="n">prospective_dir</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">W_OK</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentTypeError</span><span class="p">(</span><span class="s">&quot;{0} is not writeable&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">prospective_dir</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">prospective_dir</span>
+
+</div>
+<div class="viewcode-block" id="readable_dir"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.readable_dir">[docs]</a><span class="k">def</span> <span class="nf">readable_dir</span><span class="p">(</span><span class="n">prospective_dir</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">prospective_dir</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentTypeError</span><span class="p">(</span><span class="s">&quot;{0} doesn&#39;t exist&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">prospective_dir</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">prospective_dir</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentTypeError</span><span class="p">(</span><span class="s">&quot;{0} is not a directory&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">prospective_dir</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">access</span><span class="p">(</span><span class="n">prospective_dir</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">R_OK</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentTypeError</span><span class="p">(</span><span class="s">&quot;{0} is not readable&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">prospective_dir</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">prospective_dir</span>
+
+</div>
+<div class="viewcode-block" id="dummy"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.dummy">[docs]</a><span class="k">def</span> <span class="nf">dummy</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+    <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Creating dummy output </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+    <span class="kn">import</span> <span class="nn">os</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">pass</span>
+
+</div>
+<div class="viewcode-block" id="parse_date_min"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.parse_date_min">[docs]</a><span class="k">def</span> <span class="nf">parse_date_min</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+
+    <span class="k">if</span> <span class="n">s</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="s">&quot;YYYY&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s">&quot;%Y&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="s">&quot;YYYY-MM&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s">&quot;%Y-%m&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="s">&quot;YYYY-MM-DD&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s">&quot;%Y-%m-</span><span class="si">%d</span><span class="s">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="bp">None</span>
+
+</div>
+<div class="viewcode-block" id="parse_date_max"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.parse_date_max">[docs]</a><span class="k">def</span> <span class="nf">parse_date_max</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">date</span><span class="p">,</span> <span class="n">datetime</span>
+    <span class="kn">import</span> <span class="nn">calendar</span>
+
+    <span class="k">if</span> <span class="n">s</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="s">&quot;YYYY&quot;</span><span class="p">):</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s">&quot;%Y&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">month</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">day</span><span class="o">=</span><span class="mi">31</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">d</span>
+
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="s">&quot;YYYY-MM&quot;</span><span class="p">):</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s">&quot;%Y-%m&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+
+            <span class="n">first</span><span class="p">,</span> <span class="n">last</span> <span class="o">=</span> <span class="n">calendar</span><span class="o">.</span><span class="n">monthrange</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">month</span><span class="p">)</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">day</span><span class="o">=</span><span class="n">last</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">d</span>
+
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="s">&quot;YYYY-MM-DD&quot;</span><span class="p">):</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s">&quot;%Y-%m-</span><span class="si">%d</span><span class="s">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">d</span>
+
+    <span class="k">return</span> <span class="bp">None</span>
+
+</div>
+<div class="viewcode-block" id="format_date"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.format_date">[docs]</a><span class="k">def</span> <span class="nf">format_date</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+    <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+
+    <span class="k">if</span> <span class="n">d</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="s">&quot;%Y_%m_</span><span class="si">%d</span><span class="s">&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="bp">None</span>
+
+</div>
+<div class="viewcode-block" id="Workflow"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.Workflow">[docs]</a><span class="k">class</span> <span class="nc">Workflow</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="n">__metaclass__</span> <span class="o">=</span> <span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">prog</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">description</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_min</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_max</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_min</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_max</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">satellites</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_directory</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">csv</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dummy</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask_pqa_apply</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask_pqa_mask</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask_wofs_apply</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask_wofs_mask</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">local_scheduler</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">workers</span> <span class="o">=</span> <span class="bp">None</span>
+
+<div class="viewcode-block" id="Workflow.setup_arguments"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.Workflow.setup_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">setup_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--output-directory&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;output directory&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;output_directory&quot;</span><span class="p">,</span>
+                                 <span class="nb">type</span><span class="o">=</span><span class="n">writeable_dir</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--x-min&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;X index of tiles&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;x_min&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+                                 <span class="n">choices</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">110</span><span class="p">,</span> <span class="mi">155</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">required</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&quot;110 ... 155&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--x-max&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;X index of tiles&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;x_max&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+                                 <span class="n">choices</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">110</span><span class="p">,</span> <span class="mi">155</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">required</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&quot;110 ... 155&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--y-min&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;Y index of tiles&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;y_min&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+                                 <span class="n">choices</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="o">-</span><span class="mi">45</span><span class="p">,</span> <span class="o">-</span><span class="mi">10</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">required</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&quot;-45 ... -10&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--y-max&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;Y index of tiles&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;y_max&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+                                 <span class="n">choices</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="o">-</span><span class="mi">45</span><span class="p">,</span> <span class="o">-</span><span class="mi">10</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">required</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&quot;-45 ... -10&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--acq-min&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;Acquisition Date&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;acq_min&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+                                 <span class="n">default</span><span class="o">=</span><span class="s">&quot;1980&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--acq-max&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;Acquisition Date&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;acq_max&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+                                 <span class="n">default</span><span class="o">=</span><span class="s">&quot;2020&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--satellite&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;The satellite(s) to include&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;satellite&quot;</span><span class="p">,</span>
+                                 <span class="nb">type</span><span class="o">=</span><span class="n">satellite_arg</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s">&quot;+&quot;</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="n">Satellite</span><span class="p">,</span>
+                                 <span class="n">default</span><span class="o">=</span><span class="p">[</span><span class="n">Satellite</span><span class="o">.</span><span class="n">LS5</span><span class="p">,</span> <span class="n">Satellite</span><span class="o">.</span><span class="n">LS7</span><span class="p">],</span>
+                                 <span class="n">metavar</span><span class="o">=</span><span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">s</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">Satellite</span><span class="p">]))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--mask-pqa-apply&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;Apply PQA mask&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store_true&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;mask_pqa_apply&quot;</span><span class="p">,</span>
+                                 <span class="n">default</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--mask-pqa-mask&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;The PQA mask to apply&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;mask_pqa_mask&quot;</span><span class="p">,</span>
+                                 <span class="nb">type</span><span class="o">=</span><span class="n">pqa_mask_arg</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s">&quot;+&quot;</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="n">PqaMask</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="p">[</span><span class="n">PqaMask</span><span class="o">.</span><span class="n">PQ_MASK_CLEAR</span><span class="p">],</span>
+                                 <span class="n">metavar</span><span class="o">=</span><span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">s</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">PqaMask</span><span class="p">]))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--mask-wofs-apply&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;Apply WOFS mask&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store_true&quot;</span><span class="p">,</span>
+                                 <span class="n">dest</span><span class="o">=</span><span class="s">&quot;mask_wofs_apply&quot;</span><span class="p">,</span>
+                                 <span class="n">default</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--mask-wofs-mask&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;The WOFS mask to apply&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span>
+                                 <span class="n">dest</span><span class="o">=</span><span class="s">&quot;mask_wofs_mask&quot;</span><span class="p">,</span>
+                                 <span class="nb">type</span><span class="o">=</span><span class="n">wofs_mask_arg</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s">&quot;+&quot;</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="n">WofsMask</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="p">[</span><span class="n">WofsMask</span><span class="o">.</span><span class="n">WET</span><span class="p">],</span>
+                                 <span class="n">metavar</span><span class="o">=</span><span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">s</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">WofsMask</span><span class="p">]))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--csv&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;Get cell/dataset info from pre-created CSV rather than querying DB&quot;</span><span class="p">,</span>
+                                 <span class="n">action</span><span class="o">=</span><span class="s">&quot;store_true&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;csv&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--dummy&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;Dummy run&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store_true&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;dummy&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--local-scheduler&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;Use local luigi scheduler rather than MPI&quot;</span><span class="p">,</span>
+                                 <span class="n">action</span><span class="o">=</span><span class="s">&quot;store_true&quot;</span><span class="p">,</span>
+                                 <span class="n">dest</span><span class="o">=</span><span class="s">&quot;local_scheduler&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--workers&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;Number of worker tasks&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;workers&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+                                 <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">group</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_mutually_exclusive_group</span><span class="p">()</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--quiet&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;Less output&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store_const&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;log_level&quot;</span><span class="p">,</span> <span class="n">const</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">WARN</span><span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--verbose&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;More output&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store_const&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;log_level&quot;</span><span class="p">,</span> <span class="n">const</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">set_defaults</span><span class="p">(</span><span class="n">log_level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Workflow.process_arguments"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.Workflow.process_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">process_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_directory</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">output_directory</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_min</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">x_min</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_max</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">x_max</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_min</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">y_min</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_max</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">y_max</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span> <span class="o">=</span> <span class="n">parse_date_min</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">acq_min</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span> <span class="o">=</span> <span class="n">parse_date_max</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">acq_max</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">satellites</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">satellite</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">csv</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">csv</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dummy</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">dummy</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask_pqa_apply</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">mask_pqa_apply</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask_pqa_mask</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">mask_pqa_mask</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask_wofs_apply</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">mask_wofs_apply</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask_wofs_mask</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">mask_wofs_mask</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">local_scheduler</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">local_scheduler</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">workers</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">workers</span>
+
+        <span class="n">_log</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">log_level</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Workflow.log_arguments"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.Workflow.log_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">log_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="n">_log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;&quot;&quot;</span>
+<span class="s">        x = {x_min:03d} to {x_max:03d}</span>
+<span class="s">        y = {y_min:04d} to {y_max:04d}</span>
+<span class="s">        acq = {acq_min} to {acq_max}</span>
+<span class="s">        satellites = {satellites}</span>
+<span class="s">        output directory = {output_directory}</span>
+<span class="s">        csv = {csv}</span>
+<span class="s">        dummy = {dummy}</span>
+<span class="s">        PQA mask = {pqa_mask}</span>
+<span class="s">        WOFS mask = {wofs_mask}</span>
+<span class="s">        local scheduler = {local_scheduler}</span>
+<span class="s">        workers = {workers}</span>
+<span class="s">        &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y_max</span><span class="p">,</span>
+                   <span class="n">acq_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">,</span>
+                   <span class="n">satellites</span><span class="o">=</span><span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">s</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">]),</span> <span class="n">output_directory</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_directory</span><span class="p">,</span>
+                   <span class="n">csv</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">csv</span><span class="p">,</span> <span class="n">dummy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dummy</span><span class="p">,</span>
+                   <span class="n">pqa_mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_pqa_apply</span> <span class="ow">and</span> <span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">mask</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">mask</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_pqa_mask</span><span class="p">])</span> <span class="ow">or</span> <span class="s">&quot;&quot;</span><span class="p">,</span>
+                   <span class="n">wofs_mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_wofs_apply</span> <span class="ow">and</span> <span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">mask</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">mask</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_wofs_mask</span><span class="p">])</span> <span class="ow">or</span> <span class="s">&quot;&quot;</span><span class="p">,</span>
+                   <span class="n">local_scheduler</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">local_scheduler</span><span class="p">,</span> <span class="n">workers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">workers</span><span class="p">))</span>
+</div>
+    <span class="nd">@abc.abstractmethod</span>
+<div class="viewcode-block" id="Workflow.create_tasks"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.Workflow.create_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">create_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;Abstract method should be overridden&quot;</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Workflow.run"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.Workflow.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">setup_arguments</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">process_arguments</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_arguments</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_scheduler</span><span class="p">:</span>
+            <span class="n">luigi</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">create_tasks</span><span class="p">(),</span> <span class="n">local_scheduler</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">local_scheduler</span><span class="p">,</span> <span class="n">workers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">workers</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">luigi.contrib.mpi</span> <span class="kn">as</span> <span class="nn">mpi</span>
+            <span class="n">mpi</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">create_tasks</span><span class="p">())</span>
+
+</div></div>
+<div class="viewcode-block" id="Task"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.Task">[docs]</a><span class="k">class</span> <span class="nc">Task</span><span class="p">(</span><span class="n">luigi</span><span class="o">.</span><span class="n">Task</span><span class="p">):</span>
+
+    <span class="n">__metaclass__</span> <span class="o">=</span> <span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span>
+
+<div class="viewcode-block" id="Task.complete"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.Task.complete">[docs]</a>    <span class="k">def</span> <span class="nf">complete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">luigi.task</span> <span class="kn">import</span> <span class="n">flatten</span>
+
+        <span class="k">for</span> <span class="n">output</span> <span class="ow">in</span> <span class="n">flatten</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">()):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">output</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="k">return</span> <span class="bp">False</span>
+
+        <span class="k">for</span> <span class="n">dep</span> <span class="ow">in</span> <span class="n">flatten</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">deps</span><span class="p">()):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">dep</span><span class="o">.</span><span class="n">complete</span><span class="p">():</span>
+                <span class="k">return</span> <span class="bp">False</span>
+
+        <span class="k">return</span> <span class="bp">True</span>
+
+</div></div>
+<div class="viewcode-block" id="SummaryTask"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.SummaryTask">[docs]</a><span class="k">class</span> <span class="nc">SummaryTask</span><span class="p">(</span><span class="n">Task</span><span class="p">):</span>
+
+    <span class="n">__metaclass__</span> <span class="o">=</span> <span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span>
+
+    <span class="n">x_min</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">IntParameter</span><span class="p">()</span>
+    <span class="n">x_max</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">IntParameter</span><span class="p">()</span>
+
+    <span class="n">y_min</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">IntParameter</span><span class="p">()</span>
+    <span class="n">y_max</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">IntParameter</span><span class="p">()</span>
+
+    <span class="n">acq_min</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">DateParameter</span><span class="p">()</span>
+    <span class="n">acq_max</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">DateParameter</span><span class="p">()</span>
+
+    <span class="n">satellites</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">is_list</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+    <span class="n">output_directory</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">()</span>
+
+    <span class="n">csv</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">BooleanParameter</span><span class="p">()</span>
+
+    <span class="n">dummy</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">BooleanParameter</span><span class="p">()</span>
+
+    <span class="n">mask_pqa_apply</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">BooleanParameter</span><span class="p">()</span>
+    <span class="n">mask_pqa_mask</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">()</span>
+
+    <span class="n">mask_wofs_apply</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">BooleanParameter</span><span class="p">()</span>
+    <span class="n">mask_wofs_mask</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">()</span>
+
+<div class="viewcode-block" id="SummaryTask.get_cells"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.SummaryTask.get_cells">[docs]</a>    <span class="k">def</span> <span class="nf">get_cells</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="c"># get list of cells from CSV</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">csv</span><span class="p">:</span>
+            <span class="c"># If the CSV file hasn&#39;t been created yet then we stop</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_cell_csv_filename</span><span class="p">()):</span>
+                <span class="n">_log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;CELL LIST CSV file [</span><span class="si">%s</span><span class="s">] present!!!!&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cell_csv_filename</span><span class="p">())</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;CELL LIST CSV file [{filename}] present!!!!&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_cell_csv_filename</span><span class="p">()))</span>
+
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_cells_from_csv</span><span class="p">())</span>
+
+        <span class="c"># get list of cells from DB</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_cells_from_db</span><span class="p">())</span>
+</div>
+<div class="viewcode-block" id="SummaryTask.get_cells_from_csv"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.SummaryTask.get_cells_from_csv">[docs]</a>    <span class="k">def</span> <span class="nf">get_cells_from_csv</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_cell_csv_filename</span><span class="p">(),</span> <span class="s">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">csv</span>
+
+            <span class="n">reader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">DictReader</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">:</span>
+                <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Found CSV record [</span><span class="si">%s</span><span class="s">]&quot;</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span>
+                <span class="k">yield</span> <span class="n">Cell</span><span class="o">.</span><span class="n">from_csv_record</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="SummaryTask.get_cell_csv_filename"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.SummaryTask.get_cell_csv_filename">[docs]</a>    <span class="k">def</span> <span class="nf">get_cell_csv_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="kn">from</span> <span class="nn">datacube.api.workflow</span> <span class="kn">import</span> <span class="n">parse_date_min</span><span class="p">,</span> <span class="n">parse_date_max</span>
+
+        <span class="n">acq_min</span> <span class="o">=</span> <span class="n">format_date</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">)</span>
+        <span class="n">acq_max</span> <span class="o">=</span> <span class="n">format_date</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">output_directory</span><span class="p">,</span>
+            <span class="s">&quot;cells_{satellites}_{x_min:03d}_{x_max:03d}_{y_min:04d}_{y_max:04d}_{acq_min}_{acq_max}.csv&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">satellites</span><span class="o">=</span><span class="n">get_satellite_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">),</span> <span class="n">x_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_min</span><span class="p">,</span>
+                <span class="n">x_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y_max</span><span class="p">,</span>
+                <span class="n">acq_min</span><span class="o">=</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="o">=</span><span class="n">acq_max</span>
+            <span class="p">))</span>
+</div>
+<div class="viewcode-block" id="SummaryTask.get_cells_from_db"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.SummaryTask.get_cells_from_db">[docs]</a>    <span class="k">def</span> <span class="nf">get_cells_from_db</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="kn">from</span> <span class="nn">datacube.config</span> <span class="kn">import</span> <span class="n">Config</span>
+        <span class="kn">from</span> <span class="nn">datacube.api.query</span> <span class="kn">import</span> <span class="n">list_cells</span>
+
+        <span class="n">config</span> <span class="o">=</span> <span class="n">Config</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s">&quot;~/.datacube/config&quot;</span><span class="p">))</span>
+        <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">to_str</span><span class="p">())</span>
+
+        <span class="n">x_list</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_min</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">y_list</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_min</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">cell</span> <span class="ow">in</span> <span class="n">list_cells</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x_list</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y_list</span><span class="p">,</span> <span class="n">acq_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">,</span>
+                               <span class="n">satellites</span><span class="o">=</span><span class="p">[</span><span class="n">satellite</span> <span class="k">for</span> <span class="n">satellite</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">],</span>
+                               <span class="n">dataset_types</span><span class="o">=</span><span class="p">[</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">ARG25</span><span class="p">,</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">PQ25</span><span class="p">,</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">FC25</span><span class="p">],</span>
+                               <span class="n">database</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get_db_database</span><span class="p">(),</span>
+                               <span class="n">user</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get_db_username</span><span class="p">(),</span>
+                               <span class="n">password</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get_db_password</span><span class="p">(),</span>
+                               <span class="n">host</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get_db_host</span><span class="p">(),</span> <span class="n">port</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get_db_port</span><span class="p">()):</span>
+            <span class="k">yield</span> <span class="n">cell</span>
+</div>
+<div class="viewcode-block" id="SummaryTask.requires"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.SummaryTask.requires">[docs]</a>    <span class="k">def</span> <span class="nf">requires</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">create_cell_task</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">cell</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">cell</span><span class="o">.</span><span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">cell</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cells</span><span class="p">()]</span>
+</div>
+    <span class="nd">@abc.abstractmethod</span>
+<div class="viewcode-block" id="SummaryTask.create_cell_task"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.SummaryTask.create_cell_task">[docs]</a>    <span class="k">def</span> <span class="nf">create_cell_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;Abstract method should be overridden&quot;</span><span class="p">)</span>
+
+</div></div>
+<div class="viewcode-block" id="CellTask"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.CellTask">[docs]</a><span class="k">class</span> <span class="nc">CellTask</span><span class="p">(</span><span class="n">Task</span><span class="p">):</span>
+
+    <span class="n">__metaclass__</span> <span class="o">=</span> <span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span>
+
+    <span class="n">x</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">IntParameter</span><span class="p">()</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">IntParameter</span><span class="p">()</span>
+
+    <span class="n">acq_min</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">DateParameter</span><span class="p">()</span>
+    <span class="n">acq_max</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">DateParameter</span><span class="p">()</span>
+
+    <span class="n">satellites</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">is_list</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+    <span class="n">output_directory</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">()</span>
+
+    <span class="n">csv</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">BooleanParameter</span><span class="p">()</span>
+    <span class="n">dummy</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">BooleanParameter</span><span class="p">()</span>
+
+    <span class="n">mask_pqa_apply</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">BooleanParameter</span><span class="p">()</span>
+    <span class="n">mask_pqa_mask</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">()</span>
+
+    <span class="n">mask_wofs_apply</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">BooleanParameter</span><span class="p">()</span>
+    <span class="n">mask_wofs_mask</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">()</span>
+
+<div class="viewcode-block" id="CellTask.get_tiles"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.CellTask.get_tiles">[docs]</a>    <span class="k">def</span> <span class="nf">get_tiles</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="c"># get list of tiles from CSV</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">csv</span><span class="p">:</span>
+            <span class="c"># If the CSV file hasn&#39;t been created yet then we stop</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_tile_csv_filename</span><span class="p">()):</span>
+                <span class="n">_log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;TILE LIST CSV file [</span><span class="si">%s</span><span class="s">] present!!!!&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_tile_csv_filename</span><span class="p">())</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;TILE LIST CSV file [{filename}] present!!!!&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_tile_csv_filename</span><span class="p">()))</span>
+
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_tiles_from_csv</span><span class="p">())</span>
+
+        <span class="c"># get list of tiles from DB</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_tiles_from_db</span><span class="p">())</span>
+</div>
+<div class="viewcode-block" id="CellTask.get_tiles_from_csv"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.CellTask.get_tiles_from_csv">[docs]</a>    <span class="k">def</span> <span class="nf">get_tiles_from_csv</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_tile_csv_filename</span><span class="p">(),</span> <span class="s">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="kn">import</span> <span class="nn">csv</span>
+
+            <span class="n">reader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">DictReader</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">:</span>
+                <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Found CSV record [</span><span class="si">%s</span><span class="s">]&quot;</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span>
+                <span class="k">yield</span> <span class="n">Tile</span><span class="o">.</span><span class="n">from_csv_record</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="CellTask.get_tile_csv_filename"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.CellTask.get_tile_csv_filename">[docs]</a>    <span class="k">def</span> <span class="nf">get_tile_csv_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="kn">from</span> <span class="nn">datacube.api.workflow</span> <span class="kn">import</span> <span class="n">parse_date_min</span><span class="p">,</span> <span class="n">parse_date_max</span>
+
+        <span class="n">acq_min</span> <span class="o">=</span> <span class="n">format_date</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">)</span>
+        <span class="n">acq_max</span> <span class="o">=</span> <span class="n">format_date</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">output_directory</span><span class="p">,</span>
+            <span class="s">&quot;tiles_{satellites}_{x_min:03d}_{x_max:03d}_{y_min:04d}_{y_max:04d}_{acq_min}_{acq_max}.csv&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">satellites</span><span class="o">=</span><span class="n">get_satellite_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">),</span>
+                <span class="n">x_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">x_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">y_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">y_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,</span>
+                <span class="n">acq_min</span><span class="o">=</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="o">=</span><span class="n">acq_max</span>
+            <span class="p">))</span>
+</div>
+<div class="viewcode-block" id="CellTask.get_tiles_from_db"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.CellTask.get_tiles_from_db">[docs]</a>    <span class="k">def</span> <span class="nf">get_tiles_from_db</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="kn">from</span> <span class="nn">datacube.config</span> <span class="kn">import</span> <span class="n">Config</span>
+        <span class="kn">from</span> <span class="nn">datacube.api.query</span> <span class="kn">import</span> <span class="n">list_tiles</span>
+
+        <span class="n">config</span> <span class="o">=</span> <span class="n">Config</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s">&quot;~/.datacube/config&quot;</span><span class="p">))</span>
+        <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">to_str</span><span class="p">())</span>
+
+        <span class="n">x_list</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">]</span>
+        <span class="n">y_list</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">tile</span> <span class="ow">in</span> <span class="n">list_tiles</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x_list</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y_list</span><span class="p">,</span> <span class="n">acq_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">,</span>
+                               <span class="n">satellites</span><span class="o">=</span><span class="p">[</span><span class="n">satellite</span> <span class="k">for</span> <span class="n">satellite</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">],</span>
+                               <span class="n">dataset_types</span><span class="o">=</span><span class="p">[</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">ARG25</span><span class="p">,</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">PQ25</span><span class="p">,</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">FC25</span><span class="p">],</span>
+                               <span class="n">database</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get_db_database</span><span class="p">(),</span>
+                               <span class="n">user</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get_db_username</span><span class="p">(),</span>
+                               <span class="n">password</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get_db_password</span><span class="p">(),</span>
+                               <span class="n">host</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get_db_host</span><span class="p">(),</span> <span class="n">port</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get_db_port</span><span class="p">()):</span>
+            <span class="k">yield</span> <span class="n">tile</span>
+
+</div></div>
+<div class="viewcode-block" id="ComplexParameter"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.ComplexParameter">[docs]</a><span class="k">class</span> <span class="nc">ComplexParameter</span><span class="p">(</span><span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">):</span>
+
+<div class="viewcode-block" id="ComplexParameter.serialize"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.ComplexParameter.serialize">[docs]</a>    <span class="k">def</span> <span class="nf">serialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="kn">import</span> <span class="nn">cPickle</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_list</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="nb">hash</span><span class="p">(</span><span class="n">cPickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">v</span><span class="p">))</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">x</span><span class="p">]</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="n">cPickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">x</span><span class="p">))</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Geoscience Australia.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.3</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

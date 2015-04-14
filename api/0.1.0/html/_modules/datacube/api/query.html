@@ -1,0 +1,1704 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>datacube.api.query &mdash; agdc-api 0.1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="agdc-api 0.1.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">agdc-api 0.1.0 documentation</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for datacube.api.query</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+
+<span class="c"># ===============================================================================</span>
+<span class="c"># Copyright (c)  2014 Geoscience Australia</span>
+<span class="c"># All rights reserved.</span>
+<span class="c">#</span>
+<span class="c"># Redistribution and use in source and binary forms, with or without</span>
+<span class="c"># modification, are permitted provided that the following conditions are met:</span>
+<span class="c">#     * Redistributions of source code must retain the above copyright</span>
+<span class="c">#       notice, this list of conditions and the following disclaimer.</span>
+<span class="c">#     * Redistributions in binary form must reproduce the above copyright</span>
+<span class="c">#       notice, this list of conditions and the following disclaimer in the</span>
+<span class="c">#       documentation and/or other materials provided with the distribution.</span>
+<span class="c">#     * Neither Geoscience Australia nor the names of its contributors may be</span>
+<span class="c">#       used to endorse or promote products derived from this software</span>
+<span class="c">#       without specific prior written permission.</span>
+<span class="c">#</span>
+<span class="c"># THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot; AND</span>
+<span class="c"># ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED</span>
+<span class="c"># WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE</span>
+<span class="c"># DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY</span>
+<span class="c"># DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES</span>
+<span class="c"># (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;</span>
+<span class="c"># LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND</span>
+<span class="c"># ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT</span>
+<span class="c"># (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS</span>
+<span class="c"># SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</span>
+<span class="c"># ===============================================================================</span>
+
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s">&quot;Simon Oldfield&quot;</span>
+
+
+<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">psycopg2</span>
+<span class="kn">import</span> <span class="nn">psycopg2.extras</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">model</span> <span class="kn">import</span> <span class="n">Tile</span><span class="p">,</span> <span class="n">Cell</span><span class="p">,</span> <span class="n">DatasetType</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">datacube.config</span> <span class="kn">import</span> <span class="n">Config</span>
+
+
+<span class="n">_log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="TileClass"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.TileClass">[docs]</a><span class="k">class</span> <span class="nc">TileClass</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">__order__</span> <span class="o">=</span> <span class="s">&quot;SINGLE MOSAIC&quot;</span>
+
+    <span class="n">SINGLE</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">MOSAIC</span> <span class="o">=</span> <span class="mi">4</span>
+
+</div>
+<span class="n">TILE_CLASSES</span> <span class="o">=</span> <span class="p">[</span><span class="n">TileClass</span><span class="o">.</span><span class="n">SINGLE</span><span class="p">,</span> <span class="n">TileClass</span><span class="o">.</span><span class="n">MOSAIC</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="TileType"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.TileType">[docs]</a><span class="k">class</span> <span class="nc">TileType</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">__order__</span> <span class="o">=</span> <span class="s">&quot;ONE_DEGREE&quot;</span>
+
+    <span class="n">ONE_DEGREE</span> <span class="o">=</span> <span class="mi">1</span>
+
+</div>
+<span class="n">TILE_TYPE</span> <span class="o">=</span> <span class="n">TileType</span><span class="o">.</span><span class="n">ONE_DEGREE</span>
+
+
+<div class="viewcode-block" id="ProcessingLevel"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.ProcessingLevel">[docs]</a><span class="k">class</span> <span class="nc">ProcessingLevel</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">__order__</span> <span class="o">=</span> <span class="s">&quot;ORTHO NBAR PQA FC L1T MAP DSM DEM DEM_S DEM_H&quot;</span>
+
+    <span class="n">ORTHO</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">NBAR</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">PQA</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">FC</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">L1T</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="n">MAP</span> <span class="o">=</span> <span class="mi">10</span>
+    <span class="n">DSM</span> <span class="o">=</span> <span class="mi">100</span>
+    <span class="n">DEM</span> <span class="o">=</span> <span class="mi">110</span>
+    <span class="n">DEM_S</span> <span class="o">=</span> <span class="mi">120</span>
+    <span class="n">DEM_H</span> <span class="o">=</span> <span class="mi">130</span>
+
+</div>
+<div class="viewcode-block" id="SortType"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.SortType">[docs]</a><span class="k">class</span> <span class="nc">SortType</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">__order__</span> <span class="o">=</span> <span class="s">&quot;ASC DESC&quot;</span>
+
+    <span class="n">ASC</span> <span class="o">=</span> <span class="s">&quot;asc&quot;</span>
+    <span class="n">DESC</span> <span class="o">=</span> <span class="s">&quot;desc&quot;</span>
+
+</div>
+<div class="viewcode-block" id="print_tile"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.print_tile">[docs]</a><span class="k">def</span> <span class="nf">print_tile</span><span class="p">(</span><span class="n">tile</span><span class="p">):</span>
+    <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;id=</span><span class="si">%7d</span><span class="s"> x=</span><span class="si">%3d</span><span class="s"> y=</span><span class="si">%3d</span><span class="s"> start=[</span><span class="si">%s</span><span class="s">] end=[</span><span class="si">%s</span><span class="s">] year=[</span><span class="si">%4d</span><span class="s">] month=[</span><span class="si">%2d</span><span class="s">] datasets=[</span><span class="si">%s</span><span class="s">]&quot;</span><span class="p">,</span>
+               <span class="n">tile</span><span class="o">.</span><span class="n">acquisition_id</span><span class="p">,</span> <span class="n">tile</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">tile</span><span class="o">.</span><span class="n">y</span><span class="p">,</span>
+               <span class="n">tile</span><span class="o">.</span><span class="n">start_datetime</span><span class="p">,</span> <span class="n">tile</span><span class="o">.</span><span class="n">end_datetime</span><span class="p">,</span>
+               <span class="n">tile</span><span class="o">.</span><span class="n">end_datetime_year</span><span class="p">,</span> <span class="n">tile</span><span class="o">.</span><span class="n">end_datetime_month</span><span class="p">,</span>
+               <span class="s">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s">&quot;|&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">ds</span><span class="o">.</span><span class="n">type_id</span><span class="p">,</span> <span class="n">ds</span><span class="o">.</span><span class="n">path</span><span class="p">])</span> <span class="k">for</span> <span class="n">ds</span> <span class="ow">in</span> <span class="n">tile</span><span class="o">.</span><span class="n">datasets</span><span class="p">))</span>
+
+</div>
+<div class="viewcode-block" id="connect_to_db"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.connect_to_db">[docs]</a><span class="k">def</span> <span class="nf">connect_to_db</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="n">connection</span> <span class="o">=</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="c"># connect to database</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">config</span><span class="p">:</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">Config</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expandvars</span><span class="p">(</span><span class="s">&quot;$HOME/.datacube/config&quot;</span><span class="p">))</span>
+        <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">to_str</span><span class="p">())</span>
+
+    <span class="n">connection_string</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">get_db_host</span><span class="p">():</span>
+        <span class="n">connection_string</span> <span class="o">+=</span> <span class="s">&quot;host={host}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">host</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get_db_host</span><span class="p">())</span>
+
+    <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">get_db_port</span><span class="p">():</span>
+        <span class="n">connection_string</span> <span class="o">+=</span> <span class="s">&quot; port={port}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">port</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get_db_port</span><span class="p">())</span>
+
+    <span class="n">connection_string</span> <span class="o">+=</span> <span class="s">&quot; dbname={database} user={user} password={password}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">database</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get_db_database</span><span class="p">(),</span>
+                                                                                     <span class="n">user</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get_db_username</span><span class="p">(),</span>
+                                                                                     <span class="n">password</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get_db_password</span><span class="p">())</span>
+
+    <span class="n">connection</span> <span class="o">=</span> <span class="n">psycopg2</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">connection_string</span><span class="p">)</span>
+
+    <span class="n">cursor</span> <span class="o">=</span> <span class="n">connection</span><span class="o">.</span><span class="n">cursor</span><span class="p">(</span><span class="n">cursor_factory</span><span class="o">=</span><span class="n">psycopg2</span><span class="o">.</span><span class="n">extras</span><span class="o">.</span><span class="n">DictCursor</span><span class="p">)</span>
+    <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s">&quot;set search_path to public, {schema}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">schema</span><span class="o">=</span><span class="s">&quot;gis, topology, ztmp&quot;</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">connection</span><span class="p">,</span> <span class="n">cursor</span>
+
+</div>
+<div class="viewcode-block" id="to_file_ify_sql"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.to_file_ify_sql">[docs]</a><span class="k">def</span> <span class="nf">to_file_ify_sql</span><span class="p">(</span><span class="n">sql</span><span class="p">):</span>
+    <span class="k">return</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">    copy (</span>
+<span class="s">    {sql}</span>
+<span class="s">    ) to STDOUT csv header delimiter &#39;,&#39; escape &#39;&quot;&#39; null &#39;&#39; quote &#39;&quot;&#39;</span>
+<span class="s">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sql</span><span class="o">=</span><span class="n">sql</span><span class="p">)</span>
+
+
+<span class="c">#</span>
+<span class="c"># TODO refactor common code (and SQL) from these methods</span>
+<span class="c"># TODO properly implement them</span>
+<span class="c"># TODO take some notice of requested dataset types</span>
+<span class="c"># TODO support DSM tiles in standard list methods</span>
+<span class="c">#</span>
+
+<span class="c">###</span>
+<span class="c"># CELLS...</span>
+<span class="c">###</span>
+
+<span class="c"># Cells that we DO have</span>
+</div>
+<div class="viewcode-block" id="list_cells"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_cells">[docs]</a><span class="k">def</span> <span class="nf">list_cells</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a list of cells matching the criteria as a SINGLE-USE generator</span>
+
+<span class="sd">    Deprecated: Move to using explicit as_list or as_generator</span>
+
+<span class="sd">    :type x: list[int]</span>
+<span class="sd">    :type y: list[int]</span>
+<span class="sd">    :type satellites: list[datacube.api.model.Satellite]</span>
+<span class="sd">    :type acq_min: datetime.date</span>
+<span class="sd">    :type acq_max: datetime.date</span>
+<span class="sd">    :type dataset_types: list[datacube.api.model.DatasetType]</span>
+<span class="sd">    :type sort: SortType</span>
+<span class="sd">    :rtype: list[datacube.api.model.Cell]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">list_cells_as_generator</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="list_cells_as_list"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_cells_as_list">[docs]</a><span class="k">def</span> <span class="nf">list_cells_as_list</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator</span>
+
+<span class="sd">    :type x: list[int]</span>
+<span class="sd">    :type y: list[int]</span>
+<span class="sd">    :type satellites: list[datacube.api.model.Satellite]</span>
+<span class="sd">    :type acq_min: datetime.date</span>
+<span class="sd">    :type acq_max: datetime.date</span>
+<span class="sd">    :type dataset_types: list[datacube.api.model.DatasetType]</span>
+<span class="sd">    :type sort: SortType</span>
+<span class="sd">    :rtype: list[datacube.api.model.Cell]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">list_cells_as_generator</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="p">,</span> <span class="n">config</span><span class="p">))</span>
+
+</div>
+<div class="viewcode-block" id="list_cells_as_generator"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_cells_as_generator">[docs]</a><span class="k">def</span> <span class="nf">list_cells_as_generator</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a list of cells matching the criteria as a SINGLE-USE generator</span>
+
+<span class="sd">    :type x: list[int]</span>
+<span class="sd">    :type y: list[int]</span>
+<span class="sd">    :type satellites: list[datacube.api.model.Satellite]</span>
+<span class="sd">    :type acq_min: datetime.date</span>
+<span class="sd">    :type acq_max: datetime.date</span>
+<span class="sd">    :type dataset_types: list[datacube.api.model.DatasetType]</span>
+<span class="sd">    :type database: str</span>
+<span class="sd">    :type user: str</span>
+<span class="sd">    :type password: str</span>
+<span class="sd">    :type host: str</span>
+<span class="sd">    :type port: int</span>
+<span class="sd">    :type sort: SortType</span>
+<span class="sd">    :rtype: list[datacube.api.model.Cell]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">conn</span><span class="p">,</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c"># connect to database</span>
+
+        <span class="n">conn</span><span class="p">,</span> <span class="n">cursor</span> <span class="o">=</span> <span class="n">connect_to_db</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+
+        <span class="n">sql</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="n">build_list_cells_sql_and_params</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="p">)</span>
+
+        <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">cursor</span><span class="o">.</span><span class="n">mogrify</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">params</span><span class="p">))</span>
+
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">result_generator</span><span class="p">(</span><span class="n">cursor</span><span class="p">):</span>
+            <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+            <span class="k">yield</span> <span class="n">Cell</span><span class="o">.</span><span class="n">from_db_record</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+
+        <span class="n">_log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Caught exception </span><span class="si">%s</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+        <span class="k">raise</span>
+
+    <span class="k">finally</span><span class="p">:</span>
+
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span>
+
+</div>
+<div class="viewcode-block" id="list_cells_to_file"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_cells_to_file">[docs]</a><span class="k">def</span> <span class="nf">list_cells_to_file</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c"># connect to database</span>
+
+        <span class="n">conn</span><span class="p">,</span> <span class="n">cursor</span> <span class="o">=</span> <span class="n">connect_to_db</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+
+        <span class="n">sql</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="n">build_list_cells_sql_and_params</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="p">)</span>
+
+        <span class="n">sql</span> <span class="o">=</span> <span class="n">to_file_ify_sql</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">filename</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">cursor</span><span class="o">.</span><span class="n">copy_expert</span><span class="p">(</span><span class="n">cursor</span><span class="o">.</span><span class="n">mogrify</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">params</span><span class="p">),</span> <span class="n">f</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">copy_expert</span><span class="p">(</span><span class="n">cursor</span><span class="o">.</span><span class="n">mogrify</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">params</span><span class="p">),</span> <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+
+        <span class="n">_log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Caught exception </span><span class="si">%s</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+        <span class="k">raise</span>
+
+    <span class="k">finally</span><span class="p">:</span>
+
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span>
+
+</div>
+<div class="viewcode-block" id="build_list_cells_sql_and_params"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.build_list_cells_sql_and_params">[docs]</a><span class="k">def</span> <span class="nf">build_list_cells_sql_and_params</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">):</span>
+
+    <span class="n">sql</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">        SELECT DISTINCT nbar.x_index, nbar.y_index</span>
+<span class="s">        FROM acquisition</span>
+<span class="s">        JOIN satellite ON satellite.satellite_id=acquisition.satellite_id</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">        join</span>
+<span class="s">            (</span>
+<span class="s">            select</span>
+<span class="s">                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">            from tile</span>
+<span class="s">            join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">            where dataset.level_id = </span><span class="si">%(level_nbar)s</span><span class="s"></span>
+<span class="s">            ) as nbar on nbar.acquisition_id=acquisition.acquisition_id</span>
+<span class="s">            &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">PQ25</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">        join</span>
+<span class="s">            (</span>
+<span class="s">            select</span>
+<span class="s">                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">            from tile</span>
+<span class="s">            join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">            where dataset.level_id = </span><span class="si">%(level_pqa)s</span><span class="s"></span>
+<span class="s">            ) as pq on</span>
+<span class="s">                pq.acquisition_id=acquisition.acquisition_id</span>
+<span class="s">                and pq.x_index=nbar.x_index and pq.y_index=nbar.y_index</span>
+<span class="s">                and pq.tile_type_id=nbar.tile_type_id and pq.tile_class_id=nbar.tile_class_id</span>
+
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">FC25</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">        join</span>
+<span class="s">            (</span>
+<span class="s">            select</span>
+<span class="s">                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">            from tile</span>
+<span class="s">            join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">            where dataset.level_id = </span><span class="si">%(level_fc)s</span><span class="s"></span>
+<span class="s">            ) as fc on</span>
+<span class="s">                fc.acquisition_id=acquisition.acquisition_id</span>
+<span class="s">                and fc.x_index=nbar.x_index and fc.y_index=nbar.y_index</span>
+<span class="s">                and fc.tile_type_id=nbar.tile_type_id and fc.tile_class_id=nbar.tile_class_id</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DSM</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">        join</span>
+<span class="s">            (</span>
+<span class="s">            select</span>
+<span class="s">                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">            from tile</span>
+<span class="s">            join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">            where dataset.level_id = </span><span class="si">%(level_dsm)s</span><span class="s"></span>
+<span class="s">            ) as dsm on</span>
+<span class="s">                    dsm.x_index=nbar.x_index and dsm.y_index=nbar.y_index</span>
+<span class="s">                and dsm.tile_type_id=nbar.tile_type_id and dsm.tile_class_id=nbar.tile_class_id</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">        join</span>
+<span class="s">            (</span>
+<span class="s">            select</span>
+<span class="s">                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">            from tile</span>
+<span class="s">            join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">            where dataset.level_id = </span><span class="si">%(level_dem)s</span><span class="s"></span>
+<span class="s">            ) as dem on</span>
+<span class="s">                    dem.x_index=nbar.x_index and dem.y_index=nbar.y_index</span>
+<span class="s">                and dem.tile_type_id=nbar.tile_type_id and dem.tile_class_id=nbar.tile_class_id</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM_HYDROLOGICALLY_ENFORCED</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">        join</span>
+<span class="s">            (</span>
+<span class="s">            select</span>
+<span class="s">                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">            from tile</span>
+<span class="s">            join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">            where dataset.level_id = </span><span class="si">%(level_dem_h)s</span><span class="s"></span>
+<span class="s">            ) as dem_h on</span>
+<span class="s">                    dem_h.x_index=nbar.x_index and dem_h.y_index=nbar.y_index</span>
+<span class="s">                and dem_h.tile_type_id=nbar.tile_type_id and dem_h.tile_class_id=nbar.tile_class_id</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM_SMOOTHED</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">        join</span>
+<span class="s">            (</span>
+<span class="s">            select</span>
+<span class="s">                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">            from tile</span>
+<span class="s">            join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">            where dataset.level_id = </span><span class="si">%(level_dem_s)s</span><span class="s"></span>
+<span class="s">            ) as dem_s on</span>
+<span class="s">                    dem_s.x_index=nbar.x_index and dem_s.y_index=nbar.y_index</span>
+<span class="s">                and dem_s.tile_type_id=nbar.tile_type_id and dem_s.tile_class_id=nbar.tile_class_id</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">        where</span>
+<span class="s">            nbar.tile_type_id = ANY(</span><span class="si">%(tile_type)s</span><span class="s">) and nbar.tile_class_id = ANY(</span><span class="si">%(tile_class)s</span><span class="s">) -- mandatory</span>
+<span class="s">            and satellite.satellite_tag = ANY(</span><span class="si">%(satellite)s</span><span class="s">)</span>
+<span class="s">            and nbar.x_index = ANY(</span><span class="si">%(x)s</span><span class="s">) and nbar.y_index = ANY(</span><span class="si">%(y)s</span><span class="s">)</span>
+<span class="s">            and end_datetime::date between </span><span class="si">%(acq_min)s</span><span class="s"> and </span><span class="si">%(acq_max)s</span><span class="s"></span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">        order by nbar.x_index {sort}, nbar.y_index {sort}</span>
+<span class="s">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;tile_type&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">TILE_TYPE</span><span class="o">.</span><span class="n">value</span><span class="p">],</span>
+              <span class="s">&quot;tile_class&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">tile_class</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">tile_class</span> <span class="ow">in</span> <span class="n">TILE_CLASSES</span><span class="p">],</span>
+              <span class="s">&quot;satellite&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">satellite</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">satellite</span> <span class="ow">in</span> <span class="n">satellites</span><span class="p">],</span>
+              <span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span> <span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">y</span><span class="p">,</span>
+              <span class="s">&quot;acq_min&quot;</span><span class="p">:</span> <span class="n">acq_min</span><span class="p">,</span> <span class="s">&quot;acq_max&quot;</span><span class="p">:</span> <span class="n">acq_max</span><span class="p">,</span>
+              <span class="s">&quot;level_nbar&quot;</span><span class="p">:</span> <span class="n">ProcessingLevel</span><span class="o">.</span><span class="n">NBAR</span><span class="o">.</span><span class="n">value</span><span class="p">}</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">PQ25</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">params</span><span class="p">[</span><span class="s">&quot;level_pqa&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ProcessingLevel</span><span class="o">.</span><span class="n">PQA</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">FC25</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">params</span><span class="p">[</span><span class="s">&quot;level_fc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ProcessingLevel</span><span class="o">.</span><span class="n">FC</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DSM</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">params</span><span class="p">[</span><span class="s">&quot;level_dsm&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ProcessingLevel</span><span class="o">.</span><span class="n">DSM</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">params</span><span class="p">[</span><span class="s">&quot;level_dem&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ProcessingLevel</span><span class="o">.</span><span class="n">DEM</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM_HYDROLOGICALLY_ENFORCED</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">params</span><span class="p">[</span><span class="s">&quot;level_dem_h&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ProcessingLevel</span><span class="o">.</span><span class="n">DEM_H</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM_SMOOTHED</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">params</span><span class="p">[</span><span class="s">&quot;level_dem_s&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ProcessingLevel</span><span class="o">.</span><span class="n">DEM_S</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">return</span> <span class="n">sql</span><span class="p">,</span> <span class="n">params</span>
+
+
+<span class="c"># Cells that we DON&#39;T have</span>
+
+<span class="c"># TODO currently hard coded to fractional cover</span>
+</div>
+<div class="viewcode-block" id="list_cells_missing"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_cells_missing">[docs]</a><span class="k">def</span> <span class="nf">list_cells_missing</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a list of cells matching the criteria as a SINGLE-USE generator</span>
+
+<span class="sd">    Deprecated: Move to using explicit as_list or as_generator</span>
+
+<span class="sd">    :type x: list[int]</span>
+<span class="sd">    :type y: list[int]</span>
+<span class="sd">    :type satellites: list[datacube.api.model.Satellite]</span>
+<span class="sd">    :type acq_min: datetime.date</span>
+<span class="sd">    :type acq_max: datetime.date</span>
+<span class="sd">    :type dataset_types: list[datacube.api.model.DatasetType]</span>
+<span class="sd">    :type database: str</span>
+<span class="sd">    :type user: str</span>
+<span class="sd">    :type password: str</span>
+<span class="sd">    :type host: str</span>
+<span class="sd">    :type port: int</span>
+<span class="sd">    :type sort: SortType</span>
+<span class="sd">    :rtype: list[datacube.api.model.Cell]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">list_cells_missing_as_generator</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="list_cells_missing_as_list"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_cells_missing_as_list">[docs]</a><span class="k">def</span> <span class="nf">list_cells_missing_as_list</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator</span>
+
+<span class="sd">    :type x: list[int]</span>
+<span class="sd">    :type y: list[int]</span>
+<span class="sd">    :type satellites: list[datacube.api.model.Satellite]</span>
+<span class="sd">    :type acq_min: datetime.date</span>
+<span class="sd">    :type acq_max: datetime.date</span>
+<span class="sd">    :type dataset_types: list[datacube.api.model.DatasetType]</span>
+<span class="sd">    :type database: str</span>
+<span class="sd">    :type user: str</span>
+<span class="sd">    :type password: str</span>
+<span class="sd">    :type host: str</span>
+<span class="sd">    :type port: int</span>
+<span class="sd">    :type sort: SortType</span>
+<span class="sd">    :rtype: list[datacube.api.model.Cell]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">list_cells_missing_as_generator</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="p">,</span> <span class="n">config</span><span class="p">))</span>
+
+</div>
+<div class="viewcode-block" id="list_cells_missing_as_generator"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_cells_missing_as_generator">[docs]</a><span class="k">def</span> <span class="nf">list_cells_missing_as_generator</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="n">conn</span><span class="p">,</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c"># connect to database</span>
+
+        <span class="n">conn</span><span class="p">,</span> <span class="n">cursor</span> <span class="o">=</span> <span class="n">connect_to_db</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+
+        <span class="n">sql</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="n">build_list_cells_missing_sql_and_params</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="p">)</span>
+
+        <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">cursor</span><span class="o">.</span><span class="n">mogrify</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">params</span><span class="p">))</span>
+
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">result_generator</span><span class="p">(</span><span class="n">cursor</span><span class="p">):</span>
+            <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+            <span class="k">yield</span> <span class="n">Cell</span><span class="o">.</span><span class="n">from_db_record</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+
+        <span class="n">_log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Caught exception </span><span class="si">%s</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+        <span class="k">raise</span>
+
+    <span class="k">finally</span><span class="p">:</span>
+
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span>
+
+</div>
+<div class="viewcode-block" id="list_cells_missing_to_file"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_cells_missing_to_file">[docs]</a><span class="k">def</span> <span class="nf">list_cells_missing_to_file</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c"># connect to database</span>
+
+        <span class="n">conn</span><span class="p">,</span> <span class="n">cursor</span> <span class="o">=</span> <span class="n">connect_to_db</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+
+        <span class="n">sql</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="n">build_list_cells_missing_sql_and_params</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="p">)</span>
+
+        <span class="n">sql</span> <span class="o">=</span> <span class="n">to_file_ify_sql</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">filename</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">cursor</span><span class="o">.</span><span class="n">copy_expert</span><span class="p">(</span><span class="n">cursor</span><span class="o">.</span><span class="n">mogrify</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">params</span><span class="p">),</span> <span class="n">f</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">copy_expert</span><span class="p">(</span><span class="n">cursor</span><span class="o">.</span><span class="n">mogrify</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">params</span><span class="p">),</span> <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+
+        <span class="n">_log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Caught exception </span><span class="si">%s</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+        <span class="k">raise</span>
+
+    <span class="k">finally</span><span class="p">:</span>
+
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span>
+
+</div>
+<div class="viewcode-block" id="build_list_cells_missing_sql_and_params"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.build_list_cells_missing_sql_and_params">[docs]</a><span class="k">def</span> <span class="nf">build_list_cells_missing_sql_and_params</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">):</span>
+
+    <span class="n">sql</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">        select distinct nbar.x_index, nbar.y_index</span>
+<span class="s">        from acquisition</span>
+<span class="s">        join satellite on satellite.satellite_id=acquisition.satellite_id</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">        join</span>
+<span class="s">            (</span>
+<span class="s">            select</span>
+<span class="s">                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">            from tile</span>
+<span class="s">            join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">            where dataset.level_id = </span><span class="si">%(level_nbar)s</span><span class="s"></span>
+<span class="s">            ) as nbar on nbar.acquisition_id=acquisition.acquisition_id</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">PQ25</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            left outer join</span>
+<span class="s">                (</span>
+<span class="s">                select</span>
+<span class="s">                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">                from tile</span>
+<span class="s">                join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">                where dataset.level_id = </span><span class="si">%(level_pqa)s</span><span class="s"></span>
+<span class="s">                ) as pqa on</span>
+<span class="s">                    pqa.acquisition_id=acquisition.acquisition_id</span>
+<span class="s">                    and pqa.x_index=nbar.x_index and pqa.y_index=nbar.y_index</span>
+<span class="s">                    and pqa.tile_type_id=nbar.tile_type_id and pqa.tile_class_id=nbar.tile_class_id</span>
+<span class="s">            &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">FC25</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            left outer join</span>
+<span class="s">                (</span>
+<span class="s">                select</span>
+<span class="s">                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">                from tile</span>
+<span class="s">                join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">                where dataset.level_id = </span><span class="si">%(level_fc)s</span><span class="s"></span>
+<span class="s">                ) as fc on</span>
+<span class="s">                    fc.acquisition_id=acquisition.acquisition_id</span>
+<span class="s">                    and fc.x_index=nbar.x_index and fc.y_index=nbar.y_index</span>
+<span class="s">                    and fc.tile_type_id=nbar.tile_type_id and fc.tile_class_id=nbar.tile_class_id</span>
+<span class="s">            &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DSM</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            left outer join</span>
+<span class="s">            (</span>
+<span class="s">            select</span>
+<span class="s">                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">            from tile</span>
+<span class="s">            join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">            where dataset.level_id = </span><span class="si">%(level_dsm)s</span><span class="s"></span>
+<span class="s">            ) as dsm on</span>
+<span class="s">                    dsm.x_index=nbar.x_index and dsm.y_index=nbar.y_index</span>
+<span class="s">                and dsm.tile_type_id=nbar.tile_type_id and dsm.tile_class_id=nbar.tile_class_id</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            left outer join</span>
+<span class="s">            (</span>
+<span class="s">            select</span>
+<span class="s">                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">            from tile</span>
+<span class="s">            join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">            where dataset.level_id = </span><span class="si">%(level_dem)s</span><span class="s"></span>
+<span class="s">            ) as dem on</span>
+<span class="s">                    dem.x_index=nbar.x_index and dem.y_index=nbar.y_index</span>
+<span class="s">                and dem.tile_type_id=nbar.tile_type_id and dem.tile_class_id=nbar.tile_class_id</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM_HYDROLOGICALLY_ENFORCED</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            left outer join</span>
+<span class="s">            (</span>
+<span class="s">            select</span>
+<span class="s">                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">            from tile</span>
+<span class="s">            join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">            where dataset.level_id = </span><span class="si">%(level_dem_h)s</span><span class="s"></span>
+<span class="s">            ) as dem_h on</span>
+<span class="s">                    dem_h.x_index=nbar.x_index and dem_h.y_index=nbar.y_index</span>
+<span class="s">                and dem_h.tile_type_id=nbar.tile_type_id and dem_h.tile_class_id=nbar.tile_class_id</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM_SMOOTHED</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            left outer join</span>
+<span class="s">            (</span>
+<span class="s">            select</span>
+<span class="s">                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">            from tile</span>
+<span class="s">            join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">            where dataset.level_id = </span><span class="si">%(level_dem_s)s</span><span class="s"></span>
+<span class="s">            ) as dem_s on</span>
+<span class="s">                    dem_s.x_index=nbar.x_index and dem_s.y_index=nbar.y_index</span>
+<span class="s">                and dem_s.tile_type_id=nbar.tile_type_id and dem_s.tile_class_id=nbar.tile_class_id</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">        where</span>
+<span class="s">            nbar.tile_type_id = ANY(</span><span class="si">%(tile_type)s</span><span class="s">) and nbar.tile_class_id = ANY(</span><span class="si">%(tile_class)s</span><span class="s">) -- mandatory</span>
+<span class="s">            and satellite.satellite_tag = ANY(</span><span class="si">%(satellite)s</span><span class="s">)</span>
+<span class="s">            and nbar.x_index = ANY(</span><span class="si">%(x)s</span><span class="s">) and nbar.y_index = ANY(</span><span class="si">%(y)s</span><span class="s">)</span>
+<span class="s">            and end_datetime::date between </span><span class="si">%(acq_min)s</span><span class="s"> and </span><span class="si">%(acq_max)s</span><span class="s"></span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">PQ25</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            and pqa.x_index is null</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">FC25</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            and fc.x_index is null</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DSM</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            and dsm.x_index is null</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            and dem.x_index is null</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM_HYDROLOGICALLY_ENFORCED</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            and dem_h.x_index is null</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM_SMOOTHED</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            and dem_s.x_index is null</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">        order by nbar.x_index {sort}, nbar.y_index {sort}</span>
+<span class="s">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;tile_type&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">TILE_TYPE</span><span class="o">.</span><span class="n">value</span><span class="p">],</span> <span class="s">&quot;tile_class&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">tile_class</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">tile_class</span> <span class="ow">in</span> <span class="n">TILE_CLASSES</span><span class="p">],</span>
+              <span class="s">&quot;satellite&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">satellite</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">satellite</span> <span class="ow">in</span> <span class="n">satellites</span><span class="p">],</span>
+              <span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span> <span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">y</span><span class="p">,</span>
+              <span class="s">&quot;acq_min&quot;</span><span class="p">:</span> <span class="n">acq_min</span><span class="p">,</span> <span class="s">&quot;acq_max&quot;</span><span class="p">:</span> <span class="n">acq_max</span><span class="p">,</span>
+              <span class="s">&quot;level_nbar&quot;</span><span class="p">:</span> <span class="n">ProcessingLevel</span><span class="o">.</span><span class="n">NBAR</span><span class="o">.</span><span class="n">value</span><span class="p">}</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">PQ25</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">params</span><span class="p">[</span><span class="s">&quot;level_pqa&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ProcessingLevel</span><span class="o">.</span><span class="n">PQA</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">FC25</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">params</span><span class="p">[</span><span class="s">&quot;level_fc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ProcessingLevel</span><span class="o">.</span><span class="n">FC</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DSM</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">params</span><span class="p">[</span><span class="s">&quot;level_dsm&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ProcessingLevel</span><span class="o">.</span><span class="n">DSM</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">params</span><span class="p">[</span><span class="s">&quot;level_dem&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ProcessingLevel</span><span class="o">.</span><span class="n">DEM</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM_HYDROLOGICALLY_ENFORCED</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">params</span><span class="p">[</span><span class="s">&quot;level_dem_h&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ProcessingLevel</span><span class="o">.</span><span class="n">DEM_H</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM_SMOOTHED</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">params</span><span class="p">[</span><span class="s">&quot;level_dem_s&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ProcessingLevel</span><span class="o">.</span><span class="n">DEM_S</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">return</span> <span class="n">sql</span><span class="p">,</span> <span class="n">params</span>
+
+
+<span class="c">###</span>
+<span class="c"># TILES...</span>
+<span class="c">###</span>
+
+<span class="c"># Tiles that we DO have</span>
+</div>
+<div class="viewcode-block" id="list_tiles"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_tiles">[docs]</a><span class="k">def</span> <span class="nf">list_tiles</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a list of cells matching the criteria as a SINGLE-USE generator</span>
+
+<span class="sd">    Deprecated: Move to using explicit as_list or as_generator</span>
+
+<span class="sd">    :type x: list[int]</span>
+<span class="sd">    :type y: list[int]</span>
+<span class="sd">    :type satellites: list[datacube.api.model.Satellite]</span>
+<span class="sd">    :type acq_min: datetime.date</span>
+<span class="sd">    :type acq_max: datetime.date</span>
+<span class="sd">    :type dataset_types: list[datacube.api.model.DatasetType]</span>
+<span class="sd">    :type sort: SortType</span>
+<span class="sd">    :rtype: list[datacube.api.model.Tile]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">list_tiles_as_generator</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="list_tiles_as_list"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_tiles_as_list">[docs]</a><span class="k">def</span> <span class="nf">list_tiles_as_list</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator</span>
+
+<span class="sd">    :type x: list[int]</span>
+<span class="sd">    :type y: list[int]</span>
+<span class="sd">    :type satellites: list[datacube.api.model.Satellite]</span>
+<span class="sd">    :type acq_min: datetime.date</span>
+<span class="sd">    :type acq_max: datetime.date</span>
+<span class="sd">    :type dataset_types: list[datacube.api.model.DatasetType]</span>
+<span class="sd">    :type database: str</span>
+<span class="sd">    :type user: str</span>
+<span class="sd">    :type password: str</span>
+<span class="sd">    :type host: str</span>
+<span class="sd">    :type port: int</span>
+<span class="sd">    :type sort: SortType</span>
+<span class="sd">    :rtype: list[datacube.api.model.Tile]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">list_tiles_as_generator</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="p">))</span>
+
+</div>
+<div class="viewcode-block" id="list_tiles_as_generator"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_tiles_as_generator">[docs]</a><span class="k">def</span> <span class="nf">list_tiles_as_generator</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a list of cells matching the criteria as a SINGLE-USE generator</span>
+
+<span class="sd">    :type x: list[int]</span>
+<span class="sd">    :type y: list[int]</span>
+<span class="sd">    :type satellites: list[datacube.api.model.Satellite]</span>
+<span class="sd">    :type acq_min: datetime.date</span>
+<span class="sd">    :type acq_max: datetime.date</span>
+<span class="sd">    :type dataset_types: list[datacube.api.model.DatasetType]</span>
+<span class="sd">    :type sort: SortType</span>
+<span class="sd">    :rtype: list[datacube.api.model.Tile]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">conn</span><span class="p">,</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c"># connect to database</span>
+
+        <span class="n">conn</span><span class="p">,</span> <span class="n">cursor</span> <span class="o">=</span> <span class="n">connect_to_db</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+
+        <span class="n">sql</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="n">build_list_tiles_sql_and_params</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="p">)</span>
+
+        <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">cursor</span><span class="o">.</span><span class="n">mogrify</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">params</span><span class="p">))</span>
+
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">result_generator</span><span class="p">(</span><span class="n">cursor</span><span class="p">):</span>
+            <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+            <span class="k">yield</span> <span class="n">Tile</span><span class="o">.</span><span class="n">from_db_record</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+
+        <span class="n">_log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Caught exception </span><span class="si">%s</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+        <span class="k">raise</span>
+
+    <span class="k">finally</span><span class="p">:</span>
+
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span>
+
+</div>
+<div class="viewcode-block" id="list_tiles_to_file"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_tiles_to_file">[docs]</a><span class="k">def</span> <span class="nf">list_tiles_to_file</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">years</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c"># connect to database</span>
+
+        <span class="n">conn</span><span class="p">,</span> <span class="n">cursor</span> <span class="o">=</span> <span class="n">connect_to_db</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+
+        <span class="n">sql</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            copy (</span>
+<span class="s">            select</span>
+<span class="s">                acquisition.acquisition_id, satellite_tag as satellite, start_datetime, end_datetime,</span>
+<span class="s">                extract(year from end_datetime) as end_datetime_year, extract(month from end_datetime) as end_datetime_month,</span>
+<span class="s">                nbar.x_index, nbar.y_index, point(nbar.x_index, nbar.y_index) as xy,</span>
+<span class="s">                ARRAY[</span>
+<span class="s">                    [&#39;ARG25&#39;, nbar.tile_pathname],</span>
+<span class="s">                    [&#39;PQ25&#39;, pq.tile_pathname],</span>
+<span class="s">                    [&#39;FC25&#39;, fc.tile_pathname]</span>
+<span class="s">                    ] as datasets</span>
+<span class="s">            from acquisition</span>
+<span class="s">            join satellite on satellite.satellite_id=acquisition.satellite_id</span>
+<span class="s">            join</span>
+<span class="s">                (</span>
+<span class="s">                select</span>
+<span class="s">                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">                from tile</span>
+<span class="s">                join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">                where dataset.level_id = 2</span>
+<span class="s">                ) as nbar on nbar.acquisition_id=acquisition.acquisition_id</span>
+<span class="s">            join</span>
+<span class="s">                (</span>
+<span class="s">                select</span>
+<span class="s">                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">                from tile</span>
+<span class="s">                join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">                where dataset.level_id = 3</span>
+<span class="s">                ) as pq on</span>
+<span class="s">                    pq.acquisition_id=acquisition.acquisition_id</span>
+<span class="s">                    and pq.x_index=nbar.x_index and pq.y_index=nbar.y_index</span>
+<span class="s">                    and pq.tile_type_id=nbar.tile_type_id and pq.tile_class_id=nbar.tile_class_id</span>
+<span class="s">            join</span>
+<span class="s">                (</span>
+<span class="s">                select</span>
+<span class="s">                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">                from tile</span>
+<span class="s">                join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">                where dataset.level_id = 4</span>
+<span class="s">                ) as fc on</span>
+<span class="s">                    fc.acquisition_id=acquisition.acquisition_id</span>
+<span class="s">                    and fc.x_index=nbar.x_index and fc.y_index=nbar.y_index</span>
+<span class="s">                    and fc.tile_type_id=nbar.tile_type_id and fc.tile_class_id=nbar.tile_class_id</span>
+<span class="s">            where</span>
+<span class="s">                nbar.tile_type_id = ANY(</span><span class="si">%(tile_type)s</span><span class="s">) and nbar.tile_class_id = ANY(</span><span class="si">%(tile_class)s</span><span class="s">) -- mandatory</span>
+<span class="s">                and satellite.satellite_tag = ANY(</span><span class="si">%(satellite)s</span><span class="s">)</span>
+<span class="s">                and nbar.x_index = ANY(</span><span class="si">%(x)s</span><span class="s">) and nbar.y_index = ANY(</span><span class="si">%(y)s</span><span class="s">)</span>
+<span class="s">                and extract(year from end_datetime) = ANY(</span><span class="si">%(year)s</span><span class="s">)</span>
+
+<span class="s">            order by end_datetime {sort}, satellite asc</span>
+<span class="s">            ) to STDOUT csv header delimiter &#39;,&#39; escape &#39;&quot;&#39; null &#39;&#39; quote &#39;&quot;&#39;</span>
+<span class="s">            ;</span>
+<span class="s">        &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;tile_type&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s">&quot;tile_class&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">tile_class</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">tile_class</span> <span class="ow">in</span> <span class="n">TILE_CLASSES</span><span class="p">],</span>
+                  <span class="s">&quot;satellite&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">satellite</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">satellite</span> <span class="ow">in</span> <span class="n">satellites</span><span class="p">],</span>
+                  <span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span> <span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">y</span><span class="p">,</span>
+                  <span class="s">&quot;year&quot;</span><span class="p">:</span> <span class="n">years</span><span class="p">}</span>
+
+        <span class="k">if</span> <span class="n">filename</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">cursor</span><span class="o">.</span><span class="n">copy_expert</span><span class="p">(</span><span class="n">cursor</span><span class="o">.</span><span class="n">mogrify</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">params</span><span class="p">),</span> <span class="n">f</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">copy_expert</span><span class="p">(</span><span class="n">cursor</span><span class="o">.</span><span class="n">mogrify</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">params</span><span class="p">),</span> <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+
+        <span class="n">_log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Caught exception </span><span class="si">%s</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+        <span class="k">raise</span>
+
+    <span class="k">finally</span><span class="p">:</span>
+
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span>
+
+</div>
+<div class="viewcode-block" id="build_list_tiles_sql_and_params"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.build_list_tiles_sql_and_params">[docs]</a><span class="k">def</span> <span class="nf">build_list_tiles_sql_and_params</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">):</span>
+
+    <span class="n">sql</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">        select</span>
+<span class="s">            acquisition.acquisition_id, satellite_tag as satellite, start_datetime, end_datetime,</span>
+<span class="s">            extract(year from end_datetime) as end_datetime_year, extract(month from end_datetime) as end_datetime_month,</span>
+<span class="s">            nbar.x_index, nbar.y_index, point(nbar.x_index, nbar.y_index) as xy,</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            ARRAY[</span>
+<span class="s">    &quot;&quot;&quot;</span>
+
+    <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            [&#39;ARG25&#39;, nbar.tile_pathname]</span>
+<span class="s">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">PQ25</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            ,[&#39;PQ25&#39;, pqa.tile_pathname]</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">FC25</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            ,[&#39;FC25&#39;, fc.tile_pathname]</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">NDVI</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            ,[&#39;NDVI&#39;, nbar.tile_pathname]</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">EVI</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            ,[&#39;EVI&#39;, nbar.tile_pathname]</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">NBR</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            ,[&#39;NBR&#39;, nbar.tile_pathname]</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">TCI</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            ,[&#39;TCI&#39;, nbar.tile_pathname]</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            ] as datasets</span>
+<span class="s">    &quot;&quot;&quot;</span>
+
+    <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">        from acquisition</span>
+<span class="s">        join satellite on satellite.satellite_id=acquisition.satellite_id</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">        join</span>
+<span class="s">            (</span>
+<span class="s">            select</span>
+<span class="s">                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">            from tile</span>
+<span class="s">            join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">            where dataset.level_id = </span><span class="si">%(level_nbar)s</span><span class="s"></span>
+<span class="s">            ) as nbar on nbar.acquisition_id=acquisition.acquisition_id</span>
+<span class="s">            &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">PQ25</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">        join</span>
+<span class="s">            (</span>
+<span class="s">            select</span>
+<span class="s">                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">            from tile</span>
+<span class="s">            join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">            where dataset.level_id = </span><span class="si">%(level_pqa)s</span><span class="s"></span>
+<span class="s">            ) as pqa on</span>
+<span class="s">                pqa.acquisition_id=acquisition.acquisition_id</span>
+<span class="s">                and pqa.x_index=nbar.x_index and pqa.y_index=nbar.y_index</span>
+<span class="s">                and pqa.tile_type_id=nbar.tile_type_id and pqa.tile_class_id=nbar.tile_class_id</span>
+
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">FC25</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">        join</span>
+<span class="s">            (</span>
+<span class="s">            select</span>
+<span class="s">                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">            from tile</span>
+<span class="s">            join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">            where dataset.level_id = </span><span class="si">%(level_fc)s</span><span class="s"></span>
+<span class="s">            ) as fc on</span>
+<span class="s">                fc.acquisition_id=acquisition.acquisition_id</span>
+<span class="s">                and fc.x_index=nbar.x_index and fc.y_index=nbar.y_index</span>
+<span class="s">                and fc.tile_type_id=nbar.tile_type_id and fc.tile_class_id=nbar.tile_class_id</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DSM</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">        join</span>
+<span class="s">            (</span>
+<span class="s">            select</span>
+<span class="s">                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">            from tile</span>
+<span class="s">            join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">            where dataset.level_id = </span><span class="si">%(level_dsm)s</span><span class="s"></span>
+<span class="s">            ) as dsm on</span>
+<span class="s">                    dsm.x_index=nbar.x_index and dsm.y_index=nbar.y_index</span>
+<span class="s">                and dsm.tile_type_id=nbar.tile_type_id and dsm.tile_class_id=nbar.tile_class_id</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">        join</span>
+<span class="s">            (</span>
+<span class="s">            select</span>
+<span class="s">                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">            from tile</span>
+<span class="s">            join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">            where dataset.level_id = </span><span class="si">%(level_dem)s</span><span class="s"></span>
+<span class="s">            ) as dem on</span>
+<span class="s">                    dem.x_index=nbar.x_index and dem.y_index=nbar.y_index</span>
+<span class="s">                and dem.tile_type_id=nbar.tile_type_id and dem.tile_class_id=nbar.tile_class_id</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM_HYDROLOGICALLY_ENFORCED</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">        join</span>
+<span class="s">            (</span>
+<span class="s">            select</span>
+<span class="s">                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">            from tile</span>
+<span class="s">            join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">            where dataset.level_id = </span><span class="si">%(level_dem_h)s</span><span class="s"></span>
+<span class="s">            ) as dem_h on</span>
+<span class="s">                    dem_h.x_index=nbar.x_index and dem_h.y_index=nbar.y_index</span>
+<span class="s">                and dem_h.tile_type_id=nbar.tile_type_id and dem_h.tile_class_id=nbar.tile_class_id</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM_SMOOTHED</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">        join</span>
+<span class="s">            (</span>
+<span class="s">            select</span>
+<span class="s">                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">            from tile</span>
+<span class="s">            join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">            where dataset.level_id = </span><span class="si">%(level_dem_s)s</span><span class="s"></span>
+<span class="s">            ) as dem_s on</span>
+<span class="s">                    dem_s.x_index=nbar.x_index and dem_s.y_index=nbar.y_index</span>
+<span class="s">                and dem_s.tile_type_id=nbar.tile_type_id and dem_s.tile_class_id=nbar.tile_class_id</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">        where</span>
+<span class="s">            nbar.tile_type_id = ANY(</span><span class="si">%(tile_type)s</span><span class="s">) and nbar.tile_class_id = ANY(</span><span class="si">%(tile_class)s</span><span class="s">) -- mandatory</span>
+<span class="s">            and satellite.satellite_tag = ANY(</span><span class="si">%(satellite)s</span><span class="s">)</span>
+<span class="s">            and nbar.x_index = ANY(</span><span class="si">%(x)s</span><span class="s">) and nbar.y_index = ANY(</span><span class="si">%(y)s</span><span class="s">)</span>
+<span class="s">            and end_datetime::date between </span><span class="si">%(acq_min)s</span><span class="s"> and </span><span class="si">%(acq_max)s</span><span class="s"></span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">        order by nbar.x_index, nbar.y_index, end_datetime {sort}, satellite asc</span>
+<span class="s">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;tile_type&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">TILE_TYPE</span><span class="o">.</span><span class="n">value</span><span class="p">],</span>
+              <span class="s">&quot;tile_class&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">tile_class</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">tile_class</span> <span class="ow">in</span> <span class="n">TILE_CLASSES</span><span class="p">],</span>
+              <span class="s">&quot;satellite&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">satellite</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">satellite</span> <span class="ow">in</span> <span class="n">satellites</span><span class="p">],</span>
+              <span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span> <span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">y</span><span class="p">,</span>
+              <span class="s">&quot;acq_min&quot;</span><span class="p">:</span> <span class="n">acq_min</span><span class="p">,</span> <span class="s">&quot;acq_max&quot;</span><span class="p">:</span> <span class="n">acq_max</span><span class="p">,</span>
+              <span class="s">&quot;level_nbar&quot;</span><span class="p">:</span> <span class="n">ProcessingLevel</span><span class="o">.</span><span class="n">NBAR</span><span class="o">.</span><span class="n">value</span><span class="p">}</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">PQ25</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">params</span><span class="p">[</span><span class="s">&quot;level_pqa&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ProcessingLevel</span><span class="o">.</span><span class="n">PQA</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">FC25</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">params</span><span class="p">[</span><span class="s">&quot;level_fc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ProcessingLevel</span><span class="o">.</span><span class="n">FC</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DSM</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">params</span><span class="p">[</span><span class="s">&quot;level_dsm&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ProcessingLevel</span><span class="o">.</span><span class="n">DSM</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">params</span><span class="p">[</span><span class="s">&quot;level_dem&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ProcessingLevel</span><span class="o">.</span><span class="n">DEM</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM_HYDROLOGICALLY_ENFORCED</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">params</span><span class="p">[</span><span class="s">&quot;level_dem_h&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ProcessingLevel</span><span class="o">.</span><span class="n">DEM_H</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM_SMOOTHED</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">params</span><span class="p">[</span><span class="s">&quot;level_dem_s&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ProcessingLevel</span><span class="o">.</span><span class="n">DEM_S</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">return</span> <span class="n">sql</span><span class="p">,</span> <span class="n">params</span>
+
+
+<span class="c"># Tiles that we DON&#39;T have</span>
+</div>
+<div class="viewcode-block" id="list_tiles_missing"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_tiles_missing">[docs]</a><span class="k">def</span> <span class="nf">list_tiles_missing</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a list of cells matching the criteria as a SINGLE-USE generator</span>
+
+<span class="sd">    Deprecated: Move to using explicit as_list or as_generator</span>
+
+<span class="sd">    :type x: list[int]</span>
+<span class="sd">    :type y: list[int]</span>
+<span class="sd">    :type satellites: list[datacube.api.model.Satellite]</span>
+<span class="sd">    :type acq_min: datetime.date</span>
+<span class="sd">    :type acq_max: datetime.date</span>
+<span class="sd">    :type datasets: list[datacube.api.model.DatasetType]</span>
+<span class="sd">    :type database: str</span>
+<span class="sd">    :type user: str</span>
+<span class="sd">    :type password: str</span>
+<span class="sd">    :type host: str</span>
+<span class="sd">    :type port: int</span>
+<span class="sd">    :type sort: SortType</span>
+<span class="sd">    :rtype: list[datacube.api.model.Tile]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">list_tiles_missing_as_generator</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">sort</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="list_tiles_missing_as_list"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_tiles_missing_as_list">[docs]</a><span class="k">def</span> <span class="nf">list_tiles_missing_as_list</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator</span>
+
+<span class="sd">    :type x: list[int]</span>
+<span class="sd">    :type y: list[int]</span>
+<span class="sd">    :type satellites: list[datacube.api.model.Satellite]</span>
+<span class="sd">    :type acq_min: datetime.date</span>
+<span class="sd">    :type acq_max: datetime.date</span>
+<span class="sd">    :type datasets: list[datacube.api.model.DatasetType]</span>
+<span class="sd">    :type database: str</span>
+<span class="sd">    :type user: str</span>
+<span class="sd">    :type password: str</span>
+<span class="sd">    :type host: str</span>
+<span class="sd">    :type port: int</span>
+<span class="sd">    :type sort: SortType</span>
+<span class="sd">    :rtype: list[datacube.api.model.Tile]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">list_tiles_missing_as_generator</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">sort</span><span class="p">,</span> <span class="n">config</span><span class="p">))</span>
+
+</div>
+<div class="viewcode-block" id="list_tiles_missing_as_generator"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_tiles_missing_as_generator">[docs]</a><span class="k">def</span> <span class="nf">list_tiles_missing_as_generator</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a list of cells matching the criteria as a SINGLE-USE generator</span>
+
+<span class="sd">    :type x: list[int]</span>
+<span class="sd">    :type y: list[int]</span>
+<span class="sd">    :type satellites: list[datacube.api.model.Satellite]</span>
+<span class="sd">    :type acq_min: datetime.date</span>
+<span class="sd">    :type acq_max: datetime.date</span>
+<span class="sd">    :type datasets: list[datacube.api.model.DatasetType]</span>
+<span class="sd">    :type database: str</span>
+<span class="sd">    :type user: str</span>
+<span class="sd">    :type password: str</span>
+<span class="sd">    :type host: str</span>
+<span class="sd">    :type port: int</span>
+<span class="sd">    :type sort: SortType</span>
+<span class="sd">    :rtype: list[datacube.api.model.Tile]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">conn</span><span class="p">,</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c"># connect to database</span>
+
+        <span class="n">conn</span><span class="p">,</span> <span class="n">cursor</span> <span class="o">=</span> <span class="n">connect_to_db</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+
+        <span class="n">sql</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            select</span>
+<span class="s">                acquisition.acquisition_id, satellite_tag as satellite, start_datetime, end_datetime,</span>
+<span class="s">                extract(year from end_datetime) as end_datetime_year, extract(month from end_datetime) as end_datetime_month,</span>
+<span class="s">                NBAR.x_index, NBAR.y_index, point(NBAR.x_index, NBAR.y_index) as xy,</span>
+<span class="s">                ARRAY[</span>
+<span class="s">                    [&#39;ARG25&#39;, NBAR.tile_pathname]</span>
+<span class="s">                    ] as datasets</span>
+<span class="s">            from acquisition</span>
+<span class="s">            join satellite on satellite.satellite_id=acquisition.satellite_id</span>
+<span class="s">            join</span>
+<span class="s">                (</span>
+<span class="s">                select</span>
+<span class="s">                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">                from tile</span>
+<span class="s">                join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">                where dataset.level_id = 2</span>
+<span class="s">                ) as nbar on nbar.acquisition_id=acquisition.acquisition_id</span>
+<span class="s">            left outer join</span>
+<span class="s">                (</span>
+<span class="s">                select</span>
+<span class="s">                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">                from tile</span>
+<span class="s">                join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">                where dataset.level_id = 4</span>
+<span class="s">                ) as fc on</span>
+<span class="s">                    fc.acquisition_id=acquisition.acquisition_id</span>
+<span class="s">                    and fc.x_index=nbar.x_index and fc.y_index=nbar.y_index</span>
+<span class="s">                    and fc.tile_type_id=nbar.tile_type_id and fc.tile_class_id=nbar.tile_class_id</span>
+<span class="s">            where</span>
+<span class="s">                nbar.tile_type_id = ANY(</span><span class="si">%(tile_type)s</span><span class="s">) and nbar.tile_class_id = ANY(</span><span class="si">%(tile_class)s</span><span class="s">) -- mandatory</span>
+<span class="s">                and satellite.satellite_tag = ANY(</span><span class="si">%(satellite)s</span><span class="s">)</span>
+<span class="s">                and nbar.x_index = ANY(</span><span class="si">%(x)s</span><span class="s">) and nbar.y_index = ANY(</span><span class="si">%(y)s</span><span class="s">)</span>
+<span class="s">                and end_datetime::date between </span><span class="si">%(acq_min)s</span><span class="s"> and </span><span class="si">%(acq_max)s</span><span class="s"></span>
+<span class="s">                and fc.acquisition_id is null</span>
+
+<span class="s">            order by nbar.x_index {sort}, nbar.y_index {sort}</span>
+<span class="s">            ;</span>
+<span class="s">        &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;tile_type&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s">&quot;tile_class&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">tile_class</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">tile_class</span> <span class="ow">in</span> <span class="n">TILE_CLASSES</span><span class="p">],</span>
+                  <span class="s">&quot;satellite&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">satellite</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">satellite</span> <span class="ow">in</span> <span class="n">satellites</span><span class="p">],</span>
+                  <span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span> <span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">y</span><span class="p">,</span>
+                  <span class="s">&quot;acq_min&quot;</span><span class="p">:</span> <span class="n">acq_min</span><span class="p">,</span> <span class="s">&quot;acq_max&quot;</span><span class="p">:</span> <span class="n">acq_max</span><span class="p">}</span>
+
+        <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">cursor</span><span class="o">.</span><span class="n">mogrify</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">params</span><span class="p">))</span>
+
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">result_generator</span><span class="p">(</span><span class="n">cursor</span><span class="p">):</span>
+            <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+            <span class="k">yield</span> <span class="n">Tile</span><span class="o">.</span><span class="n">from_db_record</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+
+        <span class="n">_log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Caught exception </span><span class="si">%s</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+        <span class="k">raise</span>
+
+    <span class="k">finally</span><span class="p">:</span>
+
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span>
+
+</div>
+<div class="viewcode-block" id="list_tiles_missing_to_file"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_tiles_missing_to_file">[docs]</a><span class="k">def</span> <span class="nf">list_tiles_missing_to_file</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">years</span><span class="p">,</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="n">conn</span> <span class="o">=</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c"># connect to database</span>
+
+        <span class="n">conn</span><span class="p">,</span> <span class="n">cursor</span> <span class="o">=</span> <span class="n">connect_to_db</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+
+        <span class="n">sql</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            copy (</span>
+<span class="s">            select</span>
+<span class="s">                acquisition.acquisition_id, satellite_tag as satellite, start_datetime, end_datetime,</span>
+<span class="s">                extract(year from end_datetime) as end_datetime_year, extract(month from end_datetime) as end_datetime_month,</span>
+<span class="s">                NBAR.x_index, NBAR.y_index, point(NBAR.x_index, NBAR.y_index) as xy,</span>
+<span class="s">                ARRAY[</span>
+<span class="s">                    [&#39;ARG25&#39;, NBAR.tile_pathname]</span>
+<span class="s">                    ] as datasets</span>
+<span class="s">            from acquisition</span>
+<span class="s">            join satellite on satellite.satellite_id=acquisition.satellite_id</span>
+<span class="s">            join</span>
+<span class="s">                (</span>
+<span class="s">                select</span>
+<span class="s">                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">                from tile</span>
+<span class="s">                join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">                where dataset.level_id = 2</span>
+<span class="s">                ) as nbar on nbar.acquisition_id=acquisition.acquisition_id</span>
+<span class="s">            left outer join</span>
+<span class="s">                (</span>
+<span class="s">                select</span>
+<span class="s">                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">                from tile</span>
+<span class="s">                join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">                where dataset.level_id = 4</span>
+<span class="s">                ) as fc on</span>
+<span class="s">                    fc.acquisition_id=acquisition.acquisition_id</span>
+<span class="s">                    and fc.x_index=nbar.x_index and fc.y_index=nbar.y_index</span>
+<span class="s">                    and fc.tile_type_id=nbar.tile_type_id and fc.tile_class_id=nbar.tile_class_id</span>
+<span class="s">            where</span>
+<span class="s">                nbar.tile_type_id = ANY(</span><span class="si">%(tile_type)s</span><span class="s">) and nbar.tile_class_id = ANY(</span><span class="si">%(tile_class)s</span><span class="s">) -- mandatory</span>
+<span class="s">                and satellite.satellite_tag = ANY(</span><span class="si">%(satellite)s</span><span class="s">)</span>
+<span class="s">                and nbar.x_index = ANY(</span><span class="si">%(x)s</span><span class="s">) and nbar.y_index = ANY(</span><span class="si">%(y)s</span><span class="s">)</span>
+<span class="s">                and end_datetime::date between </span><span class="si">%(acq_min)s</span><span class="s"> and </span><span class="si">%(acq_max)s</span><span class="s"></span>
+<span class="s">                and fc.acquisition_id is null</span>
+
+<span class="s">            order by nbar.x_index {sort}, nbar.y_index {sort}</span>
+<span class="s">            ) to STDOUT csv header delimiter &#39;,&#39; escape &#39;&quot;&#39; null &#39;&#39; quote &#39;&quot;&#39;</span>
+<span class="s">            ;</span>
+<span class="s">        &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;tile_type&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s">&quot;tile_class&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">tile_class</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">tile_class</span> <span class="ow">in</span> <span class="n">TILE_CLASSES</span><span class="p">],</span>
+                  <span class="s">&quot;satellite&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">satellite</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">satellite</span> <span class="ow">in</span> <span class="n">satellites</span><span class="p">],</span>
+                  <span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span> <span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">y</span><span class="p">,</span>
+                  <span class="s">&quot;year&quot;</span><span class="p">:</span> <span class="n">years</span><span class="p">}</span>
+
+        <span class="k">if</span> <span class="n">filename</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">cursor</span><span class="o">.</span><span class="n">copy_expert</span><span class="p">(</span><span class="n">cursor</span><span class="o">.</span><span class="n">mogrify</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">params</span><span class="p">),</span> <span class="n">f</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">cursor</span><span class="o">.</span><span class="n">copy_expert</span><span class="p">(</span><span class="n">cursor</span><span class="o">.</span><span class="n">mogrify</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">params</span><span class="p">),</span> <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+
+        <span class="n">_log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Caught exception </span><span class="si">%s</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+        <span class="k">raise</span>
+
+    <span class="k">finally</span><span class="p">:</span>
+
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span>
+
+
+<span class="c"># DEM/DSM tiles - quickie to get DEM/DSM tiles for WOFS - note they have no acquisition information!!!!</span>
+</div>
+<div class="viewcode-block" id="list_tiles_dtm"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_tiles_dtm">[docs]</a><span class="k">def</span> <span class="nf">list_tiles_dtm</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a list of cells matching the criteria as a SINGLE-USE generator</span>
+
+<span class="sd">    Deprecated: Move to using explicit as_list or as_generator</span>
+
+<span class="sd">    :type x: list[int]</span>
+<span class="sd">    :type y: list[int]</span>
+<span class="sd">    :type datasets: list[datacube.api.model.DatasetType]</span>
+<span class="sd">    :type database: str</span>
+<span class="sd">    :type user: str</span>
+<span class="sd">    :type password: str</span>
+<span class="sd">    :type host: str</span>
+<span class="sd">    :type port: int</span>
+<span class="sd">    :type sort: SortType</span>
+<span class="sd">    :rtype: list[datacube.api.model.Tile]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">list_tiles_dtm_as_generator</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">sort</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="list_tiles_dtm_as_list"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_tiles_dtm_as_list">[docs]</a><span class="k">def</span> <span class="nf">list_tiles_dtm_as_list</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator</span>
+
+<span class="sd">    :type x: list[int]</span>
+<span class="sd">    :type y: list[int]</span>
+<span class="sd">    :type datasets: list[datacube.api.model.DatasetType]</span>
+<span class="sd">    :type database: str</span>
+<span class="sd">    :type user: str</span>
+<span class="sd">    :type password: str</span>
+<span class="sd">    :type host: str</span>
+<span class="sd">    :type port: int</span>
+<span class="sd">    :type sort: SortType</span>
+<span class="sd">    :rtype: list[datacube.api.model.Tile]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">list_tiles</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">sort</span><span class="p">,</span> <span class="n">config</span><span class="p">))</span>
+
+</div>
+<div class="viewcode-block" id="list_tiles_dtm_as_generator"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_tiles_dtm_as_generator">[docs]</a><span class="k">def</span> <span class="nf">list_tiles_dtm_as_generator</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a list of cells matching the criteria as a SINGLE-USE generator</span>
+
+<span class="sd">    :type x: list[int]</span>
+<span class="sd">    :type y: list[int]</span>
+<span class="sd">    :type datasets: list[datacube.api.model.DatasetType]</span>
+<span class="sd">    :type database: str</span>
+<span class="sd">    :type user: str</span>
+<span class="sd">    :type password: str</span>
+<span class="sd">    :type host: str</span>
+<span class="sd">    :type port: int</span>
+<span class="sd">    :type sort: SortType</span>
+<span class="sd">    :rtype: list[datacube.api.model.Tile]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">conn</span><span class="p">,</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c"># connect to database</span>
+
+        <span class="n">conn</span><span class="p">,</span> <span class="n">cursor</span> <span class="o">=</span> <span class="n">connect_to_db</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+
+        <span class="n">sql</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            select</span>
+<span class="s">                null acquisition_id, null satellite, null start_datetime, null end_datetime,</span>
+<span class="s">                null end_datetime_year, null end_datetime_month,</span>
+<span class="s">                dsm.x_index, dsm.y_index, point(dsm.x_index, dsm.y_index) as xy,</span>
+<span class="s">                ARRAY[</span>
+<span class="s">                    [&#39;DSM&#39;, DSM.tile_pathname],</span>
+<span class="s">                    [&#39;DEM&#39;, DEM.tile_pathname],</span>
+<span class="s">                    [&#39;DEM_HYDROLOGICALLY_ENFORCED&#39;, DEM_H.tile_pathname],</span>
+<span class="s">                    [&#39;DEM_SMOOTHED&#39;, DEM_S.tile_pathname]</span>
+<span class="s">                    ] as datasets</span>
+<span class="s">            from</span>
+<span class="s">                (</span>
+<span class="s">                select</span>
+<span class="s">                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">                from tile</span>
+<span class="s">                join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">                where dataset.level_id = 100</span>
+<span class="s">                ) as DSM</span>
+<span class="s">            join</span>
+<span class="s">                (</span>
+<span class="s">                select</span>
+<span class="s">                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">                from tile</span>
+<span class="s">                join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">                where dataset.level_id = 110</span>
+<span class="s">                ) as DEM on</span>
+<span class="s">                        DEM.x_index=DSM.x_index and DEM.y_index=DSM.y_index</span>
+<span class="s">                    and DEM.tile_type_id=DSM.tile_type_id and DEM.tile_class_id=DSM.tile_class_id</span>
+<span class="s">            join</span>
+<span class="s">                (</span>
+<span class="s">                select</span>
+<span class="s">                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">                from tile</span>
+<span class="s">                join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">                where dataset.level_id = 120</span>
+<span class="s">                ) as DEM_S on</span>
+<span class="s">                        DEM_S.x_index=DSM.x_index and DEM_S.y_index=DSM.y_index</span>
+<span class="s">                    and DEM_S.tile_type_id=DSM.tile_type_id and DEM_S.tile_class_id=DSM.tile_class_id</span>
+<span class="s">            join</span>
+<span class="s">                (</span>
+<span class="s">                select</span>
+<span class="s">                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">                from tile</span>
+<span class="s">                join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">                where dataset.level_id = 130</span>
+<span class="s">                ) as DEM_H on</span>
+<span class="s">                        DEM_H.x_index=DSM.x_index and DEM_H.y_index=DSM.y_index</span>
+<span class="s">                    and DEM_H.tile_type_id=DSM.tile_type_id and DEM_H.tile_class_id=DSM.tile_class_id</span>
+<span class="s">            where</span>
+<span class="s">                DSM.tile_type_id = ANY(</span><span class="si">%(tile_type)s</span><span class="s">) and DSM.tile_class_id = ANY(</span><span class="si">%(tile_class)s</span><span class="s">) -- mandatory</span>
+<span class="s">                and DSM.x_index = ANY(</span><span class="si">%(x)s</span><span class="s">) and DSM.y_index = ANY(</span><span class="si">%(y)s</span><span class="s">)</span>
+<span class="s">            ;</span>
+<span class="s">        &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">()</span>
+
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;tile_type&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s">&quot;tile_class&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">tile_class</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">tile_class</span> <span class="ow">in</span> <span class="n">TILE_CLASSES</span><span class="p">],</span>
+                  <span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span> <span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">y</span><span class="p">}</span>
+
+        <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">cursor</span><span class="o">.</span><span class="n">mogrify</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">params</span><span class="p">))</span>
+
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">result_generator</span><span class="p">(</span><span class="n">cursor</span><span class="p">):</span>
+            <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+            <span class="k">yield</span> <span class="n">Tile</span><span class="o">.</span><span class="n">from_db_record</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+
+        <span class="n">_log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Caught exception </span><span class="si">%s</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+        <span class="k">raise</span>
+
+    <span class="k">finally</span><span class="p">:</span>
+
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span>
+
+
+<span class="c">###</span>
+<span class="c"># Other stuff - mostly incomplete...</span>
+<span class="c">###</span>
+</div>
+<div class="viewcode-block" id="visit_tiles"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.visit_tiles">[docs]</a><span class="k">def</span> <span class="nf">visit_tiles</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">years</span><span class="p">,</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">func</span><span class="o">=</span><span class="n">print_tile</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="n">conn</span><span class="p">,</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c"># connect to database</span>
+
+        <span class="n">conn</span><span class="p">,</span> <span class="n">cursor</span> <span class="o">=</span> <span class="n">connect_to_db</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+
+        <span class="n">sql</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            select</span>
+<span class="s">                acquisition.acquisition_id, satellite_tag, start_datetime, end_datetime,</span>
+<span class="s">                extract(year from end_datetime) as end_datetime_year, extract(month from end_datetime) as end_datetime_month,</span>
+<span class="s">                nbar.x_index, nbar.y_index, point(nbar.x_index, nbar.y_index) as xy,</span>
+<span class="s">                ARRAY[</span>
+<span class="s">                    [&#39;ARG25&#39;, nbar.tile_pathname],</span>
+<span class="s">                    [&#39;PQ25&#39;, pq.tile_pathname],</span>
+<span class="s">                    [&#39;FC25&#39;, fc.tile_pathname]</span>
+<span class="s">                    ] as datasets</span>
+<span class="s">            from acquisition</span>
+<span class="s">            join satellite on satellite.satellite_id=acquisition.satellite_id</span>
+<span class="s">            join</span>
+<span class="s">                (</span>
+<span class="s">                select</span>
+<span class="s">                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">                from tile</span>
+<span class="s">                join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">                where dataset.level_id = 2</span>
+<span class="s">                ) as nbar on nbar.acquisition_id=acquisition.acquisition_id</span>
+<span class="s">            join</span>
+<span class="s">                (</span>
+<span class="s">                select</span>
+<span class="s">                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">                from tile</span>
+<span class="s">                join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">                where dataset.level_id = 3</span>
+<span class="s">                ) as pq on</span>
+<span class="s">                    pq.acquisition_id=acquisition.acquisition_id</span>
+<span class="s">                    and pq.x_index=nbar.x_index and pq.y_index=nbar.y_index</span>
+<span class="s">                    and pq.tile_type_id=nbar.tile_type_id and pq.tile_class_id=nbar.tile_class_id</span>
+<span class="s">            join</span>
+<span class="s">                (</span>
+<span class="s">                select</span>
+<span class="s">                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">                from tile</span>
+<span class="s">                join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">                where dataset.level_id = 4</span>
+<span class="s">                ) as fc on</span>
+<span class="s">                    fc.acquisition_id=acquisition.acquisition_id</span>
+<span class="s">                    and fc.x_index=nbar.x_index and fc.y_index=nbar.y_index</span>
+<span class="s">                    and fc.tile_type_id=nbar.tile_type_id and fc.tile_class_id=nbar.tile_class_id</span>
+<span class="s">            where</span>
+<span class="s">                nbar.tile_type_id = ANY(</span><span class="si">%(tile_type)s</span><span class="s">) and nbar.tile_class_id = ANY(</span><span class="si">%(tile_class)s</span><span class="s">) -- mandatory</span>
+<span class="s">                and satellite.satellite_id = ANY(</span><span class="si">%(satellite)s</span><span class="s">)</span>
+<span class="s">                and nbar.x_index = ANY(</span><span class="si">%(x)s</span><span class="s">) and nbar.y_index = ANY(</span><span class="si">%(y)s</span><span class="s">)</span>
+<span class="s">                and extract(year from end_datetime) = ANY(</span><span class="si">%(year)s</span><span class="s">)</span>
+<span class="s">            ;</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;tile_type&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s">&quot;tile_class&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">tile_class</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">tile_class</span> <span class="ow">in</span> <span class="n">TILE_CLASSES</span><span class="p">],</span>
+                  <span class="s">&quot;satellite&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">satellite</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">satellite</span> <span class="ow">in</span> <span class="n">satellites</span><span class="p">],</span>
+                  <span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">x</span><span class="p">],</span> <span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">y</span><span class="p">],</span>
+                  <span class="s">&quot;year&quot;</span><span class="p">:</span> <span class="n">years</span><span class="p">}</span>
+
+        <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">cursor</span><span class="o">.</span><span class="n">mogrify</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">params</span><span class="p">))</span>
+
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">cursor</span><span class="p">:</span>
+            <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+            <span class="n">func</span><span class="p">(</span><span class="n">Tile</span><span class="o">.</span><span class="n">from_db_record</span><span class="p">(</span><span class="n">record</span><span class="p">))</span>
+
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+
+        <span class="n">_log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Caught exception </span><span class="si">%s</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+        <span class="k">raise</span>
+
+    <span class="k">finally</span><span class="p">:</span>
+
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span>
+
+</div>
+<div class="viewcode-block" id="list_tiles_wkt"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_tiles_wkt">[docs]</a><span class="k">def</span> <span class="nf">list_tiles_wkt</span><span class="p">(</span><span class="n">wkt</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">years</span><span class="p">,</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="n">conn</span><span class="p">,</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c"># connect to database</span>
+
+        <span class="n">conn</span><span class="p">,</span> <span class="n">cursor</span> <span class="o">=</span> <span class="n">connect_to_db</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
+
+        <span class="n">sql</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            select</span>
+<span class="s">                acquisition.acquisition_id, satellite_tag as satellite, start_datetime, end_datetime,</span>
+<span class="s">                extract(year from end_datetime)::integer as end_datetime_year, extract(month from end_datetime)::integer as end_datetime_month,</span>
+<span class="s">                nbar.x_index, nbar.y_index, point(nbar.x_index, nbar.y_index) as xy,</span>
+<span class="s">                ARRAY[</span>
+<span class="s">                    [&#39;ARG25&#39;, nbar.tile_pathname],</span>
+<span class="s">                    [&#39;PQ25&#39;, pq.tile_pathname],</span>
+<span class="s">                    [&#39;FC25&#39;, fc.tile_pathname]</span>
+<span class="s">                    ] as datasets</span>
+<span class="s">            from acquisition</span>
+<span class="s">            join satellite on satellite.satellite_id=acquisition.satellite_id</span>
+<span class="s">            join</span>
+<span class="s">                (</span>
+<span class="s">                select</span>
+<span class="s">                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">                from tile</span>
+<span class="s">                join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">                where dataset.level_id = 2</span>
+<span class="s">                ) as nbar on nbar.acquisition_id=acquisition.acquisition_id</span>
+<span class="s">            join</span>
+<span class="s">                (</span>
+<span class="s">                select</span>
+<span class="s">                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">                from tile</span>
+<span class="s">                join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">                where dataset.level_id = 3</span>
+<span class="s">                ) as pq on</span>
+<span class="s">                    pq.acquisition_id=acquisition.acquisition_id</span>
+<span class="s">                    and pq.x_index=nbar.x_index and pq.y_index=nbar.y_index</span>
+<span class="s">                    and pq.tile_type_id=nbar.tile_type_id and pq.tile_class_id=nbar.tile_class_id</span>
+<span class="s">            join</span>
+<span class="s">                (</span>
+<span class="s">                select</span>
+<span class="s">                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">                from tile</span>
+<span class="s">                join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">                where dataset.level_id = 4</span>
+<span class="s">                ) as fc on</span>
+<span class="s">                    fc.acquisition_id=acquisition.acquisition_id</span>
+<span class="s">                    and fc.x_index=nbar.x_index and fc.y_index=nbar.y_index</span>
+<span class="s">                    and fc.tile_type_id=nbar.tile_type_id and fc.tile_class_id=nbar.tile_class_id</span>
+<span class="s">            join tile_footprint on</span>
+<span class="s">                tile_footprint.x_index = nbar.x_index</span>
+<span class="s">                and tile_footprint.y_index = nbar.y_index</span>
+<span class="s">                and tile_footprint.tile_type_id = nbar.tile_type_id</span>
+
+<span class="s">            where</span>
+<span class="s">                nbar.tile_type_id = ANY(</span><span class="si">%(tile_type)s</span><span class="s">) and nbar.tile_class_id = ANY(</span><span class="si">%(tile_class)s</span><span class="s">) -- mandatory</span>
+<span class="s">                and satellite.satellite_tag = ANY(</span><span class="si">%(satellite)s</span><span class="s">)</span>
+<span class="s">                and st_intersects(tile_footprint.bbox, st_geomfromtext(</span><span class="si">%(polygon)s</span><span class="s">, 4326))</span>
+<span class="s">                and extract(year from end_datetime) = ANY(</span><span class="si">%(year)s</span><span class="s">)</span>
+
+<span class="s">            order by end_datetime asc, satellite asc</span>
+<span class="s">            ;</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;tile_type&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s">&quot;tile_class&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">tile_class</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">tile_class</span> <span class="ow">in</span> <span class="n">TILE_CLASSES</span><span class="p">],</span>
+                  <span class="s">&quot;satellite&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">satellite</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">satellite</span> <span class="ow">in</span> <span class="n">satellites</span><span class="p">],</span>
+                  <span class="s">&quot;polygon&quot;</span><span class="p">:</span> <span class="n">wkt</span><span class="p">,</span>
+                  <span class="s">&quot;year&quot;</span><span class="p">:</span> <span class="n">years</span><span class="p">}</span>
+
+        <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">cursor</span><span class="o">.</span><span class="n">mogrify</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">params</span><span class="p">))</span>
+
+        <span class="n">cursor</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+
+        <span class="n">tiles</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">cursor</span><span class="p">:</span>
+            <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+            <span class="n">tiles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Tile</span><span class="o">.</span><span class="n">from_db_record</span><span class="p">(</span><span class="n">record</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">tiles</span>
+
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+
+        <span class="n">_log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Caught exception </span><span class="si">%s</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+        <span class="n">conn</span><span class="o">.</span><span class="n">rollback</span><span class="p">()</span>
+        <span class="k">raise</span>
+
+    <span class="k">finally</span><span class="p">:</span>
+
+        <span class="n">conn</span> <span class="o">=</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span>
+
+</div>
+<div class="viewcode-block" id="list_tiles_wkt_to_file"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_tiles_wkt_to_file">[docs]</a><span class="k">def</span> <span class="nf">list_tiles_wkt_to_file</span><span class="p">(</span><span class="n">wkt</span><span class="p">,</span> <span class="n">years</span><span class="p">,</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">format</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="k">pass</span>
+
+</div>
+<div class="viewcode-block" id="visit_tiles_wkt"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.visit_tiles_wkt">[docs]</a><span class="k">def</span> <span class="nf">visit_tiles_wkt</span><span class="p">(</span><span class="n">wkt</span><span class="p">,</span> <span class="n">years</span><span class="p">,</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="k">pass</span>
+
+</div>
+<div class="viewcode-block" id="result_generator"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.result_generator">[docs]</a><span class="k">def</span> <span class="nf">result_generator</span><span class="p">(</span><span class="n">cursor</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
+
+    <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+
+        <span class="n">results</span> <span class="o">=</span> <span class="n">cursor</span><span class="o">.</span><span class="n">fetchmany</span><span class="p">(</span><span class="n">size</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">results</span><span class="p">:</span>
+            <span class="k">break</span>
+
+        <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">result</span>
+</pre></div></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Geoscience Australia.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.3</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

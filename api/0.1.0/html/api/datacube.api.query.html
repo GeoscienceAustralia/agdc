@@ -1,0 +1,420 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>datacube.api.query module &mdash; agdc-api 0.1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="agdc-api 0.1.0 documentation" href="../index.html" />
+    <link rel="next" title="datacube.api.utils module" href="datacube.api.utils.html" />
+    <link rel="prev" title="datacube.api.model module" href="datacube.api.model.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="datacube.api.utils.html" title="datacube.api.utils module"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="datacube.api.model.html" title="datacube.api.model module"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">agdc-api 0.1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-datacube.api.query">
+<span id="datacube-api-query-module"></span><h1>datacube.api.query module<a class="headerlink" href="#module-datacube.api.query" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="datacube.api.query.TileClass">
+<em class="property">class </em><code class="descclassname">datacube.api.query.</code><code class="descname">TileClass</code><a class="reference internal" href="../_modules/datacube/api/query.html#TileClass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.TileClass" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.Enum</span></code></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="datacube.api.query.TileType">
+<em class="property">class </em><code class="descclassname">datacube.api.query.</code><code class="descname">TileType</code><a class="reference internal" href="../_modules/datacube/api/query.html#TileType"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.TileType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.Enum</span></code></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="datacube.api.query.ProcessingLevel">
+<em class="property">class </em><code class="descclassname">datacube.api.query.</code><code class="descname">ProcessingLevel</code><a class="reference internal" href="../_modules/datacube/api/query.html#ProcessingLevel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.ProcessingLevel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.Enum</span></code></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="datacube.api.query.SortType">
+<em class="property">class </em><code class="descclassname">datacube.api.query.</code><code class="descname">SortType</code><a class="reference internal" href="../_modules/datacube/api/query.html#SortType"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.SortType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.Enum</span></code></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.print_tile">
+<code class="descclassname">datacube.api.query.</code><code class="descname">print_tile</code><span class="sig-paren">(</span><em>tile</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#print_tile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.print_tile" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.connect_to_db">
+<code class="descclassname">datacube.api.query.</code><code class="descname">connect_to_db</code><span class="sig-paren">(</span><em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#connect_to_db"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.connect_to_db" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.to_file_ify_sql">
+<code class="descclassname">datacube.api.query.</code><code class="descname">to_file_ify_sql</code><span class="sig-paren">(</span><em>sql</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#to_file_ify_sql"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.to_file_ify_sql" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.list_cells">
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of cells matching the criteria as a SINGLE-USE generator</p>
+<p>Deprecated: Move to using explicit as_list or as_generator</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list[datacube.api.model.Cell]</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.list_cells_as_list">
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_as_list</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_as_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_as_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list[datacube.api.model.Cell]</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.list_cells_as_generator">
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_as_generator</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_as_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_as_generator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of cells matching the criteria as a SINGLE-USE generator</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list[datacube.api.model.Cell]</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.list_cells_to_file">
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_to_file</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>filename</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_to_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.build_list_cells_sql_and_params">
+<code class="descclassname">datacube.api.query.</code><code class="descname">build_list_cells_sql_and_params</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#build_list_cells_sql_and_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.build_list_cells_sql_and_params" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.list_cells_missing">
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_missing</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_missing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_missing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of cells matching the criteria as a SINGLE-USE generator</p>
+<p>Deprecated: Move to using explicit as_list or as_generator</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list[datacube.api.model.Cell]</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.list_cells_missing_as_list">
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_missing_as_list</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_missing_as_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_missing_as_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list[datacube.api.model.Cell]</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.list_cells_missing_as_generator">
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_missing_as_generator</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_missing_as_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_missing_as_generator" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.list_cells_missing_to_file">
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_missing_to_file</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>filename</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_missing_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_missing_to_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.build_list_cells_missing_sql_and_params">
+<code class="descclassname">datacube.api.query.</code><code class="descname">build_list_cells_missing_sql_and_params</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#build_list_cells_missing_sql_and_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.build_list_cells_missing_sql_and_params" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.list_tiles">
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of cells matching the criteria as a SINGLE-USE generator</p>
+<p>Deprecated: Move to using explicit as_list or as_generator</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list[datacube.api.model.Tile]</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.list_tiles_as_list">
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_as_list</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_as_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_as_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list[datacube.api.model.Tile]</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.list_tiles_as_generator">
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_as_generator</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_as_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_as_generator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of cells matching the criteria as a SINGLE-USE generator</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list[datacube.api.model.Tile]</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.list_tiles_to_file">
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_to_file</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>years</em>, <em>dataset_types</em>, <em>filename</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_to_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.build_list_tiles_sql_and_params">
+<code class="descclassname">datacube.api.query.</code><code class="descname">build_list_tiles_sql_and_params</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#build_list_tiles_sql_and_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.build_list_tiles_sql_and_params" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.list_tiles_missing">
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_missing</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>datasets</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_missing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_missing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of cells matching the criteria as a SINGLE-USE generator</p>
+<p>Deprecated: Move to using explicit as_list or as_generator</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list[datacube.api.model.Tile]</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.list_tiles_missing_as_list">
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_missing_as_list</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>datasets</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_missing_as_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_missing_as_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list[datacube.api.model.Tile]</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.list_tiles_missing_as_generator">
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_missing_as_generator</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>datasets</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_missing_as_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_missing_as_generator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of cells matching the criteria as a SINGLE-USE generator</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list[datacube.api.model.Tile]</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.list_tiles_missing_to_file">
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_missing_to_file</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>years</em>, <em>datasets</em>, <em>filename</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_missing_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_missing_to_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.list_tiles_dtm">
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_dtm</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>datasets</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_dtm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_dtm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of cells matching the criteria as a SINGLE-USE generator</p>
+<p>Deprecated: Move to using explicit as_list or as_generator</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list[datacube.api.model.Tile]</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.list_tiles_dtm_as_list">
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_dtm_as_list</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>datasets</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_dtm_as_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_dtm_as_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list[datacube.api.model.Tile]</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.list_tiles_dtm_as_generator">
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_dtm_as_generator</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>datasets</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_dtm_as_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_dtm_as_generator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of cells matching the criteria as a SINGLE-USE generator</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list[datacube.api.model.Tile]</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.visit_tiles">
+<code class="descclassname">datacube.api.query.</code><code class="descname">visit_tiles</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>years</em>, <em>datasets</em>, <em>func=&lt;function print_tile&gt;</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#visit_tiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.visit_tiles" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.list_tiles_wkt">
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_wkt</code><span class="sig-paren">(</span><em>wkt</em>, <em>satellites</em>, <em>years</em>, <em>datasets</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_wkt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_wkt" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.list_tiles_wkt_to_file">
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_wkt_to_file</code><span class="sig-paren">(</span><em>wkt</em>, <em>years</em>, <em>datasets</em>, <em>format</em>, <em>filename</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_wkt_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_wkt_to_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.visit_tiles_wkt">
+<code class="descclassname">datacube.api.query.</code><code class="descname">visit_tiles_wkt</code><span class="sig-paren">(</span><em>wkt</em>, <em>years</em>, <em>datasets</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#visit_tiles_wkt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.visit_tiles_wkt" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.result_generator">
+<code class="descclassname">datacube.api.query.</code><code class="descname">result_generator</code><span class="sig-paren">(</span><em>cursor</em>, <em>size=100</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#result_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.result_generator" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="datacube.api.model.html"
+                        title="previous chapter">datacube.api.model module</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="datacube.api.utils.html"
+                        title="next chapter">datacube.api.utils module</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/api/datacube.api.query.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Geoscience Australia.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.3</a>
+      
+      |
+      <a href="../_sources/api/datacube.api.query.txt"
+          rel="nofollow">Page source</a></li>
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,179 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>datacube.api.workflow.cell &mdash; agdc-api 0.1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../../',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <link rel="top" title="agdc-api 0.1.0 documentation" href="../../../../index.html" />
+    <link rel="up" title="datacube.api.workflow" href="../workflow.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">agdc-api 0.1.0 documentation</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &raquo;</li>
+          <li class="nav-item nav-item-2"><a href="../workflow.html" accesskey="U">datacube.api.workflow</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for datacube.api.workflow.cell</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+
+<span class="c"># ===============================================================================</span>
+<span class="c"># Copyright (c)  2014 Geoscience Australia</span>
+<span class="c"># All rights reserved.</span>
+<span class="c">#</span>
+<span class="c"># Redistribution and use in source and binary forms, with or without</span>
+<span class="c"># modification, are permitted provided that the following conditions are met:</span>
+<span class="c"># * Redistributions of source code must retain the above copyright</span>
+<span class="c"># notice, this list of conditions and the following disclaimer.</span>
+<span class="c"># * Redistributions in binary form must reproduce the above copyright</span>
+<span class="c"># notice, this list of conditions and the following disclaimer in the</span>
+<span class="c">#       documentation and/or other materials provided with the distribution.</span>
+<span class="c">#     * Neither Geoscience Australia nor the names of its contributors may be</span>
+<span class="c">#       used to endorse or promote products derived from this software</span>
+<span class="c">#       without specific prior written permission.</span>
+<span class="c">#</span>
+<span class="c"># THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot; AND</span>
+<span class="c"># ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED</span>
+<span class="c"># WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE</span>
+<span class="c"># DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY</span>
+<span class="c"># DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES</span>
+<span class="c"># (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;</span>
+<span class="c"># LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND</span>
+<span class="c"># ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT</span>
+<span class="c"># (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS</span>
+<span class="c"># SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</span>
+<span class="c"># ===============================================================================</span>
+
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s">&quot;Simon Oldfield&quot;</span>
+
+
+<span class="kn">import</span> <span class="nn">abc</span>
+<span class="kn">import</span> <span class="nn">datacube.api.workflow</span> <span class="kn">as</span> <span class="nn">workflow</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+
+
+<span class="n">_log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="Workflow"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell.html#datacube.api.workflow.cell.Workflow">[docs]</a><span class="k">class</span> <span class="nc">Workflow</span><span class="p">(</span><span class="n">workflow</span><span class="o">.</span><span class="n">Workflow</span><span class="p">):</span>
+
+    <span class="n">__metaclass__</span> <span class="o">=</span> <span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+
+        <span class="c"># Call method on super class</span>
+        <span class="c"># super(self.__class__, self).__init__(name)</span>
+        <span class="n">workflow</span><span class="o">.</span><span class="n">Workflow</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Workflow.setup_arguments"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell.html#datacube.api.workflow.cell.Workflow.setup_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">setup_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="c"># Call method on super class</span>
+        <span class="c"># super(self.__class__, self).setup_arguments()</span>
+        <span class="n">workflow</span><span class="o">.</span><span class="n">Workflow</span><span class="o">.</span><span class="n">setup_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Workflow.process_arguments"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell.html#datacube.api.workflow.cell.Workflow.process_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">process_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+
+        <span class="c"># Call method on super class</span>
+        <span class="c"># super(self.__class__, self).process_arguments(args)</span>
+        <span class="n">workflow</span><span class="o">.</span><span class="n">Workflow</span><span class="o">.</span><span class="n">process_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Workflow.log_arguments"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell.html#datacube.api.workflow.cell.Workflow.log_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">log_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="c"># Call method on super class</span>
+        <span class="c"># super(self.__class__, self).log_arguments()</span>
+        <span class="n">workflow</span><span class="o">.</span><span class="n">Workflow</span><span class="o">.</span><span class="n">log_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Workflow.create_tasks"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell.html#datacube.api.workflow.cell.Workflow.create_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">create_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;Abstract method should be overridden&quot;</span><span class="p">)</span>
+
+</div></div>
+<div class="viewcode-block" id="SummaryTask"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell.html#datacube.api.workflow.cell.SummaryTask">[docs]</a><span class="k">class</span> <span class="nc">SummaryTask</span><span class="p">(</span><span class="n">workflow</span><span class="o">.</span><span class="n">SummaryTask</span><span class="p">):</span>
+
+    <span class="n">__metaclass__</span> <span class="o">=</span> <span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span>
+
+    <span class="nd">@abc.abstractmethod</span>
+<div class="viewcode-block" id="SummaryTask.create_cell_task"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell.html#datacube.api.workflow.cell.SummaryTask.create_cell_task">[docs]</a>    <span class="k">def</span> <span class="nf">create_cell_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;Abstract method should be overridden&quot;</span><span class="p">)</span>
+
+</div></div>
+<div class="viewcode-block" id="CellTask"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell.html#datacube.api.workflow.cell.CellTask">[docs]</a><span class="k">class</span> <span class="nc">CellTask</span><span class="p">(</span><span class="n">workflow</span><span class="o">.</span><span class="n">CellTask</span><span class="p">):</span>
+
+    <span class="n">__metaclass__</span> <span class="o">=</span> <span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span>
+</pre></div></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Geoscience Australia.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.3</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

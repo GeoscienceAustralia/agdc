@@ -1,0 +1,1048 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>datacube.api.utils &mdash; agdc-api 0.1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="agdc-api 0.1.0 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">agdc-api 0.1.0 documentation</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for datacube.api.utils</h1><div class="highlight"><pre>
+<span class="c"># ===============================================================================</span>
+<span class="c"># Copyright (c)  2014 Geoscience Australia</span>
+<span class="c"># All rights reserved.</span>
+<span class="c">#</span>
+<span class="c"># Redistribution and use in source and binary forms, with or without</span>
+<span class="c"># modification, are permitted provided that the following conditions are met:</span>
+<span class="c">#     * Redistributions of source code must retain the above copyright</span>
+<span class="c">#       notice, this list of conditions and the following disclaimer.</span>
+<span class="c">#     * Redistributions in binary form must reproduce the above copyright</span>
+<span class="c">#       notice, this list of conditions and the following disclaimer in the</span>
+<span class="c">#       documentation and/or other materials provided with the distribution.</span>
+<span class="c">#     * Neither Geoscience Australia nor the names of its contributors may be</span>
+<span class="c">#       used to endorse or promote products derived from this software</span>
+<span class="c">#       without specific prior written permission.</span>
+<span class="c">#</span>
+<span class="c"># THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot; AND</span>
+<span class="c"># ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED</span>
+<span class="c"># WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE</span>
+<span class="c"># DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY</span>
+<span class="c"># DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES</span>
+<span class="c"># (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;</span>
+<span class="c"># LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND</span>
+<span class="c"># ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT</span>
+<span class="c"># (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS</span>
+<span class="c"># SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</span>
+<span class="c"># ===============================================================================</span>
+
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s">&quot;Simon Oldfield&quot;</span>
+
+
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">import</span> <span class="nn">gdal</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">gdalconst</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span> <span class="nn">datacube.api.model</span> <span class="kn">import</span> <span class="n">Pq25Bands</span><span class="p">,</span> <span class="n">Ls57Arg25Bands</span><span class="p">,</span> <span class="n">Satellite</span><span class="p">,</span> <span class="n">DatasetType</span><span class="p">,</span> <span class="n">Ls8Arg25Bands</span><span class="p">,</span> <span class="n">Wofs25Bands</span><span class="p">,</span> <span class="n">NdviBands</span><span class="p">,</span> \
+    <span class="n">get_bands</span><span class="p">,</span> <span class="n">EviBands</span><span class="p">,</span> <span class="n">NbrBands</span><span class="p">,</span> <span class="n">TciBands</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+
+
+<span class="n">_log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="n">__name__</span><span class="p">)</span>
+
+
+<span class="c"># Define PQ mask</span>
+<span class="c">#   This represents bits 0-13 set which means:</span>
+<span class="c">#       -  0 = band 10 not saturated</span>
+<span class="c">#       -  1 = band 20 not saturated</span>
+<span class="c">#       -  2 = band 30 not saturated</span>
+<span class="c">#       -  3 = band 40 not saturated</span>
+<span class="c">#       -  4 = band 50 not saturated</span>
+<span class="c">#       -  5 = band 61 not saturated</span>
+<span class="c">#       -  6 = band 62 not saturated</span>
+<span class="c">#       -  7 = band 70 not saturated</span>
+<span class="c">#       -  8 = contiguity ok (i.e. all bands present)</span>
+<span class="c">#       -  9 = land (not sea)</span>
+<span class="c">#       - 10 = not cloud (ACCA test)</span>
+<span class="c">#       - 11 = not cloud (FMASK test)</span>
+<span class="c">#       - 12 = not cloud shadow (ACCA test)</span>
+<span class="c">#       - 13 = not cloud shadow (FMASK test)</span>
+
+<div class="viewcode-block" id="PqaMask"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.PqaMask">[docs]</a><span class="k">class</span> <span class="nc">PqaMask</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">PQ_MASK_CLEAR</span> <span class="o">=</span> <span class="mi">16383</span>               <span class="c"># bits 0 - 13 set</span>
+
+    <span class="n">PQ_MASK_SATURATION</span> <span class="o">=</span> <span class="mi">255</span>            <span class="c"># bits 0 - 7 set</span>
+    <span class="n">PQ_MASK_SATURATION_OPTICAL</span> <span class="o">=</span> <span class="mi">159</span>    <span class="c"># bits 0-4 and 7 set</span>
+    <span class="n">PQ_MASK_SATURATION_THERMAL</span> <span class="o">=</span> <span class="mi">96</span>     <span class="c"># bits 5,6 set</span>
+
+    <span class="n">PQ_MASK_CONTIGUITY</span> <span class="o">=</span> <span class="mi">256</span>            <span class="c"># bit 8 set</span>
+
+    <span class="n">PQ_MASK_LAND</span> <span class="o">=</span> <span class="mi">512</span>                  <span class="c"># bit 9 set</span>
+
+    <span class="n">PQ_MASK_CLOUD</span> <span class="o">=</span> <span class="mi">15360</span>               <span class="c"># bits 10-13</span>
+
+    <span class="n">PQ_MASK_CLOUD_ACCA</span> <span class="o">=</span> <span class="mi">1024</span>           <span class="c"># bit 10 set</span>
+    <span class="n">PQ_MASK_CLOUD_FMASK</span> <span class="o">=</span> <span class="mi">2048</span>          <span class="c"># bit 11 set</span>
+
+    <span class="n">PQ_MASK_CLOUD_SHADOW_ACCA</span> <span class="o">=</span> <span class="mi">4096</span>    <span class="c"># bit 12 set</span>
+    <span class="n">PQ_MASK_CLOUD_SHADOW_FMASK</span> <span class="o">=</span> <span class="mi">8192</span>   <span class="c"># bit 13 set</span>
+
+</div>
+<div class="viewcode-block" id="WofsMask"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.WofsMask">[docs]</a><span class="k">class</span> <span class="nc">WofsMask</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">DRY</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">NO_DATA</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">SATURATION_CONTIGUITY</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">SEA_WATER</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">TERRAIN_SHADOW</span> <span class="o">=</span> <span class="mi">8</span>
+    <span class="n">HIGH_SLOPE</span> <span class="o">=</span> <span class="mi">16</span>
+    <span class="n">CLOUD_SHADOW</span> <span class="o">=</span> <span class="mi">32</span>
+    <span class="n">CLOUD</span> <span class="o">=</span> <span class="mi">64</span>
+    <span class="n">WET</span> <span class="o">=</span> <span class="mi">128</span>
+
+
+<span class="c"># Standard no data value</span></div>
+<span class="n">NDV</span> <span class="o">=</span> <span class="o">-</span><span class="mi">999</span>
+
+<span class="n">INT16_MIN</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">int16</span><span class="p">)</span><span class="o">.</span><span class="n">min</span>
+<span class="n">INT16_MAX</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">int16</span><span class="p">)</span><span class="o">.</span><span class="n">max</span>
+
+<span class="n">UINT16_MIN</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">uint16</span><span class="p">)</span><span class="o">.</span><span class="n">min</span>
+<span class="n">UINT16_MAX</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">uint16</span><span class="p">)</span><span class="o">.</span><span class="n">max</span>
+
+<span class="n">BYTE_MIN</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">ubyte</span><span class="p">)</span><span class="o">.</span><span class="n">min</span>
+<span class="n">BYTE_MAX</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">ubyte</span><span class="p">)</span><span class="o">.</span><span class="n">max</span>
+
+
+<div class="viewcode-block" id="empty_array"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.empty_array">[docs]</a><span class="k">def</span> <span class="nf">empty_array</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int16</span><span class="p">,</span> <span class="n">ndv</span><span class="o">=-</span><span class="mi">999</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return an empty (i.e. filled with the no data value) array of the given shape and data type</span>
+
+<span class="sd">    :param shape: shape of the array</span>
+<span class="sd">    :param dtype: data type of the array (defaults to int32)</span>
+<span class="sd">    :param ndv: no data value (defaults to -999)</span>
+<span class="sd">    :return: array</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">a</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="k">if</span> <span class="n">ndv</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">a</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="n">ndv</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">a</span>
+
+</div>
+<div class="viewcode-block" id="DatasetBandMetaData"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.DatasetBandMetaData">[docs]</a><span class="k">class</span> <span class="nc">DatasetBandMetaData</span><span class="p">:</span>
+    <span class="n">no_data_value</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="n">data_type</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">no_data_value</span><span class="p">,</span> <span class="n">data_type</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">no_data_value</span><span class="o">=</span><span class="n">no_data_value</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_type</span><span class="o">=</span><span class="n">data_type</span>
+
+</div>
+<div class="viewcode-block" id="DatasetMetaData"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.DatasetMetaData">[docs]</a><span class="k">class</span> <span class="nc">DatasetMetaData</span><span class="p">:</span>
+
+    <span class="n">shape</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="n">transform</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="n">projection</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="n">bands</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="n">ul</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="n">lr</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="n">pixel_size_x</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="n">pixel_size_y</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">transform</span><span class="p">,</span> <span class="n">projection</span><span class="p">,</span> <span class="n">bands</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="n">shape</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">transform</span> <span class="o">=</span> <span class="n">transform</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">projection</span> <span class="o">=</span> <span class="n">projection</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bands</span> <span class="o">=</span> <span class="n">bands</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pixel_size_x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pixel_size_y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ul</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lr</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ul</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_size_x</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">ul</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">pixel_size_y</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+</div>
+<div class="viewcode-block" id="get_dataset_metadata"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.get_dataset_metadata">[docs]</a><span class="k">def</span> <span class="nf">get_dataset_metadata</span><span class="p">(</span><span class="n">dataset</span><span class="p">):</span>
+
+    <span class="n">raster</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">GA_ReadOnly</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">raster</span>
+
+    <span class="n">band_metadata</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">band</span> <span class="ow">in</span> <span class="n">dataset</span><span class="o">.</span><span class="n">bands</span><span class="p">:</span>
+        <span class="n">raster_band</span> <span class="o">=</span> <span class="n">raster</span><span class="o">.</span><span class="n">GetRasterBand</span><span class="p">(</span><span class="n">band</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">raster_band</span>
+
+        <span class="n">band_metadata</span><span class="p">[</span><span class="n">band</span><span class="p">]</span> <span class="o">=</span> <span class="n">DatasetBandMetaData</span><span class="p">(</span><span class="n">raster_band</span><span class="o">.</span><span class="n">GetNoDataValue</span><span class="p">(),</span> <span class="n">raster_band</span><span class="o">.</span><span class="n">DataType</span><span class="p">)</span>
+
+        <span class="n">raster_band</span><span class="o">.</span><span class="n">FlushCache</span><span class="p">()</span>
+        <span class="k">del</span> <span class="n">raster_band</span>
+
+    <span class="n">dataset_metadata</span> <span class="o">=</span> <span class="n">DatasetMetaData</span><span class="p">((</span><span class="n">raster</span><span class="o">.</span><span class="n">RasterXSize</span><span class="p">,</span> <span class="n">raster</span><span class="o">.</span><span class="n">RasterYSize</span><span class="p">),</span> <span class="n">raster</span><span class="o">.</span><span class="n">GetGeoTransform</span><span class="p">(),</span> <span class="n">raster</span><span class="o">.</span><span class="n">GetProjection</span><span class="p">(),</span> <span class="n">band_metadata</span><span class="p">)</span>
+
+    <span class="n">raster</span><span class="o">.</span><span class="n">FlushCache</span><span class="p">()</span>
+    <span class="k">del</span> <span class="n">raster</span>
+
+    <span class="k">return</span> <span class="n">dataset_metadata</span>
+
+</div>
+<div class="viewcode-block" id="get_dataset_data"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.get_dataset_data">[docs]</a><span class="k">def</span> <span class="nf">get_dataset_data</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">bands</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">x_size</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">y_size</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="n">dataset_types_physical</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">ARG25</span><span class="p">,</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">PQ25</span><span class="p">,</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">FC25</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">WATER</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">DSM</span><span class="p">,</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM</span><span class="p">,</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM_HYDROLOGICALLY_ENFORCED</span><span class="p">,</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM_SMOOTHED</span><span class="p">]</span>
+
+    <span class="n">dataset_types_virtual_nbar</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">NDVI</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">EVI</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">NBR</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">TCI</span>
+    <span class="p">]</span>
+
+    <span class="c"># NDVI calculated using RED and NIR from ARG25</span>
+
+    <span class="k">if</span> <span class="n">dataset</span><span class="o">.</span><span class="n">dataset_type</span> <span class="o">==</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">NDVI</span><span class="p">:</span>
+
+        <span class="n">bands</span> <span class="o">=</span> <span class="n">get_bands</span><span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">ARG25</span><span class="p">,</span> <span class="n">dataset</span><span class="o">.</span><span class="n">satellite</span><span class="p">)</span>
+
+        <span class="n">band_red</span> <span class="o">=</span> <span class="n">bands</span><span class="p">[</span><span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">RED</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+        <span class="n">band_nir</span> <span class="o">=</span> <span class="n">bands</span><span class="p">[</span><span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">NEAR_INFRARED</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="n">read_dataset_data</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">bands</span><span class="o">=</span><span class="p">[</span><span class="n">band_red</span><span class="p">,</span> <span class="n">band_nir</span><span class="p">])</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">calculate_ndvi</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">band_red</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="n">band_nir</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="p">{</span><span class="n">NdviBands</span><span class="o">.</span><span class="n">NDVI</span><span class="p">:</span> <span class="n">data</span><span class="p">}</span>
+
+    <span class="c"># EVI calculated using RED, BLUE and NIR from ARG25</span>
+
+    <span class="k">elif</span> <span class="n">dataset</span><span class="o">.</span><span class="n">dataset_type</span> <span class="o">==</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">EVI</span><span class="p">:</span>
+
+        <span class="n">bands</span> <span class="o">=</span> <span class="n">get_bands</span><span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">ARG25</span><span class="p">,</span> <span class="n">dataset</span><span class="o">.</span><span class="n">satellite</span><span class="p">)</span>
+
+        <span class="n">band_red</span> <span class="o">=</span> <span class="n">bands</span><span class="p">[</span><span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">RED</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+        <span class="n">band_blue</span> <span class="o">=</span> <span class="n">bands</span><span class="p">[</span><span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">BLUE</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+        <span class="n">band_nir</span> <span class="o">=</span> <span class="n">bands</span><span class="p">[</span><span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">NEAR_INFRARED</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="n">read_dataset_data</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">bands</span><span class="o">=</span><span class="p">[</span><span class="n">band_red</span><span class="p">,</span> <span class="n">band_blue</span><span class="p">,</span> <span class="n">band_nir</span><span class="p">])</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">calculate_evi</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">band_red</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="n">band_blue</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="n">band_nir</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="p">{</span><span class="n">EviBands</span><span class="o">.</span><span class="n">EVI</span><span class="p">:</span> <span class="n">data</span><span class="p">}</span>
+
+    <span class="c"># NBR calculated using NIR and SWIR-2 from ARG25</span>
+
+    <span class="k">elif</span> <span class="n">dataset</span><span class="o">.</span><span class="n">dataset_type</span> <span class="o">==</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">NBR</span><span class="p">:</span>
+
+        <span class="n">bands</span> <span class="o">=</span> <span class="n">get_bands</span><span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">ARG25</span><span class="p">,</span> <span class="n">dataset</span><span class="o">.</span><span class="n">satellite</span><span class="p">)</span>
+
+        <span class="n">band_nir</span> <span class="o">=</span> <span class="n">bands</span><span class="p">[</span><span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">NEAR_INFRARED</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+        <span class="n">band_swir</span> <span class="o">=</span> <span class="n">bands</span><span class="p">[</span><span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_2</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="n">read_dataset_data</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">bands</span><span class="o">=</span><span class="p">[</span><span class="n">band_nir</span><span class="p">,</span> <span class="n">band_swir</span><span class="p">])</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">calculate_nbr</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">band_nir</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="n">band_swir</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="p">{</span><span class="n">NbrBands</span><span class="o">.</span><span class="n">NBR</span><span class="p">:</span> <span class="n">data</span><span class="p">}</span>
+
+    <span class="c"># TCI calculated from ARG25</span>
+
+    <span class="k">elif</span> <span class="n">dataset</span><span class="o">.</span><span class="n">dataset_type</span> <span class="o">==</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">TCI</span><span class="p">:</span>
+
+        <span class="n">bands</span> <span class="o">=</span> <span class="n">get_bands</span><span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">ARG25</span><span class="p">,</span> <span class="n">dataset</span><span class="o">.</span><span class="n">satellite</span><span class="p">)</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="n">read_dataset_data</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">bands</span><span class="o">=</span><span class="n">bands</span><span class="p">)</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">TasselCapIndex</span><span class="p">:</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">TciBands</span><span class="p">[</span><span class="n">index</span><span class="o">.</span><span class="n">name</span><span class="p">]]</span> <span class="o">=</span> <span class="n">calculate_tassel_cap_index</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">TCI_COEFFICIENTS</span><span class="p">[</span><span class="n">dataset</span><span class="o">.</span><span class="n">satellite</span><span class="p">][</span><span class="n">index</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">out</span>
+
+    <span class="c"># It is a &quot;physical&quot; dataset so just read it</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">read_dataset_data</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">bands</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x_size</span><span class="p">,</span> <span class="n">y_size</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="read_dataset_data"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.read_dataset_data">[docs]</a><span class="k">def</span> <span class="nf">read_dataset_data</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">bands</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">x_size</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">y_size</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return one or more bands from a dataset</span>
+
+<span class="sd">    :param dataset: The dataset from which to read the band</span>
+<span class="sd">    :param bands: A list of bands to read from the dataset</span>
+<span class="sd">    :param x:</span>
+<span class="sd">    :param y:</span>
+<span class="sd">    :param x_size:</span>
+<span class="sd">    :param y_size:</span>
+<span class="sd">    :return: dictionary of band/data as numpy array</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">out</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+    <span class="n">raster</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">GA_ReadOnly</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">raster</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">x_size</span><span class="p">:</span>
+        <span class="n">x_size</span> <span class="o">=</span> <span class="n">raster</span><span class="o">.</span><span class="n">RasterXSize</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">y_size</span><span class="p">:</span>
+        <span class="n">y_size</span> <span class="o">=</span> <span class="n">raster</span><span class="o">.</span><span class="n">RasterYSize</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">bands</span><span class="p">:</span>
+        <span class="n">bands</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">bands</span>
+
+    <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">bands</span><span class="p">:</span>
+
+        <span class="n">band</span> <span class="o">=</span> <span class="n">raster</span><span class="o">.</span><span class="n">GetRasterBand</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">band</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="n">band</span><span class="o">.</span><span class="n">ReadAsArray</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">x_size</span><span class="p">,</span> <span class="n">y_size</span><span class="p">)</span>
+        <span class="n">out</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span>
+
+        <span class="n">band</span><span class="o">.</span><span class="n">FlushCache</span><span class="p">()</span>
+        <span class="k">del</span> <span class="n">band</span>
+
+    <span class="n">raster</span><span class="o">.</span><span class="n">FlushCache</span><span class="p">()</span>
+    <span class="k">del</span> <span class="n">raster</span>
+
+    <span class="k">return</span> <span class="n">out</span>
+
+</div>
+<span class="n">DEFAULT_MASK_PQA</span> <span class="o">=</span> <span class="p">[</span><span class="n">PqaMask</span><span class="o">.</span><span class="n">PQ_MASK_CLEAR</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="get_dataset_data_masked"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.get_dataset_data_masked">[docs]</a><span class="k">def</span> <span class="nf">get_dataset_data_masked</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">bands</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">x_size</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">y_size</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">ndv</span><span class="o">=</span><span class="n">NDV</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return one or more bands from the dataset with pixel quality applied</span>
+
+<span class="sd">    :type dataset: datacube.api.model.Dataset</span>
+<span class="sd">    :type bands: list[Band]</span>
+<span class="sd">    :type x: int</span>
+<span class="sd">    :type y: int</span>
+<span class="sd">    :type x_size: int</span>
+<span class="sd">    :type y_size: int</span>
+<span class="sd">    :type ndv: int</span>
+<span class="sd">    :type mask: numpy.array</span>
+<span class="sd">    :rtype: dict[numpy.array]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">bands</span><span class="p">:</span>
+        <span class="n">bands</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">bands</span>
+
+    <span class="n">out</span> <span class="o">=</span> <span class="n">get_dataset_data</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">bands</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">x_size</span><span class="o">=</span><span class="n">x_size</span><span class="p">,</span> <span class="n">y_size</span><span class="o">=</span><span class="n">y_size</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">band</span> <span class="ow">in</span> <span class="n">bands</span><span class="p">:</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">band</span><span class="p">]</span> <span class="o">=</span> <span class="n">apply_mask</span><span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="n">band</span><span class="p">],</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="n">ndv</span><span class="o">=</span><span class="n">ndv</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">out</span>
+
+</div>
+<div class="viewcode-block" id="get_dataset_data_with_pq"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.get_dataset_data_with_pq">[docs]</a><span class="k">def</span> <span class="nf">get_dataset_data_with_pq</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">dataset_pqa</span><span class="p">,</span> <span class="n">bands</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">x_size</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">y_size</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">masks_pqa</span><span class="o">=</span><span class="n">DEFAULT_MASK_PQA</span><span class="p">,</span> <span class="n">ndv</span><span class="o">=</span><span class="n">NDV</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return one or more bands from the dataset with pixel quality applied</span>
+
+<span class="sd">    :type dataset: datacube.api.model.Dataset</span>
+<span class="sd">    :type dataset_pqa: datacube.api.model.Dataset</span>
+<span class="sd">    :type bands: list[Band]</span>
+<span class="sd">    :type x: int</span>
+<span class="sd">    :type y: int</span>
+<span class="sd">    :type x_size: int</span>
+<span class="sd">    :type y_size: int</span>
+<span class="sd">    :type masks_pqa: list[datacube.api.util.PqaMask]</span>
+<span class="sd">    :rtype: dict[numpy.array]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">bands</span><span class="p">:</span>
+        <span class="n">bands</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">bands</span>
+
+    <span class="n">mask_pqa</span> <span class="o">=</span> <span class="n">get_mask_pqa</span><span class="p">(</span><span class="n">dataset_pqa</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">x_size</span><span class="o">=</span><span class="n">x_size</span><span class="p">,</span> <span class="n">y_size</span><span class="o">=</span><span class="n">y_size</span><span class="p">,</span> <span class="n">pqa_masks</span><span class="o">=</span><span class="n">masks_pqa</span><span class="p">)</span>
+
+    <span class="n">out</span> <span class="o">=</span> <span class="n">get_dataset_data_masked</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">bands</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">x_size</span><span class="o">=</span><span class="n">x_size</span><span class="p">,</span> <span class="n">y_size</span><span class="o">=</span><span class="n">y_size</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask_pqa</span><span class="p">,</span> <span class="n">ndv</span><span class="o">=</span><span class="n">ndv</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">out</span>
+
+</div>
+<div class="viewcode-block" id="apply_mask"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.apply_mask">[docs]</a><span class="k">def</span> <span class="nf">apply_mask</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">ndv</span><span class="o">=</span><span class="n">NDV</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span><span class="o">.</span><span class="n">filled</span><span class="p">(</span><span class="n">ndv</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="get_mask_pqa"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.get_mask_pqa">[docs]</a><span class="k">def</span> <span class="nf">get_mask_pqa</span><span class="p">(</span><span class="n">pqa</span><span class="p">,</span> <span class="n">pqa_masks</span><span class="o">=</span><span class="n">DEFAULT_MASK_PQA</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">x_size</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">y_size</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a pixel quality mask</span>
+
+<span class="sd">    :param pqa: Pixel Quality dataset</span>
+<span class="sd">    :param pqa_masks: which PQ flags to use</span>
+<span class="sd">    :param mask: an optional existing mask to update</span>
+<span class="sd">    :return: the mask</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c"># Consolidate the list of (bit) masks into a single (bit) mask</span>
+    <span class="n">pqa_mask</span> <span class="o">=</span> <span class="n">consolidate_masks</span><span class="p">(</span><span class="n">pqa_masks</span><span class="p">)</span>
+
+    <span class="c"># Read the PQA dataset</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">get_dataset_data</span><span class="p">(</span><span class="n">pqa</span><span class="p">,</span> <span class="p">[</span><span class="n">Pq25Bands</span><span class="o">.</span><span class="n">PQ</span><span class="p">],</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">x_size</span><span class="o">=</span><span class="n">x_size</span><span class="p">,</span> <span class="n">y_size</span><span class="o">=</span><span class="n">y_size</span><span class="p">)[</span><span class="n">Pq25Bands</span><span class="o">.</span><span class="n">PQ</span><span class="p">]</span>
+
+    <span class="c"># Create an empty mask if none provided - just to avoid an if below :)</span>
+    <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">make_mask_none</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+
+    <span class="c"># Mask out values where the requested bits in the PQ value are not set</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">mask_or</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_where</span><span class="p">(</span><span class="n">data</span> <span class="o">&amp;</span> <span class="n">pqa_mask</span> <span class="o">!=</span> <span class="n">pqa_mask</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">mask</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">mask</span>
+
+</div>
+<div class="viewcode-block" id="consolidate_masks"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.consolidate_masks">[docs]</a><span class="k">def</span> <span class="nf">consolidate_masks</span><span class="p">(</span><span class="n">masks</span><span class="p">):</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="mh">0x0000</span>
+
+    <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">masks</span><span class="p">:</span>
+        <span class="n">mask</span> <span class="o">|=</span> <span class="n">m</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">return</span> <span class="n">mask</span>
+
+</div>
+<span class="n">DEFAULT_MASK_WOFS</span> <span class="o">=</span> <span class="p">[</span><span class="n">WofsMask</span><span class="o">.</span><span class="n">WET</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="get_mask_wofs"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.get_mask_wofs">[docs]</a><span class="k">def</span> <span class="nf">get_mask_wofs</span><span class="p">(</span><span class="n">wofs</span><span class="p">,</span> <span class="n">wofs_masks</span><span class="o">=</span><span class="n">DEFAULT_MASK_WOFS</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">x_size</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">y_size</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a WOFS mask</span>
+
+<span class="sd">    :param wofs: WOFS dataset</span>
+<span class="sd">    :param wofs_masks: which WOFS values to mask</span>
+<span class="sd">    :param mask: an optional existing mask to update</span>
+<span class="sd">    :return: the mask</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c"># Read the WOFS dataset</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">get_dataset_data</span><span class="p">(</span><span class="n">wofs</span><span class="p">,</span> <span class="n">bands</span><span class="o">=</span><span class="p">[</span><span class="n">Wofs25Bands</span><span class="o">.</span><span class="n">WATER</span><span class="p">],</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">x_size</span><span class="o">=</span><span class="n">x_size</span><span class="p">,</span> <span class="n">y_size</span><span class="o">=</span><span class="n">y_size</span><span class="p">)[</span><span class="n">Wofs25Bands</span><span class="o">.</span><span class="n">WATER</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">make_mask_none</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+
+    <span class="c"># Mask out values where the WOFS value is one of the requested mask values</span>
+    <span class="k">for</span> <span class="n">wofs_mask</span> <span class="ow">in</span> <span class="n">wofs_masks</span><span class="p">:</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">mask_or</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_equal</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">wofs_mask</span><span class="o">.</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="n">mask</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">mask</span>
+
+
+<span class="c"># TODO I&#39;ve dodgied this to get band names in.  Should redo it properly so you pass in a lit of band data structures</span>
+<span class="c"># that have a name, the data, the NDV, etc</span>
+</div>
+<div class="viewcode-block" id="raster_create"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.raster_create">[docs]</a><span class="k">def</span> <span class="nf">raster_create</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">transform</span><span class="p">,</span> <span class="n">projection</span><span class="p">,</span> <span class="n">no_data_value</span><span class="p">,</span> <span class="n">data_type</span><span class="p">,</span>
+                  <span class="c"># options=[&quot;INTERLEAVE=PIXEL&quot;, &quot;COMPRESS=DEFLATE&quot;, &quot;PREDICTOR=2&quot;, &quot;ZLEVEL=9&quot;]):</span>
+                  <span class="c"># options=[&quot;INTERLEAVE=PIXEL&quot;, &quot;COMPRESS=DEFLATE&quot;, &quot;PREDICTOR=1&quot;, &quot;ZLEVEL=6&quot;]):</span>
+                  <span class="n">options</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;INTERLEAVE=PIXEL&quot;</span><span class="p">],</span>
+                  <span class="c"># options=[&quot;INTERLEAVE=PIXEL&quot;, &quot;COMPRESS=LZW&quot;],</span>
+                  <span class="c"># options=[&quot;INTERLEAVE=PIXEL&quot;, &quot;COMPRESS=LZW&quot;, &quot;TILED=YES&quot;],</span>
+                  <span class="n">width</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">dataset_metadata</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">band_ids</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a raster from a list of numpy arrays</span>
+
+<span class="sd">    :param path: path to the output raster</span>
+<span class="sd">    :param data: list of numpy arrays</span>
+<span class="sd">    :param transform: geo transform</span>
+<span class="sd">    :param projection: projection</span>
+<span class="sd">    :param no_data_value: no data value</span>
+<span class="sd">    :param data_type: data type</span>
+<span class="sd">    :param options: raster creation options</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;creating output raster </span><span class="si">%s</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+    <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;filename=</span><span class="si">%s</span><span class="s"> | shape = </span><span class="si">%s</span><span class="s"> | bands = </span><span class="si">%d</span><span class="s"> | data type = </span><span class="si">%s</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">1</span><span class="p">]),</span>
+               <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">data_type</span><span class="p">)</span>
+
+    <span class="n">driver</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">GetDriverByName</span><span class="p">(</span><span class="s">&quot;GTiff&quot;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">driver</span>
+
+    <span class="n">width</span> <span class="o">=</span> <span class="n">width</span> <span class="ow">or</span> <span class="n">numpy</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">height</span> <span class="o">=</span> <span class="n">height</span> <span class="ow">or</span> <span class="n">numpy</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">raster</span> <span class="o">=</span> <span class="n">driver</span><span class="o">.</span><span class="n">Create</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">data_type</span><span class="p">,</span> <span class="n">options</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">raster</span>
+
+    <span class="n">raster</span><span class="o">.</span><span class="n">SetGeoTransform</span><span class="p">(</span><span class="n">transform</span><span class="p">)</span>
+    <span class="n">raster</span><span class="o">.</span><span class="n">SetProjection</span><span class="p">(</span><span class="n">projection</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">dataset_metadata</span><span class="p">:</span>
+        <span class="n">raster</span><span class="o">.</span><span class="n">SetMetadata</span><span class="p">(</span><span class="n">dataset_metadata</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)):</span>
+        <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Writing band </span><span class="si">%d</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">band</span> <span class="o">=</span> <span class="n">raster</span><span class="o">.</span><span class="n">GetRasterBand</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">band_ids</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">band_ids</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">&gt;=</span> <span class="n">i</span><span class="p">:</span>
+            <span class="n">band</span><span class="o">.</span><span class="n">SetDescription</span><span class="p">(</span><span class="n">band_ids</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">band</span><span class="o">.</span><span class="n">SetNoDataValue</span><span class="p">(</span><span class="n">no_data_value</span><span class="p">)</span>
+        <span class="n">band</span><span class="o">.</span><span class="n">WriteArray</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">band</span><span class="o">.</span><span class="n">ComputeStatistics</span><span class="p">(</span><span class="bp">True</span><span class="p">)</span>
+
+        <span class="n">band</span><span class="o">.</span><span class="n">FlushCache</span><span class="p">()</span>
+        <span class="k">del</span> <span class="n">band</span>
+
+    <span class="n">raster</span><span class="o">.</span><span class="n">FlushCache</span><span class="p">()</span>
+    <span class="k">del</span> <span class="n">raster</span>
+
+</div>
+<div class="viewcode-block" id="propagate_using_selected_pixel"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.propagate_using_selected_pixel">[docs]</a><span class="k">def</span> <span class="nf">propagate_using_selected_pixel</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">ndv</span><span class="o">=</span><span class="n">NDV</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">where</span><span class="p">((</span><span class="n">a</span> <span class="o">==</span> <span class="n">b</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">a</span> <span class="o">!=</span> <span class="n">ndv</span><span class="p">),</span> <span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span>
+
+
+<span class="c"># def calculate_ndvi(red, nir, input_ndv=NDV, output_ndv=INT16_MAX):</span>
+<span class="c">#     m_red = numpy.ma.masked_equal(red, input_ndv) #.astype(numpy.float32)</span>
+<span class="c">#     m_nir = numpy.ma.masked_equal(nir, input_ndv) #.astype(numpy.float32)</span>
+<span class="c">#</span>
+<span class="c">#     ndvi = numpy.true_divide(m_nir - m_red, m_nir + m_red)</span>
+<span class="c">#     ndvi = (ndvi * 10000).astype(numpy.int16)</span>
+<span class="c">#     ndvi = ndvi.filled(output_ndv)</span>
+<span class="c">#</span>
+<span class="c">#     return ndvi</span>
+
+</div>
+<div class="viewcode-block" id="calculate_ndvi"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.calculate_ndvi">[docs]</a><span class="k">def</span> <span class="nf">calculate_ndvi</span><span class="p">(</span><span class="n">red</span><span class="p">,</span> <span class="n">nir</span><span class="p">,</span> <span class="n">input_ndv</span><span class="o">=</span><span class="n">NDV</span><span class="p">,</span> <span class="n">output_ndv</span><span class="o">=</span><span class="n">NDV</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate the Normalised Difference Vegetation Index (NDVI) from a Landsat dataset</span>
+
+<span class="sd">    NDVI is defined as (NIR - RED) / (NIR + RED)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">red</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_equal</span><span class="p">(</span><span class="n">red</span><span class="p">,</span> <span class="n">input_ndv</span><span class="p">)</span>
+    <span class="n">nir</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_equal</span><span class="p">(</span><span class="n">nir</span><span class="p">,</span> <span class="n">input_ndv</span><span class="p">)</span>
+
+    <span class="n">ndvi</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">true_divide</span><span class="p">(</span><span class="n">nir</span> <span class="o">-</span> <span class="n">red</span><span class="p">,</span> <span class="n">nir</span> <span class="o">+</span> <span class="n">red</span><span class="p">)</span>
+    <span class="n">ndvi</span> <span class="o">=</span> <span class="n">ndvi</span><span class="o">.</span><span class="n">filled</span><span class="p">(</span><span class="n">output_ndv</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ndvi</span>
+
+</div>
+<div class="viewcode-block" id="calculate_evi"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.calculate_evi">[docs]</a><span class="k">def</span> <span class="nf">calculate_evi</span><span class="p">(</span><span class="n">red</span><span class="p">,</span> <span class="n">blue</span><span class="p">,</span> <span class="n">nir</span><span class="p">,</span> <span class="n">l</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">c1</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">c2</span><span class="o">=</span><span class="mf">7.5</span><span class="p">,</span> <span class="n">input_ndv</span><span class="o">=</span><span class="n">NDV</span><span class="p">,</span> <span class="n">output_ndv</span><span class="o">=</span><span class="n">NDV</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate the Enhanced Vegetation Index (EVI) from a Landsat dataset first applying Pixel Quality indicators</span>
+
+<span class="sd">    EVI is defined as 2.5 * (NIR - RED) / (NIR + C1 * RED - C2 * BLUE + L)</span>
+
+<span class="sd">    Defaults to the standard MODIS EVI of L=1 C1=6 C2=7.5</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">red</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_equal</span><span class="p">(</span><span class="n">red</span><span class="p">,</span> <span class="n">input_ndv</span><span class="p">)</span>
+    <span class="n">blue</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_equal</span><span class="p">(</span><span class="n">blue</span><span class="p">,</span> <span class="n">input_ndv</span><span class="p">)</span>
+    <span class="n">nir</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_equal</span><span class="p">(</span><span class="n">nir</span><span class="p">,</span> <span class="n">input_ndv</span><span class="p">)</span>
+
+    <span class="n">evi</span> <span class="o">=</span> <span class="mf">2.5</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">true_divide</span><span class="p">(</span><span class="n">nir</span> <span class="o">-</span> <span class="n">red</span><span class="p">,</span> <span class="n">nir</span> <span class="o">+</span> <span class="n">c1</span> <span class="o">*</span> <span class="n">red</span> <span class="o">-</span> <span class="n">c2</span> <span class="o">*</span> <span class="n">blue</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">evi</span> <span class="o">=</span> <span class="n">evi</span><span class="o">.</span><span class="n">filled</span><span class="p">(</span><span class="n">output_ndv</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">evi</span>
+
+</div>
+<div class="viewcode-block" id="calculate_nbr"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.calculate_nbr">[docs]</a><span class="k">def</span> <span class="nf">calculate_nbr</span><span class="p">(</span><span class="n">nir</span><span class="p">,</span> <span class="n">swir</span><span class="p">,</span> <span class="n">input_ndv</span><span class="o">=</span><span class="n">NDV</span><span class="p">,</span> <span class="n">output_ndv</span><span class="o">=</span><span class="n">NDV</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate the Normalised Burn Ratio (NBR) from a Landsat dataset</span>
+
+<span class="sd">    NBR is defined as (NIR - SWIR 2) / (NIR + SWIR 2)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">nir</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_equal</span><span class="p">(</span><span class="n">nir</span><span class="p">,</span> <span class="n">input_ndv</span><span class="p">)</span>
+    <span class="n">swir</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_equal</span><span class="p">(</span><span class="n">swir</span><span class="p">,</span> <span class="n">input_ndv</span><span class="p">)</span>
+
+    <span class="n">nbr</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">true_divide</span><span class="p">(</span><span class="n">nir</span> <span class="o">-</span> <span class="n">swir</span><span class="p">,</span> <span class="n">nir</span> <span class="o">+</span> <span class="n">swir</span><span class="p">)</span>
+    <span class="n">nbr</span> <span class="o">=</span> <span class="n">nbr</span><span class="o">.</span><span class="n">filled</span><span class="p">(</span><span class="n">output_ndv</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">nbr</span>
+
+</div>
+<div class="viewcode-block" id="TasselCapIndex"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.TasselCapIndex">[docs]</a><span class="k">class</span> <span class="nc">TasselCapIndex</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">__order__</span> <span class="o">=</span> <span class="s">&quot;BRIGHTNESS GREENNESS WETNESS FOURTH FIFTH SIXTH&quot;</span>
+
+    <span class="n">BRIGHTNESS</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">GREENNESS</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">WETNESS</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">FOURTH</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">FIFTH</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="n">SIXTH</span> <span class="o">=</span> <span class="mi">6</span>
+
+</div>
+<span class="n">TCI_COEFFICIENTS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">Satellite</span><span class="o">.</span><span class="n">LS5</span><span class="p">:</span>
+    <span class="p">{</span>
+        <span class="n">TasselCapIndex</span><span class="o">.</span><span class="n">BRIGHTNESS</span><span class="p">:</span> <span class="p">{</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">BLUE</span><span class="p">:</span> <span class="mf">0.3037</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">GREEN</span><span class="p">:</span> <span class="mf">0.2793</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">RED</span><span class="p">:</span> <span class="mf">0.4743</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">NEAR_INFRARED</span><span class="p">:</span> <span class="mf">0.5585</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_1</span><span class="p">:</span> <span class="mf">0.5082</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_2</span><span class="p">:</span> <span class="mf">0.1863</span><span class="p">},</span>
+
+        <span class="n">TasselCapIndex</span><span class="o">.</span><span class="n">GREENNESS</span><span class="p">:</span> <span class="p">{</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">BLUE</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.2848</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">GREEN</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.2435</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">RED</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.5436</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">NEAR_INFRARED</span><span class="p">:</span> <span class="mf">0.7243</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_1</span><span class="p">:</span> <span class="mf">0.0840</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_2</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.1800</span><span class="p">},</span>
+
+        <span class="n">TasselCapIndex</span><span class="o">.</span><span class="n">WETNESS</span><span class="p">:</span> <span class="p">{</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">BLUE</span><span class="p">:</span> <span class="mf">0.1509</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">GREEN</span><span class="p">:</span> <span class="mf">0.1973</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">RED</span><span class="p">:</span> <span class="mf">0.3279</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">NEAR_INFRARED</span><span class="p">:</span> <span class="mf">0.3406</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_1</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.7112</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_2</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.4572</span><span class="p">},</span>
+
+        <span class="n">TasselCapIndex</span><span class="o">.</span><span class="n">FOURTH</span><span class="p">:</span> <span class="p">{</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">BLUE</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.8242</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">GREEN</span><span class="p">:</span> <span class="mf">0.0849</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">RED</span><span class="p">:</span> <span class="mf">0.4392</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">NEAR_INFRARED</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.0580</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_1</span><span class="p">:</span> <span class="mf">0.2012</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_2</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.2768</span><span class="p">},</span>
+
+        <span class="n">TasselCapIndex</span><span class="o">.</span><span class="n">FIFTH</span><span class="p">:</span> <span class="p">{</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">BLUE</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.3280</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">GREEN</span><span class="p">:</span> <span class="mf">0.0549</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">RED</span><span class="p">:</span> <span class="mf">0.1075</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">NEAR_INFRARED</span><span class="p">:</span> <span class="mf">0.1855</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_1</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.4357</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_2</span><span class="p">:</span> <span class="mf">0.8085</span><span class="p">},</span>
+
+        <span class="n">TasselCapIndex</span><span class="o">.</span><span class="n">SIXTH</span><span class="p">:</span> <span class="p">{</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">BLUE</span><span class="p">:</span> <span class="mf">0.1084</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">GREEN</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.9022</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">RED</span><span class="p">:</span> <span class="mf">0.4120</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">NEAR_INFRARED</span><span class="p">:</span> <span class="mf">0.0573</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_1</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.0251</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_2</span><span class="p">:</span> <span class="mf">0.0238</span><span class="p">}</span>
+    <span class="p">},</span>
+
+    <span class="n">Satellite</span><span class="o">.</span><span class="n">LS7</span><span class="p">:</span>
+    <span class="p">{</span>
+        <span class="n">TasselCapIndex</span><span class="o">.</span><span class="n">BRIGHTNESS</span><span class="p">:</span> <span class="p">{</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">BLUE</span><span class="p">:</span> <span class="mf">0.3561</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">GREEN</span><span class="p">:</span> <span class="mf">0.3972</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">RED</span><span class="p">:</span> <span class="mf">0.3904</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">NEAR_INFRARED</span><span class="p">:</span> <span class="mf">0.6966</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_1</span><span class="p">:</span> <span class="mf">0.2286</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_2</span><span class="p">:</span> <span class="mf">0.1596</span><span class="p">},</span>
+
+        <span class="n">TasselCapIndex</span><span class="o">.</span><span class="n">GREENNESS</span><span class="p">:</span> <span class="p">{</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">BLUE</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.3344</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">GREEN</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.3544</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">RED</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.4556</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">NEAR_INFRARED</span><span class="p">:</span> <span class="mf">0.6966</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_1</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.0242</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_2</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.2630</span><span class="p">},</span>
+
+        <span class="n">TasselCapIndex</span><span class="o">.</span><span class="n">WETNESS</span><span class="p">:</span> <span class="p">{</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">BLUE</span><span class="p">:</span> <span class="mf">0.2626</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">GREEN</span><span class="p">:</span> <span class="mf">0.2141</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">RED</span><span class="p">:</span> <span class="mf">0.0926</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">NEAR_INFRARED</span><span class="p">:</span> <span class="mf">0.0656</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_1</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.7629</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_2</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.5388</span><span class="p">},</span>
+
+        <span class="n">TasselCapIndex</span><span class="o">.</span><span class="n">FOURTH</span><span class="p">:</span> <span class="p">{</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">BLUE</span><span class="p">:</span> <span class="mf">0.0805</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">GREEN</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.0498</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">RED</span><span class="p">:</span> <span class="mf">0.1950</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">NEAR_INFRARED</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.1327</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_1</span><span class="p">:</span> <span class="mf">0.5752</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_2</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.7775</span><span class="p">},</span>
+
+        <span class="n">TasselCapIndex</span><span class="o">.</span><span class="n">FIFTH</span><span class="p">:</span> <span class="p">{</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">BLUE</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.7252</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">GREEN</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.0202</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">RED</span><span class="p">:</span> <span class="mf">0.6683</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">NEAR_INFRARED</span><span class="p">:</span> <span class="mf">0.0631</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_1</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.1494</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_2</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.0274</span><span class="p">},</span>
+
+        <span class="n">TasselCapIndex</span><span class="o">.</span><span class="n">SIXTH</span><span class="p">:</span> <span class="p">{</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">BLUE</span><span class="p">:</span> <span class="mf">0.4000</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">GREEN</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.8172</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">RED</span><span class="p">:</span> <span class="mf">0.3832</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">NEAR_INFRARED</span><span class="p">:</span> <span class="mf">0.0602</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_1</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.1095</span><span class="p">,</span>
+            <span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_2</span><span class="p">:</span> <span class="mf">0.0985</span><span class="p">}</span>
+    <span class="p">},</span>
+
+    <span class="n">Satellite</span><span class="o">.</span><span class="n">LS8</span><span class="p">:</span>
+    <span class="p">{</span>
+        <span class="n">TasselCapIndex</span><span class="o">.</span><span class="n">BRIGHTNESS</span><span class="p">:</span> <span class="p">{</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">BLUE</span><span class="p">:</span> <span class="mf">0.3029</span><span class="p">,</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">GREEN</span><span class="p">:</span> <span class="mf">0.2786</span><span class="p">,</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">RED</span><span class="p">:</span> <span class="mf">0.4733</span><span class="p">,</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">NEAR_INFRARED</span><span class="p">:</span> <span class="mf">0.5599</span><span class="p">,</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_1</span><span class="p">:</span> <span class="mf">0.508</span><span class="p">,</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_2</span><span class="p">:</span> <span class="mf">0.1872</span><span class="p">},</span>
+
+        <span class="n">TasselCapIndex</span><span class="o">.</span><span class="n">GREENNESS</span><span class="p">:</span> <span class="p">{</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">BLUE</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.2941</span><span class="p">,</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">GREEN</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.2430</span><span class="p">,</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">RED</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.5424</span><span class="p">,</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">NEAR_INFRARED</span><span class="p">:</span> <span class="mf">0.7276</span><span class="p">,</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_1</span><span class="p">:</span> <span class="mf">0.0713</span><span class="p">,</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_2</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.1608</span><span class="p">},</span>
+
+        <span class="n">TasselCapIndex</span><span class="o">.</span><span class="n">WETNESS</span><span class="p">:</span> <span class="p">{</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">BLUE</span><span class="p">:</span> <span class="mf">0.1511</span><span class="p">,</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">GREEN</span><span class="p">:</span> <span class="mf">0.1973</span><span class="p">,</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">RED</span><span class="p">:</span> <span class="mf">0.3283</span><span class="p">,</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">NEAR_INFRARED</span><span class="p">:</span> <span class="mf">0.3407</span><span class="p">,</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_1</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.7117</span><span class="p">,</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_2</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.4559</span><span class="p">},</span>
+
+        <span class="n">TasselCapIndex</span><span class="o">.</span><span class="n">FOURTH</span><span class="p">:</span> <span class="p">{</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">BLUE</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.8239</span><span class="p">,</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">GREEN</span><span class="p">:</span> <span class="mf">0.0849</span><span class="p">,</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">RED</span><span class="p">:</span> <span class="mf">0.4396</span><span class="p">,</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">NEAR_INFRARED</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.058</span><span class="p">,</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_1</span><span class="p">:</span> <span class="mf">0.2013</span><span class="p">,</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_2</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.2773</span><span class="p">},</span>
+
+        <span class="n">TasselCapIndex</span><span class="o">.</span><span class="n">FIFTH</span><span class="p">:</span> <span class="p">{</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">BLUE</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.3294</span><span class="p">,</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">GREEN</span><span class="p">:</span> <span class="mf">0.0557</span><span class="p">,</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">RED</span><span class="p">:</span> <span class="mf">0.1056</span><span class="p">,</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">NEAR_INFRARED</span><span class="p">:</span> <span class="mf">0.1855</span><span class="p">,</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_1</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.4349</span><span class="p">,</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_2</span><span class="p">:</span> <span class="mf">0.8085</span><span class="p">},</span>
+
+        <span class="n">TasselCapIndex</span><span class="o">.</span><span class="n">SIXTH</span><span class="p">:</span> <span class="p">{</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">BLUE</span><span class="p">:</span> <span class="mf">0.1079</span><span class="p">,</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">GREEN</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.9023</span><span class="p">,</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">RED</span><span class="p">:</span> <span class="mf">0.4119</span><span class="p">,</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">NEAR_INFRARED</span><span class="p">:</span> <span class="mf">0.0575</span><span class="p">,</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_1</span><span class="p">:</span> <span class="o">-</span><span class="mf">0.0259</span><span class="p">,</span>
+            <span class="n">Ls8Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_2</span><span class="p">:</span> <span class="mf">0.0252</span><span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="calculate_tassel_cap_index"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.calculate_tassel_cap_index">[docs]</a><span class="k">def</span> <span class="nf">calculate_tassel_cap_index</span><span class="p">(</span><span class="n">bands</span><span class="p">,</span> <span class="n">coefficients</span><span class="p">,</span> <span class="n">input_ndv</span><span class="o">=</span><span class="n">NDV</span><span class="p">,</span> <span class="n">output_ndv</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">nan</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    :param bands:</span>
+<span class="sd">    :param coefficients:</span>
+<span class="sd">    :param input_ndv:</span>
+<span class="sd">    :param output_ndv:</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">bands_masked</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+    <span class="c"># Drop out no data values - do I need this???</span>
+
+    <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">bands</span><span class="o">.</span><span class="n">iterkeys</span><span class="p">():</span>
+        <span class="n">bands_masked</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_equal</span><span class="p">(</span><span class="n">bands</span><span class="p">[</span><span class="n">b</span><span class="p">],</span> <span class="n">input_ndv</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10000</span>
+
+    <span class="n">tci</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">bands</span><span class="p">:</span>
+        <span class="n">tci</span> <span class="o">+=</span> <span class="n">bands_masked</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">*</span> <span class="n">coefficients</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>
+
+    <span class="n">tci</span> <span class="o">=</span> <span class="n">tci</span><span class="o">.</span><span class="n">filled</span><span class="p">(</span><span class="n">output_ndv</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">tci</span>
+
+</div>
+<div class="viewcode-block" id="calculate_medoid"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.calculate_medoid">[docs]</a><span class="k">def</span> <span class="nf">calculate_medoid</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">dist</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;X is </span><span class="se">\n</span><span class="si">%s</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">X</span><span class="p">)</span>
+    <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;X.ndim is </span><span class="si">%d</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">X</span><span class="o">.</span><span class="n">ndim</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">dist</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">dist</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">x</span><span class="o">-</span><span class="n">y</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">X</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">X</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="n">X</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+        <span class="n">d</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">([</span><span class="n">dist</span><span class="p">(</span><span class="n">X</span><span class="p">[:,</span> <span class="n">i</span><span class="p">],</span> <span class="n">X</span><span class="p">[:,</span> <span class="n">j</span><span class="p">])</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">if</span> <span class="n">j</span> <span class="o">!=</span> <span class="n">i</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">X</span><span class="p">[:,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">d</span><span class="p">)]</span>
+
+
+<span class="c"># def calculate_medoid_simon(X):</span>
+<span class="c">#</span>
+<span class="c">#     _log.debug(&quot;shape of X is %s&quot;, numpy.shape(X))</span>
+<span class="c">#</span>
+<span class="c">#     files, bands, rows, cols = numpy.shape(X)</span>
+<span class="c">#     _log.debug(&quot;files=%d bands=%d rows=%d cols=%d&quot;, files, bands, rows, cols)</span>
+<span class="c">#</span>
+<span class="c">#     d = numpy.empty(rows, cols)</span>
+
+
+<span class="c"># def calculate_medoid_flood(X):</span>
+<span class="c">#</span>
+<span class="c">#     ndx = vectormedian(imagestack)</span>
+<span class="c">#     medianimg = selectmedianimage(imagestack, ndx)</span>
+
+</div>
+<div class="viewcode-block" id="latlon_to_xy"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.latlon_to_xy">[docs]</a><span class="k">def</span> <span class="nf">latlon_to_xy</span><span class="p">(</span><span class="n">lat</span><span class="p">,</span> <span class="n">lon</span><span class="p">,</span> <span class="n">transform</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert lat/lon to x/y for raster</span>
+<span class="sd">    NOTE: No projection done - assumes raster has native lat/lon projection</span>
+
+<span class="sd">    :param lat: latitude</span>
+<span class="sd">    :param lon: longitude</span>
+<span class="sd">    :param transform: GDAL GeoTransform</span>
+<span class="sd">    :return: x, y pair</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># Get the reverse direction GeoTransform</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">transform</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">InvGeoTransform</span><span class="p">(</span><span class="n">transform</span><span class="p">)</span>
+
+    <span class="n">ulx</span><span class="p">,</span> <span class="n">uly</span> <span class="o">=</span> <span class="n">transform</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">transform</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+    <span class="n">psx</span><span class="p">,</span> <span class="n">psy</span> <span class="o">=</span> <span class="n">transform</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">transform</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+
+    <span class="n">x</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">ulx</span> <span class="o">+</span> <span class="n">psx</span> <span class="o">*</span> <span class="n">lon</span><span class="p">))</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">uly</span> <span class="o">+</span> <span class="n">psy</span> <span class="o">*</span> <span class="n">lat</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span>
+
+</div>
+<div class="viewcode-block" id="latlon_to_cell"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.latlon_to_cell">[docs]</a><span class="k">def</span> <span class="nf">latlon_to_cell</span><span class="p">(</span><span class="n">lat</span><span class="p">,</span> <span class="n">lon</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the cell that contains the given lat/lon pair</span>
+
+<span class="sd">    NOTE: x of cell represents min (contained) lon value but y of cell represents max (not contained) lat value</span>
+<span class="sd">        that is, 120/-20 contains lon values 120-&gt;120.99999 but lat values -19-&gt;-19.99999</span>
+<span class="sd">        that is, that is, 120/-20 does NOT contain lat value of -20</span>
+
+<span class="sd">    :param lat: latitude</span>
+<span class="sd">    :param lon: longitude</span>
+<span class="sd">    :return: cell as x, y pair</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">lon</span><span class="p">)</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">lat</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span>
+
+
+<span class="c"># TODO this is a bit of dodginess until the WOFS tiles are ingested</span>
+<span class="c"># DO NOT USE THIS IT WON&#39;T STAY!!!!</span>
+</div>
+<div class="viewcode-block" id="extract_fields_from_filename"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.extract_fields_from_filename">[docs]</a><span class="k">def</span> <span class="nf">extract_fields_from_filename</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    :param filename:</span>
+<span class="sd">    :return:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c"># At the moment I only need this to work for the WOFS WATER extent tile files....</span>
+    <span class="c">#  LS5_TM_WATER_120_-021_2004-09-20T01-40-14.409038.tif</span>
+    <span class="c">#  LS7_ETM_WATER_120_-021_2006-06-30T01-45-48.187525.tif</span>
+
+    <span class="k">if</span> <span class="n">filename</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s">&quot;.tif&quot;</span><span class="p">):</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="p">[:</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="s">&quot;.tif&quot;</span><span class="p">)]</span>
+
+    <span class="k">elif</span> <span class="n">filename</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s">&quot;.tiff&quot;</span><span class="p">):</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="p">[:</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="s">&quot;.tiff&quot;</span><span class="p">)]</span>
+
+    <span class="k">elif</span> <span class="n">filename</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s">&quot;.vrt&quot;</span><span class="p">):</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="p">[:</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="s">&quot;.vrt&quot;</span><span class="p">)]</span>
+
+    <span class="n">fields</span> <span class="o">=</span> <span class="n">filename</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;_&quot;</span><span class="p">)</span>
+
+    <span class="c"># Satellite</span>
+    <span class="n">satellite</span> <span class="o">=</span> <span class="n">Satellite</span><span class="p">[</span><span class="n">fields</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+
+    <span class="c"># Dataset Type</span>
+    <span class="n">dataset_type</span> <span class="o">=</span> <span class="n">DatasetType</span><span class="p">[</span><span class="n">fields</span><span class="p">[</span><span class="mi">2</span><span class="p">]]</span>
+
+    <span class="c"># Cell</span>
+    <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="mi">3</span><span class="p">]),</span> <span class="nb">int</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+
+    <span class="c"># Acquisition Date/Time</span>
+    <span class="n">acq_str</span> <span class="o">=</span> <span class="n">fields</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;.&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="c"># go from &quot;2006-06-30T01-45-48.187525&quot; to &quot;2006-06-30T01-45-48&quot;</span>
+    <span class="n">acq_dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">acq_str</span><span class="p">,</span> <span class="s">&quot;%Y-%m-</span><span class="si">%d</span><span class="s">T%H-%M-%S&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">satellite</span><span class="p">,</span> <span class="n">dataset_type</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">acq_dt</span>
+
+</div>
+<div class="viewcode-block" id="intersection"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.intersection">[docs]</a><span class="k">def</span> <span class="nf">intersection</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">b</span><span class="p">))</span>
+
+</div>
+<div class="viewcode-block" id="union"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.union">[docs]</a><span class="k">def</span> <span class="nf">union</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">|</span> <span class="nb">set</span><span class="p">(</span><span class="n">b</span><span class="p">))</span>
+
+</div>
+<div class="viewcode-block" id="subset"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.subset">[docs]</a><span class="k">def</span> <span class="nf">subset</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">set</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="nb">set</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="get_satellite_string"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.get_satellite_string">[docs]</a><span class="k">def</span> <span class="nf">get_satellite_string</span><span class="p">(</span><span class="n">satellites</span><span class="p">):</span>
+    <span class="c"># TODO this assumes everything is Landsat!!!!</span>
+    <span class="k">return</span> <span class="s">&quot;LS&quot;</span> <span class="o">+</span> <span class="s">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">s</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;LS&quot;</span><span class="p">,</span> <span class="s">&quot;&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">satellites</span><span class="p">])</span>
+
+</div>
+<div class="viewcode-block" id="check_overwrite_remove_or_fail"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.check_overwrite_remove_or_fail">[docs]</a><span class="k">def</span> <span class="nf">check_overwrite_remove_or_fail</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">overwrite</span><span class="p">):</span>
+
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">overwrite</span><span class="p">:</span>
+            <span class="n">_log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Removing existing output file [</span><span class="si">%s</span><span class="s">]&quot;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">_log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Output file [</span><span class="si">%s</span><span class="s">] exists&quot;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;File [</span><span class="si">%s</span><span class="s">] exists&quot;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="log_mem"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.log_mem">[docs]</a><span class="k">def</span> <span class="nf">log_mem</span><span class="p">(</span><span class="n">s</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="k">if</span> <span class="n">s</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">_log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+    <span class="kn">import</span> <span class="nn">psutil</span>
+
+    <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Current memory usage is [</span><span class="si">%s</span><span class="s">]&quot;</span><span class="p">,</span> <span class="n">psutil</span><span class="o">.</span><span class="n">Process</span><span class="p">()</span><span class="o">.</span><span class="n">memory_info</span><span class="p">())</span>
+    <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Current memory usage is [</span><span class="si">%d</span><span class="s">] MB&quot;</span><span class="p">,</span> <span class="n">psutil</span><span class="o">.</span><span class="n">Process</span><span class="p">()</span><span class="o">.</span><span class="n">memory_info</span><span class="p">()</span><span class="o">.</span><span class="n">rss</span> <span class="o">/</span> <span class="mi">1024</span> <span class="o">/</span> <span class="mi">1024</span><span class="p">)</span>
+
+    <span class="kn">import</span> <span class="nn">resource</span>
+
+    <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Current MAX RSS  usage is [</span><span class="si">%d</span><span class="s">] MB&quot;</span><span class="p">,</span> <span class="n">resource</span><span class="o">.</span><span class="n">getrusage</span><span class="p">(</span><span class="n">resource</span><span class="o">.</span><span class="n">RUSAGE_SELF</span><span class="p">)</span><span class="o">.</span><span class="n">ru_maxrss</span> <span class="o">/</span> <span class="mi">1024</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="date_to_integer"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.date_to_integer">[docs]</a><span class="k">def</span> <span class="nf">date_to_integer</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+    <span class="c"># Return an integer representing the YYYYMMDD value</span>
+    <span class="k">return</span> <span class="n">d</span><span class="o">.</span><span class="n">year</span> <span class="o">*</span> <span class="mi">10000</span> <span class="o">+</span> <span class="n">d</span><span class="o">.</span><span class="n">month</span> <span class="o">*</span> <span class="mi">100</span> <span class="o">+</span> <span class="n">d</span><span class="o">.</span><span class="n">day</span>
+
+</div>
+<div class="viewcode-block" id="get_dataset_filename"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.get_dataset_filename">[docs]</a><span class="k">def</span> <span class="nf">get_dataset_filename</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">mask_pqa_apply</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">mask_wofs_apply</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">path</span>
+
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+    <span class="n">dataset_type_from_string</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">ARG25</span><span class="p">:</span> <span class="s">&quot;_NBAR_&quot;</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">PQ25</span><span class="p">:</span> <span class="s">&quot;_PQA_&quot;</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">FC25</span><span class="p">:</span> <span class="s">&quot;_FC_&quot;</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">WATER</span><span class="p">:</span> <span class="s">&quot;_WATER_&quot;</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">NDVI</span><span class="p">:</span> <span class="s">&quot;_NBAR_&quot;</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">EVI</span><span class="p">:</span> <span class="s">&quot;_NBAR_&quot;</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">NBR</span><span class="p">:</span> <span class="s">&quot;_NBAR_&quot;</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">TCI</span><span class="p">:</span> <span class="s">&quot;_NBAR_&quot;</span>
+    <span class="p">}[</span><span class="n">dataset</span><span class="o">.</span><span class="n">dataset_type</span><span class="p">]</span>
+
+    <span class="n">dataset_type_to_string</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">ARG25</span><span class="p">:</span> <span class="s">&quot;_NBAR_&quot;</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">PQ25</span><span class="p">:</span> <span class="s">&quot;_PQA_&quot;</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">FC25</span><span class="p">:</span> <span class="s">&quot;_FC_&quot;</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">WATER</span><span class="p">:</span> <span class="s">&quot;_WATER_&quot;</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">NDVI</span><span class="p">:</span> <span class="s">&quot;_NDVI_&quot;</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">EVI</span><span class="p">:</span> <span class="s">&quot;_EVI_&quot;</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">NBR</span><span class="p">:</span> <span class="s">&quot;_NBR_&quot;</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">TCI</span><span class="p">:</span> <span class="s">&quot;_TCI_&quot;</span>
+    <span class="p">}[</span><span class="n">dataset</span><span class="o">.</span><span class="n">dataset_type</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">mask_pqa_apply</span> <span class="ow">and</span> <span class="n">mask_wofs_apply</span><span class="p">:</span>
+        <span class="n">dataset_type_to_string</span> <span class="o">+=</span> <span class="s">&quot;WITH_PQA_WATER_&quot;</span>
+
+    <span class="k">elif</span> <span class="n">mask_pqa_apply</span><span class="p">:</span>
+        <span class="n">dataset_type_to_string</span> <span class="o">+=</span> <span class="s">&quot;WITH_PQA_&quot;</span>
+
+    <span class="k">elif</span> <span class="n">mask_wofs_apply</span><span class="p">:</span>
+        <span class="n">dataset_type_to_string</span> <span class="o">+=</span> <span class="o">+</span> <span class="s">&quot;WITH_WATER_&quot;</span>
+
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">dataset_type_from_string</span><span class="p">,</span> <span class="n">dataset_type_to_string</span><span class="p">)</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;.vrt&quot;</span><span class="p">,</span> <span class="s">&quot;.tif&quot;</span><span class="p">)</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;.tiff&quot;</span><span class="p">,</span> <span class="s">&quot;.tif&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">filename</span>
+
+
+<span class="c"># TODO</span></div>
+<div class="viewcode-block" id="get_dataset_ndv"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.get_dataset_ndv">[docs]</a><span class="k">def</span> <span class="nf">get_dataset_ndv</span><span class="p">(</span><span class="n">dataset</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">NDV</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Geoscience Australia.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.3</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

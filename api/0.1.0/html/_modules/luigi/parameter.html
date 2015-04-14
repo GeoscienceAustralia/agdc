@@ -1,0 +1,648 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>luigi.parameter &mdash; agdc-api 0.1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="agdc-api 0.1.0 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">agdc-api 0.1.0 documentation</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for luigi.parameter</h1><div class="highlight"><pre>
+<span class="c"># -*- coding: utf-8 -*-</span>
+<span class="c">#</span>
+<span class="c"># Copyright 2012-2015 Spotify AB</span>
+<span class="c">#</span>
+<span class="c"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c">#</span>
+<span class="c"># http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c">#</span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+<span class="c">#</span>
+
+<span class="sd">&#39;&#39;&#39; Parameters are one of the core concepts of Luigi.</span>
+<span class="sd">All Parameters sit on :class:`~luigi.task.Task` classes.</span>
+<span class="sd">See :ref:`Parameter` for more info on how to define parameters.</span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">ConfigParser</span> <span class="kn">import</span> <span class="n">NoOptionError</span><span class="p">,</span> <span class="n">NoSectionError</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="kn">from</span> <span class="nn">configparser</span> <span class="kn">import</span> <span class="n">NoOptionError</span><span class="p">,</span> <span class="n">NoSectionError</span>
+
+<span class="kn">from</span> <span class="nn">luigi</span> <span class="kn">import</span> <span class="n">six</span>
+
+<span class="kn">from</span> <span class="nn">luigi</span> <span class="kn">import</span> <span class="n">configuration</span>
+<span class="kn">from</span> <span class="nn">luigi.deprecate_kwarg</span> <span class="kn">import</span> <span class="n">deprecate_kwarg</span>
+
+<span class="n">_no_value</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
+
+
+<span class="k">class</span> <span class="nc">ParameterException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Base exception.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span>
+
+
+<span class="k">class</span> <span class="nc">MissingParameterException</span><span class="p">(</span><span class="n">ParameterException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exception signifying that there was a missing Parameter.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span>
+
+
+<span class="k">class</span> <span class="nc">UnknownParameterException</span><span class="p">(</span><span class="n">ParameterException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exception signifying that an unknown Parameter was supplied.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span>
+
+
+<span class="k">class</span> <span class="nc">DuplicateParameterException</span><span class="p">(</span><span class="n">ParameterException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exception signifying that a Parameter was specified multiple times.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span>
+
+
+<span class="k">class</span> <span class="nc">UnknownConfigException</span><span class="p">(</span><span class="n">ParameterException</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Exception signifying that the ``config_path`` for the Parameter could not be found.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span>
+
+
+<span class="k">class</span> <span class="nc">Parameter</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    An untyped Parameter</span>
+
+<span class="sd">    Parameters are objects set on the Task class level to make it possible to parameterize tasks.</span>
+<span class="sd">    For instance:</span>
+
+<span class="sd">        class MyTask(luigi.Task):</span>
+<span class="sd">            foo = luigi.Parameter()</span>
+
+<span class="sd">    This makes it possible to instantiate multiple tasks, eg ``MyTask(foo=&#39;bar&#39;)`` and</span>
+<span class="sd">    ``My(foo=&#39;baz&#39;)``. The task will then have the ``foo`` attribute set appropriately.</span>
+
+<span class="sd">    There are subclasses of ``Parameter`` that define what type the parameter has. This is not</span>
+<span class="sd">    enforced within Python, but are used for command line interaction.</span>
+
+<span class="sd">    The ``config_path`` argument lets you specify a place where the parameter is read from config</span>
+<span class="sd">    in case no value is provided.</span>
+
+<span class="sd">    When a task is instantiated, it will first use any argument as the value of the parameter, eg.</span>
+<span class="sd">    if you instantiate a = TaskA(x=44) then a.x == 44. If this does not exist, it will use the value</span>
+<span class="sd">    of the Parameter object, which is defined on a class level. This will be resolved in this</span>
+<span class="sd">    order of falling priority:</span>
+
+<span class="sd">    * Any value provided on the command line on the class level (eg. ``--TaskA-param xyz``)</span>
+<span class="sd">    * Any value provided via config (using the ``config_path`` argument)</span>
+<span class="sd">    * Any default value set using the ``default`` flag.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="sd">&quot;&quot;&quot;non-atomically increasing counter used for ordering parameters.&quot;&quot;&quot;</span>
+
+    <span class="nd">@deprecate_kwarg</span><span class="p">(</span><span class="s">&#39;is_boolean&#39;</span><span class="p">,</span> <span class="s">&#39;is_bool&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">_no_value</span><span class="p">,</span> <span class="n">is_list</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">is_boolean</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">is_global</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">significant</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                 <span class="n">config_path</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param default: the default value for this parameter. This should match the type of the</span>
+<span class="sd">                        Parameter, i.e. ``datetime.date`` for ``DateParameter`` or ``int`` for</span>
+<span class="sd">                        ``IntParameter``. By default, no default is stored and</span>
+<span class="sd">                        the value must be specified at runtime.</span>
+<span class="sd">        :param bool is_list: specify ``True`` if the parameter should allow a list of values rather</span>
+<span class="sd">                             than a single value. Default: ``False``. A list has an implicit default</span>
+<span class="sd">                             value of ``[]``.</span>
+<span class="sd">        :param bool is_bool: specify ``True`` if the parameter is a bool value. Default:</span>
+<span class="sd">                                ``False``. Bool&#39;s have an implicit default value of ``False``.</span>
+<span class="sd">        :param bool is_global: specify ``True`` if the parameter is global (i.e. used by multiple</span>
+<span class="sd">                               Tasks). Default: ``False``. DEPRECATED.</span>
+<span class="sd">        :param bool significant: specify ``False`` if the parameter should not be treated as part of</span>
+<span class="sd">                                 the unique identifier for a Task. An insignificant Parameter might</span>
+<span class="sd">                                 also be used to specify a password or other sensitive information</span>
+<span class="sd">                                 that should not be made public via the scheduler. Default:</span>
+<span class="sd">                                 ``True``.</span>
+<span class="sd">        :param str description: A human-readable string describing the purpose of this Parameter.</span>
+<span class="sd">                                For command-line invocations, this will be used as the `help` string</span>
+<span class="sd">                                shown to users. Default: ``None``.</span>
+<span class="sd">        :param dict config_path: a dictionary with entries ``section`` and ``name``</span>
+<span class="sd">                                 specifying a config file entry from which to read the</span>
+<span class="sd">                                 default value for this parameter. DEPRECATED.</span>
+<span class="sd">                                 Default: ``None``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># The default default is no default</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__default</span> <span class="o">=</span> <span class="n">default</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__global</span> <span class="o">=</span> <span class="n">_no_value</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_list</span> <span class="o">=</span> <span class="n">is_list</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_bool</span> <span class="o">=</span> <span class="n">is_boolean</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_list</span>  <span class="c"># Only BoolParameter should ever use this. TODO(erikbern): should we raise some kind of exception?</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_global</span> <span class="o">=</span> <span class="n">is_global</span>  <span class="c"># It just means that the default value is exposed and you can override it</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">significant</span> <span class="o">=</span> <span class="n">significant</span>  <span class="c"># Whether different values for this parameter will differentiate otherwise equal tasks</span>
+
+        <span class="k">if</span> <span class="n">is_global</span><span class="p">:</span>
+            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s">&#39;is_global is deprecated and will be removed. Please use either &#39;</span>
+                <span class="s">&#39; (a) class level config (eg. --MyTask-my-param 42)&#39;</span>
+                <span class="s">&#39; (b) a separate Config class with global settings on it&#39;</span><span class="p">,</span>
+                <span class="ne">DeprecationWarning</span><span class="p">,</span>
+                <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">is_global</span> <span class="ow">and</span> <span class="n">default</span> <span class="o">==</span> <span class="n">_no_value</span> <span class="ow">and</span> <span class="n">config_path</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ParameterException</span><span class="p">(</span><span class="s">&#39;Global parameters need default values&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">description</span> <span class="o">=</span> <span class="n">description</span>
+
+        <span class="k">if</span> <span class="n">config_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="p">(</span><span class="s">&#39;section&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">config_path</span> <span class="ow">or</span> <span class="s">&#39;name&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">config_path</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">ParameterException</span><span class="p">(</span><span class="s">&#39;config_path must be a hash containing entries for section and name&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__config</span> <span class="o">=</span> <span class="n">config_path</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">counter</span> <span class="o">=</span> <span class="n">Parameter</span><span class="o">.</span><span class="n">counter</span>  <span class="c"># We need to keep track of this to get the order right (see Task class)</span>
+        <span class="n">Parameter</span><span class="o">.</span><span class="n">counter</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="k">def</span> <span class="nf">_get_value_from_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">section</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Loads the default from the config. Returns _no_value if it doesn&#39;t exist&quot;&quot;&quot;</span>
+
+        <span class="n">conf</span> <span class="o">=</span> <span class="n">configuration</span><span class="o">.</span><span class="n">get_config</span><span class="p">()</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">section</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="n">NoSectionError</span><span class="p">,</span> <span class="n">NoOptionError</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">_no_value</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_list</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">value</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_name</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">param_name</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__global</span> <span class="o">!=</span> <span class="n">_no_value</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__global</span>
+        <span class="k">if</span> <span class="n">task_name</span> <span class="ow">and</span> <span class="n">param_name</span><span class="p">:</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_value_from_config</span><span class="p">(</span><span class="n">task_name</span><span class="p">,</span> <span class="n">param_name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">v</span> <span class="o">!=</span> <span class="n">_no_value</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">v</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__config</span><span class="p">:</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_value_from_config</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__config</span><span class="p">[</span><span class="s">&#39;section&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">__config</span><span class="p">[</span><span class="s">&#39;name&#39;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">v</span> <span class="o">!=</span> <span class="n">_no_value</span> <span class="ow">and</span> <span class="n">task_name</span> <span class="ow">and</span> <span class="n">param_name</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s">&#39;The use of the configuration </span><span class="si">%s</span><span class="s">&gt;</span><span class="si">%s</span><span class="s"> is deprecated. Please use </span><span class="si">%s</span><span class="s">&gt;</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span>
+                    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__config</span><span class="p">[</span><span class="s">&#39;section&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">__config</span><span class="p">[</span><span class="s">&#39;name&#39;</span><span class="p">],</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">param_name</span><span class="p">),</span>
+                    <span class="ne">DeprecationWarning</span><span class="p">,</span> <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">v</span> <span class="o">!=</span> <span class="n">_no_value</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">v</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__default</span> <span class="o">!=</span> <span class="n">_no_value</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">__default</span>
+
+        <span class="k">return</span> <span class="n">_no_value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">has_value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        ``True`` if a default was specified or if config_path references a valid entry in the conf.</span>
+
+<span class="sd">        Note that &quot;value&quot; refers to the Parameter object itself - it can be either</span>
+
+<span class="sd">        1. The default value for this parameter</span>
+<span class="sd">        2. A value read from the config</span>
+<span class="sd">        3. A global value</span>
+
+<span class="sd">        Any Task instance can have its own value set that overrides this.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_value</span><span class="p">()</span> <span class="o">!=</span> <span class="n">_no_value</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The value for this Parameter.</span>
+
+<span class="sd">        This refers to any value defined by a default, a config option, or</span>
+<span class="sd">        a global value.</span>
+
+<span class="sd">        :raises MissingParameterException: if a value is not set.</span>
+<span class="sd">        :return: the parsed value.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_value</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="o">==</span> <span class="n">_no_value</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">MissingParameterException</span><span class="p">(</span><span class="s">&quot;No default specified&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">has_task_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">param_name</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_value</span><span class="p">(</span><span class="n">task_name</span><span class="p">,</span> <span class="n">param_name</span><span class="p">)</span> <span class="o">!=</span> <span class="n">_no_value</span>
+
+    <span class="k">def</span> <span class="nf">task_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">param_name</span><span class="p">):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_value</span><span class="p">(</span><span class="n">task_name</span><span class="p">,</span> <span class="n">param_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="o">==</span> <span class="n">_no_value</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">MissingParameterException</span><span class="p">(</span><span class="s">&quot;No default specified&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">set_global</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the global value of this Parameter.</span>
+
+<span class="sd">        :param value: the new global value.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__global</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">reset_global</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">__global</span> <span class="o">=</span> <span class="n">_no_value</span>
+
+    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parse an individual value from the input.</span>
+
+<span class="sd">        The default implementation is an identify (it returns ``x``), but subclasses should override</span>
+<span class="sd">        this method for specialized parsing. This method is called by :py:meth:`parse_from_input`</span>
+<span class="sd">        if ``x`` exists. If this Parameter was specified with ``is_list=True``, then ``parse`` is</span>
+<span class="sd">        called once for each item in the list.</span>
+
+<span class="sd">        :param str x: the value to parse.</span>
+<span class="sd">        :return: the parsed value.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">x</span>  <span class="c"># default impl</span>
+
+    <span class="k">def</span> <span class="nf">serialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>  <span class="c"># opposite of parse</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Opposite of :py:meth:`parse`.</span>
+
+<span class="sd">        Converts the value ``x`` to a string.</span>
+
+<span class="sd">        :param x: the value to serialize.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_list</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">x</span><span class="p">]</span>
+        <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">parse_from_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_name</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parses the parameter value from input ``x``, handling defaults and is_list.</span>
+
+<span class="sd">        :param param_name: the name of the parameter. This is used for the message in</span>
+<span class="sd">                           ``MissingParameterException``.</span>
+<span class="sd">        :param x: the input value to parse.</span>
+<span class="sd">        :raises MissingParameterException: if x is false-y and no default is specified.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">x</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_value</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_bool</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">False</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_list</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">[]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">MissingParameterException</span><span class="p">(</span><span class="s">&quot;No value for &#39;</span><span class="si">%s</span><span class="s">&#39; (</span><span class="si">%s</span><span class="s">) submitted and no default value has been assigned.&quot;</span> <span class="o">%</span>
+                                                <span class="p">(</span><span class="n">param_name</span><span class="p">,</span> <span class="s">&quot;--&quot;</span> <span class="o">+</span> <span class="n">param_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&#39;_&#39;</span><span class="p">,</span> <span class="s">&#39;-&#39;</span><span class="p">)))</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_list</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">x</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">serialize_to_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_list</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">serialize</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">x</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">serialize</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">parser_dest</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_name</span><span class="p">,</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">glob</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">is_without_section</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_global</span> <span class="ow">or</span> <span class="n">is_without_section</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">glob</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">param_name</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">glob</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">task_name</span> <span class="o">+</span> <span class="s">&#39;_&#39;</span> <span class="o">+</span> <span class="n">param_name</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">param_name</span>
+
+    <span class="k">def</span> <span class="nf">add_to_cmdline_parser</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parser</span><span class="p">,</span> <span class="n">param_name</span><span class="p">,</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">optparse</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">glob</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">is_without_section</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="n">dest</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parser_dest</span><span class="p">(</span><span class="n">param_name</span><span class="p">,</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">glob</span><span class="p">,</span> <span class="n">is_without_section</span><span class="o">=</span><span class="n">is_without_section</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">dest</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="n">flag</span> <span class="o">=</span> <span class="s">&#39;--&#39;</span> <span class="o">+</span> <span class="n">dest</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&#39;_&#39;</span><span class="p">,</span> <span class="s">&#39;-&#39;</span><span class="p">)</span>
+
+        <span class="n">description</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">description</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%s</span><span class="s">.</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">task_name</span><span class="p">,</span> <span class="n">param_name</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">glob</span><span class="p">:</span>
+            <span class="n">description</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&#39;for all instances of class </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">task_name</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">description</span><span class="p">:</span>
+            <span class="n">description</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">description</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_value</span><span class="p">:</span>
+            <span class="n">description</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&quot; [default: </span><span class="si">%s</span><span class="s">]&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">,))</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_list</span><span class="p">:</span>
+            <span class="n">action</span> <span class="o">=</span> <span class="s">&quot;append&quot;</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_bool</span><span class="p">:</span>
+            <span class="n">action</span> <span class="o">=</span> <span class="s">&quot;store_true&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">action</span> <span class="o">=</span> <span class="s">&quot;store&quot;</span>
+        <span class="k">if</span> <span class="n">optparse</span><span class="p">:</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_option</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">f</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span>
+        <span class="n">f</span><span class="p">(</span><span class="n">flag</span><span class="p">,</span>
+          <span class="n">help</span><span class="o">=</span><span class="s">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">description</span><span class="p">),</span>
+          <span class="n">action</span><span class="o">=</span><span class="n">action</span><span class="p">,</span>
+          <span class="n">dest</span><span class="o">=</span><span class="n">dest</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">parse_from_args</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_name</span><span class="p">,</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+        <span class="c"># Note: modifies arguments</span>
+        <span class="n">dest</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parser_dest</span><span class="p">(</span><span class="n">param_name</span><span class="p">,</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">glob</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dest</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+            <span class="n">params</span><span class="p">[</span><span class="n">param_name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_from_input</span><span class="p">(</span><span class="n">param_name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">set_global_from_args</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_name</span><span class="p">,</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">is_without_section</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="c"># Note: side effects</span>
+        <span class="n">dest</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parser_dest</span><span class="p">(</span><span class="n">param_name</span><span class="p">,</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">glob</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">is_without_section</span><span class="o">=</span><span class="n">is_without_section</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dest</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">value</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">set_global</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parse_from_input</span><span class="p">(</span><span class="n">param_name</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>  <span class="c"># either False (bools) or None (everything else)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">reset_global</span><span class="p">()</span>
+
+
+<span class="k">class</span> <span class="nc">DateHourParameter</span><span class="p">(</span><span class="n">Parameter</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parameter whose value is a :py:class:`~datetime.datetime` specified to the hour.</span>
+
+<span class="sd">    A DateHourParameter is a `ISO 8601 &lt;http://en.wikipedia.org/wiki/ISO_8601&gt;`_ formatted</span>
+<span class="sd">    date and time specified to the hour. For example, ``2013-07-10T19`` specifies July 10, 2013 at</span>
+<span class="sd">    19:00.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">date_format</span> <span class="o">=</span> <span class="s">&#39;%Y-%m-</span><span class="si">%d</span><span class="s">T%H&#39;</span>  <span class="c"># ISO 8601 is to use &#39;T&#39;</span>
+
+    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parses a string to a :py:class:`~datetime.datetime` using the format string ``%Y-%m-%dT%H``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># TODO(erikbern): we should probably use an internal class for arbitary</span>
+        <span class="c"># time intervals (similar to date_interval). Or what do you think?</span>
+        <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">date_format</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">serialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dt</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Converts the datetime to a string usnig the format string ``%Y-%m-%dT%H``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">dt</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">dt</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">dt</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">date_format</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">DateMinuteParameter</span><span class="p">(</span><span class="n">DateHourParameter</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parameter whose value is a :py:class:`~datetime.datetime` specified to the minute.</span>
+
+<span class="sd">    A DateMinuteParameter is a `ISO 8601 &lt;http://en.wikipedia.org/wiki/ISO_8601&gt;`_ formatted</span>
+<span class="sd">    date and time specified to the minute. For example, ``2013-07-10T19H07`` specifies July 10, 2013 at</span>
+<span class="sd">    19:07.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">date_format</span> <span class="o">=</span> <span class="s">&#39;%Y-%m-</span><span class="si">%d</span><span class="s">T%HH%M&#39;</span>  <span class="c"># ISO 8601 is to use &#39;T&#39; and &#39;H&#39;</span>
+
+
+<span class="k">class</span> <span class="nc">DateParameter</span><span class="p">(</span><span class="n">Parameter</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parameter whose value is a :py:class:`~datetime.date`.</span>
+
+<span class="sd">    A DateParameter is a Date string formatted ``YYYY-MM-DD``. For example, ``2013-07-10`` specifies</span>
+<span class="sd">    July 10, 2013.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Parses a date string formatted as ``YYYY-MM-DD``.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">date</span><span class="p">(</span><span class="o">*</span><span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;-&#39;</span><span class="p">)))</span>
+
+
+<span class="k">class</span> <span class="nc">IntParameter</span><span class="p">(</span><span class="n">Parameter</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parameter whose value is an ``int``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parses an ``int`` from the string using ``int()``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">FloatParameter</span><span class="p">(</span><span class="n">Parameter</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parameter whose value is a ``float``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parses a ``float`` from the string using ``float()``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">BoolParameter</span><span class="p">(</span><span class="n">Parameter</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A Parameter whose value is a ``bool``.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        This constructor passes along args and kwargs to ctor for :py:class:`Parameter` but</span>
+<span class="sd">        specifies ``is_bool=True``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BoolParameter</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">is_bool</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parses a ``bool`` from the string, matching &#39;true&#39; or &#39;false&#39; ignoring case.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s">&#39;true&#39;</span><span class="p">:</span> <span class="bp">True</span><span class="p">,</span> <span class="s">&#39;false&#39;</span><span class="p">:</span> <span class="bp">False</span><span class="p">}[</span><span class="nb">str</span><span class="p">(</span><span class="n">s</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span>
+
+
+<span class="k">class</span> <span class="nc">BooleanParameter</span><span class="p">(</span><span class="n">BoolParameter</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="s">&#39;BooleanParameter is deprecated, use BoolParameter instead&#39;</span><span class="p">,</span>
+            <span class="ne">DeprecationWarning</span><span class="p">,</span>
+            <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span>
+        <span class="p">)</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">BooleanParameter</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">DateIntervalParameter</span><span class="p">(</span><span class="n">Parameter</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A Parameter whose value is a :py:class:`~luigi.date_interval.DateInterval`.</span>
+
+<span class="sd">    Date Intervals are specified using the ISO 8601 `Time Interval</span>
+<span class="sd">    &lt;http://en.wikipedia.org/wiki/ISO_8601#Time_intervals&gt;`_ notation.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># Class that maps to/from dates using ISO 8601 standard</span>
+    <span class="c"># Also gives some helpful interval algebra</span>
+
+    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parses a `:py:class:`~luigi.date_interval.DateInterval` from the input.</span>
+
+<span class="sd">        see :py:mod:`luigi.date_interval`</span>
+<span class="sd">          for details on the parsing of DateIntervals.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># TODO: can we use xml.utils.iso8601 or something similar?</span>
+
+        <span class="kn">from</span> <span class="nn">luigi</span> <span class="kn">import</span> <span class="n">date_interval</span> <span class="k">as</span> <span class="n">d</span>
+
+        <span class="k">for</span> <span class="n">cls</span> <span class="ow">in</span> <span class="p">[</span><span class="n">d</span><span class="o">.</span><span class="n">Year</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">Month</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">Week</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">Date</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">Custom</span><span class="p">]:</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="n">cls</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">i</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">i</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&#39;Invalid date interval - could not be parsed&#39;</span><span class="p">)</span>
+
+
+<span class="k">class</span> <span class="nc">TimeDeltaParameter</span><span class="p">(</span><span class="n">Parameter</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Class that maps to timedelta using strings in any of the following forms:</span>
+
+<span class="sd">     * ``n {w[eek[s]]|d[ay[s]]|h[our[s]]|m[inute[s]|s[second[s]]}`` (e.g. &quot;1 week 2 days&quot; or &quot;1 h&quot;)</span>
+<span class="sd">        Note: multiple arguments must be supplied in longest to shortest unit order</span>
+<span class="sd">     * ISO 8601 duration ``PnDTnHnMnS`` (each field optional, years and months not supported)</span>
+<span class="sd">     * ISO 8601 duration ``PnW``</span>
+
+<span class="sd">    See https://en.wikipedia.org/wiki/ISO_8601#Durations</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_apply_regex</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">regex</span><span class="p">,</span> <span class="nb">input</span><span class="p">):</span>
+        <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">timedelta</span>
+        <span class="kn">import</span> <span class="nn">re</span>
+        <span class="n">re_match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">regex</span><span class="p">,</span> <span class="nb">input</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">re_match</span><span class="p">:</span>
+            <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">has_val</span> <span class="o">=</span> <span class="bp">False</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">re_match</span><span class="o">.</span><span class="n">groupdict</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="s">&quot;0&quot;</span><span class="p">)):</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+                <span class="n">has_val</span> <span class="o">=</span> <span class="n">has_val</span> <span class="ow">or</span> <span class="n">val</span> <span class="o">!=</span> <span class="mi">0</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">val</span>
+            <span class="k">if</span> <span class="n">has_val</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">timedelta</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_parseIso8601</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">field</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s">&quot;(?P&lt;</span><span class="si">%s</span><span class="s">&gt;\d+)</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">key</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">())</span>
+
+        <span class="k">def</span> <span class="nf">optional_field</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s">&quot;(</span><span class="si">%s</span><span class="s">)?&quot;</span> <span class="o">%</span> <span class="n">field</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+        <span class="c"># A little loose: ISO 8601 does not allow weeks in combination with other fields, but this regex does (as does python timedelta)</span>
+        <span class="n">regex</span> <span class="o">=</span> <span class="s">&quot;P(</span><span class="si">%s</span><span class="s">|</span><span class="si">%s</span><span class="s">(T</span><span class="si">%s</span><span class="s">)?)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">field</span><span class="p">(</span><span class="s">&quot;weeks&quot;</span><span class="p">),</span> <span class="n">optional_field</span><span class="p">(</span><span class="s">&quot;days&quot;</span><span class="p">),</span> <span class="s">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">optional_field</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&quot;hours&quot;</span><span class="p">,</span> <span class="s">&quot;minutes&quot;</span><span class="p">,</span> <span class="s">&quot;seconds&quot;</span><span class="p">]]))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_regex</span><span class="p">(</span><span class="n">regex</span><span class="p">,</span> <span class="nb">input</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_parseSimple</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">):</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;weeks&quot;</span><span class="p">,</span> <span class="s">&quot;days&quot;</span><span class="p">,</span> <span class="s">&quot;hours&quot;</span><span class="p">,</span> <span class="s">&quot;minutes&quot;</span><span class="p">,</span> <span class="s">&quot;seconds&quot;</span><span class="p">]</span>
+        <span class="c"># Give the digits a regex group name from the keys, then look for text with the first letter of the key,</span>
+        <span class="c"># optionally followed by the rest of the word, with final char (the &quot;s&quot;) optional</span>
+        <span class="n">regex</span> <span class="o">=</span> <span class="s">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s">&quot;((?P&lt;</span><span class="si">%s</span><span class="s">&gt;\d+) ?</span><span class="si">%s</span><span class="s">(</span><span class="si">%s</span><span class="s">)?(</span><span class="si">%s</span><span class="s">)? ?)?&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">k</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">k</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">k</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">])</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_regex</span><span class="p">(</span><span class="n">regex</span><span class="p">,</span> <span class="nb">input</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parses a time delta from the input.</span>
+
+<span class="sd">        See :py:class:`TimeDeltaParameter` for details on supported formats.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parseIso8601</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">result</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parseSimple</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">result</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">result</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">ParameterException</span><span class="p">(</span><span class="s">&quot;Invalid time delta - could not parse </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">input</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2015, Geoscience Australia.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.3</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
