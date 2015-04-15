@@ -133,7 +133,7 @@ class SummaryTask(workflow.SummaryTask):
     chunk_size_y = luigi.IntParameter()
 
     @abc.abstractmethod
-    def create_cell_task(self, x, y):
+    def create_cell_tasks(self, x, y):
 
         raise Exception("Abstract method should be overridden")
 

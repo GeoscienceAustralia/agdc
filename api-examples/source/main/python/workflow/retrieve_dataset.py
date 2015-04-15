@@ -105,7 +105,7 @@ class RetrieveDatasetSummaryTask(SummaryTask):
 
     dataset_type = luigi.Parameter()
 
-    def create_cell_task(self, x, y):
+    def create_cell_tasks(self, x, y):
 
         return RetrieveDatasetCellTask(x=x, y=y, acq_min=self.acq_min, acq_max=self.acq_max, satellites=self.satellites,
                                        output_directory=self.output_directory, csv=self.csv, dummy=self.dummy,
@@ -118,7 +118,7 @@ class RetrieveDatasetCellTask(CellTask):
 
     dataset_type = luigi.Parameter()
 
-    def create_tile_task(self, tile):
+    def create_tile_tasks(self, tile):
 
         return RetrieveDatasetTileTask(tile=tile, x=self.x, y=self.y, acq_min=self.acq_min, acq_max=self.acq_max,
                                        satellites=self.satellites,

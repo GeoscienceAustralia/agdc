@@ -49,7 +49,7 @@ _log = logging.getLogger()
 
 
 class ObservationCountSummaryTask(SummaryTask):
-    def create_cell_task(self, x, y):
+    def create_cell_tasks(self, x, y):
         return ObservationCountCellTask(x=x, y=y, year_min=self.year_min, year_max=self.year_max,
                                 satellites=self.satellites, output_directory=self.output_directory, csv=self.csv,
                                 dummy=self.dummy)

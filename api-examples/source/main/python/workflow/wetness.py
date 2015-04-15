@@ -61,7 +61,7 @@ class WetnessWorkflow(Workflow):
 
 class WetnessSummaryTask(SummaryTask):
 
-    def create_cell_task(self, x, y):
+    def create_cell_tasks(self, x, y):
 
         return WetnessCellTask(x=x, y=y, acq_min=self.acq_min, acq_max=self.acq_max, satellites=self.satellites,
                                output_directory=self.output_directory, csv=self.csv, dummy=self.dummy,
@@ -70,7 +70,7 @@ class WetnessSummaryTask(SummaryTask):
 
 class WetnessCellTask(CellTask):
 
-    def create_tile_task(self, tile):
+    def create_tile_tasks(self, tile):
 
         return WetnessTileTask(tile=tile, x=self.x, y=self.y, acq_min=self.acq_min, acq_max=self.acq_max,
                                satellites=self.satellites,

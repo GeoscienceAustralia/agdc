@@ -56,7 +56,7 @@ class TileTestWorkflow(Workflow):
 
 class TileTestSummaryTask(SummaryTask):
 
-    def create_cell_task(self, x, y):
+    def create_cell_tasks(self, x, y):
 
         return TileTestCellTask(x=x, y=y, acq_min=self.acq_min, acq_max=self.acq_max, satellites=self.satellites,
                                 output_directory=self.output_directory,
@@ -67,7 +67,7 @@ class TileTestSummaryTask(SummaryTask):
 
 class TileTestCellTask(CellTask):
 
-    def create_tile_task(self, tile):
+    def create_tile_tasks(self, tile):
 
         return TileTestTileTask(tile=tile, x=self.x, y=self.y, acq_min=self.acq_min, acq_max=self.acq_max,
                                 satellites=self.satellites,

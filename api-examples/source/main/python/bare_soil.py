@@ -46,7 +46,7 @@ _log = logging.getLogger()
 
 
 class BareSoilSummaryTask(SummaryTask):
-    def create_cell_task(self, x, y):
+    def create_cell_tasks(self, x, y):
         _log.debug("BareSoilSummaryTask.create_cell_task()")
         return BareSoilCellTask(x=x, y=y, year_min=self.year_min, year_max=self.year_max,
                                 satellites=self.satellites, output_directory=self.output_directory, csv=self.csv,

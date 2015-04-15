@@ -116,7 +116,7 @@ class SummaryTask(workflow.SummaryTask):
     bands = luigi.Parameter(is_list=True)
 
     @abc.abstractmethod
-    def create_cell_task(self, x, y):
+    def create_cell_tasks(self, x, y):
 
         raise Exception("Abstract method should be overridden")
 

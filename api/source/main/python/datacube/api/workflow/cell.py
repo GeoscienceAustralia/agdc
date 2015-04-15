@@ -77,7 +77,7 @@ class SummaryTask(workflow.SummaryTask):
     __metaclass__ = abc.ABCMeta
 
     @abc.abstractmethod
-    def create_cell_task(self, x, y):
+    def create_cell_tasks(self, x, y):
 
         raise Exception("Abstract method should be overridden")
 
