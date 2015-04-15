@@ -50,8 +50,10 @@ class CellTestWorkflow(Workflow):
 
         return [CellTestSummaryTask(x_min=self.x_min, x_max=self.x_max, y_min=self.y_min, y_max=self.y_max,
                                     acq_min=self.acq_min, acq_max=self.acq_max, satellites=self.satellites,
-                                    output_directory=self.output_directory, csv=self.csv, dummy=self.dummy,
-                                    mask_pqa_apply=self.mask_pqa_apply, mask_pqa_mask=self.mask_pqa_mask)]
+                                    output_directory=self.output_directory,
+                                    csv=self.csv, csv_generate=self.csv_generate, dummy=self.dummy,
+                                    mask_pqa_apply=self.mask_pqa_apply, mask_pqa_mask=self.mask_pqa_mask,
+                                    mask_wofs_apply=self.mask_wofs_apply, mask_wofs_mask=self.mask_wofs_mask)]
 
 
 class CellTestSummaryTask(SummaryTask):
@@ -59,8 +61,10 @@ class CellTestSummaryTask(SummaryTask):
     def create_cell_task(self, x, y):
 
         return CellTestCellTask(x=x, y=y, acq_min=self.acq_min, acq_max=self.acq_max, satellites=self.satellites,
-                                output_directory=self.output_directory, csv=self.csv, dummy=self.dummy,
-                                mask_pqa_apply=self.mask_pqa_apply, mask_pqa_mask=self.mask_pqa_mask)
+                                output_directory=self.output_directory,
+                                csv=self.csv, csv_generate=self.csv_generate, dummy=self.dummy,
+                                mask_pqa_apply=self.mask_pqa_apply, mask_pqa_mask=self.mask_pqa_mask,
+                                mask_wofs_apply=self.mask_wofs_apply, mask_wofs_mask=self.mask_wofs_mask)
 
 
 class CellTestCellTask(CellTask):

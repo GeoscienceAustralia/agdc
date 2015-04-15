@@ -176,6 +176,8 @@ class Workflow(object):
         self.output_directory = None
 
         self.csv = None
+        self.csv_generate = None
+
         self.dummy = None
 
         self.mask_pqa_apply = None
@@ -188,6 +190,8 @@ class Workflow(object):
         self.workers = None
 
     def setup_arguments(self):
+
+        # TODO get the combinations of mutually exclusive arguments right
 
         self.parser.add_argument("--output-directory", help="output directory", action="store", dest="output_directory",
                                  type=writeable_dir, required=True)
@@ -229,6 +233,9 @@ class Workflow(object):
         self.parser.add_argument("--csv", help="Get cell/dataset info from pre-created CSV rather than querying DB",
                                  action="store_true", dest="csv", default=False)
 
+        self.parser.add_argument("--csv-generate", help="Ensure the cell/dataset info CSV files exist...ONLY",
+                                 action="store_true", dest="csv_generate", default=False)
+
         self.parser.add_argument("--dummy", help="Dummy run", action="store_true", dest="dummy", default=False)
 
         self.parser.add_argument("--local-scheduler", help="Use local luigi scheduler rather than MPI",
@@ -261,6 +268,8 @@ class Workflow(object):
         self.satellites = args.satellite
 
         self.csv = args.csv
+        self.csv_generate = args.csv_generate
+
         self.dummy = args.dummy
 
         self.mask_pqa_apply = args.mask_pqa_apply
@@ -291,7 +300,8 @@ class Workflow(object):
         """.format(x_min=self.x_min, x_max=self.x_max, y_min=self.y_min, y_max=self.y_max,
                    acq_min=self.acq_min, acq_max=self.acq_max,
                    satellites=" ".join([s.name for s in self.satellites]), output_directory=self.output_directory,
-                   csv=self.csv, dummy=self.dummy,
+                   csv=str(self.csv) + (self.csv_generate and " (GENERATE ONLY)" or ""),
+                   dummy=self.dummy,
                    pqa_mask=self.mask_pqa_apply and " ".join([mask.name for mask in self.mask_pqa_mask]) or "",
                    wofs_mask=self.mask_wofs_apply and " ".join([mask.name for mask in self.mask_wofs_mask]) or "",
                    local_scheduler=self.local_scheduler, workers=self.workers))
@@ -351,6 +361,7 @@ class SummaryTask(Task):
     output_directory = luigi.Parameter()
 
     csv = luigi.BooleanParameter()
+    csv_generate = luigi.BooleanParameter()
 
     dummy = luigi.BooleanParameter()
 
@@ -365,12 +376,6 @@ class SummaryTask(Task):
         # get list of cells from CSV
 
         if self.csv:
-            # If the CSV file hasn't been created yet then we stop
-
-            if not os.path.isfile(self.get_cell_csv_filename()):
-                _log.error("CELL LIST CSV file [%s] present!!!!", self.get_cell_csv_filename())
-                raise Exception("CELL LIST CSV file [{filename}] present!!!!".format(filename=self.get_cell_csv_filename()))
-
             return list(self.get_cells_from_csv())
 
         # get list of cells from DB
@@ -379,6 +384,12 @@ class SummaryTask(Task):
             return list(self.get_cells_from_db())
 
     def get_cells_from_csv(self):
+
+        # If the CSV file hasn't been created yet then we stop
+
+        if not os.path.isfile(self.get_cell_csv_filename()):
+            _log.error("CELL LIST CSV file [%s] present!!!!", self.get_cell_csv_filename())
+            raise Exception("CELL LIST CSV file [{filename}] present!!!!".format(filename=self.get_cell_csv_filename()))
 
         with open(self.get_cell_csv_filename(), "rb") as f:
             import csv
@@ -395,6 +406,8 @@ class SummaryTask(Task):
         acq_min = format_date(self.acq_min)
         acq_max = format_date(self.acq_max)
 
+        # TODO other distinguishing characteristics (e.g. dataset type(s))
+
         return os.path.join(
             self.output_directory,
             "cells_{satellites}_{x_min:03d}_{x_max:03d}_{y_min:04d}_{y_max:04d}_{acq_min}_{acq_max}.csv".format(
@@ -405,32 +418,38 @@ class SummaryTask(Task):
 
     def get_cells_from_db(self):
 
-        from datacube.config import Config
         from datacube.api.query import list_cells
-
-        config = Config(os.path.expanduser("~/.datacube/config"))
-        _log.debug(config.to_str())
 
         x_list = range(self.x_min, self.x_max + 1)
         y_list = range(self.y_min, self.y_max + 1)
 
         for cell in list_cells(x=x_list, y=y_list, acq_min=self.acq_min, acq_max=self.acq_max,
                                satellites=[satellite for satellite in self.satellites],
-                               dataset_types=[DatasetType.ARG25, DatasetType.PQ25, DatasetType.FC25],
-                               database=config.get_db_database(),
-                               user=config.get_db_username(),
-                               password=config.get_db_password(),
-                               host=config.get_db_host(), port=config.get_db_port()):
+                               dataset_types=self.get_dataset_types()):
             yield cell
 
     def requires(self):
 
-        return [self.create_cell_task(x=cell.x, y=cell.y) for cell in self.get_cells()]
+        if self.csv_generate:
+            yield CellListCsvTask(x_min=self.x_min, x_max=self.x_max, y_min=self.y_min, y_max=self.y_max,
+                                  acq_min=self.acq_min, acq_max=self.acq_max, satellites=self.satellites,
+                                  dataset_types=self.get_dataset_types(), path=self.get_cell_csv_filename())
+
+        else:
+            yield [self.create_cell_task(x=cell.x, y=cell.y) for cell in self.get_cells()]
+
+        # for cell in self.get_cells():
+        #     yield self.create_cell_task(x=cell.x, y=cell.y)
 
     @abc.abstractmethod
     def create_cell_task(self, x, y):
 
         raise Exception("Abstract method should be overridden")
+
+    @staticmethod
+    def get_dataset_types():
+
+        return [DatasetType.ARG25, DatasetType.PQ25]
 
 
 class CellTask(Task):
@@ -448,6 +467,8 @@ class CellTask(Task):
     output_directory = luigi.Parameter()
 
     csv = luigi.BooleanParameter()
+    csv_generate = luigi.BooleanParameter()
+
     dummy = luigi.BooleanParameter()
 
     mask_pqa_apply = luigi.BooleanParameter()
@@ -461,12 +482,6 @@ class CellTask(Task):
         # get list of tiles from CSV
 
         if self.csv:
-            # If the CSV file hasn't been created yet then we stop
-
-            if not os.path.isfile(self.get_tile_csv_filename()):
-                _log.error("TILE LIST CSV file [%s] present!!!!", self.get_tile_csv_filename())
-                raise Exception("TILE LIST CSV file [{filename}] present!!!!".format(filename=self.get_tile_csv_filename()))
-
             return list(self.get_tiles_from_csv())
 
         # get list of tiles from DB
@@ -475,6 +490,12 @@ class CellTask(Task):
             return list(self.get_tiles_from_db())
 
     def get_tiles_from_csv(self):
+
+        # If the CSV file hasn't been created yet then we stop
+
+        if not os.path.isfile(self.get_tile_csv_filename()):
+            _log.error("TILE LIST CSV file [%s] present!!!!", self.get_tile_csv_filename())
+            raise Exception("TILE LIST CSV file [{filename}] present!!!!".format(filename=self.get_tile_csv_filename()))
 
         with open(self.get_tile_csv_filename(), "rb") as f:
             import csv
@@ -501,23 +522,20 @@ class CellTask(Task):
 
     def get_tiles_from_db(self):
 
-        from datacube.config import Config
         from datacube.api.query import list_tiles
-
-        config = Config(os.path.expanduser("~/.datacube/config"))
-        _log.debug(config.to_str())
 
         x_list = [self.x]
         y_list = [self.y]
 
         for tile in list_tiles(x=x_list, y=y_list, acq_min=self.acq_min, acq_max=self.acq_max,
                                satellites=[satellite for satellite in self.satellites],
-                               dataset_types=[DatasetType.ARG25, DatasetType.PQ25, DatasetType.FC25],
-                               database=config.get_db_database(),
-                               user=config.get_db_username(),
-                               password=config.get_db_password(),
-                               host=config.get_db_host(), port=config.get_db_port()):
+                               dataset_types=self.get_dataset_types()):
             yield tile
+
+    @staticmethod
+    def get_dataset_types():
+
+        return [DatasetType.ARG25, DatasetType.PQ25]
 
 
 class ComplexParameter(luigi.Parameter):
@@ -527,3 +545,71 @@ class ComplexParameter(luigi.Parameter):
         if self.is_list:
             return [hash(cPickle.dumps(v)) for v in x]
         return hash(cPickle.dumps(x))
+
+
+class CellListCsvTask(Task):
+
+    x_min = luigi.IntParameter()
+    x_max = luigi.IntParameter()
+
+    y_min = luigi.IntParameter()
+    y_max = luigi.IntParameter()
+
+    acq_min = luigi.DateParameter()
+    acq_max = luigi.DateParameter()
+
+    satellites = luigi.Parameter(is_list=True)
+
+    dataset_types = luigi.Parameter(is_list=True)
+
+    path = luigi.Parameter()
+
+    def output(self):
+
+        return luigi.LocalTarget(self.path)
+
+    def run(self):
+
+        x_list = range(self.x_min, self.x_max + 1)
+        y_list = range(self.y_min, self.y_max + 1)
+
+        from datacube.api.query import list_cells_to_file
+
+        from datacube.api.query import SortType
+
+        list_cells_to_file(x=x_list, y=y_list, satellites=list(self.satellites),
+                           acq_min=self.acq_min, acq_max=self.acq_max, dataset_types=self.dataset_types,
+                           filename=self.output().path, sort=SortType.ASC)
+
+
+class TileListCsvTask(Task):
+
+    x_min = luigi.IntParameter()
+    x_max = luigi.IntParameter()
+
+    y_min = luigi.IntParameter()
+    y_max = luigi.IntParameter()
+
+    acq_min = luigi.DateParameter()
+    acq_max = luigi.DateParameter()
+
+    satellites = luigi.Parameter(is_list=True)
+
+    dataset_types = luigi.Parameter(is_list=True)
+
+    path = luigi.Parameter()
+
+    def output(self):
+
+        return luigi.LocalTarget(self.path)
+
+    def run(self):
+
+        x_list = range(self.x_min, self.x_max + 1)
+        y_list = range(self.y_min, self.y_max + 1)
+
+        from datacube.api.query import list_tiles_to_file, SortType
+
+        list_tiles_to_file(x=x_list, y=y_list, satellites=list(self.satellites),
+                           acq_min=self.acq_min, acq_max=self.acq_max, dataset_types=self.dataset_types,
+                           filename=self.output().path, sort=SortType.ASC)
