@@ -191,7 +191,7 @@ class LandsatMosaicWorkflow(Workflow):
     def __init__(self):
         Workflow.__init__(self, application_name="Landsat Mosaic")
 
-    def create_tasks(self):
+    def create_summary_tasks(self):
         return [LandsatMosaicSummaryTask(x_min=self.x_min, x_max=self.x_max, y_min=self.y_min, y_max=self.y_max,
                                          acq_min=self.acq_min, acq_max=self.acq_max, satellites=self.satellites,
                                          output_directory=self.output_directory, csv=self.csv, dummy=self.dummy,

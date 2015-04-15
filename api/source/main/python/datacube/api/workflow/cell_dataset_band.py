@@ -98,7 +98,7 @@ class Workflow(workflow.Workflow):
         """.format(dataset_type=self.dataset_type.name, bands=self.bands))
 
     @abc.abstractmethod
-    def create_tasks(self):
+    def create_summary_tasks(self):
 
         raise Exception("Abstract method should be overridden")
 

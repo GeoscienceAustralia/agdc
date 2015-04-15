@@ -85,7 +85,7 @@ class RetrieveDatasetWorkflow(Workflow):
         dataset to retrieve = {dataset_type}
         """.format(dataset_type=self.dataset_type.name))
 
-    def create_tasks(self):
+    def create_summary_tasks(self):
 
         return [RetrieveDatasetSummaryTask(x_min=self.x_min, x_max=self.x_max, y_min=self.y_min, y_max=self.y_max,
                                            acq_min=self.acq_min, acq_max=self.acq_max, satellites=self.satellites,

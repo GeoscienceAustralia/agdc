@@ -235,7 +235,7 @@ class BareSoilWorkflow(Workflow):
     def __init__(self):
         Workflow.__init__(self, application_name="Bare Soil")
 
-    def create_tasks(self):
+    def create_summary_tasks(self):
         _log.debug("BareSoilWorkflow.create_tasks()")
         return [BareSoilSummaryTask(x_min=self.x_min, x_max=self.x_max, y_min=self.y_min, y_max=self.y_max,
                                     year_min=self.year_min, year_max=self.year_max, satellites=self.satellites,

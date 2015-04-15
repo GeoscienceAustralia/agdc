@@ -67,7 +67,7 @@ class Workflow(workflow.Workflow):
         # super(self.__class__, self).log_arguments()
         workflow.Workflow.log_arguments(self)
 
-    def create_tasks(self):
+    def create_summary_tasks(self):
 
         raise Exception("Abstract method should be overridden")
 

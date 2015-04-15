@@ -84,7 +84,7 @@ class Workflow(workflow.Workflow):
         Y chunk size = {chunk_size_y}
         """.format(chunk_size_x=self.chunk_size_x, chunk_size_y=self.chunk_size_y))
 
-    def create_tasks(self):
+    def create_summary_tasks(self):
 
         raise Exception("Abstract method should be overridden")
 

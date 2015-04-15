@@ -300,14 +300,14 @@ class Workflow(object):
         """.format(x_min=self.x_min, x_max=self.x_max, y_min=self.y_min, y_max=self.y_max,
                    acq_min=self.acq_min, acq_max=self.acq_max,
                    satellites=" ".join([s.name for s in self.satellites]), output_directory=self.output_directory,
-                   csv=str(self.csv) + (self.csv_generate and " (GENERATE ONLY)" or ""),
+                   csv=self.csv and self.csv or (self.csv_generate and "GENERATE" or ""),
                    dummy=self.dummy,
                    pqa_mask=self.mask_pqa_apply and " ".join([mask.name for mask in self.mask_pqa_mask]) or "",
                    wofs_mask=self.mask_wofs_apply and " ".join([mask.name for mask in self.mask_wofs_mask]) or "",
                    local_scheduler=self.local_scheduler, workers=self.workers))
 
     @abc.abstractmethod
-    def create_tasks(self):
+    def create_summary_tasks(self):
 
         raise Exception("Abstract method should be overridden")
 
@@ -318,11 +318,11 @@ class Workflow(object):
         self.log_arguments()
 
         if self.local_scheduler:
-            luigi.build(self.create_tasks(), local_scheduler=self.local_scheduler, workers=self.workers)
+            luigi.build(self.create_summary_tasks(), local_scheduler=self.local_scheduler, workers=self.workers)
 
         else:
             import luigi.contrib.mpi as mpi
-            mpi.run(self.create_tasks())
+            mpi.run(self.create_summary_tasks())
 
 
 class Task(luigi.Task):
@@ -385,7 +385,7 @@ class SummaryTask(Task):
 
     def get_cells_from_csv(self):
 
-        # If the CSV file hasn't been created yet then we stop
+        # If the CSV file hasn't been created yet then we complain...loudly
 
         if not os.path.isfile(self.get_cell_csv_filename()):
             _log.error("CELL LIST CSV file [%s] present!!!!", self.get_cell_csv_filename())
@@ -430,16 +430,20 @@ class SummaryTask(Task):
 
     def requires(self):
 
+        # if self.csv_generate:
+        #     yield CellListCsvTask(x_min=self.x_min, x_max=self.x_max, y_min=self.y_min, y_max=self.y_max,
+        #                           acq_min=self.acq_min, acq_max=self.acq_max, satellites=self.satellites,
+        #                           dataset_types=self.get_dataset_types(), path=self.get_cell_csv_filename())
+        #
+        # else:
+        #     yield [self.create_cell_task(x=cell.x, y=cell.y) for cell in self.get_cells()]
+
         if self.csv_generate:
             yield CellListCsvTask(x_min=self.x_min, x_max=self.x_max, y_min=self.y_min, y_max=self.y_max,
                                   acq_min=self.acq_min, acq_max=self.acq_max, satellites=self.satellites,
                                   dataset_types=self.get_dataset_types(), path=self.get_cell_csv_filename())
 
-        else:
-            yield [self.create_cell_task(x=cell.x, y=cell.y) for cell in self.get_cells()]
-
-        # for cell in self.get_cells():
-        #     yield self.create_cell_task(x=cell.x, y=cell.y)
+        yield [self.create_cell_task(x=cell.x, y=cell.y) for cell in self.get_cells()]
 
     @abc.abstractmethod
     def create_cell_task(self, x, y):
@@ -512,6 +516,8 @@ class CellTask(Task):
         acq_min = format_date(self.acq_min)
         acq_max = format_date(self.acq_max)
 
+        # TODO other distinguishing characteristics (e.g. dataset types)
+
         return os.path.join(
             self.output_directory,
             "tiles_{satellites}_{x_min:03d}_{x_max:03d}_{y_min:04d}_{y_max:04d}_{acq_min}_{acq_max}.csv".format(
@@ -570,6 +576,8 @@ class CellListCsvTask(Task):
 
     def run(self):
 
+        print "****", self.output().path
+
         x_list = range(self.x_min, self.x_max + 1)
         y_list = range(self.y_min, self.y_max + 1)
 
@@ -604,6 +612,8 @@ class TileListCsvTask(Task):
         return luigi.LocalTarget(self.path)
 
     def run(self):
+
+        print "****", self.output().path
 
         x_list = range(self.x_min, self.x_max + 1)
         y_list = range(self.y_min, self.y_max + 1)

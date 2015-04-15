@@ -68,7 +68,7 @@ class Workflow(workflow.Workflow):
         # super(self.__class__, self).log_arguments()
         workflow.Workflow.log_arguments(self)
 
-    def create_tasks(self):
+    def create_summary_tasks(self):
 
         raise Exception("Abstract method should be overridden")
 
@@ -87,7 +87,20 @@ class CellTask(workflow.CellTask):
 
     def requires(self):
 
-        return [self.create_tile_task(tile=tile) for tile in self.get_tiles()]
+        # if self.csv_generate:
+        #     yield workflow.TileListCsvTask(x_min=self.x_min, x_max=self.x_max, y_min=self.y_min, y_max=self.y_max,
+        #                                    acq_min=self.acq_min, acq_max=self.acq_max, satellites=self.satellites,
+        #                                    dataset_types=self.get_dataset_types(), path=self.get_tile_csv_filename())
+        #
+        # else:
+        #     yield [self.create_tile_task(tile=tile) for tile in self.get_tiles()]
+
+        if self.csv_generate:
+            yield workflow.TileListCsvTask(x_min=self.x, x_max=self.x, y_min=self.y, y_max=self.y,
+                                           acq_min=self.acq_min, acq_max=self.acq_max, satellites=self.satellites,
+                                           dataset_types=self.get_dataset_types(), path=self.get_tile_csv_filename())
+
+        yield [self.create_tile_task(tile=tile) for tile in self.get_tiles()]
 
     @abc.abstractmethod
     def create_tile_task(self, tile):

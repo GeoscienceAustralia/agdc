@@ -46,7 +46,7 @@ class NbarPqaWorkflow(Workflow):
 
         Workflow.__init__(self, name="NBAR with PQA Workflow Test")
 
-    def create_tasks(self):
+    def create_summary_tasks(self):
 
         return [NbarPqaSummaryTask(x_min=self.x_min, x_max=self.x_max, y_min=self.y_min, y_max=self.y_max,
                                    acq_min=self.acq_min, acq_max=self.acq_max, satellites=self.satellites,
