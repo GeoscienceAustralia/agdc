@@ -81,8 +81,8 @@ class ProcessingLevel(Enum):
 class SortType(Enum):
     __order__ = "ASC DESC"
 
-    ASC = "asc"
-    DESC = "desc"
+    ASC = "ASC"
+    DESC = "DESC"
 
 
 def print_tile(tile):
@@ -95,9 +95,17 @@ def print_tile(tile):
 
 def connect_to_db(config=None):
 
-    connection = cursor = None
+    """
+    Connect to the AGDC DB
 
-    # connect to database
+    :param config: Configuration
+    :type config: datacube.config.Config
+
+    :return: DB connection and cursor
+    :rtype: (psycopg2.connection, psycopg2.cursor)
+    """
+
+    connection = cursor = None
 
     if not config:
         config = Config(os.path.expandvars("$HOME/.datacube/config"))
@@ -124,6 +132,14 @@ def connect_to_db(config=None):
 
 
 def to_file_ify_sql(sql):
+
+    """
+
+    :param sql: The SQL string
+    :type sql: str
+    :return: The to file ified SQL
+    :rtype: str
+    """
     return """
     copy (
     {sql}
@@ -149,15 +165,27 @@ def list_cells(x, y, satellites, acq_min, acq_max, dataset_types, sort=SortType.
     """
     Return a list of cells matching the criteria as a SINGLE-USE generator
 
-    Deprecated: Move to using explicit as_list or as_generator
+    .. warning::
+        Deprecated: use either datacube.api.query.list_cells_as_list() or datacube.api.query.list_cells_as_generator()
 
+    :param x: X cell range
     :type x: list[int]
+    :param y: Y cell range
     :type y: list[int]
+    :param satellites: Satellites
     :type satellites: list[datacube.api.model.Satellite]
-    :type acq_min: datetime.date
-    :type acq_max: datetime.date
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
     :type dataset_types: list[datacube.api.model.DatasetType]
-    :type sort: SortType
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+    :param config: Config
+    :type config: datacube.config.Config
+
+    :return: List of cells
     :rtype: list[datacube.api.model.Cell]
     """
     return list_cells_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, sort, config)
@@ -168,13 +196,24 @@ def list_cells_as_list(x, y, satellites, acq_min, acq_max, dataset_types, sort=S
     """
     Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
 
+    :param x: X cell range
     :type x: list[int]
+    :param y: Y cell range
     :type y: list[int]
+    :param satellites: Satellites
     :type satellites: list[datacube.api.model.Satellite]
-    :type acq_min: datetime.date
-    :type acq_max: datetime.date
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
     :type dataset_types: list[datacube.api.model.DatasetType]
-    :type sort: SortType
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+    :param config: Config
+    :type config: datacube.config.Config
+
+    :return: List of cells
     :rtype: list[datacube.api.model.Cell]
     """
     return list(list_cells_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, sort, config))
@@ -185,20 +224,27 @@ def list_cells_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, s
     """
     Return a list of cells matching the criteria as a SINGLE-USE generator
 
+    :param x: X cell range
     :type x: list[int]
+    :param y: Y cell range
     :type y: list[int]
+    :param satellites: Satellites
     :type satellites: list[datacube.api.model.Satellite]
-    :type acq_min: datetime.date
-    :type acq_max: datetime.date
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
     :type dataset_types: list[datacube.api.model.DatasetType]
-    :type database: str
-    :type user: str
-    :type password: str
-    :type host: str
-    :type port: int
-    :type sort: SortType
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+    :param config: Config
+    :type config: datacube.config.Config
+
+    :return: List of cells
     :rtype: list[datacube.api.model.Cell]
     """
+
     conn, cursor = None, None
 
     try:
@@ -229,6 +275,29 @@ def list_cells_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, s
 
 def list_cells_to_file(x, y, satellites, acq_min, acq_max, dataset_types, filename, sort=SortType.ASC, config=None):
 
+    """
+    Write the list of cells matching the criteria to the specified file
+
+    :param x: X cell range
+    :type x: list[int]
+    :param y: Y cell range
+    :type y: list[int]
+    :param satellites: Satellites
+    :type satellites: list[datacube.api.model.Satellite]
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
+    :type dataset_types: list[datacube.api.model.DatasetType]
+    :param filename: The output file
+    :type filename: str
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+    :param config: Config
+    :type config: datacube.config.Config
+    """
+
     conn = cursor = None
 
     try:
@@ -258,6 +327,28 @@ def list_cells_to_file(x, y, satellites, acq_min, acq_max, dataset_types, filena
 
 
 def build_list_cells_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC):
+
+    """
+    Build the SQL query string and parameters required to return the cells matching the criteria
+
+    :param x: X cell range
+    :type x: list[int]
+    :param y: Y cell range
+    :type y: list[int]
+    :param satellites: Satellites
+    :type satellites: list[datacube.api.model.Satellite]
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
+    :type dataset_types: list[datacube.api.model.DatasetType]
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+
+    :return: The SQL query and params
+    :rtype: (str, dict)
+    """
 
     sql = """
         SELECT DISTINCT nbar.x_index, nbar.y_index
@@ -412,20 +503,30 @@ def list_cells_missing(x, y, satellites, acq_min, acq_max, dataset_types, sort=S
     """
     Return a list of cells matching the criteria as a SINGLE-USE generator
 
-    Deprecated: Move to using explicit as_list or as_generator
+    .. note::
+        The dataset types supplied are tested for NOT being present
 
+    .. warning::
+        Deprecated: use either datacube.api.query.list_cells_missing_as_list() or datacube.api.query.list_cells_missing_as_generator()
+
+    :param x: X cell range
     :type x: list[int]
+    :param y: Y cell range
     :type y: list[int]
+    :param satellites: Satellites
     :type satellites: list[datacube.api.model.Satellite]
-    :type acq_min: datetime.date
-    :type acq_max: datetime.date
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
     :type dataset_types: list[datacube.api.model.DatasetType]
-    :type database: str
-    :type user: str
-    :type password: str
-    :type host: str
-    :type port: int
-    :type sort: SortType
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+    :param config: Config
+    :type config: datacube.config.Config
+
+    :return: List of cells
     :rtype: list[datacube.api.model.Cell]
     """
     return list_cells_missing_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, sort, config)
@@ -436,24 +537,63 @@ def list_cells_missing_as_list(x, y, satellites, acq_min, acq_max, dataset_types
     """
     Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
 
+    .. note::
+        The dataset types supplied are tested for NOT being present
+
+    .. warning::
+        Deprecated: use either datacube.api.query.list_cells_missing_as_list() or datacube.api.query.list_cells_missing_as_generator()
+
+    :param x: X cell range
     :type x: list[int]
+    :param y: Y cell range
     :type y: list[int]
+    :param satellites: Satellites
     :type satellites: list[datacube.api.model.Satellite]
-    :type acq_min: datetime.date
-    :type acq_max: datetime.date
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
     :type dataset_types: list[datacube.api.model.DatasetType]
-    :type database: str
-    :type user: str
-    :type password: str
-    :type host: str
-    :type port: int
-    :type sort: SortType
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+    :param config: Config
+    :type config: datacube.config.Config
+
+    :return: List of cells
     :rtype: list[datacube.api.model.Cell]
     """
     return list(list_cells_missing_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, sort, config))
 
 
 def list_cells_missing_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
+
+    """
+    Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
+
+    .. note::
+        The dataset types supplied are tested for NOT being present
+
+    :param x: X cell range
+    :type x: list[int]
+    :param y: Y cell range
+    :type y: list[int]
+    :param satellites: Satellites
+    :type satellites: list[datacube.api.model.Satellite]
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
+    :type dataset_types: list[datacube.api.model.DatasetType]
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+    :param config: Config
+    :type config: datacube.config.Config
+
+    :return: List of cells
+    :rtype: list[datacube.api.model.Cell]
+    """
 
     conn, cursor = None, None
 
@@ -485,6 +625,32 @@ def list_cells_missing_as_generator(x, y, satellites, acq_min, acq_max, dataset_
 
 def list_cells_missing_to_file(x, y, satellites, acq_min, acq_max, dataset_types, filename, sort=SortType.ASC, config=None):
 
+    """
+    Write the list of cells matching the criteria to the specified file
+
+    .. note::
+        The dataset types supplied are tested for NOT being present
+
+    :param x: X cell range
+    :type x: list[int]
+    :param y: Y cell range
+    :type y: list[int]
+    :param satellites: Satellites
+    :type satellites: list[datacube.api.model.Satellite]
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
+    :type dataset_types list[datacube.api.model.DatasetType]
+    :param filename: The output file
+    :type filename: str
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+    :param config: Config
+    :type config: datacube.config.Config
+    """
+
     conn = cursor = None
 
     try:
@@ -514,6 +680,28 @@ def list_cells_missing_to_file(x, y, satellites, acq_min, acq_max, dataset_types
 
 
 def build_list_cells_missing_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC):
+
+    """
+    Build the SQL query string and parameters required to return the cells matching the criteria
+
+    :param x: X cell range
+    :type x: list[int]
+    :param y: Y cell range
+    :type y: list[int]
+    :param satellites: Satellites
+    :type satellites: list[datacube.api.model.Satellite]
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
+    :type dataset_types: list[datacube.api.model.DatasetType]
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+
+    :return: The SQL query and params
+    :rtype: (str, dict)
+    """
 
     sql = """
         select distinct nbar.x_index, nbar.y_index
@@ -696,17 +884,29 @@ def build_list_cells_missing_sql_and_params(x, y, satellites, acq_min, acq_max, 
 def list_tiles(x, y, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
 
     """
-    Return a list of cells matching the criteria as a SINGLE-USE generator
+    Return a list of tiles matching the criteria as a SINGLE-USE generator
 
-    Deprecated: Move to using explicit as_list or as_generator
+    .. warning::
+        Deprecated: use either datacube.api.query.list_tiles_as_list() or datacube.api.query.list_tiles_as_generator()
 
+    :param x: X cell range
     :type x: list[int]
+    :param y: Y cell range
     :type y: list[int]
+    :param satellites: Satellites
     :type satellites: list[datacube.api.model.Satellite]
-    :type acq_min: datetime.date
-    :type acq_max: datetime.date
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
     :type dataset_types: list[datacube.api.model.DatasetType]
-    :type sort: SortType
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+    :param config: Config
+    :type config: datacube.config.Config
+
+    :return: List of tiles
     :rtype: list[datacube.api.model.Tile]
     """
     return list_tiles_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, sort, config)
@@ -717,18 +917,24 @@ def list_tiles_as_list(x, y, satellites, acq_min, acq_max, dataset_types, sort=S
     """
     Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
 
+    :param x: X cell range
     :type x: list[int]
+    :param y: Y cell range
     :type y: list[int]
+    :param satellites: Satellites
     :type satellites: list[datacube.api.model.Satellite]
-    :type acq_min: datetime.date
-    :type acq_max: datetime.date
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
     :type dataset_types: list[datacube.api.model.DatasetType]
-    :type database: str
-    :type user: str
-    :type password: str
-    :type host: str
-    :type port: int
-    :type sort: SortType
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+    :param config: Config
+    :type config: datacube.config.Config
+
+    :return: List of tiles
     :rtype: list[datacube.api.model.Tile]
     """
     return list(list_tiles_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, sort))
@@ -737,15 +943,26 @@ def list_tiles_as_list(x, y, satellites, acq_min, acq_max, dataset_types, sort=S
 def list_tiles_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
 
     """
-    Return a list of cells matching the criteria as a SINGLE-USE generator
+    Return a list of tiles matching the criteria as a SINGLE-USE generator
 
+    :param x: X cell range
     :type x: list[int]
+    :param y: Y cell range
     :type y: list[int]
+    :param satellites: Satellites
     :type satellites: list[datacube.api.model.Satellite]
-    :type acq_min: datetime.date
-    :type acq_max: datetime.date
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
     :type dataset_types: list[datacube.api.model.DatasetType]
-    :type sort: SortType
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+    :param config: Config
+    :type config: datacube.config.Config
+
+    :return: List of tiles
     :rtype: list[datacube.api.model.Tile]
     """
 
@@ -777,7 +994,30 @@ def list_tiles_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, s
         conn = cursor = None
 
 
-def list_tiles_to_file(x, y, satellites, years, dataset_types, filename, sort=SortType.ASC, config=None):
+def list_tiles_to_file(x, y, satellites, acq_min, acq_max, dataset_types, filename, sort=SortType.ASC, config=None):
+
+    """
+    Write the list of tiles matching the criteria to the specified file
+
+    :param x: X cell range
+    :type x: list[int]
+    :param y: Y cell range
+    :type y: list[int]
+    :param satellites: Satellites
+    :type satellites: list[datacube.api.model.Satellite]
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
+    :type dataset_types: list[datacube.api.model.DatasetType]
+    :param filename: The output file
+    :type filename: str
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+    :param config: Config
+    :type config: datacube.config.Config
+    """
 
     conn = cursor = None
 
@@ -786,64 +1026,9 @@ def list_tiles_to_file(x, y, satellites, years, dataset_types, filename, sort=So
 
         conn, cursor = connect_to_db(config=config)
 
-        sql = """
-            copy (
-            select
-                acquisition.acquisition_id, satellite_tag as satellite, start_datetime, end_datetime,
-                extract(year from end_datetime) as end_datetime_year, extract(month from end_datetime) as end_datetime_month,
-                nbar.x_index, nbar.y_index, point(nbar.x_index, nbar.y_index) as xy,
-                ARRAY[
-                    ['ARG25', nbar.tile_pathname],
-                    ['PQ25', pq.tile_pathname],
-                    ['FC25', fc.tile_pathname]
-                    ] as datasets
-            from acquisition
-            join satellite on satellite.satellite_id=acquisition.satellite_id
-            join
-                (
-                select
-                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
-                from tile
-                join dataset on dataset.dataset_id=tile.dataset_id
-                where dataset.level_id = 2
-                ) as nbar on nbar.acquisition_id=acquisition.acquisition_id
-            join
-                (
-                select
-                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
-                from tile
-                join dataset on dataset.dataset_id=tile.dataset_id
-                where dataset.level_id = 3
-                ) as pq on
-                    pq.acquisition_id=acquisition.acquisition_id
-                    and pq.x_index=nbar.x_index and pq.y_index=nbar.y_index
-                    and pq.tile_type_id=nbar.tile_type_id and pq.tile_class_id=nbar.tile_class_id
-            join
-                (
-                select
-                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
-                from tile
-                join dataset on dataset.dataset_id=tile.dataset_id
-                where dataset.level_id = 4
-                ) as fc on
-                    fc.acquisition_id=acquisition.acquisition_id
-                    and fc.x_index=nbar.x_index and fc.y_index=nbar.y_index
-                    and fc.tile_type_id=nbar.tile_type_id and fc.tile_class_id=nbar.tile_class_id
-            where
-                nbar.tile_type_id = ANY(%(tile_type)s) and nbar.tile_class_id = ANY(%(tile_class)s) -- mandatory
-                and satellite.satellite_tag = ANY(%(satellite)s)
-                and nbar.x_index = ANY(%(x)s) and nbar.y_index = ANY(%(y)s)
-                and extract(year from end_datetime) = ANY(%(year)s)
+        sql, params = build_list_tiles_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_types, sort)
 
-            order by end_datetime {sort}, satellite asc
-            ) to STDOUT csv header delimiter ',' escape '"' null '' quote '"'
-            ;
-        """.format(sort=sort.value)
-
-        params = {"tile_type": [1], "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
-                  "satellite": [satellite.value for satellite in satellites],
-                  "x": x, "y": y,
-                  "year": years}
+        sql = to_file_ify_sql(sql)
 
         if filename:
             with open(filename, "w") as f:
@@ -863,6 +1048,28 @@ def list_tiles_to_file(x, y, satellites, years, dataset_types, filename, sort=So
 
 
 def build_list_tiles_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC):
+
+    """
+    Build the SQL query string and parameters required to return the tiles matching the criteria
+
+    :param x: X cell range
+    :type x: list[int]
+    :param y: Y cell range
+    :type y: list[int]
+    :param satellites: Satellites
+    :type satellites: list[datacube.api.model.Satellite]
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
+    :type dataset_types: list[datacube.api.model.DatasetType]
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+
+    :return: The SQL query and params
+    :rtype: (str, dict)
+    """
 
     sql = """
         select
@@ -1058,69 +1265,109 @@ def build_list_tiles_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_
 
 # Tiles that we DON'T have
 
-def list_tiles_missing(x, y, satellites, acq_min, acq_max, datasets, sort=SortType.ASC, config=None):
+def list_tiles_missing(x, y, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
 
     """
-    Return a list of cells matching the criteria as a SINGLE-USE generator
+    Return a list of tiles matching the criteria as a SINGLE-USE generator
 
-    Deprecated: Move to using explicit as_list or as_generator
+    .. note::
+        The dataset types supplied are tested for NOT being present
 
+    .. note::
+        The NBAR dataset is ALWAYS the only dataset returned
+
+    .. warning::
+        Deprecated: use either datacube.api.query.list_tiles_missing_as_list() or datacube.api.query.list_tiles_missing_as_generator()
+
+    :param x: X cell range
     :type x: list[int]
+    :param y: Y cell range
     :type y: list[int]
+    :param satellites: Satellites
     :type satellites: list[datacube.api.model.Satellite]
-    :type acq_min: datetime.date
-    :type acq_max: datetime.date
-    :type datasets: list[datacube.api.model.DatasetType]
-    :type database: str
-    :type user: str
-    :type password: str
-    :type host: str
-    :type port: int
-    :type sort: SortType
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
+    :type dataset_types: list[datacube.api.model.DatasetType]
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+    :param config: Config
+    :type config: datacube.config.Config
+
+    :return: List of tiles
     :rtype: list[datacube.api.model.Tile]
     """
-    return list_tiles_missing_as_generator(x, y, satellites, acq_min, acq_max, datasets, sort, config)
+    return list_tiles_missing_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, sort, config)
 
 
-def list_tiles_missing_as_list(x, y, satellites, acq_min, acq_max, datasets, sort=SortType.ASC, config=None):
+def list_tiles_missing_as_list(x, y, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
 
     """
-    Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
+    Return a list of tiles matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
 
+    .. note::
+        The dataset types supplied are tested for NOT being present
+
+    .. note::
+        The NBAR dataset is ALWAYS the only dataset returned
+
+    .. warning::
+        Deprecated: use either datacube.api.query.list_tiles_missing_as_list() or datacube.api.query.list_tiles_missing_as_generator()
+
+    :param x: X cell range
     :type x: list[int]
+    :param y: Y cell range
     :type y: list[int]
+    :param satellites: Satellites
     :type satellites: list[datacube.api.model.Satellite]
-    :type acq_min: datetime.date
-    :type acq_max: datetime.date
-    :type datasets: list[datacube.api.model.DatasetType]
-    :type database: str
-    :type user: str
-    :type password: str
-    :type host: str
-    :type port: int
-    :type sort: SortType
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
+    :type dataset_types: list[datacube.api.model.DatasetType]
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+    :param config: Config
+    :type config: datacube.config.Config
+
+    :return: List of tiles
     :rtype: list[datacube.api.model.Tile]
     """
-    return list(list_tiles_missing_as_generator(x, y, satellites, acq_min, acq_max, datasets, sort, config))
+    return list(list_tiles_missing_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, sort, config))
 
 
-def list_tiles_missing_as_generator(x, y, satellites, acq_min, acq_max, datasets, sort=SortType.ASC, config=None):
+def list_tiles_missing_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
 
     """
-    Return a list of cells matching the criteria as a SINGLE-USE generator
+    Return a list of tiles matching the criteria as a SINGLE-USE generator
 
+    .. note::
+        The dataset types supplied are tested for NOT being present
+
+    .. note::
+        The NBAR dataset is ALWAYS the only dataset returned
+
+    :param x: X cell range
     :type x: list[int]
+    :param y: Y cell range
     :type y: list[int]
+    :param satellites: Satellites
     :type satellites: list[datacube.api.model.Satellite]
-    :type acq_min: datetime.date
-    :type acq_max: datetime.date
-    :type datasets: list[datacube.api.model.DatasetType]
-    :type database: str
-    :type user: str
-    :type password: str
-    :type host: str
-    :type port: int
-    :type sort: SortType
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
+    :type dataset_types: list[datacube.api.model.DatasetType]
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+    :param config: Config
+    :type config: datacube.config.Config
+
+    :return: List of tiles
     :rtype: list[datacube.api.model.Tile]
     """
 
@@ -1131,50 +1378,7 @@ def list_tiles_missing_as_generator(x, y, satellites, acq_min, acq_max, datasets
 
         conn, cursor = connect_to_db(config=config)
 
-        sql = """
-            select
-                acquisition.acquisition_id, satellite_tag as satellite, start_datetime, end_datetime,
-                extract(year from end_datetime) as end_datetime_year, extract(month from end_datetime) as end_datetime_month,
-                NBAR.x_index, NBAR.y_index, point(NBAR.x_index, NBAR.y_index) as xy,
-                ARRAY[
-                    ['ARG25', NBAR.tile_pathname]
-                    ] as datasets
-            from acquisition
-            join satellite on satellite.satellite_id=acquisition.satellite_id
-            join
-                (
-                select
-                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
-                from tile
-                join dataset on dataset.dataset_id=tile.dataset_id
-                where dataset.level_id = 2
-                ) as nbar on nbar.acquisition_id=acquisition.acquisition_id
-            left outer join
-                (
-                select
-                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
-                from tile
-                join dataset on dataset.dataset_id=tile.dataset_id
-                where dataset.level_id = 4
-                ) as fc on
-                    fc.acquisition_id=acquisition.acquisition_id
-                    and fc.x_index=nbar.x_index and fc.y_index=nbar.y_index
-                    and fc.tile_type_id=nbar.tile_type_id and fc.tile_class_id=nbar.tile_class_id
-            where
-                nbar.tile_type_id = ANY(%(tile_type)s) and nbar.tile_class_id = ANY(%(tile_class)s) -- mandatory
-                and satellite.satellite_tag = ANY(%(satellite)s)
-                and nbar.x_index = ANY(%(x)s) and nbar.y_index = ANY(%(y)s)
-                and end_datetime::date between %(acq_min)s and %(acq_max)s
-                and fc.acquisition_id is null
-
-            order by nbar.x_index {sort}, nbar.y_index {sort}
-            ;
-        """.format(sort=sort.value)
-
-        params = {"tile_type": [1], "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
-                  "satellite": [satellite.value for satellite in satellites],
-                  "x": x, "y": y,
-                  "acq_min": acq_min, "acq_max": acq_max}
+        sql, params = build_list_tiles_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_types, sort)
 
         _log.debug(cursor.mogrify(sql, params))
 
@@ -1195,7 +1399,36 @@ def list_tiles_missing_as_generator(x, y, satellites, acq_min, acq_max, datasets
         conn = cursor = None
 
 
-def list_tiles_missing_to_file(x, y, satellites, years, datasets, filename, sort=SortType.ASC, config=None):
+def list_tiles_missing_to_file(x, y, satellites, acq_min, acq_max, dataset_types, filename, sort=SortType.ASC, config=None):
+
+    """
+    Write the list of tiles matching the criteria to the specified file
+
+    .. note::
+        The dataset types supplied are tested for NOT being present
+
+    .. note::
+        The NBAR dataset is ALWAYS the only dataset returned
+
+    :param x: X cell range
+    :type x: list[int]
+    :param y: Y cell range
+    :type y: list[int]
+    :param satellites: Satellites
+    :type satellites: list[datacube.api.model.Satellite]
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
+    :type dataset_types: list[datacube.api.model.DatasetType]
+    :param filename: The output file
+    :type filename: str
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+    :param config: Config
+    :type config: datacube.config.Config
+    """
 
     conn = cursor = None
 
@@ -1204,52 +1437,9 @@ def list_tiles_missing_to_file(x, y, satellites, years, datasets, filename, sort
 
         conn, cursor = connect_to_db(config=config)
 
-        sql = """
-            copy (
-            select
-                acquisition.acquisition_id, satellite_tag as satellite, start_datetime, end_datetime,
-                extract(year from end_datetime) as end_datetime_year, extract(month from end_datetime) as end_datetime_month,
-                NBAR.x_index, NBAR.y_index, point(NBAR.x_index, NBAR.y_index) as xy,
-                ARRAY[
-                    ['ARG25', NBAR.tile_pathname]
-                    ] as datasets
-            from acquisition
-            join satellite on satellite.satellite_id=acquisition.satellite_id
-            join
-                (
-                select
-                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
-                from tile
-                join dataset on dataset.dataset_id=tile.dataset_id
-                where dataset.level_id = 2
-                ) as nbar on nbar.acquisition_id=acquisition.acquisition_id
-            left outer join
-                (
-                select
-                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
-                from tile
-                join dataset on dataset.dataset_id=tile.dataset_id
-                where dataset.level_id = 4
-                ) as fc on
-                    fc.acquisition_id=acquisition.acquisition_id
-                    and fc.x_index=nbar.x_index and fc.y_index=nbar.y_index
-                    and fc.tile_type_id=nbar.tile_type_id and fc.tile_class_id=nbar.tile_class_id
-            where
-                nbar.tile_type_id = ANY(%(tile_type)s) and nbar.tile_class_id = ANY(%(tile_class)s) -- mandatory
-                and satellite.satellite_tag = ANY(%(satellite)s)
-                and nbar.x_index = ANY(%(x)s) and nbar.y_index = ANY(%(y)s)
-                and end_datetime::date between %(acq_min)s and %(acq_max)s
-                and fc.acquisition_id is null
+        sql, params = build_list_tiles_missing_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_types, sort)
 
-            order by nbar.x_index {sort}, nbar.y_index {sort}
-            ) to STDOUT csv header delimiter ',' escape '"' null '' quote '"'
-            ;
-        """.format(sort=sort.value)
-
-        params = {"tile_type": [1], "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
-                  "satellite": [satellite.value for satellite in satellites],
-                  "x": x, "y": y,
-                  "year": years}
+        sql = to_file_ify_sql(sql)
 
         if filename:
             with open(filename, "w") as f:
@@ -1266,6 +1456,208 @@ def list_tiles_missing_to_file(x, y, satellites, years, datasets, filename, sort
     finally:
 
         conn = cursor = None
+
+
+def build_list_tiles_missing_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC):
+
+    """
+    Build the SQL query string and parameters required to return the cells matching the criteria
+
+    :param x: X cell range
+    :type x: list[int]
+    :param y: Y cell range
+    :type y: list[int]
+    :param satellites: Satellites
+    :type satellites: list[datacube.api.model.Satellite]
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
+    :type dataset_types: list[datacube.api.model.DatasetType]
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+
+    :return: The SQL query and params
+    :rtype: (str, dict)
+    """
+
+    sql = """
+        select
+            acquisition.acquisition_id, satellite_tag as satellite, start_datetime, end_datetime,
+            extract(year from end_datetime) as end_datetime_year, extract(month from end_datetime) as end_datetime_month,
+            NBAR.x_index, NBAR.y_index, point(NBAR.x_index, NBAR.y_index) as xy,
+            ARRAY[
+                ['ARG25', NBAR.tile_pathname]
+                ] as datasets
+        from acquisition
+        join satellite on satellite.satellite_id=acquisition.satellite_id
+        """
+
+    sql += """
+        join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_nbar)s
+            ) as nbar on nbar.acquisition_id=acquisition.acquisition_id
+        """
+
+    if DatasetType.PQ25 in dataset_types:
+        sql += """
+            left outer join
+                (
+                select
+                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+                from tile
+                join dataset on dataset.dataset_id=tile.dataset_id
+                where dataset.level_id = %(level_pqa)s
+                ) as pqa on
+                    pqa.acquisition_id=acquisition.acquisition_id
+                    and pqa.x_index=nbar.x_index and pqa.y_index=nbar.y_index
+                    and pqa.tile_type_id=nbar.tile_type_id and pqa.tile_class_id=nbar.tile_class_id
+            """
+
+    if DatasetType.FC25 in dataset_types:
+        sql += """
+            left outer join
+                (
+                select
+                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+                from tile
+                join dataset on dataset.dataset_id=tile.dataset_id
+                where dataset.level_id = %(level_fc)s
+                ) as fc on
+                    fc.acquisition_id=acquisition.acquisition_id
+                    and fc.x_index=nbar.x_index and fc.y_index=nbar.y_index
+                    and fc.tile_type_id=nbar.tile_type_id and fc.tile_class_id=nbar.tile_class_id
+            """
+
+    if DatasetType.DSM in dataset_types:
+        sql += """
+            left outer join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_dsm)s
+            ) as dsm on
+                    dsm.x_index=nbar.x_index and dsm.y_index=nbar.y_index
+                and dsm.tile_type_id=nbar.tile_type_id and dsm.tile_class_id=nbar.tile_class_id
+        """
+
+    if DatasetType.DEM in dataset_types:
+        sql += """
+            left outer join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_dem)s
+            ) as dem on
+                    dem.x_index=nbar.x_index and dem.y_index=nbar.y_index
+                and dem.tile_type_id=nbar.tile_type_id and dem.tile_class_id=nbar.tile_class_id
+        """
+
+    if DatasetType.DEM_HYDROLOGICALLY_ENFORCED in dataset_types:
+        sql += """
+            left outer join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_dem_h)s
+            ) as dem_h on
+                    dem_h.x_index=nbar.x_index and dem_h.y_index=nbar.y_index
+                and dem_h.tile_type_id=nbar.tile_type_id and dem_h.tile_class_id=nbar.tile_class_id
+        """
+
+    if DatasetType.DEM_SMOOTHED in dataset_types:
+        sql += """
+            left outer join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_dem_s)s
+            ) as dem_s on
+                    dem_s.x_index=nbar.x_index and dem_s.y_index=nbar.y_index
+                and dem_s.tile_type_id=nbar.tile_type_id and dem_s.tile_class_id=nbar.tile_class_id
+        """
+
+    sql += """
+        where
+            nbar.tile_type_id = ANY(%(tile_type)s) and nbar.tile_class_id = ANY(%(tile_class)s) -- mandatory
+            and satellite.satellite_tag = ANY(%(satellite)s)
+            and nbar.x_index = ANY(%(x)s) and nbar.y_index = ANY(%(y)s)
+            and end_datetime::date between %(acq_min)s and %(acq_max)s
+        """
+
+    if DatasetType.PQ25 in dataset_types:
+        sql += """
+            and pqa.x_index is null
+        """
+
+    if DatasetType.FC25 in dataset_types:
+        sql += """
+            and fc.x_index is null
+        """
+
+    if DatasetType.DSM in dataset_types:
+        sql += """
+            and dsm.x_index is null
+        """
+
+    if DatasetType.DEM in dataset_types:
+        sql += """
+            and dem.x_index is null
+        """
+
+    if DatasetType.DEM_HYDROLOGICALLY_ENFORCED in dataset_types:
+        sql += """
+            and dem_h.x_index is null
+        """
+
+    if DatasetType.DEM_SMOOTHED in dataset_types:
+        sql += """
+            and dem_s.x_index is null
+        """
+
+    sql += """
+        order by nbar.x_index {sort}, nbar.y_index {sort}
+    """.format(sort=sort.value)
+
+    params = {"tile_type": [TILE_TYPE.value], "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
+              "satellite": [satellite.value for satellite in satellites],
+              "x": x, "y": y,
+              "acq_min": acq_min, "acq_max": acq_max,
+              "level_nbar": ProcessingLevel.NBAR.value}
+
+    if DatasetType.PQ25 in dataset_types:
+        params["level_pqa"] = ProcessingLevel.PQA.value
+
+    if DatasetType.FC25 in dataset_types:
+        params["level_fc"] = ProcessingLevel.FC.value
+
+    if DatasetType.DSM in dataset_types:
+        params["level_dsm"] = ProcessingLevel.DSM.value
+
+    if DatasetType.DEM in dataset_types:
+        params["level_dem"] = ProcessingLevel.DEM.value
+
+    if DatasetType.DEM_HYDROLOGICALLY_ENFORCED in dataset_types:
+        params["level_dem_h"] = ProcessingLevel.DEM_H.value
+
+    if DatasetType.DEM_SMOOTHED in dataset_types:
+        params["level_dem_s"] = ProcessingLevel.DEM_S.value
+
+    return sql, params
 
 
 # DEM/DSM tiles - quickie to get DEM/DSM tiles for WOFS - note they have no acquisition information!!!!
