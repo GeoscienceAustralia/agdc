@@ -140,7 +140,7 @@
         <span class="c"># super(self.__class__, self).log_arguments()</span>
         <span class="n">workflow</span><span class="o">.</span><span class="n">Workflow</span><span class="o">.</span><span class="n">log_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 </div>
-<div class="viewcode-block" id="Workflow.create_tasks"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell.html#datacube.api.workflow.cell.Workflow.create_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">create_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Workflow.create_summary_tasks"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell.html#datacube.api.workflow.cell.Workflow.create_summary_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">create_summary_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;Abstract method should be overridden&quot;</span><span class="p">)</span>
 
@@ -150,7 +150,7 @@
     <span class="n">__metaclass__</span> <span class="o">=</span> <span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span>
 
     <span class="nd">@abc.abstractmethod</span>
-<div class="viewcode-block" id="SummaryTask.create_cell_task"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell.html#datacube.api.workflow.cell.SummaryTask.create_cell_task">[docs]</a>    <span class="k">def</span> <span class="nf">create_cell_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+<div class="viewcode-block" id="SummaryTask.create_cell_tasks"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell.html#datacube.api.workflow.cell.SummaryTask.create_cell_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">create_cell_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
 
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;Abstract method should be overridden&quot;</span><span class="p">)</span>
 

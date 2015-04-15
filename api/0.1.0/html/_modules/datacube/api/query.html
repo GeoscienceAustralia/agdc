@@ -153,8 +153,8 @@
 <div class="viewcode-block" id="SortType"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.SortType">[docs]</a><span class="k">class</span> <span class="nc">SortType</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
     <span class="n">__order__</span> <span class="o">=</span> <span class="s">&quot;ASC DESC&quot;</span>
 
-    <span class="n">ASC</span> <span class="o">=</span> <span class="s">&quot;asc&quot;</span>
-    <span class="n">DESC</span> <span class="o">=</span> <span class="s">&quot;desc&quot;</span>
+    <span class="n">ASC</span> <span class="o">=</span> <span class="s">&quot;ASC&quot;</span>
+    <span class="n">DESC</span> <span class="o">=</span> <span class="s">&quot;DESC&quot;</span>
 
 </div>
 <div class="viewcode-block" id="print_tile"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.print_tile">[docs]</a><span class="k">def</span> <span class="nf">print_tile</span><span class="p">(</span><span class="n">tile</span><span class="p">):</span>
@@ -167,9 +167,17 @@
 </div>
 <div class="viewcode-block" id="connect_to_db"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.connect_to_db">[docs]</a><span class="k">def</span> <span class="nf">connect_to_db</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
 
-    <span class="n">connection</span> <span class="o">=</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Connect to the AGDC DB</span>
 
-    <span class="c"># connect to database</span>
+<span class="sd">    :param config: Configuration</span>
+<span class="sd">    :type config: datacube.config.Config</span>
+
+<span class="sd">    :return: DB connection and cursor</span>
+<span class="sd">    :rtype: (psycopg2.connection, psycopg2.cursor)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">connection</span> <span class="o">=</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">config</span><span class="p">:</span>
         <span class="n">config</span> <span class="o">=</span> <span class="n">Config</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expandvars</span><span class="p">(</span><span class="s">&quot;$HOME/.datacube/config&quot;</span><span class="p">))</span>
@@ -196,6 +204,14 @@
 
 </div>
 <div class="viewcode-block" id="to_file_ify_sql"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.to_file_ify_sql">[docs]</a><span class="k">def</span> <span class="nf">to_file_ify_sql</span><span class="p">(</span><span class="n">sql</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">    :param sql: The SQL string</span>
+<span class="sd">    :type sql: str</span>
+<span class="sd">    :return: The to file ified SQL</span>
+<span class="sd">    :rtype: str</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="s">&quot;&quot;&quot;</span>
 <span class="s">    copy (</span>
 <span class="s">    {sql}</span>
@@ -221,15 +237,27 @@
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return a list of cells matching the criteria as a SINGLE-USE generator</span>
 
-<span class="sd">    Deprecated: Move to using explicit as_list or as_generator</span>
+<span class="sd">    .. warning::</span>
+<span class="sd">        Deprecated: use either datacube.api.query.list_cells_as_list() or datacube.api.query.list_cells_as_generator()</span>
 
+<span class="sd">    :param x: X cell range</span>
 <span class="sd">    :type x: list[int]</span>
+<span class="sd">    :param y: Y cell range</span>
 <span class="sd">    :type y: list[int]</span>
+<span class="sd">    :param satellites: Satellites</span>
 <span class="sd">    :type satellites: list[datacube.api.model.Satellite]</span>
-<span class="sd">    :type acq_min: datetime.date</span>
-<span class="sd">    :type acq_max: datetime.date</span>
+<span class="sd">    :param acq_min: Acquisition date range</span>
+<span class="sd">    :type acq_min: datetime.datetime</span>
+<span class="sd">    :param acq_max: Acquisition date range</span>
+<span class="sd">    :type acq_max: datetime.datetime</span>
+<span class="sd">    :param dataset_types: Dataset types</span>
 <span class="sd">    :type dataset_types: list[datacube.api.model.DatasetType]</span>
-<span class="sd">    :type sort: SortType</span>
+<span class="sd">    :param sort: Sort order</span>
+<span class="sd">    :type sort: datacube.api.query.SortType</span>
+<span class="sd">    :param config: Config</span>
+<span class="sd">    :type config: datacube.config.Config</span>
+
+<span class="sd">    :return: List of cells</span>
 <span class="sd">    :rtype: list[datacube.api.model.Cell]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">list_cells_as_generator</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
@@ -240,13 +268,24 @@
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator</span>
 
+<span class="sd">    :param x: X cell range</span>
 <span class="sd">    :type x: list[int]</span>
+<span class="sd">    :param y: Y cell range</span>
 <span class="sd">    :type y: list[int]</span>
+<span class="sd">    :param satellites: Satellites</span>
 <span class="sd">    :type satellites: list[datacube.api.model.Satellite]</span>
-<span class="sd">    :type acq_min: datetime.date</span>
-<span class="sd">    :type acq_max: datetime.date</span>
+<span class="sd">    :param acq_min: Acquisition date range</span>
+<span class="sd">    :type acq_min: datetime.datetime</span>
+<span class="sd">    :param acq_max: Acquisition date range</span>
+<span class="sd">    :type acq_max: datetime.datetime</span>
+<span class="sd">    :param dataset_types: Dataset types</span>
 <span class="sd">    :type dataset_types: list[datacube.api.model.DatasetType]</span>
-<span class="sd">    :type sort: SortType</span>
+<span class="sd">    :param sort: Sort order</span>
+<span class="sd">    :type sort: datacube.api.query.SortType</span>
+<span class="sd">    :param config: Config</span>
+<span class="sd">    :type config: datacube.config.Config</span>
+
+<span class="sd">    :return: List of cells</span>
 <span class="sd">    :rtype: list[datacube.api.model.Cell]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">list_cells_as_generator</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="p">,</span> <span class="n">config</span><span class="p">))</span>
@@ -257,20 +296,27 @@
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return a list of cells matching the criteria as a SINGLE-USE generator</span>
 
+<span class="sd">    :param x: X cell range</span>
 <span class="sd">    :type x: list[int]</span>
+<span class="sd">    :param y: Y cell range</span>
 <span class="sd">    :type y: list[int]</span>
+<span class="sd">    :param satellites: Satellites</span>
 <span class="sd">    :type satellites: list[datacube.api.model.Satellite]</span>
-<span class="sd">    :type acq_min: datetime.date</span>
-<span class="sd">    :type acq_max: datetime.date</span>
+<span class="sd">    :param acq_min: Acquisition date range</span>
+<span class="sd">    :type acq_min: datetime.datetime</span>
+<span class="sd">    :param acq_max: Acquisition date range</span>
+<span class="sd">    :type acq_max: datetime.datetime</span>
+<span class="sd">    :param dataset_types: Dataset types</span>
 <span class="sd">    :type dataset_types: list[datacube.api.model.DatasetType]</span>
-<span class="sd">    :type database: str</span>
-<span class="sd">    :type user: str</span>
-<span class="sd">    :type password: str</span>
-<span class="sd">    :type host: str</span>
-<span class="sd">    :type port: int</span>
-<span class="sd">    :type sort: SortType</span>
+<span class="sd">    :param sort: Sort order</span>
+<span class="sd">    :type sort: datacube.api.query.SortType</span>
+<span class="sd">    :param config: Config</span>
+<span class="sd">    :type config: datacube.config.Config</span>
+
+<span class="sd">    :return: List of cells</span>
 <span class="sd">    :rtype: list[datacube.api.model.Cell]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="n">conn</span><span class="p">,</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span>
 
     <span class="k">try</span><span class="p">:</span>
@@ -301,6 +347,29 @@
 </div>
 <div class="viewcode-block" id="list_cells_to_file"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_cells_to_file">[docs]</a><span class="k">def</span> <span class="nf">list_cells_to_file</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
 
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Write the list of cells matching the criteria to the specified file</span>
+
+<span class="sd">    :param x: X cell range</span>
+<span class="sd">    :type x: list[int]</span>
+<span class="sd">    :param y: Y cell range</span>
+<span class="sd">    :type y: list[int]</span>
+<span class="sd">    :param satellites: Satellites</span>
+<span class="sd">    :type satellites: list[datacube.api.model.Satellite]</span>
+<span class="sd">    :param acq_min: Acquisition date range</span>
+<span class="sd">    :type acq_min: datetime.datetime</span>
+<span class="sd">    :param acq_max: Acquisition date range</span>
+<span class="sd">    :type acq_max: datetime.datetime</span>
+<span class="sd">    :param dataset_types: Dataset types</span>
+<span class="sd">    :type dataset_types: list[datacube.api.model.DatasetType]</span>
+<span class="sd">    :param filename: The output file</span>
+<span class="sd">    :type filename: str</span>
+<span class="sd">    :param sort: Sort order</span>
+<span class="sd">    :type sort: datacube.api.query.SortType</span>
+<span class="sd">    :param config: Config</span>
+<span class="sd">    :type config: datacube.config.Config</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="n">conn</span> <span class="o">=</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span>
 
     <span class="k">try</span><span class="p">:</span>
@@ -330,6 +399,28 @@
 
 </div>
 <div class="viewcode-block" id="build_list_cells_sql_and_params"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.build_list_cells_sql_and_params">[docs]</a><span class="k">def</span> <span class="nf">build_list_cells_sql_and_params</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build the SQL query string and parameters required to return the cells matching the criteria</span>
+
+<span class="sd">    :param x: X cell range</span>
+<span class="sd">    :type x: list[int]</span>
+<span class="sd">    :param y: Y cell range</span>
+<span class="sd">    :type y: list[int]</span>
+<span class="sd">    :param satellites: Satellites</span>
+<span class="sd">    :type satellites: list[datacube.api.model.Satellite]</span>
+<span class="sd">    :param acq_min: Acquisition date range</span>
+<span class="sd">    :type acq_min: datetime.datetime</span>
+<span class="sd">    :param acq_max: Acquisition date range</span>
+<span class="sd">    :type acq_max: datetime.datetime</span>
+<span class="sd">    :param dataset_types: Dataset types</span>
+<span class="sd">    :type dataset_types: list[datacube.api.model.DatasetType]</span>
+<span class="sd">    :param sort: Sort order</span>
+<span class="sd">    :type sort: datacube.api.query.SortType</span>
+
+<span class="sd">    :return: The SQL query and params</span>
+<span class="sd">    :rtype: (str, dict)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">sql</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;</span>
 <span class="s">        SELECT DISTINCT nbar.x_index, nbar.y_index</span>
@@ -484,20 +575,30 @@
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return a list of cells matching the criteria as a SINGLE-USE generator</span>
 
-<span class="sd">    Deprecated: Move to using explicit as_list or as_generator</span>
+<span class="sd">    .. note::</span>
+<span class="sd">        The dataset types supplied are tested for NOT being present</span>
 
+<span class="sd">    .. warning::</span>
+<span class="sd">        Deprecated: use either datacube.api.query.list_cells_missing_as_list() or datacube.api.query.list_cells_missing_as_generator()</span>
+
+<span class="sd">    :param x: X cell range</span>
 <span class="sd">    :type x: list[int]</span>
+<span class="sd">    :param y: Y cell range</span>
 <span class="sd">    :type y: list[int]</span>
+<span class="sd">    :param satellites: Satellites</span>
 <span class="sd">    :type satellites: list[datacube.api.model.Satellite]</span>
-<span class="sd">    :type acq_min: datetime.date</span>
-<span class="sd">    :type acq_max: datetime.date</span>
+<span class="sd">    :param acq_min: Acquisition date range</span>
+<span class="sd">    :type acq_min: datetime.datetime</span>
+<span class="sd">    :param acq_max: Acquisition date range</span>
+<span class="sd">    :type acq_max: datetime.datetime</span>
+<span class="sd">    :param dataset_types: Dataset types</span>
 <span class="sd">    :type dataset_types: list[datacube.api.model.DatasetType]</span>
-<span class="sd">    :type database: str</span>
-<span class="sd">    :type user: str</span>
-<span class="sd">    :type password: str</span>
-<span class="sd">    :type host: str</span>
-<span class="sd">    :type port: int</span>
-<span class="sd">    :type sort: SortType</span>
+<span class="sd">    :param sort: Sort order</span>
+<span class="sd">    :type sort: datacube.api.query.SortType</span>
+<span class="sd">    :param config: Config</span>
+<span class="sd">    :type config: datacube.config.Config</span>
+
+<span class="sd">    :return: List of cells</span>
 <span class="sd">    :rtype: list[datacube.api.model.Cell]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">list_cells_missing_as_generator</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
@@ -508,24 +609,63 @@
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator</span>
 
+<span class="sd">    .. note::</span>
+<span class="sd">        The dataset types supplied are tested for NOT being present</span>
+
+<span class="sd">    .. warning::</span>
+<span class="sd">        Deprecated: use either datacube.api.query.list_cells_missing_as_list() or datacube.api.query.list_cells_missing_as_generator()</span>
+
+<span class="sd">    :param x: X cell range</span>
 <span class="sd">    :type x: list[int]</span>
+<span class="sd">    :param y: Y cell range</span>
 <span class="sd">    :type y: list[int]</span>
+<span class="sd">    :param satellites: Satellites</span>
 <span class="sd">    :type satellites: list[datacube.api.model.Satellite]</span>
-<span class="sd">    :type acq_min: datetime.date</span>
-<span class="sd">    :type acq_max: datetime.date</span>
+<span class="sd">    :param acq_min: Acquisition date range</span>
+<span class="sd">    :type acq_min: datetime.datetime</span>
+<span class="sd">    :param acq_max: Acquisition date range</span>
+<span class="sd">    :type acq_max: datetime.datetime</span>
+<span class="sd">    :param dataset_types: Dataset types</span>
 <span class="sd">    :type dataset_types: list[datacube.api.model.DatasetType]</span>
-<span class="sd">    :type database: str</span>
-<span class="sd">    :type user: str</span>
-<span class="sd">    :type password: str</span>
-<span class="sd">    :type host: str</span>
-<span class="sd">    :type port: int</span>
-<span class="sd">    :type sort: SortType</span>
+<span class="sd">    :param sort: Sort order</span>
+<span class="sd">    :type sort: datacube.api.query.SortType</span>
+<span class="sd">    :param config: Config</span>
+<span class="sd">    :type config: datacube.config.Config</span>
+
+<span class="sd">    :return: List of cells</span>
 <span class="sd">    :rtype: list[datacube.api.model.Cell]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">list_cells_missing_as_generator</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="p">,</span> <span class="n">config</span><span class="p">))</span>
 
 </div>
 <div class="viewcode-block" id="list_cells_missing_as_generator"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_cells_missing_as_generator">[docs]</a><span class="k">def</span> <span class="nf">list_cells_missing_as_generator</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        The dataset types supplied are tested for NOT being present</span>
+
+<span class="sd">    :param x: X cell range</span>
+<span class="sd">    :type x: list[int]</span>
+<span class="sd">    :param y: Y cell range</span>
+<span class="sd">    :type y: list[int]</span>
+<span class="sd">    :param satellites: Satellites</span>
+<span class="sd">    :type satellites: list[datacube.api.model.Satellite]</span>
+<span class="sd">    :param acq_min: Acquisition date range</span>
+<span class="sd">    :type acq_min: datetime.datetime</span>
+<span class="sd">    :param acq_max: Acquisition date range</span>
+<span class="sd">    :type acq_max: datetime.datetime</span>
+<span class="sd">    :param dataset_types: Dataset types</span>
+<span class="sd">    :type dataset_types: list[datacube.api.model.DatasetType]</span>
+<span class="sd">    :param sort: Sort order</span>
+<span class="sd">    :type sort: datacube.api.query.SortType</span>
+<span class="sd">    :param config: Config</span>
+<span class="sd">    :type config: datacube.config.Config</span>
+
+<span class="sd">    :return: List of cells</span>
+<span class="sd">    :rtype: list[datacube.api.model.Cell]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">conn</span><span class="p">,</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span>
 
@@ -557,6 +697,32 @@
 </div>
 <div class="viewcode-block" id="list_cells_missing_to_file"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_cells_missing_to_file">[docs]</a><span class="k">def</span> <span class="nf">list_cells_missing_to_file</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
 
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Write the list of cells matching the criteria to the specified file</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        The dataset types supplied are tested for NOT being present</span>
+
+<span class="sd">    :param x: X cell range</span>
+<span class="sd">    :type x: list[int]</span>
+<span class="sd">    :param y: Y cell range</span>
+<span class="sd">    :type y: list[int]</span>
+<span class="sd">    :param satellites: Satellites</span>
+<span class="sd">    :type satellites: list[datacube.api.model.Satellite]</span>
+<span class="sd">    :param acq_min: Acquisition date range</span>
+<span class="sd">    :type acq_min: datetime.datetime</span>
+<span class="sd">    :param acq_max: Acquisition date range</span>
+<span class="sd">    :type acq_max: datetime.datetime</span>
+<span class="sd">    :param dataset_types: Dataset types</span>
+<span class="sd">    :type dataset_types list[datacube.api.model.DatasetType]</span>
+<span class="sd">    :param filename: The output file</span>
+<span class="sd">    :type filename: str</span>
+<span class="sd">    :param sort: Sort order</span>
+<span class="sd">    :type sort: datacube.api.query.SortType</span>
+<span class="sd">    :param config: Config</span>
+<span class="sd">    :type config: datacube.config.Config</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="n">conn</span> <span class="o">=</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span>
 
     <span class="k">try</span><span class="p">:</span>
@@ -586,6 +752,28 @@
 
 </div>
 <div class="viewcode-block" id="build_list_cells_missing_sql_and_params"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.build_list_cells_missing_sql_and_params">[docs]</a><span class="k">def</span> <span class="nf">build_list_cells_missing_sql_and_params</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build the SQL query string and parameters required to return the cells matching the criteria</span>
+
+<span class="sd">    :param x: X cell range</span>
+<span class="sd">    :type x: list[int]</span>
+<span class="sd">    :param y: Y cell range</span>
+<span class="sd">    :type y: list[int]</span>
+<span class="sd">    :param satellites: Satellites</span>
+<span class="sd">    :type satellites: list[datacube.api.model.Satellite]</span>
+<span class="sd">    :param acq_min: Acquisition date range</span>
+<span class="sd">    :type acq_min: datetime.datetime</span>
+<span class="sd">    :param acq_max: Acquisition date range</span>
+<span class="sd">    :type acq_max: datetime.datetime</span>
+<span class="sd">    :param dataset_types: Dataset types</span>
+<span class="sd">    :type dataset_types: list[datacube.api.model.DatasetType]</span>
+<span class="sd">    :param sort: Sort order</span>
+<span class="sd">    :type sort: datacube.api.query.SortType</span>
+
+<span class="sd">    :return: The SQL query and params</span>
+<span class="sd">    :rtype: (str, dict)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">sql</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;</span>
 <span class="s">        select distinct nbar.x_index, nbar.y_index</span>
@@ -768,17 +956,29 @@
 <div class="viewcode-block" id="list_tiles"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_tiles">[docs]</a><span class="k">def</span> <span class="nf">list_tiles</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
 
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Return a list of cells matching the criteria as a SINGLE-USE generator</span>
+<span class="sd">    Return a list of tiles matching the criteria as a SINGLE-USE generator</span>
 
-<span class="sd">    Deprecated: Move to using explicit as_list or as_generator</span>
+<span class="sd">    .. warning::</span>
+<span class="sd">        Deprecated: use either datacube.api.query.list_tiles_as_list() or datacube.api.query.list_tiles_as_generator()</span>
 
+<span class="sd">    :param x: X cell range</span>
 <span class="sd">    :type x: list[int]</span>
+<span class="sd">    :param y: Y cell range</span>
 <span class="sd">    :type y: list[int]</span>
+<span class="sd">    :param satellites: Satellites</span>
 <span class="sd">    :type satellites: list[datacube.api.model.Satellite]</span>
-<span class="sd">    :type acq_min: datetime.date</span>
-<span class="sd">    :type acq_max: datetime.date</span>
+<span class="sd">    :param acq_min: Acquisition date range</span>
+<span class="sd">    :type acq_min: datetime.datetime</span>
+<span class="sd">    :param acq_max: Acquisition date range</span>
+<span class="sd">    :type acq_max: datetime.datetime</span>
+<span class="sd">    :param dataset_types: Dataset types</span>
 <span class="sd">    :type dataset_types: list[datacube.api.model.DatasetType]</span>
-<span class="sd">    :type sort: SortType</span>
+<span class="sd">    :param sort: Sort order</span>
+<span class="sd">    :type sort: datacube.api.query.SortType</span>
+<span class="sd">    :param config: Config</span>
+<span class="sd">    :type config: datacube.config.Config</span>
+
+<span class="sd">    :return: List of tiles</span>
 <span class="sd">    :rtype: list[datacube.api.model.Tile]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">list_tiles_as_generator</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
@@ -789,18 +989,24 @@
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator</span>
 
+<span class="sd">    :param x: X cell range</span>
 <span class="sd">    :type x: list[int]</span>
+<span class="sd">    :param y: Y cell range</span>
 <span class="sd">    :type y: list[int]</span>
+<span class="sd">    :param satellites: Satellites</span>
 <span class="sd">    :type satellites: list[datacube.api.model.Satellite]</span>
-<span class="sd">    :type acq_min: datetime.date</span>
-<span class="sd">    :type acq_max: datetime.date</span>
+<span class="sd">    :param acq_min: Acquisition date range</span>
+<span class="sd">    :type acq_min: datetime.datetime</span>
+<span class="sd">    :param acq_max: Acquisition date range</span>
+<span class="sd">    :type acq_max: datetime.datetime</span>
+<span class="sd">    :param dataset_types: Dataset types</span>
 <span class="sd">    :type dataset_types: list[datacube.api.model.DatasetType]</span>
-<span class="sd">    :type database: str</span>
-<span class="sd">    :type user: str</span>
-<span class="sd">    :type password: str</span>
-<span class="sd">    :type host: str</span>
-<span class="sd">    :type port: int</span>
-<span class="sd">    :type sort: SortType</span>
+<span class="sd">    :param sort: Sort order</span>
+<span class="sd">    :type sort: datacube.api.query.SortType</span>
+<span class="sd">    :param config: Config</span>
+<span class="sd">    :type config: datacube.config.Config</span>
+
+<span class="sd">    :return: List of tiles</span>
 <span class="sd">    :rtype: list[datacube.api.model.Tile]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">list_tiles_as_generator</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="p">))</span>
@@ -809,15 +1015,26 @@
 <div class="viewcode-block" id="list_tiles_as_generator"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_tiles_as_generator">[docs]</a><span class="k">def</span> <span class="nf">list_tiles_as_generator</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
 
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Return a list of cells matching the criteria as a SINGLE-USE generator</span>
+<span class="sd">    Return a list of tiles matching the criteria as a SINGLE-USE generator</span>
 
+<span class="sd">    :param x: X cell range</span>
 <span class="sd">    :type x: list[int]</span>
+<span class="sd">    :param y: Y cell range</span>
 <span class="sd">    :type y: list[int]</span>
+<span class="sd">    :param satellites: Satellites</span>
 <span class="sd">    :type satellites: list[datacube.api.model.Satellite]</span>
-<span class="sd">    :type acq_min: datetime.date</span>
-<span class="sd">    :type acq_max: datetime.date</span>
+<span class="sd">    :param acq_min: Acquisition date range</span>
+<span class="sd">    :type acq_min: datetime.datetime</span>
+<span class="sd">    :param acq_max: Acquisition date range</span>
+<span class="sd">    :type acq_max: datetime.datetime</span>
+<span class="sd">    :param dataset_types: Dataset types</span>
 <span class="sd">    :type dataset_types: list[datacube.api.model.DatasetType]</span>
-<span class="sd">    :type sort: SortType</span>
+<span class="sd">    :param sort: Sort order</span>
+<span class="sd">    :type sort: datacube.api.query.SortType</span>
+<span class="sd">    :param config: Config</span>
+<span class="sd">    :type config: datacube.config.Config</span>
+
+<span class="sd">    :return: List of tiles</span>
 <span class="sd">    :rtype: list[datacube.api.model.Tile]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -849,7 +1066,30 @@
         <span class="n">conn</span> <span class="o">=</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span>
 
 </div>
-<div class="viewcode-block" id="list_tiles_to_file"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_tiles_to_file">[docs]</a><span class="k">def</span> <span class="nf">list_tiles_to_file</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">years</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+<div class="viewcode-block" id="list_tiles_to_file"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_tiles_to_file">[docs]</a><span class="k">def</span> <span class="nf">list_tiles_to_file</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Write the list of tiles matching the criteria to the specified file</span>
+
+<span class="sd">    :param x: X cell range</span>
+<span class="sd">    :type x: list[int]</span>
+<span class="sd">    :param y: Y cell range</span>
+<span class="sd">    :type y: list[int]</span>
+<span class="sd">    :param satellites: Satellites</span>
+<span class="sd">    :type satellites: list[datacube.api.model.Satellite]</span>
+<span class="sd">    :param acq_min: Acquisition date range</span>
+<span class="sd">    :type acq_min: datetime.datetime</span>
+<span class="sd">    :param acq_max: Acquisition date range</span>
+<span class="sd">    :type acq_max: datetime.datetime</span>
+<span class="sd">    :param dataset_types: Dataset types</span>
+<span class="sd">    :type dataset_types: list[datacube.api.model.DatasetType]</span>
+<span class="sd">    :param filename: The output file</span>
+<span class="sd">    :type filename: str</span>
+<span class="sd">    :param sort: Sort order</span>
+<span class="sd">    :type sort: datacube.api.query.SortType</span>
+<span class="sd">    :param config: Config</span>
+<span class="sd">    :type config: datacube.config.Config</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">conn</span> <span class="o">=</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span>
 
@@ -858,64 +1098,9 @@
 
         <span class="n">conn</span><span class="p">,</span> <span class="n">cursor</span> <span class="o">=</span> <span class="n">connect_to_db</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
 
-        <span class="n">sql</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;</span>
-<span class="s">            copy (</span>
-<span class="s">            select</span>
-<span class="s">                acquisition.acquisition_id, satellite_tag as satellite, start_datetime, end_datetime,</span>
-<span class="s">                extract(year from end_datetime) as end_datetime_year, extract(month from end_datetime) as end_datetime_month,</span>
-<span class="s">                nbar.x_index, nbar.y_index, point(nbar.x_index, nbar.y_index) as xy,</span>
-<span class="s">                ARRAY[</span>
-<span class="s">                    [&#39;ARG25&#39;, nbar.tile_pathname],</span>
-<span class="s">                    [&#39;PQ25&#39;, pq.tile_pathname],</span>
-<span class="s">                    [&#39;FC25&#39;, fc.tile_pathname]</span>
-<span class="s">                    ] as datasets</span>
-<span class="s">            from acquisition</span>
-<span class="s">            join satellite on satellite.satellite_id=acquisition.satellite_id</span>
-<span class="s">            join</span>
-<span class="s">                (</span>
-<span class="s">                select</span>
-<span class="s">                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
-<span class="s">                from tile</span>
-<span class="s">                join dataset on dataset.dataset_id=tile.dataset_id</span>
-<span class="s">                where dataset.level_id = 2</span>
-<span class="s">                ) as nbar on nbar.acquisition_id=acquisition.acquisition_id</span>
-<span class="s">            join</span>
-<span class="s">                (</span>
-<span class="s">                select</span>
-<span class="s">                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
-<span class="s">                from tile</span>
-<span class="s">                join dataset on dataset.dataset_id=tile.dataset_id</span>
-<span class="s">                where dataset.level_id = 3</span>
-<span class="s">                ) as pq on</span>
-<span class="s">                    pq.acquisition_id=acquisition.acquisition_id</span>
-<span class="s">                    and pq.x_index=nbar.x_index and pq.y_index=nbar.y_index</span>
-<span class="s">                    and pq.tile_type_id=nbar.tile_type_id and pq.tile_class_id=nbar.tile_class_id</span>
-<span class="s">            join</span>
-<span class="s">                (</span>
-<span class="s">                select</span>
-<span class="s">                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
-<span class="s">                from tile</span>
-<span class="s">                join dataset on dataset.dataset_id=tile.dataset_id</span>
-<span class="s">                where dataset.level_id = 4</span>
-<span class="s">                ) as fc on</span>
-<span class="s">                    fc.acquisition_id=acquisition.acquisition_id</span>
-<span class="s">                    and fc.x_index=nbar.x_index and fc.y_index=nbar.y_index</span>
-<span class="s">                    and fc.tile_type_id=nbar.tile_type_id and fc.tile_class_id=nbar.tile_class_id</span>
-<span class="s">            where</span>
-<span class="s">                nbar.tile_type_id = ANY(</span><span class="si">%(tile_type)s</span><span class="s">) and nbar.tile_class_id = ANY(</span><span class="si">%(tile_class)s</span><span class="s">) -- mandatory</span>
-<span class="s">                and satellite.satellite_tag = ANY(</span><span class="si">%(satellite)s</span><span class="s">)</span>
-<span class="s">                and nbar.x_index = ANY(</span><span class="si">%(x)s</span><span class="s">) and nbar.y_index = ANY(</span><span class="si">%(y)s</span><span class="s">)</span>
-<span class="s">                and extract(year from end_datetime) = ANY(</span><span class="si">%(year)s</span><span class="s">)</span>
+        <span class="n">sql</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="n">build_list_tiles_sql_and_params</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="p">)</span>
 
-<span class="s">            order by end_datetime {sort}, satellite asc</span>
-<span class="s">            ) to STDOUT csv header delimiter &#39;,&#39; escape &#39;&quot;&#39; null &#39;&#39; quote &#39;&quot;&#39;</span>
-<span class="s">            ;</span>
-<span class="s">        &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
-
-        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;tile_type&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s">&quot;tile_class&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">tile_class</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">tile_class</span> <span class="ow">in</span> <span class="n">TILE_CLASSES</span><span class="p">],</span>
-                  <span class="s">&quot;satellite&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">satellite</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">satellite</span> <span class="ow">in</span> <span class="n">satellites</span><span class="p">],</span>
-                  <span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span> <span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">y</span><span class="p">,</span>
-                  <span class="s">&quot;year&quot;</span><span class="p">:</span> <span class="n">years</span><span class="p">}</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="n">to_file_ify_sql</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">filename</span><span class="p">:</span>
             <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
@@ -935,6 +1120,28 @@
 
 </div>
 <div class="viewcode-block" id="build_list_tiles_sql_and_params"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.build_list_tiles_sql_and_params">[docs]</a><span class="k">def</span> <span class="nf">build_list_tiles_sql_and_params</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build the SQL query string and parameters required to return the tiles matching the criteria</span>
+
+<span class="sd">    :param x: X cell range</span>
+<span class="sd">    :type x: list[int]</span>
+<span class="sd">    :param y: Y cell range</span>
+<span class="sd">    :type y: list[int]</span>
+<span class="sd">    :param satellites: Satellites</span>
+<span class="sd">    :type satellites: list[datacube.api.model.Satellite]</span>
+<span class="sd">    :param acq_min: Acquisition date range</span>
+<span class="sd">    :type acq_min: datetime.datetime</span>
+<span class="sd">    :param acq_max: Acquisition date range</span>
+<span class="sd">    :type acq_max: datetime.datetime</span>
+<span class="sd">    :param dataset_types: Dataset types</span>
+<span class="sd">    :type dataset_types: list[datacube.api.model.DatasetType]</span>
+<span class="sd">    :param sort: Sort order</span>
+<span class="sd">    :type sort: datacube.api.query.SortType</span>
+
+<span class="sd">    :return: The SQL query and params</span>
+<span class="sd">    :rtype: (str, dict)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">sql</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;</span>
 <span class="s">        select</span>
@@ -1130,69 +1337,109 @@
 
 <span class="c"># Tiles that we DON&#39;T have</span>
 </div>
-<div class="viewcode-block" id="list_tiles_missing"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_tiles_missing">[docs]</a><span class="k">def</span> <span class="nf">list_tiles_missing</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+<div class="viewcode-block" id="list_tiles_missing"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_tiles_missing">[docs]</a><span class="k">def</span> <span class="nf">list_tiles_missing</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
 
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Return a list of cells matching the criteria as a SINGLE-USE generator</span>
+<span class="sd">    Return a list of tiles matching the criteria as a SINGLE-USE generator</span>
 
-<span class="sd">    Deprecated: Move to using explicit as_list or as_generator</span>
+<span class="sd">    .. note::</span>
+<span class="sd">        The dataset types supplied are tested for NOT being present</span>
 
+<span class="sd">    .. note::</span>
+<span class="sd">        The NBAR dataset is ALWAYS the only dataset returned</span>
+
+<span class="sd">    .. warning::</span>
+<span class="sd">        Deprecated: use either datacube.api.query.list_tiles_missing_as_list() or datacube.api.query.list_tiles_missing_as_generator()</span>
+
+<span class="sd">    :param x: X cell range</span>
 <span class="sd">    :type x: list[int]</span>
+<span class="sd">    :param y: Y cell range</span>
 <span class="sd">    :type y: list[int]</span>
+<span class="sd">    :param satellites: Satellites</span>
 <span class="sd">    :type satellites: list[datacube.api.model.Satellite]</span>
-<span class="sd">    :type acq_min: datetime.date</span>
-<span class="sd">    :type acq_max: datetime.date</span>
-<span class="sd">    :type datasets: list[datacube.api.model.DatasetType]</span>
-<span class="sd">    :type database: str</span>
-<span class="sd">    :type user: str</span>
-<span class="sd">    :type password: str</span>
-<span class="sd">    :type host: str</span>
-<span class="sd">    :type port: int</span>
-<span class="sd">    :type sort: SortType</span>
+<span class="sd">    :param acq_min: Acquisition date range</span>
+<span class="sd">    :type acq_min: datetime.datetime</span>
+<span class="sd">    :param acq_max: Acquisition date range</span>
+<span class="sd">    :type acq_max: datetime.datetime</span>
+<span class="sd">    :param dataset_types: Dataset types</span>
+<span class="sd">    :type dataset_types: list[datacube.api.model.DatasetType]</span>
+<span class="sd">    :param sort: Sort order</span>
+<span class="sd">    :type sort: datacube.api.query.SortType</span>
+<span class="sd">    :param config: Config</span>
+<span class="sd">    :type config: datacube.config.Config</span>
+
+<span class="sd">    :return: List of tiles</span>
 <span class="sd">    :rtype: list[datacube.api.model.Tile]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">list_tiles_missing_as_generator</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">sort</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">list_tiles_missing_as_generator</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
 
 </div>
-<div class="viewcode-block" id="list_tiles_missing_as_list"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_tiles_missing_as_list">[docs]</a><span class="k">def</span> <span class="nf">list_tiles_missing_as_list</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+<div class="viewcode-block" id="list_tiles_missing_as_list"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_tiles_missing_as_list">[docs]</a><span class="k">def</span> <span class="nf">list_tiles_missing_as_list</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
 
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator</span>
+<span class="sd">    Return a list of tiles matching the criteria AS A REUSABLE LIST rather than as a one-use-generator</span>
 
+<span class="sd">    .. note::</span>
+<span class="sd">        The dataset types supplied are tested for NOT being present</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        The NBAR dataset is ALWAYS the only dataset returned</span>
+
+<span class="sd">    .. warning::</span>
+<span class="sd">        Deprecated: use either datacube.api.query.list_tiles_missing_as_list() or datacube.api.query.list_tiles_missing_as_generator()</span>
+
+<span class="sd">    :param x: X cell range</span>
 <span class="sd">    :type x: list[int]</span>
+<span class="sd">    :param y: Y cell range</span>
 <span class="sd">    :type y: list[int]</span>
+<span class="sd">    :param satellites: Satellites</span>
 <span class="sd">    :type satellites: list[datacube.api.model.Satellite]</span>
-<span class="sd">    :type acq_min: datetime.date</span>
-<span class="sd">    :type acq_max: datetime.date</span>
-<span class="sd">    :type datasets: list[datacube.api.model.DatasetType]</span>
-<span class="sd">    :type database: str</span>
-<span class="sd">    :type user: str</span>
-<span class="sd">    :type password: str</span>
-<span class="sd">    :type host: str</span>
-<span class="sd">    :type port: int</span>
-<span class="sd">    :type sort: SortType</span>
+<span class="sd">    :param acq_min: Acquisition date range</span>
+<span class="sd">    :type acq_min: datetime.datetime</span>
+<span class="sd">    :param acq_max: Acquisition date range</span>
+<span class="sd">    :type acq_max: datetime.datetime</span>
+<span class="sd">    :param dataset_types: Dataset types</span>
+<span class="sd">    :type dataset_types: list[datacube.api.model.DatasetType]</span>
+<span class="sd">    :param sort: Sort order</span>
+<span class="sd">    :type sort: datacube.api.query.SortType</span>
+<span class="sd">    :param config: Config</span>
+<span class="sd">    :type config: datacube.config.Config</span>
+
+<span class="sd">    :return: List of tiles</span>
 <span class="sd">    :rtype: list[datacube.api.model.Tile]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">list_tiles_missing_as_generator</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">sort</span><span class="p">,</span> <span class="n">config</span><span class="p">))</span>
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">list_tiles_missing_as_generator</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="p">,</span> <span class="n">config</span><span class="p">))</span>
 
 </div>
-<div class="viewcode-block" id="list_tiles_missing_as_generator"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_tiles_missing_as_generator">[docs]</a><span class="k">def</span> <span class="nf">list_tiles_missing_as_generator</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+<div class="viewcode-block" id="list_tiles_missing_as_generator"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_tiles_missing_as_generator">[docs]</a><span class="k">def</span> <span class="nf">list_tiles_missing_as_generator</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
 
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Return a list of cells matching the criteria as a SINGLE-USE generator</span>
+<span class="sd">    Return a list of tiles matching the criteria as a SINGLE-USE generator</span>
 
+<span class="sd">    .. note::</span>
+<span class="sd">        The dataset types supplied are tested for NOT being present</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        The NBAR dataset is ALWAYS the only dataset returned</span>
+
+<span class="sd">    :param x: X cell range</span>
 <span class="sd">    :type x: list[int]</span>
+<span class="sd">    :param y: Y cell range</span>
 <span class="sd">    :type y: list[int]</span>
+<span class="sd">    :param satellites: Satellites</span>
 <span class="sd">    :type satellites: list[datacube.api.model.Satellite]</span>
-<span class="sd">    :type acq_min: datetime.date</span>
-<span class="sd">    :type acq_max: datetime.date</span>
-<span class="sd">    :type datasets: list[datacube.api.model.DatasetType]</span>
-<span class="sd">    :type database: str</span>
-<span class="sd">    :type user: str</span>
-<span class="sd">    :type password: str</span>
-<span class="sd">    :type host: str</span>
-<span class="sd">    :type port: int</span>
-<span class="sd">    :type sort: SortType</span>
+<span class="sd">    :param acq_min: Acquisition date range</span>
+<span class="sd">    :type acq_min: datetime.datetime</span>
+<span class="sd">    :param acq_max: Acquisition date range</span>
+<span class="sd">    :type acq_max: datetime.datetime</span>
+<span class="sd">    :param dataset_types: Dataset types</span>
+<span class="sd">    :type dataset_types: list[datacube.api.model.DatasetType]</span>
+<span class="sd">    :param sort: Sort order</span>
+<span class="sd">    :type sort: datacube.api.query.SortType</span>
+<span class="sd">    :param config: Config</span>
+<span class="sd">    :type config: datacube.config.Config</span>
+
+<span class="sd">    :return: List of tiles</span>
 <span class="sd">    :rtype: list[datacube.api.model.Tile]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -1203,50 +1450,7 @@
 
         <span class="n">conn</span><span class="p">,</span> <span class="n">cursor</span> <span class="o">=</span> <span class="n">connect_to_db</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
 
-        <span class="n">sql</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;</span>
-<span class="s">            select</span>
-<span class="s">                acquisition.acquisition_id, satellite_tag as satellite, start_datetime, end_datetime,</span>
-<span class="s">                extract(year from end_datetime) as end_datetime_year, extract(month from end_datetime) as end_datetime_month,</span>
-<span class="s">                NBAR.x_index, NBAR.y_index, point(NBAR.x_index, NBAR.y_index) as xy,</span>
-<span class="s">                ARRAY[</span>
-<span class="s">                    [&#39;ARG25&#39;, NBAR.tile_pathname]</span>
-<span class="s">                    ] as datasets</span>
-<span class="s">            from acquisition</span>
-<span class="s">            join satellite on satellite.satellite_id=acquisition.satellite_id</span>
-<span class="s">            join</span>
-<span class="s">                (</span>
-<span class="s">                select</span>
-<span class="s">                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
-<span class="s">                from tile</span>
-<span class="s">                join dataset on dataset.dataset_id=tile.dataset_id</span>
-<span class="s">                where dataset.level_id = 2</span>
-<span class="s">                ) as nbar on nbar.acquisition_id=acquisition.acquisition_id</span>
-<span class="s">            left outer join</span>
-<span class="s">                (</span>
-<span class="s">                select</span>
-<span class="s">                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
-<span class="s">                from tile</span>
-<span class="s">                join dataset on dataset.dataset_id=tile.dataset_id</span>
-<span class="s">                where dataset.level_id = 4</span>
-<span class="s">                ) as fc on</span>
-<span class="s">                    fc.acquisition_id=acquisition.acquisition_id</span>
-<span class="s">                    and fc.x_index=nbar.x_index and fc.y_index=nbar.y_index</span>
-<span class="s">                    and fc.tile_type_id=nbar.tile_type_id and fc.tile_class_id=nbar.tile_class_id</span>
-<span class="s">            where</span>
-<span class="s">                nbar.tile_type_id = ANY(</span><span class="si">%(tile_type)s</span><span class="s">) and nbar.tile_class_id = ANY(</span><span class="si">%(tile_class)s</span><span class="s">) -- mandatory</span>
-<span class="s">                and satellite.satellite_tag = ANY(</span><span class="si">%(satellite)s</span><span class="s">)</span>
-<span class="s">                and nbar.x_index = ANY(</span><span class="si">%(x)s</span><span class="s">) and nbar.y_index = ANY(</span><span class="si">%(y)s</span><span class="s">)</span>
-<span class="s">                and end_datetime::date between </span><span class="si">%(acq_min)s</span><span class="s"> and </span><span class="si">%(acq_max)s</span><span class="s"></span>
-<span class="s">                and fc.acquisition_id is null</span>
-
-<span class="s">            order by nbar.x_index {sort}, nbar.y_index {sort}</span>
-<span class="s">            ;</span>
-<span class="s">        &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
-
-        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;tile_type&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s">&quot;tile_class&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">tile_class</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">tile_class</span> <span class="ow">in</span> <span class="n">TILE_CLASSES</span><span class="p">],</span>
-                  <span class="s">&quot;satellite&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">satellite</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">satellite</span> <span class="ow">in</span> <span class="n">satellites</span><span class="p">],</span>
-                  <span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span> <span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">y</span><span class="p">,</span>
-                  <span class="s">&quot;acq_min&quot;</span><span class="p">:</span> <span class="n">acq_min</span><span class="p">,</span> <span class="s">&quot;acq_max&quot;</span><span class="p">:</span> <span class="n">acq_max</span><span class="p">}</span>
+        <span class="n">sql</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="n">build_list_tiles_sql_and_params</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="p">)</span>
 
         <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">cursor</span><span class="o">.</span><span class="n">mogrify</span><span class="p">(</span><span class="n">sql</span><span class="p">,</span> <span class="n">params</span><span class="p">))</span>
 
@@ -1267,7 +1471,36 @@
         <span class="n">conn</span> <span class="o">=</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span>
 
 </div>
-<div class="viewcode-block" id="list_tiles_missing_to_file"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_tiles_missing_to_file">[docs]</a><span class="k">def</span> <span class="nf">list_tiles_missing_to_file</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">years</span><span class="p">,</span> <span class="n">datasets</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+<div class="viewcode-block" id="list_tiles_missing_to_file"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.list_tiles_missing_to_file">[docs]</a><span class="k">def</span> <span class="nf">list_tiles_missing_to_file</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Write the list of tiles matching the criteria to the specified file</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        The dataset types supplied are tested for NOT being present</span>
+
+<span class="sd">    .. note::</span>
+<span class="sd">        The NBAR dataset is ALWAYS the only dataset returned</span>
+
+<span class="sd">    :param x: X cell range</span>
+<span class="sd">    :type x: list[int]</span>
+<span class="sd">    :param y: Y cell range</span>
+<span class="sd">    :type y: list[int]</span>
+<span class="sd">    :param satellites: Satellites</span>
+<span class="sd">    :type satellites: list[datacube.api.model.Satellite]</span>
+<span class="sd">    :param acq_min: Acquisition date range</span>
+<span class="sd">    :type acq_min: datetime.datetime</span>
+<span class="sd">    :param acq_max: Acquisition date range</span>
+<span class="sd">    :type acq_max: datetime.datetime</span>
+<span class="sd">    :param dataset_types: Dataset types</span>
+<span class="sd">    :type dataset_types: list[datacube.api.model.DatasetType]</span>
+<span class="sd">    :param filename: The output file</span>
+<span class="sd">    :type filename: str</span>
+<span class="sd">    :param sort: Sort order</span>
+<span class="sd">    :type sort: datacube.api.query.SortType</span>
+<span class="sd">    :param config: Config</span>
+<span class="sd">    :type config: datacube.config.Config</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">conn</span> <span class="o">=</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span>
 
@@ -1276,52 +1509,9 @@
 
         <span class="n">conn</span><span class="p">,</span> <span class="n">cursor</span> <span class="o">=</span> <span class="n">connect_to_db</span><span class="p">(</span><span class="n">config</span><span class="o">=</span><span class="n">config</span><span class="p">)</span>
 
-        <span class="n">sql</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;</span>
-<span class="s">            copy (</span>
-<span class="s">            select</span>
-<span class="s">                acquisition.acquisition_id, satellite_tag as satellite, start_datetime, end_datetime,</span>
-<span class="s">                extract(year from end_datetime) as end_datetime_year, extract(month from end_datetime) as end_datetime_month,</span>
-<span class="s">                NBAR.x_index, NBAR.y_index, point(NBAR.x_index, NBAR.y_index) as xy,</span>
-<span class="s">                ARRAY[</span>
-<span class="s">                    [&#39;ARG25&#39;, NBAR.tile_pathname]</span>
-<span class="s">                    ] as datasets</span>
-<span class="s">            from acquisition</span>
-<span class="s">            join satellite on satellite.satellite_id=acquisition.satellite_id</span>
-<span class="s">            join</span>
-<span class="s">                (</span>
-<span class="s">                select</span>
-<span class="s">                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
-<span class="s">                from tile</span>
-<span class="s">                join dataset on dataset.dataset_id=tile.dataset_id</span>
-<span class="s">                where dataset.level_id = 2</span>
-<span class="s">                ) as nbar on nbar.acquisition_id=acquisition.acquisition_id</span>
-<span class="s">            left outer join</span>
-<span class="s">                (</span>
-<span class="s">                select</span>
-<span class="s">                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
-<span class="s">                from tile</span>
-<span class="s">                join dataset on dataset.dataset_id=tile.dataset_id</span>
-<span class="s">                where dataset.level_id = 4</span>
-<span class="s">                ) as fc on</span>
-<span class="s">                    fc.acquisition_id=acquisition.acquisition_id</span>
-<span class="s">                    and fc.x_index=nbar.x_index and fc.y_index=nbar.y_index</span>
-<span class="s">                    and fc.tile_type_id=nbar.tile_type_id and fc.tile_class_id=nbar.tile_class_id</span>
-<span class="s">            where</span>
-<span class="s">                nbar.tile_type_id = ANY(</span><span class="si">%(tile_type)s</span><span class="s">) and nbar.tile_class_id = ANY(</span><span class="si">%(tile_class)s</span><span class="s">) -- mandatory</span>
-<span class="s">                and satellite.satellite_tag = ANY(</span><span class="si">%(satellite)s</span><span class="s">)</span>
-<span class="s">                and nbar.x_index = ANY(</span><span class="si">%(x)s</span><span class="s">) and nbar.y_index = ANY(</span><span class="si">%(y)s</span><span class="s">)</span>
-<span class="s">                and end_datetime::date between </span><span class="si">%(acq_min)s</span><span class="s"> and </span><span class="si">%(acq_max)s</span><span class="s"></span>
-<span class="s">                and fc.acquisition_id is null</span>
+        <span class="n">sql</span><span class="p">,</span> <span class="n">params</span> <span class="o">=</span> <span class="n">build_list_tiles_missing_sql_and_params</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="p">)</span>
 
-<span class="s">            order by nbar.x_index {sort}, nbar.y_index {sort}</span>
-<span class="s">            ) to STDOUT csv header delimiter &#39;,&#39; escape &#39;&quot;&#39; null &#39;&#39; quote &#39;&quot;&#39;</span>
-<span class="s">            ;</span>
-<span class="s">        &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
-
-        <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;tile_type&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s">&quot;tile_class&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">tile_class</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">tile_class</span> <span class="ow">in</span> <span class="n">TILE_CLASSES</span><span class="p">],</span>
-                  <span class="s">&quot;satellite&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">satellite</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">satellite</span> <span class="ow">in</span> <span class="n">satellites</span><span class="p">],</span>
-                  <span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span> <span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">y</span><span class="p">,</span>
-                  <span class="s">&quot;year&quot;</span><span class="p">:</span> <span class="n">years</span><span class="p">}</span>
+        <span class="n">sql</span> <span class="o">=</span> <span class="n">to_file_ify_sql</span><span class="p">(</span><span class="n">sql</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">filename</span><span class="p">:</span>
             <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
@@ -1338,6 +1528,208 @@
     <span class="k">finally</span><span class="p">:</span>
 
         <span class="n">conn</span> <span class="o">=</span> <span class="n">cursor</span> <span class="o">=</span> <span class="bp">None</span>
+
+</div>
+<div class="viewcode-block" id="build_list_tiles_missing_sql_and_params"><a class="viewcode-back" href="../../../api/datacube.api.query.html#datacube.api.query.build_list_tiles_missing_sql_and_params">[docs]</a><span class="k">def</span> <span class="nf">build_list_tiles_missing_sql_and_params</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">satellites</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build the SQL query string and parameters required to return the cells matching the criteria</span>
+
+<span class="sd">    :param x: X cell range</span>
+<span class="sd">    :type x: list[int]</span>
+<span class="sd">    :param y: Y cell range</span>
+<span class="sd">    :type y: list[int]</span>
+<span class="sd">    :param satellites: Satellites</span>
+<span class="sd">    :type satellites: list[datacube.api.model.Satellite]</span>
+<span class="sd">    :param acq_min: Acquisition date range</span>
+<span class="sd">    :type acq_min: datetime.datetime</span>
+<span class="sd">    :param acq_max: Acquisition date range</span>
+<span class="sd">    :type acq_max: datetime.datetime</span>
+<span class="sd">    :param dataset_types: Dataset types</span>
+<span class="sd">    :type dataset_types: list[datacube.api.model.DatasetType]</span>
+<span class="sd">    :param sort: Sort order</span>
+<span class="sd">    :type sort: datacube.api.query.SortType</span>
+
+<span class="sd">    :return: The SQL query and params</span>
+<span class="sd">    :rtype: (str, dict)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">sql</span> <span class="o">=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">        select</span>
+<span class="s">            acquisition.acquisition_id, satellite_tag as satellite, start_datetime, end_datetime,</span>
+<span class="s">            extract(year from end_datetime) as end_datetime_year, extract(month from end_datetime) as end_datetime_month,</span>
+<span class="s">            NBAR.x_index, NBAR.y_index, point(NBAR.x_index, NBAR.y_index) as xy,</span>
+<span class="s">            ARRAY[</span>
+<span class="s">                [&#39;ARG25&#39;, NBAR.tile_pathname]</span>
+<span class="s">                ] as datasets</span>
+<span class="s">        from acquisition</span>
+<span class="s">        join satellite on satellite.satellite_id=acquisition.satellite_id</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">        join</span>
+<span class="s">            (</span>
+<span class="s">            select</span>
+<span class="s">                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">            from tile</span>
+<span class="s">            join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">            where dataset.level_id = </span><span class="si">%(level_nbar)s</span><span class="s"></span>
+<span class="s">            ) as nbar on nbar.acquisition_id=acquisition.acquisition_id</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">PQ25</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            left outer join</span>
+<span class="s">                (</span>
+<span class="s">                select</span>
+<span class="s">                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">                from tile</span>
+<span class="s">                join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">                where dataset.level_id = </span><span class="si">%(level_pqa)s</span><span class="s"></span>
+<span class="s">                ) as pqa on</span>
+<span class="s">                    pqa.acquisition_id=acquisition.acquisition_id</span>
+<span class="s">                    and pqa.x_index=nbar.x_index and pqa.y_index=nbar.y_index</span>
+<span class="s">                    and pqa.tile_type_id=nbar.tile_type_id and pqa.tile_class_id=nbar.tile_class_id</span>
+<span class="s">            &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">FC25</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            left outer join</span>
+<span class="s">                (</span>
+<span class="s">                select</span>
+<span class="s">                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">                from tile</span>
+<span class="s">                join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">                where dataset.level_id = </span><span class="si">%(level_fc)s</span><span class="s"></span>
+<span class="s">                ) as fc on</span>
+<span class="s">                    fc.acquisition_id=acquisition.acquisition_id</span>
+<span class="s">                    and fc.x_index=nbar.x_index and fc.y_index=nbar.y_index</span>
+<span class="s">                    and fc.tile_type_id=nbar.tile_type_id and fc.tile_class_id=nbar.tile_class_id</span>
+<span class="s">            &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DSM</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            left outer join</span>
+<span class="s">            (</span>
+<span class="s">            select</span>
+<span class="s">                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">            from tile</span>
+<span class="s">            join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">            where dataset.level_id = </span><span class="si">%(level_dsm)s</span><span class="s"></span>
+<span class="s">            ) as dsm on</span>
+<span class="s">                    dsm.x_index=nbar.x_index and dsm.y_index=nbar.y_index</span>
+<span class="s">                and dsm.tile_type_id=nbar.tile_type_id and dsm.tile_class_id=nbar.tile_class_id</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            left outer join</span>
+<span class="s">            (</span>
+<span class="s">            select</span>
+<span class="s">                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">            from tile</span>
+<span class="s">            join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">            where dataset.level_id = </span><span class="si">%(level_dem)s</span><span class="s"></span>
+<span class="s">            ) as dem on</span>
+<span class="s">                    dem.x_index=nbar.x_index and dem.y_index=nbar.y_index</span>
+<span class="s">                and dem.tile_type_id=nbar.tile_type_id and dem.tile_class_id=nbar.tile_class_id</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM_HYDROLOGICALLY_ENFORCED</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            left outer join</span>
+<span class="s">            (</span>
+<span class="s">            select</span>
+<span class="s">                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">            from tile</span>
+<span class="s">            join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">            where dataset.level_id = </span><span class="si">%(level_dem_h)s</span><span class="s"></span>
+<span class="s">            ) as dem_h on</span>
+<span class="s">                    dem_h.x_index=nbar.x_index and dem_h.y_index=nbar.y_index</span>
+<span class="s">                and dem_h.tile_type_id=nbar.tile_type_id and dem_h.tile_class_id=nbar.tile_class_id</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM_SMOOTHED</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            left outer join</span>
+<span class="s">            (</span>
+<span class="s">            select</span>
+<span class="s">                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id</span>
+<span class="s">            from tile</span>
+<span class="s">            join dataset on dataset.dataset_id=tile.dataset_id</span>
+<span class="s">            where dataset.level_id = </span><span class="si">%(level_dem_s)s</span><span class="s"></span>
+<span class="s">            ) as dem_s on</span>
+<span class="s">                    dem_s.x_index=nbar.x_index and dem_s.y_index=nbar.y_index</span>
+<span class="s">                and dem_s.tile_type_id=nbar.tile_type_id and dem_s.tile_class_id=nbar.tile_class_id</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">        where</span>
+<span class="s">            nbar.tile_type_id = ANY(</span><span class="si">%(tile_type)s</span><span class="s">) and nbar.tile_class_id = ANY(</span><span class="si">%(tile_class)s</span><span class="s">) -- mandatory</span>
+<span class="s">            and satellite.satellite_tag = ANY(</span><span class="si">%(satellite)s</span><span class="s">)</span>
+<span class="s">            and nbar.x_index = ANY(</span><span class="si">%(x)s</span><span class="s">) and nbar.y_index = ANY(</span><span class="si">%(y)s</span><span class="s">)</span>
+<span class="s">            and end_datetime::date between </span><span class="si">%(acq_min)s</span><span class="s"> and </span><span class="si">%(acq_max)s</span><span class="s"></span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">PQ25</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            and pqa.x_index is null</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">FC25</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            and fc.x_index is null</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DSM</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            and dsm.x_index is null</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            and dem.x_index is null</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM_HYDROLOGICALLY_ENFORCED</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            and dem_h.x_index is null</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM_SMOOTHED</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            and dem_s.x_index is null</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">        order by nbar.x_index {sort}, nbar.y_index {sort}</span>
+<span class="s">    &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sort</span><span class="o">=</span><span class="n">sort</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+
+    <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;tile_type&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">TILE_TYPE</span><span class="o">.</span><span class="n">value</span><span class="p">],</span> <span class="s">&quot;tile_class&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">tile_class</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">tile_class</span> <span class="ow">in</span> <span class="n">TILE_CLASSES</span><span class="p">],</span>
+              <span class="s">&quot;satellite&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">satellite</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">satellite</span> <span class="ow">in</span> <span class="n">satellites</span><span class="p">],</span>
+              <span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span> <span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">y</span><span class="p">,</span>
+              <span class="s">&quot;acq_min&quot;</span><span class="p">:</span> <span class="n">acq_min</span><span class="p">,</span> <span class="s">&quot;acq_max&quot;</span><span class="p">:</span> <span class="n">acq_max</span><span class="p">,</span>
+              <span class="s">&quot;level_nbar&quot;</span><span class="p">:</span> <span class="n">ProcessingLevel</span><span class="o">.</span><span class="n">NBAR</span><span class="o">.</span><span class="n">value</span><span class="p">}</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">PQ25</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">params</span><span class="p">[</span><span class="s">&quot;level_pqa&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ProcessingLevel</span><span class="o">.</span><span class="n">PQA</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">FC25</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">params</span><span class="p">[</span><span class="s">&quot;level_fc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ProcessingLevel</span><span class="o">.</span><span class="n">FC</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DSM</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">params</span><span class="p">[</span><span class="s">&quot;level_dsm&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ProcessingLevel</span><span class="o">.</span><span class="n">DSM</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">params</span><span class="p">[</span><span class="s">&quot;level_dem&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ProcessingLevel</span><span class="o">.</span><span class="n">DEM</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM_HYDROLOGICALLY_ENFORCED</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">params</span><span class="p">[</span><span class="s">&quot;level_dem_h&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ProcessingLevel</span><span class="o">.</span><span class="n">DEM_H</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM_SMOOTHED</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">params</span><span class="p">[</span><span class="s">&quot;level_dem_s&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ProcessingLevel</span><span class="o">.</span><span class="n">DEM_S</span><span class="o">.</span><span class="n">value</span>
+
+    <span class="k">return</span> <span class="n">sql</span><span class="p">,</span> <span class="n">params</span>
 
 
 <span class="c"># DEM/DSM tiles - quickie to get DEM/DSM tiles for WOFS - note they have no acquisition information!!!!</span>

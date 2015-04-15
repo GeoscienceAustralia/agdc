@@ -122,23 +122,67 @@
 <dl class="function">
 <dt id="datacube.api.query.connect_to_db">
 <code class="descclassname">datacube.api.query.</code><code class="descname">connect_to_db</code><span class="sig-paren">(</span><em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#connect_to_db"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.connect_to_db" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="datacube.api.query.to_file_ify_sql">
-<code class="descclassname">datacube.api.query.</code><code class="descname">to_file_ify_sql</code><span class="sig-paren">(</span><em>sql</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#to_file_ify_sql"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.to_file_ify_sql" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="datacube.api.query.list_cells">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a list of cells matching the criteria as a SINGLE-USE generator</p>
-<p>Deprecated: Move to using explicit as_list or as_generator</p>
+<dd><p>Connect to the AGDC DB</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list[datacube.api.model.Cell]</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Configuration</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">DB connection and cursor</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">(psycopg2.connection, psycopg2.cursor)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.to_file_ify_sql">
+<code class="descclassname">datacube.api.query.</code><code class="descname">to_file_ify_sql</code><span class="sig-paren">(</span><em>sql</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#to_file_ify_sql"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.to_file_ify_sql" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>sql</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The SQL string</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The to file ified SQL</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)">str</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.list_cells">
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of cells matching the criteria as a SINGLE-USE generator</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Deprecated: use either datacube.api.query.list_cells_as_list() or datacube.api.query.list_cells_as_generator()</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> (<em>list[int]</em>) &#8211; X cell range</li>
+<li><strong>y</strong> (<em>list[int]</em>) &#8211; Y cell range</li>
+<li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
+<li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
+<li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">List of cells</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list[datacube.api.model.Cell]</p>
+</td>
 </tr>
 </tbody>
 </table>
@@ -146,13 +190,29 @@
 
 <dl class="function">
 <dt id="datacube.api.query.list_cells_as_list">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_as_list</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_as_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_as_list" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_as_list</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_as_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_as_list" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list[datacube.api.model.Cell]</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> (<em>list[int]</em>) &#8211; X cell range</li>
+<li><strong>y</strong> (<em>list[int]</em>) &#8211; Y cell range</li>
+<li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
+<li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
+<li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">List of cells</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list[datacube.api.model.Cell]</p>
+</td>
 </tr>
 </tbody>
 </table>
@@ -160,13 +220,29 @@
 
 <dl class="function">
 <dt id="datacube.api.query.list_cells_as_generator">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_as_generator</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_as_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_as_generator" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_as_generator</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_as_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_as_generator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a list of cells matching the criteria as a SINGLE-USE generator</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list[datacube.api.model.Cell]</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> (<em>list[int]</em>) &#8211; X cell range</li>
+<li><strong>y</strong> (<em>list[int]</em>) &#8211; Y cell range</li>
+<li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
+<li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
+<li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">List of cells</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list[datacube.api.model.Cell]</p>
+</td>
 </tr>
 </tbody>
 </table>
@@ -174,24 +250,91 @@
 
 <dl class="function">
 <dt id="datacube.api.query.list_cells_to_file">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_to_file</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>filename</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_to_file" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="datacube.api.query.build_list_cells_sql_and_params">
-<code class="descclassname">datacube.api.query.</code><code class="descname">build_list_cells_sql_and_params</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#build_list_cells_sql_and_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.build_list_cells_sql_and_params" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="datacube.api.query.list_cells_missing">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_missing</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_missing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_missing" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a list of cells matching the criteria as a SINGLE-USE generator</p>
-<p>Deprecated: Move to using explicit as_list or as_generator</p>
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_to_file</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>filename</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_to_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the list of cells matching the criteria to the specified file</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list[datacube.api.model.Cell]</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>x</strong> (<em>list[int]</em>) &#8211; X cell range</li>
+<li><strong>y</strong> (<em>list[int]</em>) &#8211; Y cell range</li>
+<li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
+<li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>filename</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The output file</li>
+<li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
+<li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.build_list_cells_sql_and_params">
+<code class="descclassname">datacube.api.query.</code><code class="descname">build_list_cells_sql_and_params</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#build_list_cells_sql_and_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.build_list_cells_sql_and_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build the SQL query string and parameters required to return the cells matching the criteria</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> (<em>list[int]</em>) &#8211; X cell range</li>
+<li><strong>y</strong> (<em>list[int]</em>) &#8211; Y cell range</li>
+<li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
+<li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The SQL query and params</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">(str, dict)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.list_cells_missing">
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_missing</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_missing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_missing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of cells matching the criteria as a SINGLE-USE generator</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The dataset types supplied are tested for NOT being present</p>
+</div>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Deprecated: use either datacube.api.query.list_cells_missing_as_list() or datacube.api.query.list_cells_missing_as_generator()</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> (<em>list[int]</em>) &#8211; X cell range</li>
+<li><strong>y</strong> (<em>list[int]</em>) &#8211; Y cell range</li>
+<li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
+<li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
+<li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">List of cells</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list[datacube.api.model.Cell]</p>
+</td>
 </tr>
 </tbody>
 </table>
@@ -199,13 +342,37 @@
 
 <dl class="function">
 <dt id="datacube.api.query.list_cells_missing_as_list">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_missing_as_list</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_missing_as_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_missing_as_list" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_missing_as_list</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_missing_as_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_missing_as_list" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The dataset types supplied are tested for NOT being present</p>
+</div>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Deprecated: use either datacube.api.query.list_cells_missing_as_list() or datacube.api.query.list_cells_missing_as_generator()</p>
+</div>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list[datacube.api.model.Cell]</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> (<em>list[int]</em>) &#8211; X cell range</li>
+<li><strong>y</strong> (<em>list[int]</em>) &#8211; Y cell range</li>
+<li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
+<li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
+<li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">List of cells</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list[datacube.api.model.Cell]</p>
+</td>
 </tr>
 </tbody>
 </table>
@@ -213,29 +380,129 @@
 
 <dl class="function">
 <dt id="datacube.api.query.list_cells_missing_as_generator">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_missing_as_generator</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_missing_as_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_missing_as_generator" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="datacube.api.query.list_cells_missing_to_file">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_missing_to_file</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>filename</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_missing_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_missing_to_file" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="datacube.api.query.build_list_cells_missing_sql_and_params">
-<code class="descclassname">datacube.api.query.</code><code class="descname">build_list_cells_missing_sql_and_params</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#build_list_cells_missing_sql_and_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.build_list_cells_missing_sql_and_params" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="datacube.api.query.list_tiles">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a list of cells matching the criteria as a SINGLE-USE generator</p>
-<p>Deprecated: Move to using explicit as_list or as_generator</p>
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_missing_as_generator</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_missing_as_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_missing_as_generator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The dataset types supplied are tested for NOT being present</p>
+</div>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list[datacube.api.model.Tile]</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> (<em>list[int]</em>) &#8211; X cell range</li>
+<li><strong>y</strong> (<em>list[int]</em>) &#8211; Y cell range</li>
+<li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
+<li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
+<li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">List of cells</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list[datacube.api.model.Cell]</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.list_cells_missing_to_file">
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_missing_to_file</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>filename</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_missing_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_missing_to_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the list of cells matching the criteria to the specified file</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The dataset types supplied are tested for NOT being present</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>x</strong> (<em>list[int]</em>) &#8211; X cell range</li>
+<li><strong>y</strong> (<em>list[int]</em>) &#8211; Y cell range</li>
+<li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
+<li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>dataset_types</strong> &#8211; Dataset types</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>:type dataset_types list[datacube.api.model.DatasetType]
+:param filename: The output file
+:type filename: str
+:param sort: Sort order
+:type sort: datacube.api.query.SortType
+:param config: Config
+:type config: datacube.config.Config</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.build_list_cells_missing_sql_and_params">
+<code class="descclassname">datacube.api.query.</code><code class="descname">build_list_cells_missing_sql_and_params</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#build_list_cells_missing_sql_and_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.build_list_cells_missing_sql_and_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build the SQL query string and parameters required to return the cells matching the criteria</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> (<em>list[int]</em>) &#8211; X cell range</li>
+<li><strong>y</strong> (<em>list[int]</em>) &#8211; Y cell range</li>
+<li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
+<li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The SQL query and params</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">(str, dict)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.list_tiles">
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of tiles matching the criteria as a SINGLE-USE generator</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Deprecated: use either datacube.api.query.list_tiles_as_list() or datacube.api.query.list_tiles_as_generator()</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> (<em>list[int]</em>) &#8211; X cell range</li>
+<li><strong>y</strong> (<em>list[int]</em>) &#8211; Y cell range</li>
+<li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
+<li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
+<li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">List of tiles</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list[datacube.api.model.Tile]</p>
+</td>
 </tr>
 </tbody>
 </table>
@@ -243,13 +510,29 @@
 
 <dl class="function">
 <dt id="datacube.api.query.list_tiles_as_list">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_as_list</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_as_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_as_list" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_as_list</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_as_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_as_list" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list[datacube.api.model.Tile]</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> (<em>list[int]</em>) &#8211; X cell range</li>
+<li><strong>y</strong> (<em>list[int]</em>) &#8211; Y cell range</li>
+<li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
+<li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
+<li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">List of tiles</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list[datacube.api.model.Tile]</p>
+</td>
 </tr>
 </tbody>
 </table>
@@ -257,13 +540,29 @@
 
 <dl class="function">
 <dt id="datacube.api.query.list_tiles_as_generator">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_as_generator</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_as_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_as_generator" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a list of cells matching the criteria as a SINGLE-USE generator</p>
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_as_generator</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_as_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_as_generator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of tiles matching the criteria as a SINGLE-USE generator</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list[datacube.api.model.Tile]</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> (<em>list[int]</em>) &#8211; X cell range</li>
+<li><strong>y</strong> (<em>list[int]</em>) &#8211; Y cell range</li>
+<li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
+<li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
+<li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">List of tiles</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list[datacube.api.model.Tile]</p>
+</td>
 </tr>
 </tbody>
 </table>
@@ -271,24 +570,95 @@
 
 <dl class="function">
 <dt id="datacube.api.query.list_tiles_to_file">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_to_file</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>years</em>, <em>dataset_types</em>, <em>filename</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_to_file" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="datacube.api.query.build_list_tiles_sql_and_params">
-<code class="descclassname">datacube.api.query.</code><code class="descname">build_list_tiles_sql_and_params</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#build_list_tiles_sql_and_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.build_list_tiles_sql_and_params" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="datacube.api.query.list_tiles_missing">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_missing</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>datasets</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_missing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_missing" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a list of cells matching the criteria as a SINGLE-USE generator</p>
-<p>Deprecated: Move to using explicit as_list or as_generator</p>
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_to_file</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>filename</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_to_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the list of tiles matching the criteria to the specified file</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list[datacube.api.model.Tile]</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>x</strong> (<em>list[int]</em>) &#8211; X cell range</li>
+<li><strong>y</strong> (<em>list[int]</em>) &#8211; Y cell range</li>
+<li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
+<li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>filename</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The output file</li>
+<li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
+<li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.build_list_tiles_sql_and_params">
+<code class="descclassname">datacube.api.query.</code><code class="descname">build_list_tiles_sql_and_params</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#build_list_tiles_sql_and_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.build_list_tiles_sql_and_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build the SQL query string and parameters required to return the tiles matching the criteria</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> (<em>list[int]</em>) &#8211; X cell range</li>
+<li><strong>y</strong> (<em>list[int]</em>) &#8211; Y cell range</li>
+<li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
+<li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The SQL query and params</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">(str, dict)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.list_tiles_missing">
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_missing</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_missing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_missing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of tiles matching the criteria as a SINGLE-USE generator</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The dataset types supplied are tested for NOT being present</p>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The NBAR dataset is ALWAYS the only dataset returned</p>
+</div>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Deprecated: use either datacube.api.query.list_tiles_missing_as_list() or datacube.api.query.list_tiles_missing_as_generator()</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> (<em>list[int]</em>) &#8211; X cell range</li>
+<li><strong>y</strong> (<em>list[int]</em>) &#8211; Y cell range</li>
+<li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
+<li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
+<li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">List of tiles</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list[datacube.api.model.Tile]</p>
+</td>
 </tr>
 </tbody>
 </table>
@@ -296,13 +666,41 @@
 
 <dl class="function">
 <dt id="datacube.api.query.list_tiles_missing_as_list">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_missing_as_list</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>datasets</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_missing_as_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_missing_as_list" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator</p>
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_missing_as_list</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_missing_as_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_missing_as_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of tiles matching the criteria AS A REUSABLE LIST rather than as a one-use-generator</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The dataset types supplied are tested for NOT being present</p>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The NBAR dataset is ALWAYS the only dataset returned</p>
+</div>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Deprecated: use either datacube.api.query.list_tiles_missing_as_list() or datacube.api.query.list_tiles_missing_as_generator()</p>
+</div>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list[datacube.api.model.Tile]</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> (<em>list[int]</em>) &#8211; X cell range</li>
+<li><strong>y</strong> (<em>list[int]</em>) &#8211; Y cell range</li>
+<li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
+<li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
+<li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">List of tiles</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list[datacube.api.model.Tile]</p>
+</td>
 </tr>
 </tbody>
 </table>
@@ -310,13 +708,37 @@
 
 <dl class="function">
 <dt id="datacube.api.query.list_tiles_missing_as_generator">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_missing_as_generator</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>datasets</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_missing_as_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_missing_as_generator" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a list of cells matching the criteria as a SINGLE-USE generator</p>
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_missing_as_generator</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_missing_as_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_missing_as_generator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of tiles matching the criteria as a SINGLE-USE generator</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The dataset types supplied are tested for NOT being present</p>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The NBAR dataset is ALWAYS the only dataset returned</p>
+</div>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list[datacube.api.model.Tile]</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> (<em>list[int]</em>) &#8211; X cell range</li>
+<li><strong>y</strong> (<em>list[int]</em>) &#8211; Y cell range</li>
+<li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
+<li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
+<li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">List of tiles</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list[datacube.api.model.Tile]</p>
+</td>
 </tr>
 </tbody>
 </table>
@@ -324,12 +746,69 @@
 
 <dl class="function">
 <dt id="datacube.api.query.list_tiles_missing_to_file">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_missing_to_file</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>years</em>, <em>datasets</em>, <em>filename</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_missing_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_missing_to_file" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_missing_to_file</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>filename</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_missing_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_missing_to_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the list of tiles matching the criteria to the specified file</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The dataset types supplied are tested for NOT being present</p>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">The NBAR dataset is ALWAYS the only dataset returned</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>x</strong> (<em>list[int]</em>) &#8211; X cell range</li>
+<li><strong>y</strong> (<em>list[int]</em>) &#8211; Y cell range</li>
+<li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
+<li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>filename</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The output file</li>
+<li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
+<li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.build_list_tiles_missing_sql_and_params">
+<code class="descclassname">datacube.api.query.</code><code class="descname">build_list_tiles_missing_sql_and_params</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#build_list_tiles_missing_sql_and_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.build_list_tiles_missing_sql_and_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build the SQL query string and parameters required to return the cells matching the criteria</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> (<em>list[int]</em>) &#8211; X cell range</li>
+<li><strong>y</strong> (<em>list[int]</em>) &#8211; Y cell range</li>
+<li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
+<li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The SQL query and params</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">(str, dict)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="function">
 <dt id="datacube.api.query.list_tiles_dtm">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_dtm</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>datasets</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_dtm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_dtm" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_dtm</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>datasets</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_dtm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_dtm" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a list of cells matching the criteria as a SINGLE-USE generator</p>
 <p>Deprecated: Move to using explicit as_list or as_generator</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -344,7 +823,7 @@
 
 <dl class="function">
 <dt id="datacube.api.query.list_tiles_dtm_as_list">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_dtm_as_list</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>datasets</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_dtm_as_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_dtm_as_list" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_dtm_as_list</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>datasets</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_dtm_as_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_dtm_as_list" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -358,7 +837,7 @@
 
 <dl class="function">
 <dt id="datacube.api.query.list_tiles_dtm_as_generator">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_dtm_as_generator</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>datasets</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_dtm_as_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_dtm_as_generator" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_dtm_as_generator</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>datasets</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_dtm_as_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_dtm_as_generator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a list of cells matching the criteria as a SINGLE-USE generator</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -372,22 +851,22 @@
 
 <dl class="function">
 <dt id="datacube.api.query.visit_tiles">
-<code class="descclassname">datacube.api.query.</code><code class="descname">visit_tiles</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>years</em>, <em>datasets</em>, <em>func=&lt;function print_tile&gt;</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#visit_tiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.visit_tiles" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.query.</code><code class="descname">visit_tiles</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>years</em>, <em>datasets</em>, <em>func=&lt;function print_tile&gt;</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#visit_tiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.visit_tiles" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
 <dt id="datacube.api.query.list_tiles_wkt">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_wkt</code><span class="sig-paren">(</span><em>wkt</em>, <em>satellites</em>, <em>years</em>, <em>datasets</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_wkt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_wkt" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_wkt</code><span class="sig-paren">(</span><em>wkt</em>, <em>satellites</em>, <em>years</em>, <em>datasets</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_wkt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_wkt" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
 <dt id="datacube.api.query.list_tiles_wkt_to_file">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_wkt_to_file</code><span class="sig-paren">(</span><em>wkt</em>, <em>years</em>, <em>datasets</em>, <em>format</em>, <em>filename</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_wkt_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_wkt_to_file" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_wkt_to_file</code><span class="sig-paren">(</span><em>wkt</em>, <em>years</em>, <em>datasets</em>, <em>format</em>, <em>filename</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_wkt_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_wkt_to_file" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
 <dt id="datacube.api.query.visit_tiles_wkt">
-<code class="descclassname">datacube.api.query.</code><code class="descname">visit_tiles_wkt</code><span class="sig-paren">(</span><em>wkt</em>, <em>years</em>, <em>datasets</em>, <em>sort=&lt;SortType.ASC: 'asc'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#visit_tiles_wkt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.visit_tiles_wkt" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.query.</code><code class="descname">visit_tiles_wkt</code><span class="sig-paren">(</span><em>wkt</em>, <em>years</em>, <em>datasets</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#visit_tiles_wkt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.visit_tiles_wkt" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">

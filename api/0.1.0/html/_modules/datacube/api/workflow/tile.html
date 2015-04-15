@@ -141,7 +141,7 @@
         <span class="c"># super(self.__class__, self).log_arguments()</span>
         <span class="n">workflow</span><span class="o">.</span><span class="n">Workflow</span><span class="o">.</span><span class="n">log_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 </div>
-<div class="viewcode-block" id="Workflow.create_tasks"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.tile.html#datacube.api.workflow.tile.Workflow.create_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">create_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Workflow.create_summary_tasks"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.tile.html#datacube.api.workflow.tile.Workflow.create_summary_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">create_summary_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;Abstract method should be overridden&quot;</span><span class="p">)</span>
 
@@ -149,7 +149,7 @@
 <div class="viewcode-block" id="SummaryTask"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.tile.html#datacube.api.workflow.tile.SummaryTask">[docs]</a><span class="k">class</span> <span class="nc">SummaryTask</span><span class="p">(</span><span class="n">workflow</span><span class="o">.</span><span class="n">SummaryTask</span><span class="p">):</span>
 
     <span class="nd">@abc.abstractmethod</span>
-<div class="viewcode-block" id="SummaryTask.create_cell_task"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.tile.html#datacube.api.workflow.tile.SummaryTask.create_cell_task">[docs]</a>    <span class="k">def</span> <span class="nf">create_cell_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+<div class="viewcode-block" id="SummaryTask.create_cell_tasks"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.tile.html#datacube.api.workflow.tile.SummaryTask.create_cell_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">create_cell_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
 
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;Abstract method should be overridden&quot;</span><span class="p">)</span>
 
@@ -160,10 +160,15 @@
 
 <div class="viewcode-block" id="CellTask.requires"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.tile.html#datacube.api.workflow.tile.CellTask.requires">[docs]</a>    <span class="k">def</span> <span class="nf">requires</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
-        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">create_tile_task</span><span class="p">(</span><span class="n">tile</span><span class="o">=</span><span class="n">tile</span><span class="p">)</span> <span class="k">for</span> <span class="n">tile</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_tiles</span><span class="p">()]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">csv</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">workflow</span><span class="o">.</span><span class="n">TileListCsvTask</span><span class="p">(</span><span class="n">x_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">x_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">y_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">y_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,</span>
+                                           <span class="n">acq_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">,</span> <span class="n">satellites</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">,</span>
+                                           <span class="n">dataset_types</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_dataset_types</span><span class="p">(),</span> <span class="n">path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_tile_csv_filename</span><span class="p">())</span>
+
+        <span class="k">yield</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">create_tile_tasks</span><span class="p">(</span><span class="n">tile</span><span class="o">=</span><span class="n">tile</span><span class="p">)</span> <span class="k">for</span> <span class="n">tile</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_tiles</span><span class="p">()]</span>
 </div>
     <span class="nd">@abc.abstractmethod</span>
-<div class="viewcode-block" id="CellTask.create_tile_task"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.tile.html#datacube.api.workflow.tile.CellTask.create_tile_task">[docs]</a>    <span class="k">def</span> <span class="nf">create_tile_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tile</span><span class="p">):</span>
+<div class="viewcode-block" id="CellTask.create_tile_tasks"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.tile.html#datacube.api.workflow.tile.CellTask.create_tile_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">create_tile_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tile</span><span class="p">):</span>
 
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;Abstract method should be overridden&quot;</span><span class="p">)</span>
 

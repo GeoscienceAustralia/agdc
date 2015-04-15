@@ -183,8 +183,8 @@
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="datacube.api.workflow.Workflow.create_tasks">
-<code class="descname">create_tasks</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/workflow.html#Workflow.create_tasks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.workflow.Workflow.create_tasks" title="Permalink to this definition">¶</a></dt>
+<dt id="datacube.api.workflow.Workflow.create_summary_tasks">
+<code class="descname">create_summary_tasks</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/workflow.html#Workflow.create_summary_tasks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.workflow.Workflow.create_summary_tasks" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -310,8 +310,13 @@
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="datacube.api.workflow.SummaryTask.create_cell_task">
-<code class="descname">create_cell_task</code><span class="sig-paren">(</span><em>x</em>, <em>y</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/workflow.html#SummaryTask.create_cell_task"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.workflow.SummaryTask.create_cell_task" title="Permalink to this definition">¶</a></dt>
+<dt id="datacube.api.workflow.SummaryTask.create_cell_tasks">
+<code class="descname">create_cell_tasks</code><span class="sig-paren">(</span><em>x</em>, <em>y</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/workflow.html#SummaryTask.create_cell_tasks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.workflow.SummaryTask.create_cell_tasks" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="datacube.api.workflow.SummaryTask.get_dataset_types">
+<em class="property">static </em><code class="descname">get_dataset_types</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/workflow.html#SummaryTask.get_dataset_types"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.workflow.SummaryTask.get_dataset_types" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">
@@ -405,6 +410,11 @@
 <code class="descname">get_tiles_from_db</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/workflow.html#CellTask.get_tiles_from_db"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.workflow.CellTask.get_tiles_from_db" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="staticmethod">
+<dt id="datacube.api.workflow.CellTask.get_dataset_types">
+<em class="property">static </em><code class="descname">get_dataset_types</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/workflow.html#CellTask.get_dataset_types"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.workflow.CellTask.get_dataset_types" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="attribute">
 <dt id="datacube.api.workflow.CellTask.task_namespace">
 <code class="descname">task_namespace</code><em class="property"> = None</em><a class="headerlink" href="#datacube.api.workflow.CellTask.task_namespace" title="Permalink to this definition">¶</a></dt>
@@ -419,6 +429,138 @@
 <dl class="method">
 <dt id="datacube.api.workflow.ComplexParameter.serialize">
 <code class="descname">serialize</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/workflow.html#ComplexParameter.serialize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.workflow.ComplexParameter.serialize" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="datacube.api.workflow.CellListCsvTask">
+<em class="property">class </em><code class="descclassname">datacube.api.workflow.</code><code class="descname">CellListCsvTask</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/workflow.html#CellListCsvTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.workflow.CellListCsvTask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#datacube.api.workflow.Task" title="datacube.api.workflow.Task"><code class="xref py py-class docutils literal"><span class="pre">datacube.api.workflow.Task</span></code></a></p>
+<dl class="attribute">
+<dt id="datacube.api.workflow.CellListCsvTask.x_min">
+<code class="descname">x_min</code><em class="property"> = &lt;luigi.parameter.IntParameter object&gt;</em><a class="headerlink" href="#datacube.api.workflow.CellListCsvTask.x_min" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="datacube.api.workflow.CellListCsvTask.x_max">
+<code class="descname">x_max</code><em class="property"> = &lt;luigi.parameter.IntParameter object&gt;</em><a class="headerlink" href="#datacube.api.workflow.CellListCsvTask.x_max" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="datacube.api.workflow.CellListCsvTask.y_min">
+<code class="descname">y_min</code><em class="property"> = &lt;luigi.parameter.IntParameter object&gt;</em><a class="headerlink" href="#datacube.api.workflow.CellListCsvTask.y_min" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="datacube.api.workflow.CellListCsvTask.y_max">
+<code class="descname">y_max</code><em class="property"> = &lt;luigi.parameter.IntParameter object&gt;</em><a class="headerlink" href="#datacube.api.workflow.CellListCsvTask.y_max" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="datacube.api.workflow.CellListCsvTask.acq_min">
+<code class="descname">acq_min</code><em class="property"> = &lt;luigi.parameter.DateParameter object&gt;</em><a class="headerlink" href="#datacube.api.workflow.CellListCsvTask.acq_min" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="datacube.api.workflow.CellListCsvTask.acq_max">
+<code class="descname">acq_max</code><em class="property"> = &lt;luigi.parameter.DateParameter object&gt;</em><a class="headerlink" href="#datacube.api.workflow.CellListCsvTask.acq_max" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="datacube.api.workflow.CellListCsvTask.satellites">
+<code class="descname">satellites</code><em class="property"> = &lt;luigi.parameter.Parameter object&gt;</em><a class="headerlink" href="#datacube.api.workflow.CellListCsvTask.satellites" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="datacube.api.workflow.CellListCsvTask.dataset_types">
+<code class="descname">dataset_types</code><em class="property"> = &lt;luigi.parameter.Parameter object&gt;</em><a class="headerlink" href="#datacube.api.workflow.CellListCsvTask.dataset_types" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="datacube.api.workflow.CellListCsvTask.path">
+<code class="descname">path</code><em class="property"> = &lt;luigi.parameter.Parameter object&gt;</em><a class="headerlink" href="#datacube.api.workflow.CellListCsvTask.path" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="datacube.api.workflow.CellListCsvTask.output">
+<code class="descname">output</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/workflow.html#CellListCsvTask.output"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.workflow.CellListCsvTask.output" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="datacube.api.workflow.CellListCsvTask.run">
+<code class="descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/workflow.html#CellListCsvTask.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.workflow.CellListCsvTask.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="datacube.api.workflow.CellListCsvTask.task_namespace">
+<code class="descname">task_namespace</code><em class="property"> = None</em><a class="headerlink" href="#datacube.api.workflow.CellListCsvTask.task_namespace" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="datacube.api.workflow.TileListCsvTask">
+<em class="property">class </em><code class="descclassname">datacube.api.workflow.</code><code class="descname">TileListCsvTask</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/workflow.html#TileListCsvTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.workflow.TileListCsvTask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#datacube.api.workflow.Task" title="datacube.api.workflow.Task"><code class="xref py py-class docutils literal"><span class="pre">datacube.api.workflow.Task</span></code></a></p>
+<dl class="attribute">
+<dt id="datacube.api.workflow.TileListCsvTask.x_min">
+<code class="descname">x_min</code><em class="property"> = &lt;luigi.parameter.IntParameter object&gt;</em><a class="headerlink" href="#datacube.api.workflow.TileListCsvTask.x_min" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="datacube.api.workflow.TileListCsvTask.x_max">
+<code class="descname">x_max</code><em class="property"> = &lt;luigi.parameter.IntParameter object&gt;</em><a class="headerlink" href="#datacube.api.workflow.TileListCsvTask.x_max" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="datacube.api.workflow.TileListCsvTask.y_min">
+<code class="descname">y_min</code><em class="property"> = &lt;luigi.parameter.IntParameter object&gt;</em><a class="headerlink" href="#datacube.api.workflow.TileListCsvTask.y_min" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="datacube.api.workflow.TileListCsvTask.y_max">
+<code class="descname">y_max</code><em class="property"> = &lt;luigi.parameter.IntParameter object&gt;</em><a class="headerlink" href="#datacube.api.workflow.TileListCsvTask.y_max" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="datacube.api.workflow.TileListCsvTask.acq_min">
+<code class="descname">acq_min</code><em class="property"> = &lt;luigi.parameter.DateParameter object&gt;</em><a class="headerlink" href="#datacube.api.workflow.TileListCsvTask.acq_min" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="datacube.api.workflow.TileListCsvTask.acq_max">
+<code class="descname">acq_max</code><em class="property"> = &lt;luigi.parameter.DateParameter object&gt;</em><a class="headerlink" href="#datacube.api.workflow.TileListCsvTask.acq_max" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="datacube.api.workflow.TileListCsvTask.satellites">
+<code class="descname">satellites</code><em class="property"> = &lt;luigi.parameter.Parameter object&gt;</em><a class="headerlink" href="#datacube.api.workflow.TileListCsvTask.satellites" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="datacube.api.workflow.TileListCsvTask.dataset_types">
+<code class="descname">dataset_types</code><em class="property"> = &lt;luigi.parameter.Parameter object&gt;</em><a class="headerlink" href="#datacube.api.workflow.TileListCsvTask.dataset_types" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="datacube.api.workflow.TileListCsvTask.path">
+<code class="descname">path</code><em class="property"> = &lt;luigi.parameter.Parameter object&gt;</em><a class="headerlink" href="#datacube.api.workflow.TileListCsvTask.path" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="datacube.api.workflow.TileListCsvTask.output">
+<code class="descname">output</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/workflow.html#TileListCsvTask.output"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.workflow.TileListCsvTask.output" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="datacube.api.workflow.TileListCsvTask.run">
+<code class="descname">run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/workflow.html#TileListCsvTask.run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.workflow.TileListCsvTask.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="datacube.api.workflow.TileListCsvTask.task_namespace">
+<code class="descname">task_namespace</code><em class="property"> = None</em><a class="headerlink" href="#datacube.api.workflow.TileListCsvTask.task_namespace" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>

@@ -248,6 +248,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">output_directory</span> <span class="o">=</span> <span class="bp">None</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">csv</span> <span class="o">=</span> <span class="bp">None</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">dummy</span> <span class="o">=</span> <span class="bp">None</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">mask_pqa_apply</span> <span class="o">=</span> <span class="bp">None</span>
@@ -260,6 +261,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">workers</span> <span class="o">=</span> <span class="bp">None</span>
 
 <div class="viewcode-block" id="Workflow.setup_arguments"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.Workflow.setup_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">setup_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="c"># TODO get the combinations of mutually exclusive arguments right</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--output-directory&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;output directory&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;output_directory&quot;</span><span class="p">,</span>
                                  <span class="nb">type</span><span class="o">=</span><span class="n">writeable_dir</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
@@ -333,6 +336,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">satellites</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">satellite</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">csv</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">csv</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">dummy</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">dummy</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">mask_pqa_apply</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">mask_pqa_apply</span>
@@ -363,13 +367,14 @@
 <span class="s">        &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y_max</span><span class="p">,</span>
                    <span class="n">acq_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">,</span>
                    <span class="n">satellites</span><span class="o">=</span><span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">s</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">]),</span> <span class="n">output_directory</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_directory</span><span class="p">,</span>
-                   <span class="n">csv</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">csv</span><span class="p">,</span> <span class="n">dummy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dummy</span><span class="p">,</span>
+                   <span class="n">csv</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">csv</span><span class="p">,</span>
+                   <span class="n">dummy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dummy</span><span class="p">,</span>
                    <span class="n">pqa_mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_pqa_apply</span> <span class="ow">and</span> <span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">mask</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">mask</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_pqa_mask</span><span class="p">])</span> <span class="ow">or</span> <span class="s">&quot;&quot;</span><span class="p">,</span>
                    <span class="n">wofs_mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_wofs_apply</span> <span class="ow">and</span> <span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">mask</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">mask</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_wofs_mask</span><span class="p">])</span> <span class="ow">or</span> <span class="s">&quot;&quot;</span><span class="p">,</span>
                    <span class="n">local_scheduler</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">local_scheduler</span><span class="p">,</span> <span class="n">workers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">workers</span><span class="p">))</span>
 </div>
     <span class="nd">@abc.abstractmethod</span>
-<div class="viewcode-block" id="Workflow.create_tasks"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.Workflow.create_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">create_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Workflow.create_summary_tasks"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.Workflow.create_summary_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">create_summary_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;Abstract method should be overridden&quot;</span><span class="p">)</span>
 </div>
@@ -380,11 +385,11 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">log_arguments</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">local_scheduler</span><span class="p">:</span>
-            <span class="n">luigi</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">create_tasks</span><span class="p">(),</span> <span class="n">local_scheduler</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">local_scheduler</span><span class="p">,</span> <span class="n">workers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">workers</span><span class="p">)</span>
+            <span class="n">luigi</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">create_summary_tasks</span><span class="p">(),</span> <span class="n">local_scheduler</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">local_scheduler</span><span class="p">,</span> <span class="n">workers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">workers</span><span class="p">)</span>
 
         <span class="k">else</span><span class="p">:</span>
             <span class="kn">import</span> <span class="nn">luigi.contrib.mpi</span> <span class="kn">as</span> <span class="nn">mpi</span>
-            <span class="n">mpi</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">create_tasks</span><span class="p">())</span>
+            <span class="n">mpi</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">create_summary_tasks</span><span class="p">())</span>
 
 </div></div>
 <div class="viewcode-block" id="Task"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.Task">[docs]</a><span class="k">class</span> <span class="nc">Task</span><span class="p">(</span><span class="n">luigi</span><span class="o">.</span><span class="n">Task</span><span class="p">):</span>
@@ -437,12 +442,6 @@
         <span class="c"># get list of cells from CSV</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">csv</span><span class="p">:</span>
-            <span class="c"># If the CSV file hasn&#39;t been created yet then we stop</span>
-
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_cell_csv_filename</span><span class="p">()):</span>
-                <span class="n">_log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;CELL LIST CSV file [</span><span class="si">%s</span><span class="s">] present!!!!&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cell_csv_filename</span><span class="p">())</span>
-                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;CELL LIST CSV file [{filename}] present!!!!&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_cell_csv_filename</span><span class="p">()))</span>
-
             <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_cells_from_csv</span><span class="p">())</span>
 
         <span class="c"># get list of cells from DB</span>
@@ -452,13 +451,14 @@
 </div>
 <div class="viewcode-block" id="SummaryTask.get_cells_from_csv"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.SummaryTask.get_cells_from_csv">[docs]</a>    <span class="k">def</span> <span class="nf">get_cells_from_csv</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_cell_csv_filename</span><span class="p">(),</span> <span class="s">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="kn">import</span> <span class="nn">csv</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_cell_csv_filename</span><span class="p">()):</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_cell_csv_filename</span><span class="p">(),</span> <span class="s">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="kn">import</span> <span class="nn">csv</span>
 
-            <span class="n">reader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">DictReader</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">:</span>
-                <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Found CSV record [</span><span class="si">%s</span><span class="s">]&quot;</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span>
-                <span class="k">yield</span> <span class="n">Cell</span><span class="o">.</span><span class="n">from_csv_record</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+                <span class="n">reader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">DictReader</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">:</span>
+                    <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Found CSV record [</span><span class="si">%s</span><span class="s">]&quot;</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span>
+                    <span class="k">yield</span> <span class="n">Cell</span><span class="o">.</span><span class="n">from_csv_record</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
 </div>
 <div class="viewcode-block" id="SummaryTask.get_cell_csv_filename"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.SummaryTask.get_cell_csv_filename">[docs]</a>    <span class="k">def</span> <span class="nf">get_cell_csv_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
@@ -466,6 +466,8 @@
 
         <span class="n">acq_min</span> <span class="o">=</span> <span class="n">format_date</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">)</span>
         <span class="n">acq_max</span> <span class="o">=</span> <span class="n">format_date</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">)</span>
+
+        <span class="c"># TODO other distinguishing characteristics (e.g. dataset type(s))</span>
 
         <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">output_directory</span><span class="p">,</span>
@@ -477,32 +479,34 @@
 </div>
 <div class="viewcode-block" id="SummaryTask.get_cells_from_db"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.SummaryTask.get_cells_from_db">[docs]</a>    <span class="k">def</span> <span class="nf">get_cells_from_db</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
-        <span class="kn">from</span> <span class="nn">datacube.config</span> <span class="kn">import</span> <span class="n">Config</span>
         <span class="kn">from</span> <span class="nn">datacube.api.query</span> <span class="kn">import</span> <span class="n">list_cells</span>
-
-        <span class="n">config</span> <span class="o">=</span> <span class="n">Config</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s">&quot;~/.datacube/config&quot;</span><span class="p">))</span>
-        <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">to_str</span><span class="p">())</span>
 
         <span class="n">x_list</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_min</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
         <span class="n">y_list</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_min</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">cell</span> <span class="ow">in</span> <span class="n">list_cells</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x_list</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y_list</span><span class="p">,</span> <span class="n">acq_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">,</span>
                                <span class="n">satellites</span><span class="o">=</span><span class="p">[</span><span class="n">satellite</span> <span class="k">for</span> <span class="n">satellite</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">],</span>
-                               <span class="n">dataset_types</span><span class="o">=</span><span class="p">[</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">ARG25</span><span class="p">,</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">PQ25</span><span class="p">,</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">FC25</span><span class="p">],</span>
-                               <span class="n">database</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get_db_database</span><span class="p">(),</span>
-                               <span class="n">user</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get_db_username</span><span class="p">(),</span>
-                               <span class="n">password</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get_db_password</span><span class="p">(),</span>
-                               <span class="n">host</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get_db_host</span><span class="p">(),</span> <span class="n">port</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get_db_port</span><span class="p">()):</span>
+                               <span class="n">dataset_types</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_dataset_types</span><span class="p">()):</span>
             <span class="k">yield</span> <span class="n">cell</span>
 </div>
 <div class="viewcode-block" id="SummaryTask.requires"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.SummaryTask.requires">[docs]</a>    <span class="k">def</span> <span class="nf">requires</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
-        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">create_cell_task</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">cell</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">cell</span><span class="o">.</span><span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">cell</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cells</span><span class="p">()]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">csv</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">CellListCsvTask</span><span class="p">(</span><span class="n">x_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y_max</span><span class="p">,</span>
+                                  <span class="n">acq_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">,</span> <span class="n">satellites</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">,</span>
+                                  <span class="n">dataset_types</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_dataset_types</span><span class="p">(),</span> <span class="n">path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_cell_csv_filename</span><span class="p">())</span>
+
+        <span class="k">yield</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">create_cell_tasks</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">cell</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">cell</span><span class="o">.</span><span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="n">cell</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cells</span><span class="p">()]</span>
 </div>
     <span class="nd">@abc.abstractmethod</span>
-<div class="viewcode-block" id="SummaryTask.create_cell_task"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.SummaryTask.create_cell_task">[docs]</a>    <span class="k">def</span> <span class="nf">create_cell_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+<div class="viewcode-block" id="SummaryTask.create_cell_tasks"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.SummaryTask.create_cell_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">create_cell_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
 
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;Abstract method should be overridden&quot;</span><span class="p">)</span>
+</div>
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="SummaryTask.get_dataset_types"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.SummaryTask.get_dataset_types">[docs]</a>    <span class="k">def</span> <span class="nf">get_dataset_types</span><span class="p">():</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">ARG25</span><span class="p">,</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">PQ25</span><span class="p">]</span>
 
 </div></div>
 <div class="viewcode-block" id="CellTask"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.CellTask">[docs]</a><span class="k">class</span> <span class="nc">CellTask</span><span class="p">(</span><span class="n">Task</span><span class="p">):</span>
@@ -520,6 +524,7 @@
     <span class="n">output_directory</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">()</span>
 
     <span class="n">csv</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">BooleanParameter</span><span class="p">()</span>
+
     <span class="n">dummy</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">BooleanParameter</span><span class="p">()</span>
 
     <span class="n">mask_pqa_apply</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">BooleanParameter</span><span class="p">()</span>
@@ -533,12 +538,6 @@
         <span class="c"># get list of tiles from CSV</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">csv</span><span class="p">:</span>
-            <span class="c"># If the CSV file hasn&#39;t been created yet then we stop</span>
-
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_tile_csv_filename</span><span class="p">()):</span>
-                <span class="n">_log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;TILE LIST CSV file [</span><span class="si">%s</span><span class="s">] present!!!!&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_tile_csv_filename</span><span class="p">())</span>
-                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;TILE LIST CSV file [{filename}] present!!!!&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_tile_csv_filename</span><span class="p">()))</span>
-
             <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_tiles_from_csv</span><span class="p">())</span>
 
         <span class="c"># get list of tiles from DB</span>
@@ -548,13 +547,14 @@
 </div>
 <div class="viewcode-block" id="CellTask.get_tiles_from_csv"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.CellTask.get_tiles_from_csv">[docs]</a>    <span class="k">def</span> <span class="nf">get_tiles_from_csv</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_tile_csv_filename</span><span class="p">(),</span> <span class="s">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="kn">import</span> <span class="nn">csv</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_tile_csv_filename</span><span class="p">()):</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_tile_csv_filename</span><span class="p">(),</span> <span class="s">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="kn">import</span> <span class="nn">csv</span>
 
-            <span class="n">reader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">DictReader</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">:</span>
-                <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Found CSV record [</span><span class="si">%s</span><span class="s">]&quot;</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span>
-                <span class="k">yield</span> <span class="n">Tile</span><span class="o">.</span><span class="n">from_csv_record</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+                <span class="n">reader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">DictReader</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">:</span>
+                    <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Found CSV record [</span><span class="si">%s</span><span class="s">]&quot;</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span>
+                    <span class="k">yield</span> <span class="n">Tile</span><span class="o">.</span><span class="n">from_csv_record</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
 </div>
 <div class="viewcode-block" id="CellTask.get_tile_csv_filename"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.CellTask.get_tile_csv_filename">[docs]</a>    <span class="k">def</span> <span class="nf">get_tile_csv_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
@@ -562,6 +562,8 @@
 
         <span class="n">acq_min</span> <span class="o">=</span> <span class="n">format_date</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">)</span>
         <span class="n">acq_max</span> <span class="o">=</span> <span class="n">format_date</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">)</span>
+
+        <span class="c"># TODO other distinguishing characteristics (e.g. dataset types)</span>
 
         <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">output_directory</span><span class="p">,</span>
@@ -573,23 +575,20 @@
 </div>
 <div class="viewcode-block" id="CellTask.get_tiles_from_db"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.CellTask.get_tiles_from_db">[docs]</a>    <span class="k">def</span> <span class="nf">get_tiles_from_db</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
-        <span class="kn">from</span> <span class="nn">datacube.config</span> <span class="kn">import</span> <span class="n">Config</span>
         <span class="kn">from</span> <span class="nn">datacube.api.query</span> <span class="kn">import</span> <span class="n">list_tiles</span>
-
-        <span class="n">config</span> <span class="o">=</span> <span class="n">Config</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="s">&quot;~/.datacube/config&quot;</span><span class="p">))</span>
-        <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">to_str</span><span class="p">())</span>
 
         <span class="n">x_list</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">]</span>
         <span class="n">y_list</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">]</span>
 
         <span class="k">for</span> <span class="n">tile</span> <span class="ow">in</span> <span class="n">list_tiles</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x_list</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y_list</span><span class="p">,</span> <span class="n">acq_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">,</span>
                                <span class="n">satellites</span><span class="o">=</span><span class="p">[</span><span class="n">satellite</span> <span class="k">for</span> <span class="n">satellite</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">],</span>
-                               <span class="n">dataset_types</span><span class="o">=</span><span class="p">[</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">ARG25</span><span class="p">,</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">PQ25</span><span class="p">,</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">FC25</span><span class="p">],</span>
-                               <span class="n">database</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get_db_database</span><span class="p">(),</span>
-                               <span class="n">user</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get_db_username</span><span class="p">(),</span>
-                               <span class="n">password</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get_db_password</span><span class="p">(),</span>
-                               <span class="n">host</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get_db_host</span><span class="p">(),</span> <span class="n">port</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get_db_port</span><span class="p">()):</span>
+                               <span class="n">dataset_types</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_dataset_types</span><span class="p">()):</span>
             <span class="k">yield</span> <span class="n">tile</span>
+</div>
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="CellTask.get_dataset_types"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.CellTask.get_dataset_types">[docs]</a>    <span class="k">def</span> <span class="nf">get_dataset_types</span><span class="p">():</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">ARG25</span><span class="p">,</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">PQ25</span><span class="p">]</span>
 
 </div></div>
 <div class="viewcode-block" id="ComplexParameter"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.ComplexParameter">[docs]</a><span class="k">class</span> <span class="nc">ComplexParameter</span><span class="p">(</span><span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">):</span>
@@ -598,7 +597,79 @@
         <span class="kn">import</span> <span class="nn">cPickle</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_list</span><span class="p">:</span>
             <span class="k">return</span> <span class="p">[</span><span class="nb">hash</span><span class="p">(</span><span class="n">cPickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">v</span><span class="p">))</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">x</span><span class="p">]</span>
-        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="n">cPickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">x</span><span class="p">))</span></div></div>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="n">cPickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+
+</div></div>
+<div class="viewcode-block" id="CellListCsvTask"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.CellListCsvTask">[docs]</a><span class="k">class</span> <span class="nc">CellListCsvTask</span><span class="p">(</span><span class="n">Task</span><span class="p">):</span>
+
+    <span class="n">x_min</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">IntParameter</span><span class="p">()</span>
+    <span class="n">x_max</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">IntParameter</span><span class="p">()</span>
+
+    <span class="n">y_min</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">IntParameter</span><span class="p">()</span>
+    <span class="n">y_max</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">IntParameter</span><span class="p">()</span>
+
+    <span class="n">acq_min</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">DateParameter</span><span class="p">()</span>
+    <span class="n">acq_max</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">DateParameter</span><span class="p">()</span>
+
+    <span class="n">satellites</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">is_list</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+    <span class="n">dataset_types</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">is_list</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+    <span class="n">path</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">()</span>
+
+<div class="viewcode-block" id="CellListCsvTask.output"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.CellListCsvTask.output">[docs]</a>    <span class="k">def</span> <span class="nf">output</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">return</span> <span class="n">luigi</span><span class="o">.</span><span class="n">LocalTarget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="CellListCsvTask.run"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.CellListCsvTask.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">print</span> <span class="s">&quot;****&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">()</span><span class="o">.</span><span class="n">path</span>
+
+        <span class="n">x_list</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_min</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">y_list</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_min</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="kn">from</span> <span class="nn">datacube.api.query</span> <span class="kn">import</span> <span class="n">list_cells_to_file</span>
+
+        <span class="kn">from</span> <span class="nn">datacube.api.query</span> <span class="kn">import</span> <span class="n">SortType</span>
+
+        <span class="n">list_cells_to_file</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x_list</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y_list</span><span class="p">,</span> <span class="n">satellites</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">),</span>
+                           <span class="n">acq_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_types</span><span class="p">,</span>
+                           <span class="n">filename</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">()</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">)</span>
+
+</div></div>
+<div class="viewcode-block" id="TileListCsvTask"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.TileListCsvTask">[docs]</a><span class="k">class</span> <span class="nc">TileListCsvTask</span><span class="p">(</span><span class="n">Task</span><span class="p">):</span>
+
+    <span class="n">x_min</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">IntParameter</span><span class="p">()</span>
+    <span class="n">x_max</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">IntParameter</span><span class="p">()</span>
+
+    <span class="n">y_min</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">IntParameter</span><span class="p">()</span>
+    <span class="n">y_max</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">IntParameter</span><span class="p">()</span>
+
+    <span class="n">acq_min</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">DateParameter</span><span class="p">()</span>
+    <span class="n">acq_max</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">DateParameter</span><span class="p">()</span>
+
+    <span class="n">satellites</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">is_list</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+    <span class="n">dataset_types</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">is_list</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+    <span class="n">path</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">()</span>
+
+<div class="viewcode-block" id="TileListCsvTask.output"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.TileListCsvTask.output">[docs]</a>    <span class="k">def</span> <span class="nf">output</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">return</span> <span class="n">luigi</span><span class="o">.</span><span class="n">LocalTarget</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="TileListCsvTask.run"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.TileListCsvTask.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">print</span> <span class="s">&quot;****&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">()</span><span class="o">.</span><span class="n">path</span>
+
+        <span class="n">x_list</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_min</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">y_list</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_min</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="kn">from</span> <span class="nn">datacube.api.query</span> <span class="kn">import</span> <span class="n">list_tiles_to_file</span><span class="p">,</span> <span class="n">SortType</span>
+
+        <span class="n">list_tiles_to_file</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x_list</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y_list</span><span class="p">,</span> <span class="n">satellites</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">),</span>
+                           <span class="n">acq_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_types</span><span class="p">,</span>
+                           <span class="n">filename</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">()</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">)</span></div></div>
 </pre></div>
 
           </div>
