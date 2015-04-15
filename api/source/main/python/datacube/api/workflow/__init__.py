@@ -176,7 +176,6 @@ class Workflow(object):
         self.output_directory = None
 
         self.csv = None
-        self.csv_generate = None
 
         self.dummy = None
 
@@ -233,9 +232,6 @@ class Workflow(object):
         self.parser.add_argument("--csv", help="Get cell/dataset info from pre-created CSV rather than querying DB",
                                  action="store_true", dest="csv", default=False)
 
-        self.parser.add_argument("--csv-generate", help="Ensure the cell/dataset info CSV files exist...ONLY",
-                                 action="store_true", dest="csv_generate", default=False)
-
         self.parser.add_argument("--dummy", help="Dummy run", action="store_true", dest="dummy", default=False)
 
         self.parser.add_argument("--local-scheduler", help="Use local luigi scheduler rather than MPI",
@@ -268,7 +264,6 @@ class Workflow(object):
         self.satellites = args.satellite
 
         self.csv = args.csv
-        self.csv_generate = args.csv_generate
 
         self.dummy = args.dummy
 
@@ -300,7 +295,7 @@ class Workflow(object):
         """.format(x_min=self.x_min, x_max=self.x_max, y_min=self.y_min, y_max=self.y_max,
                    acq_min=self.acq_min, acq_max=self.acq_max,
                    satellites=" ".join([s.name for s in self.satellites]), output_directory=self.output_directory,
-                   csv=self.csv and self.csv or (self.csv_generate and "GENERATE" or ""),
+                   csv=self.csv,
                    dummy=self.dummy,
                    pqa_mask=self.mask_pqa_apply and " ".join([mask.name for mask in self.mask_pqa_mask]) or "",
                    wofs_mask=self.mask_wofs_apply and " ".join([mask.name for mask in self.mask_wofs_mask]) or "",
@@ -361,7 +356,6 @@ class SummaryTask(Task):
     output_directory = luigi.Parameter()
 
     csv = luigi.BooleanParameter()
-    csv_generate = luigi.BooleanParameter()
 
     dummy = luigi.BooleanParameter()
 
@@ -385,19 +379,14 @@ class SummaryTask(Task):
 
     def get_cells_from_csv(self):
 
-        # If the CSV file hasn't been created yet then we complain...loudly
+        if os.path.isfile(self.get_cell_csv_filename()):
+            with open(self.get_cell_csv_filename(), "rb") as f:
+                import csv
 
-        if not os.path.isfile(self.get_cell_csv_filename()):
-            _log.error("CELL LIST CSV file [%s] present!!!!", self.get_cell_csv_filename())
-            raise Exception("CELL LIST CSV file [{filename}] present!!!!".format(filename=self.get_cell_csv_filename()))
-
-        with open(self.get_cell_csv_filename(), "rb") as f:
-            import csv
-
-            reader = csv.DictReader(f)
-            for record in reader:
-                _log.debug("Found CSV record [%s]", record)
-                yield Cell.from_csv_record(record)
+                reader = csv.DictReader(f)
+                for record in reader:
+                    _log.debug("Found CSV record [%s]", record)
+                    yield Cell.from_csv_record(record)
 
     def get_cell_csv_filename(self):
 
@@ -430,15 +419,7 @@ class SummaryTask(Task):
 
     def requires(self):
 
-        # if self.csv_generate:
-        #     yield CellListCsvTask(x_min=self.x_min, x_max=self.x_max, y_min=self.y_min, y_max=self.y_max,
-        #                           acq_min=self.acq_min, acq_max=self.acq_max, satellites=self.satellites,
-        #                           dataset_types=self.get_dataset_types(), path=self.get_cell_csv_filename())
-        #
-        # else:
-        #     yield [self.create_cell_task(x=cell.x, y=cell.y) for cell in self.get_cells()]
-
-        if self.csv_generate:
+        if self.csv:
             yield CellListCsvTask(x_min=self.x_min, x_max=self.x_max, y_min=self.y_min, y_max=self.y_max,
                                   acq_min=self.acq_min, acq_max=self.acq_max, satellites=self.satellites,
                                   dataset_types=self.get_dataset_types(), path=self.get_cell_csv_filename())
@@ -471,7 +452,6 @@ class CellTask(Task):
     output_directory = luigi.Parameter()
 
     csv = luigi.BooleanParameter()
-    csv_generate = luigi.BooleanParameter()
 
     dummy = luigi.BooleanParameter()
 
@@ -495,19 +475,14 @@ class CellTask(Task):
 
     def get_tiles_from_csv(self):
 
-        # If the CSV file hasn't been created yet then we stop
+        if os.path.isfile(self.get_tile_csv_filename()):
+            with open(self.get_tile_csv_filename(), "rb") as f:
+                import csv
 
-        if not os.path.isfile(self.get_tile_csv_filename()):
-            _log.error("TILE LIST CSV file [%s] present!!!!", self.get_tile_csv_filename())
-            raise Exception("TILE LIST CSV file [{filename}] present!!!!".format(filename=self.get_tile_csv_filename()))
-
-        with open(self.get_tile_csv_filename(), "rb") as f:
-            import csv
-
-            reader = csv.DictReader(f)
-            for record in reader:
-                _log.debug("Found CSV record [%s]", record)
-                yield Tile.from_csv_record(record)
+                reader = csv.DictReader(f)
+                for record in reader:
+                    _log.debug("Found CSV record [%s]", record)
+                    yield Tile.from_csv_record(record)
 
     def get_tile_csv_filename(self):
 
