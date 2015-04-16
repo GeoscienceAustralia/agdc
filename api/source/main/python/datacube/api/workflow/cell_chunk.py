@@ -26,6 +26,9 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ===============================================================================
+import os
+from datacube.api.model import DatasetType, Tile
+from datacube.api.utils import get_satellite_string
 
 
 __author__ = "Simon Oldfield"
@@ -146,8 +149,66 @@ class CellChunkTask(workflow.Task):
     mask_pqa_apply = luigi.BooleanParameter()
     mask_pqa_mask = luigi.Parameter()
 
+    mask_wofs_apply = luigi.BooleanParameter()
+    mask_wofs_mask = luigi.Parameter()
+
     x_offset = luigi.IntParameter()
     y_offset = luigi.IntParameter()
 
     chunk_size_x = luigi.IntParameter()
     chunk_size_y = luigi.IntParameter()
+
+    def get_tiles(self):
+
+        # get list of tiles from CSV
+
+        if self.csv:
+            return list(self.get_tiles_from_csv())
+
+        # get list of tiles from DB
+
+        else:
+            return list(self.get_tiles_from_db())
+
+    def get_tiles_from_csv(self):
+
+        if os.path.isfile(self.get_tile_csv_filename()):
+            with open(self.get_tile_csv_filename(), "rb") as f:
+                import csv
+
+                reader = csv.DictReader(f)
+                for record in reader:
+                    _log.debug("Found CSV record [%s]", record)
+                    yield Tile.from_csv_record(record)
+
+    def get_tile_csv_filename(self):
+
+        acq_min = workflow.format_date(self.acq_min)
+        acq_max = workflow.format_date(self.acq_max)
+
+        # TODO other distinguishing characteristics (e.g. dataset types)
+
+        return os.path.join(
+            self.output_directory,
+            "tiles_{satellites}_{x_min:03d}_{x_max:03d}_{y_min:04d}_{y_max:04d}_{acq_min}_{acq_max}.csv".format(
+                satellites=get_satellite_string(self.satellites),
+                x_min=self.x, x_max=self.x, y_min=self.y, y_max=self.y,
+                acq_min=acq_min, acq_max=acq_max
+            ))
+
+    def get_tiles_from_db(self):
+
+        from datacube.api.query import list_tiles
+
+        x_list = [self.x]
+        y_list = [self.y]
+
+        for tile in list_tiles(x=x_list, y=y_list, acq_min=self.acq_min, acq_max=self.acq_max,
+                               satellites=[satellite for satellite in self.satellites],
+                               dataset_types=self.get_dataset_types()):
+            yield tile
+
+    @staticmethod
+    def get_dataset_types():
+
+        return [DatasetType.ARG25, DatasetType.PQ25]
