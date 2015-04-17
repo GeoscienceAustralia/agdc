@@ -26,6 +26,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ===============================================================================
+import numpy
 
 
 __author__ = "Simon Oldfield"
@@ -34,11 +35,15 @@ __author__ = "Simon Oldfield"
 import luigi
 import logging
 import os
-from datacube.api.model import DatasetType
+from datacube.api.model import DatasetType, TciBands
 from datacube.api.workflow import TileListCsvTask
 from datacube.api.workflow.tile import TileTask
 from datacube.api.workflow.cell_chunk import Workflow, SummaryTask, CellTask, CellChunkTask
 from enum import Enum
+import gdal
+from datacube.api.utils import get_dataset_metadata, get_mask_pqa, get_mask_wofs, get_dataset_ndv, NDV, log_mem, \
+    calculate_tassel_cap_index, TCI_COEFFICIENTS, TasselCapIndex
+from datacube.api.utils import get_dataset_data_masked, raster_create
 
 
 _log = logging.getLogger()
@@ -175,9 +180,10 @@ class WetnessCellChunkTask(CellChunkTask):
 
     def run(self):
 
+        from luigi.task import flatten
+
         # For now just create an empty output
 
-        from luigi.task import flatten
         from datacube.api.workflow import dummy
 
         for output in flatten(self.output()):
@@ -203,14 +209,56 @@ class WetnessTileTask(TileTask):
 
     def run(self):
 
-        # For now just create an empty output
+        print "****", self.output().path
 
-        from luigi.task import flatten
-        from datacube.api.workflow import dummy
+        dataset = self.tile.datasets[DatasetType.TCI]
 
-        for output in flatten(self.output()):
-            print "****", output.path
-            dummy(output.path)
+        print "***", dataset.path
+
+        metadata = get_dataset_metadata(dataset)
+
+        mask = None
+
+        # If doing PQA masking then get PQA mask
+
+        if self.mask_pqa_apply and DatasetType.PQ25 in self.tile.datasets:
+            mask = get_mask_pqa(self.tile.datasets[DatasetType.PQ25], self.mask_pqa_mask, mask=mask)
+
+        # If doing WOFS masking then get WOFS mask
+
+        if self.mask_wofs_apply and DatasetType.WATER in self.tile.datasets:
+            mask = get_mask_wofs(self.tile.datasets[DatasetType.WATER], self.mask_wofs_mask, mask=mask)
+
+        # TODO - no data value and data type
+        ndv = get_dataset_ndv(dataset)
+
+        data = get_dataset_data_masked(dataset, mask=mask, ndv=ndv)
+
+        # Create ALL bands raster
+
+        # raster_create(self.output().path, [data[b] for b in dataset.bands],
+        #               metadata.transform, metadata.projection, ndv, gdal.GDT_Float32,
+        #               dataset_metadata=self.generate_raster_metadata(dataset),
+        #               band_ids=[b.name for b in dataset.bands])
+
+        # Create just the WETNESS band raster
+
+        raster_create(self.output().path, [data[TciBands.WETNESS]],
+                      metadata.transform, metadata.projection, ndv, gdal.GDT_Float32,
+                      dataset_metadata=self.generate_raster_metadata(dataset),
+                      band_ids=[TciBands.WETNESS.name])
+
+    def generate_raster_metadata(self, dataset):
+        return {
+            "X_INDEX": "{x:03d}".format(x=self.x),
+            "Y_INDEX": "{y:04d}".format(y=self.y),
+            "DATASET_TYPE": dataset.dataset_type.name,
+            "ACQUISITION_DATE": "{acq}".format(acq=self.tile.end_datetime),
+            "SATELLITE": dataset.satellite.name,
+            "PIXEL_QUALITY_FILTER": self.mask_pqa_apply and " ".join([mask.name for mask in self.mask_pqa_mask]) or "",
+            "WATER_FILTER": self.mask_wofs_apply and " ".join([mask.name for mask in self.mask_wofs_mask]) or ""
+        }
+
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
