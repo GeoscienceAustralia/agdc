@@ -212,8 +212,16 @@ class WetnessCellTask(CellTask):
     def get_statistic_filename(self, statistic, ulx, uly, lrx, lry):
         from datacube.api.utils import get_satellite_string
         from datacube.api.workflow import format_date
+
+        # if statistic in [Statistic.PERCENTILE_25, Statistic.PERCENTILE_50, Statistic.PERCENTILE_75,
+        #                  Statistic.PERCENTILE_90, Statistic.PERCENTILE_95]:
+        #     statistic_name = "PERCENTILE"
+        # else:
+        #     statistic_name = statistic.name
+        statistic_name = statistic.name
+
         filename = "{satellites}_WETNESS_{statistic}_{x:03d}_{y:04d}_{acq_min}_{acq_max}_{ulx:04d}_{uly:04d}_{lrx:04d}_{lry:04d}.npy".format(
-            satellites=get_satellite_string(self.satellites), statistic=statistic.name,
+            satellites=get_satellite_string(self.satellites), statistic=statistic_name,
             x=self.x, y=self.y, acq_min=format_date(self.acq_min), acq_max=format_date(self.acq_max),
             ulx=ulx, uly=uly, lrx=lrx, lry=lry)
         return os.path.join(self.output_directory, filename)
@@ -249,8 +257,16 @@ class WetnessCellChunkTask(CellChunkTask):
     def get_statistic_filename(self, statistic):
         from datacube.api.utils import get_satellite_string
         from datacube.api.workflow import format_date
+
+        # if statistic in [Statistic.PERCENTILE_25, Statistic.PERCENTILE_50, Statistic.PERCENTILE_75,
+        #                  Statistic.PERCENTILE_90, Statistic.PERCENTILE_95]:
+        #     statistic_name = "PERCENTILE"
+        # else:
+        #     statistic_name = statistic.name
+        statistic_name = statistic.name
+
         filename = "{satellites}_WETNESS_{statistic}_{x:03d}_{y:04d}_{acq_min}_{acq_max}_{ulx:04d}_{uly:04d}_{lrx:04d}_{lry:04d}.npy".format(
-            satellites=get_satellite_string(self.satellites), statistic=statistic.name,
+            satellites=get_satellite_string(self.satellites), statistic=statistic_name,
             x=self.x, y=self.y, acq_min=format_date(self.acq_min), acq_max=format_date(self.acq_max),
             ulx=self.x_offset, uly=self.y_offset,
             lrx=(self.x_offset + self.chunk_size_x),
@@ -358,8 +374,14 @@ class WetnessCellChunkTask(CellChunkTask):
         # PERCENTILES
         print "PERCENTILES"
         stack_stat = numpy.nanpercentile(stack, [25, 50, 75, 90, 95], axis=0)
-        numpy.save(self.get_statistic_filename(Statistic.PERCENTILE_25), stack_stat)
+
+        for index, statistic in enumerate([Statistic.PERCENTILE_25, Statistic.PERCENTILE_50,
+                                           Statistic.PERCENTILE_75, Statistic.PERCENTILE_90,
+                                           Statistic.PERCENTILE_95]):
+            numpy.save(self.get_statistic_filename(statistic), stack_stat[index])
+
         del stack_stat
+
 
         # # PERCENTILE_50
         # print "P50"
