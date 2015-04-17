@@ -92,7 +92,10 @@ class CellTask(workflow.CellTask):
                                            acq_min=self.acq_min, acq_max=self.acq_max, satellites=self.satellites,
                                            dataset_types=self.get_dataset_types(), path=self.get_tile_csv_filename())
 
-        yield [self.create_tile_tasks(tile=tile) for tile in self.get_tiles()]
+        # yield [self.create_tile_tasks(tile=tile) for tile in self.get_tiles()]
+
+        for tile in self.get_tiles():
+            yield self.create_tile_tasks(tile=tile)
 
     @abc.abstractmethod
     def create_tile_tasks(self, tile):

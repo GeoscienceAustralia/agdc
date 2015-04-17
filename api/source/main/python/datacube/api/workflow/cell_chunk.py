@@ -26,9 +26,6 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ===============================================================================
-import os
-from datacube.api.model import DatasetType, Tile
-from datacube.api.utils import get_satellite_string
 
 
 __author__ = "Simon Oldfield"
@@ -38,6 +35,9 @@ import abc
 import datacube.api.workflow as workflow
 import logging
 import luigi
+import os
+from datacube.api.model import DatasetType, Tile
+from datacube.api.utils import get_satellite_string
 
 
 _log = logging.getLogger()
@@ -114,7 +114,10 @@ class CellTask(workflow.CellTask):
 
     def requires(self):
 
-        return [self.create_cell_chunk_task(x_offset, y_offset) for x_offset, y_offset in self.get_chunks()]
+        # return [self.create_cell_chunk_task(x_offset, y_offset) for x_offset, y_offset in self.get_chunks()]
+
+        for x_offset, y_offset in self.get_chunks():
+            yield self.create_cell_chunk_task(x_offset, y_offset)
 
     def get_chunks(self):
 

@@ -424,7 +424,9 @@ class SummaryTask(Task):
                                   acq_min=self.acq_min, acq_max=self.acq_max, satellites=self.satellites,
                                   dataset_types=self.get_dataset_types(), path=self.get_cell_csv_filename())
 
-        yield [self.create_cell_tasks(x=cell.x, y=cell.y) for cell in self.get_cells()]
+        # yield [self.create_cell_tasks(x=cell.x, y=cell.y) for cell in self.get_cells()]
+        for cell in self.get_cells():
+            yield self.create_cell_tasks(x=cell.x, y=cell.y)
 
     @abc.abstractmethod
     def create_cell_tasks(self, x, y):

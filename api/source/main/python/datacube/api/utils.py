@@ -895,12 +895,12 @@ def log_mem(s=None):
 
     import psutil
 
-    _log.debug("Current memory usage is [%s]", psutil.Process().memory_info())
-    _log.debug("Current memory usage is [%d] MB", psutil.Process().memory_info().rss / 1024 / 1024)
+    _log.info("Current memory usage is [%s]", psutil.Process().memory_info())
+    _log.info("Current memory usage is [%d] MB", psutil.Process().memory_info().rss / 1024 / 1024)
 
     import resource
 
-    _log.debug("Current MAX RSS  usage is [%d] MB", resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+    _log.info("Current MAX RSS  usage is [%d] MB", resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
 
 
 def date_to_integer(d):
