@@ -27,7 +27,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #===============================================================================
 
-PBS_SCRIPT="$HOME/source/agdc-api/witl/api-examples/source/main/python/workflow/wetness.pbs.sh"
+PBS_SCRIPT="$HOME/source/agdc-api/witl/api-examples/source/main/python/workflow/wetness_stack.pbs.sh"
 
 OUTPUT_DIR="/g/data/u46/sjo/output/wetness/2015-04-17/lower_darling/existing"
 
@@ -35,27 +35,35 @@ OUTPUT_DIR="/g/data/u46/sjo/output/wetness/2015-04-17/lower_darling/existing"
 
 # Lower Darling
 
+## 2006 - 2009
+#
+#for x in {140..145}
+#do
+#    for y in {-36..-30}
+#    do
+#        qsub -v outputdir=${OUTPUT_DIR}/2006-2009,xmin=$x,xmax=$x,ymin=$y,ymax=$y,acqmin=2006,acqmax=2009 ${PBS_SCRIPT}
+#    done
+#done
+#
+## 2010 - 2012
+#
+#for x in {140..145}
+#do
+#    for y in {-36..-30}
+#    do
+#        qsub -v outputdir=${OUTPUT_DIR}/2010-2012,xmin=$x,xmax=$x,ymin=$y,ymax=$y,acqmin=2010,acqmax=2012 ${PBS_SCRIPT}
+#    done
+#done
+
 # 2006 - 2009
 
 for x in {140..145}
 do
     for y in {-36..-30}
     do
-        qsub -v outputdir=${OUTPUT_DIR}/2006-2009,xmin=$x,xmax=$x,ymin=$y,ymax=$y,acqmin=2006,acqmax=2009 ${PBS_SCRIPT}
+        qsub -v outputdir=${OUTPUT_DIR}/2006-2012,xmin=$x,xmax=$x,ymin=$y,ymax=$y,acqmin=2006,acqmax=2012 ${PBS_SCRIPT}
     done
 done
-
-# 2010 - 2012
-
-for x in {140..145}
-do
-    for y in {-36..-30}
-    do
-        qsub -v outputdir=${OUTPUT_DIR}/2010-2012,xmin=$x,xmax=$x,ymin=$y,ymax=$y,acqmin=2010,acqmax=2012 ${PBS_SCRIPT}
-    done
-done
-
-
 
 #Ord
 #

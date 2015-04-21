@@ -35,6 +35,7 @@ import luigi
 import logging
 import numpy
 import os
+import osr
 from datacube.api.model import DatasetType, TciBands
 from datacube.api.workflow import TileListCsvTask
 from datacube.api.workflow.tile import TileTask
@@ -49,14 +50,13 @@ _log = logging.getLogger()
 
 
 class Statistic(Enum):
-    __order__ = "COUNT MIN MAX MEAN MEDIAN SUM STANDARD_DEVIATION VARIANCE PERCENTILE_25 PERCENTILE_50 PERCENTILE_75 PERCENTILE_90 PERCENTILE_95"
+    __order__ = "COUNT COUNT_OBSERVED MIN MAX MEAN SUM STANDARD_DEVIATION VARIANCE PERCENTILE_25 PERCENTILE_50 PERCENTILE_75 PERCENTILE_90 PERCENTILE_95"
 
     COUNT = "COUNT"
     COUNT_OBSERVED = "COUNT_OBSERVED"
     MIN = "MIN"
     MAX = "MAX"
     MEAN = "MEAN"
-    MEDIAN = "MEDIAN"
     SUM = "SUM"
     STANDARD_DEVIATION = "STANDARD_DEVIATION"
     VARIANCE = "VARIANCE"
@@ -124,6 +124,7 @@ class WetnessCellTask(CellTask):
 
     def run(self):
 
+        print "*** Aggregating chunk NPY files into TIF"
         # Create output raster - which has len(statistics) bands
 
         # for each statistic
@@ -135,27 +136,43 @@ class WetnessCellTask(CellTask):
                 # read the chunk
                 # write it to the band of the output raster
 
-        tile = self.get_tiles()[0]
+        # tile = self.get_tiles()[0]
+        #
+        # filename = tile.datasets[DatasetType.TCI]
+        # filename = map_filename_nbar_to_wetness(filename)
+        # filename = os.path.join(self.output_directory, filename)
+        #
+        # metadata = get_dataset_metadata(filename)
 
-        metadata = get_dataset_metadata(tile.datasets[DatasetType.TCI])
+        transform = (self.x, 0.00025, 0.0, self.y+1, 0.0, -0.00025)
+
+        srs = osr.SpatialReference()
+        srs.ImportFromEPSG(4326)
+
+        projection = srs.ExportToWkt()
 
         driver = gdal.GetDriverByName("GTiff")
         assert driver
 
         # Create the output TIF
 
-        raster = driver.Create(self.output().path, metadata.shape[0], metadata.shape[1], len(Statistic), gdal.GDT_Float32)
+        # TODO
+
+        raster = driver.Create(self.output().path, 4000, 4000, len(Statistic), gdal.GDT_Float32)
         assert raster
 
         # TODO
-        raster.SetGeoTransform(metadata.transform)
-        raster.SetProjection(metadata.projection)
+        raster.SetGeoTransform(transform)
+        raster.SetProjection(projection)
 
         raster.SetMetadata(self.generate_raster_metadata())
 
+        # statistics = [Statistic.COUNT, Statistic.MIN]
+        statistics = [s for s in Statistic]
+
         import itertools
 
-        for index, statistic in enumerate(Statistic, start=1):
+        for index, statistic in enumerate(statistics, start=1):
 
             _log.info("Doing statistic [%s] which is band [%s]", statistic.name, index)
 
@@ -163,11 +180,11 @@ class WetnessCellTask(CellTask):
             assert band
 
             # TODO
-            band.SetNoDataValue(-999)
+            band.SetNoDataValue(numpy.nan)
             band.SetDescription(statistic.name)
 
-            for x_offset, y_offset in itertools.product(range(0, metadata.shape[0], self.chunk_size_x),
-                                                        range(0, metadata.shape[1], self.chunk_size_y)):
+            for x_offset, y_offset in itertools.product(range(0, 4000, self.chunk_size_x),
+                                                        range(0, 4000, self.chunk_size_y)):
                 filename = os.path.join(self.output_directory,
                                         self.get_statistic_filename(statistic=statistic,
                                                                     ulx=x_offset, uly=y_offset,
@@ -201,7 +218,7 @@ class WetnessCellTask(CellTask):
         return {
             "X_INDEX": "{x:03d}".format(x=self.x),
             "Y_INDEX": "{y:04d}".format(y=self.y),
-            "DATASET_TYPE": "WETNESS",
+            "DATASET_TYPE": "WETNESS STATISTICS",
             "ACQUISITION_DATE": "{acq_min} to {acq_max}".format(acq_min=self.acq_min, acq_max=self.acq_max),
             "SATELLITE": " ".join([s.name for s in self.satellites]),
             "PIXEL_QUALITY_FILTER": self.mask_pqa_apply and " ".join([mask.name for mask in self.mask_pqa_mask]) or "",
@@ -276,7 +293,9 @@ class WetnessCellChunkTask(CellChunkTask):
 
     def output(self):
 
-        return [luigi.LocalTarget(self.get_statistic_filename(statistic)) for statistic in Statistic]
+        # statistics = [Statistic.COUNT, Statistic.MIN]
+        statistics = [s for s in Statistic]
+        return [luigi.LocalTarget(self.get_statistic_filename(statistic)) for statistic in statistics]
 
     def run(self):
 
@@ -312,12 +331,17 @@ class WetnessCellChunkTask(CellChunkTask):
         if len(stack) == 0:
             return
 
+        stack = numpy.array(stack)
+        stack_depth, stack_size_y, stack_size_x = numpy.shape(stack)
+
+        _log.info("stack depth [%d] x_size [%d] y size [%d]", stack_depth, stack_size_x, stack_size_y)
+
         log_mem("Before COUNT")
 
         # COUNT
         print "COUNT"
-        stack_stat = numpy.empty((self.chunk_size_x, self.chunk_size_y), dtype=numpy.float32)
-        stack_stat.fill(numpy.shape(stack)[0])
+        stack_stat = numpy.empty((stack_size_y, stack_size_x), dtype=numpy.float32)
+        stack_stat.fill(stack_depth)
         numpy.save(self.get_statistic_filename(Statistic.COUNT), stack_stat)
         del stack_stat
 
@@ -369,50 +393,65 @@ class WetnessCellChunkTask(CellChunkTask):
         numpy.save(self.get_statistic_filename(Statistic.VARIANCE), stack_stat)
         del stack_stat
 
-        log_mem("Before PERCENTILES")
+        # log_mem("Before PERCENTILES")
+        #
+        # # PERCENTILES
+        # print "PERCENTILES"
+        # stack_stat = numpy.nanpercentile(stack, [25, 50, 75, 90, 95], axis=0)
+        #
+        # for index, statistic in enumerate([Statistic.PERCENTILE_25, Statistic.PERCENTILE_50,
+        #                                    Statistic.PERCENTILE_75, Statistic.PERCENTILE_90,
+        #                                    Statistic.PERCENTILE_95]):
+        #     numpy.save(self.get_statistic_filename(statistic), stack_stat[index])
+        #
+        # del stack_stat
 
-        # PERCENTILES
-        print "PERCENTILES"
-        stack_stat = numpy.nanpercentile(stack, [25, 50, 75, 90, 95], axis=0)
+        log_mem("Before P25")
 
-        for index, statistic in enumerate([Statistic.PERCENTILE_25, Statistic.PERCENTILE_50,
-                                           Statistic.PERCENTILE_75, Statistic.PERCENTILE_90,
-                                           Statistic.PERCENTILE_95]):
-            numpy.save(self.get_statistic_filename(statistic), stack_stat[index])
-
+        # PERCENTILE_25
+        print "P25"
+        stack_stat = numpy.nanpercentile(stack, 25, axis=0)
+        numpy.save(self.get_statistic_filename(Statistic.PERCENTILE_25), stack_stat)
         del stack_stat
 
+        log_mem("Before P50")
 
-        # # PERCENTILE_50
-        # print "P50"
-        # stack_stat = numpy.nanpercentile(stack, 50, axis=0)
-        # numpy.save(self.get_statistic_filename(Statistic.PERCENTILE_50), stack_stat)
-        # del stack_stat
-        #
-        # # PERCENTILE_75
-        # print "P75"
-        # stack_stat = numpy.nanpercentile(stack, 75, axis=0)
-        # numpy.save(self.get_statistic_filename(Statistic.PERCENTILE_75), stack_stat)
-        # del stack_stat
-        #
-        # # PERCENTILE_90
-        # print "P90"
-        # stack_stat = numpy.nanpercentile(stack, 90, axis=0)
-        # numpy.save(self.get_statistic_filename(Statistic.PERCENTILE_90), stack_stat)
-        # del stack_stat
-        #
-        # # PERCENTILE_95
-        # print "P95"
-        # stack_stat = numpy.nanpercentile(stack, 95, axis=0)
-        # numpy.save(self.get_statistic_filename(Statistic.PERCENTILE_95), stack_stat)
-        # del stack_stat
+        # PERCENTILE_50
+        print "P50"
+        stack_stat = numpy.nanpercentile(stack, 50, axis=0)
+        numpy.save(self.get_statistic_filename(Statistic.PERCENTILE_50), stack_stat)
+        del stack_stat
+
+        log_mem("Before P75")
+
+        # PERCENTILE_75
+        print "P75"
+        stack_stat = numpy.nanpercentile(stack, 75, axis=0)
+        numpy.save(self.get_statistic_filename(Statistic.PERCENTILE_75), stack_stat)
+        del stack_stat
+
+        log_mem("Before P90")
+
+        # PERCENTILE_90
+        print "P90"
+        stack_stat = numpy.nanpercentile(stack, 90, axis=0)
+        numpy.save(self.get_statistic_filename(Statistic.PERCENTILE_90), stack_stat)
+        del stack_stat
+
+        log_mem("Before P95")
+
+        # PERCENTILE_95
+        print "P95"
+        stack_stat = numpy.nanpercentile(stack, 95, axis=0)
+        numpy.save(self.get_statistic_filename(Statistic.PERCENTILE_95), stack_stat)
+        del stack_stat
 
         log_mem("Before OBSERVED COUNT")
 
         # COUNT OBSERVED - note the copy=False is modifying the array so this is done last
         print "COUNT OBSERVED"
         stack_stat = numpy.ma.masked_invalid(stack, copy=False).count(axis=0)
-        numpy.save(self.get_statistic_filename(Statistic.COUNT), stack_stat)
+        numpy.save(self.get_statistic_filename(Statistic.COUNT_OBSERVED), stack_stat)
         del stack_stat
 
         log_mem("DONE")
@@ -502,12 +541,6 @@ class WetnessTileTask(TileTask):
 
         filename = self.tile.datasets[DatasetType.TCI].path
 
-        # filename = os.path.basename(filename)
-        #
-        # filename = filename.replace("_NBAR_", "_WETNESS_")
-        # filename = filename.replace(".vrt", ".tif")
-        # filename = filename.replace(".tiff", ".tif")
-
         filename = map_filename_nbar_to_wetness(filename)
 
         filename = os.path.join(self.output_directory, filename)
@@ -522,7 +555,14 @@ class WetnessTileTask(TileTask):
 
         print "***", dataset.path
 
-        metadata = get_dataset_metadata(dataset)
+        transform = (self.x, 0.00025, 0.0, self.y+1, 0.0, -0.00025)
+
+        srs = osr.SpatialReference()
+        srs.ImportFromEPSG(4326)
+
+        projection = srs.ExportToWkt()
+
+        # metadata = get_dataset_metadata(dataset)
 
         mask = None
 
@@ -551,7 +591,7 @@ class WetnessTileTask(TileTask):
         # Create just the WETNESS band raster
 
         raster_create(self.output().path, [data[TciBands.WETNESS]],
-                      metadata.transform, metadata.projection, ndv, gdal.GDT_Float32,
+                      transform, projection, ndv, gdal.GDT_Float32,
                       dataset_metadata=self.generate_raster_metadata(dataset),
                       band_ids=[TciBands.WETNESS.name])
 
@@ -571,3 +611,23 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
 
     WetnessWorkflow().run()
+
+###
+# Was playing with this code to avoid the all nan slice issue
+###
+#
+# stack = list()
+#
+# data = ...
+#
+# stack.append(data)
+# ...
+# stack.append(data)
+#
+# stack = numpy.array(stack)
+#
+# stack = numpy.rollaxis(stack, 0, 3)
+#
+# stack[numpy.all(numpy.isnan(stack), axis=2)] = -999
+#
+# stack = numpy.rollaxis(stack, 2, 0)

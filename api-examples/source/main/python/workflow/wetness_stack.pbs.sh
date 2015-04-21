@@ -1,8 +1,8 @@
 #!/bin/bash
-#PBS -N witl
+#PBS -N witlstack
 #PBS -P u46
 #PBS -q normal
-#PBS -l ncpus=16,mem=32GB
+#PBS -l ncpus=1,mem=2GB
 #PBS -l walltime=1:00:00
 #PBS -l wd
 
@@ -27,10 +27,10 @@ module load scipy
 #COMMAND="python $HOME/source/agdc-api/api-examples/source/main/python/bare_soil.py --output-dir $outputdir --x-min $xmin --x-max $xmax --y-min $ymin --y-max $ymax --acq-min $acqmin --acq-max $acqmax"
 
 export PYTHONPATH=$HOME/source/agdc-api/witl/api/source/main/python:$HOME/source/agdc-api/witl/api-examples/source/main/python:$PYTHONPATH
-COMMAND="python $HOME/source/agdc-api/witl/api-examples/source/main/python/workflow/wetness_with_stats.py --output-dir $outputdir --x-min $xmin --x-max $xmax --y-min $ymin --y-max $ymax --acq-min $acqmin --acq-max $acqmax --mask-pqa-apply --chunk-size-x 2000 --chunk-size-y 200 --csv"
+COMMAND="python $HOME/source/agdc-api/witl/api-examples/source/main/python/workflow/wetness_stack.py --output-dir $outputdir --x-min $xmin --x-max $xmax --y-min $ymin --y-max $ymax --acq-min $acqmin --acq-max $acqmax --mask-pqa-apply --csv"
 
 # MPI
 #mpirun -n 16 $COMMAND
 
 # NO MPI
-${COMMAND} --local-scheduler --workers 16
+${COMMAND} --local-scheduler
