@@ -423,9 +423,9 @@ def warp_file_paths(path):
     # return path.replace("/g/data1/rs0/tiles/EPSG4326_1deg_0.00025pixel", "/data/tmp/cube/data/tiles/EPSG4326_1deg_0.00025pixel")  # For innuendo
     # return path.replace("/g/data1/rs0/tiles/EPSG4326_1deg_0.00025pixel", "/Users/simon/tmp/datacube/data/input/g/data1/rs0/tiles/EPSG4326_1deg_0.00025pixel")  # For macbook
 
-    # My MacBook with data on external USB
-    path = path.replace("/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel", "/Volumes/Seagate Expansion Drive/data/cube/tiles/EPSG4326_1deg_0.00025pixel")  # For macbook
-    path = path.replace("/g/data/u46/wofs/water_f7q/extents", "/Volumes/Seagate Expansion Drive/data/cube/tiles/EPSG4326_1deg_0.00025pixel/wofs_f7q/extents")  # For macbook
+    # # My MacBook with data on external USB
+    # path = path.replace("/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel", "/Volumes/Seagate Expansion Drive/data/cube/tiles/EPSG4326_1deg_0.00025pixel")  # For macbook
+    # path = path.replace("/g/data/u46/wofs/water_f7q/extents", "/Volumes/Seagate Expansion Drive/data/cube/tiles/EPSG4326_1deg_0.00025pixel/wofs_f7q/extents")  # For macbook
 
     return path
 

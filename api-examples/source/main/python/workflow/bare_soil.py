@@ -37,7 +37,7 @@ import luigi
 import numpy
 import os
 from datacube.api.model import DatasetType, Fc25Bands, Ls57Arg25Bands, Satellite
-from datacube.api.utils import NDV, empty_array, get_mask_pqa, get_dataset_data_masked, calculate_ndvi
+from datacube.api.utils import NDV, empty_array, get_mask_pqa, get_dataset_data_masked, calculate_ndvi, get_mask_wofs
 from datacube.api.utils import propagate_using_selected_pixel, get_dataset_metadata, raster_create, date_to_integer
 from datacube.api.workflow.cell import Workflow, SummaryTask, CellTask
 
@@ -56,7 +56,8 @@ class BareSoilWorkflow(Workflow):
         return [BareSoilSummaryTask(x_min=self.x_min, x_max=self.x_max, y_min=self.y_min, y_max=self.y_max,
                                     acq_min=self.acq_min, acq_max=self.acq_max, satellites=self.satellites,
                                     output_directory=self.output_directory, csv=self.csv, dummy=self.dummy,
-                                    mask_pqa_apply=self.mask_pqa_apply, mask_pqa_mask=self.mask_pqa_mask)]
+                                    mask_pqa_apply=self.mask_pqa_apply, mask_pqa_mask=self.mask_pqa_mask,
+                                    mask_wofs_apply=self.mask_wofs_apply, mask_wofs_mask=self.mask_wofs_mask)]
 
 
 class BareSoilSummaryTask(SummaryTask):
@@ -65,10 +66,16 @@ class BareSoilSummaryTask(SummaryTask):
 
         return BareSoilCellTask(x=x, y=y, acq_min=self.acq_min, acq_max=self.acq_max, satellites=self.satellites,
                                 output_directory=self.output_directory, csv=self.csv, dummy=self.dummy,
-                                mask_pqa_apply=self.mask_pqa_apply, mask_pqa_mask=self.mask_pqa_mask)
+                                mask_pqa_apply=self.mask_pqa_apply, mask_pqa_mask=self.mask_pqa_mask,
+                                mask_wofs_apply=self.mask_wofs_apply, mask_wofs_mask=self.mask_wofs_mask)
 
 
 class BareSoilCellTask(CellTask):
+
+    @staticmethod
+    def get_dataset_types():
+
+        return [DatasetType.ARG25, DatasetType.PQ25, DatasetType.FC25, DatasetType.NDVI]
 
     def output(self):
 
@@ -127,6 +134,7 @@ class BareSoilCellTask(CellTask):
             pqa = tile.datasets[DatasetType.PQ25]
             nbar = tile.datasets[DatasetType.ARG25]
             fc = tile.datasets[DatasetType.FC25]
+            wofs = DatasetType.WATER in tile.datasets and tile.datasets[DatasetType.WATER] or None
 
             _log.info("Processing [%s]", fc.path)
 
@@ -141,6 +149,12 @@ class BareSoilCellTask(CellTask):
 
             if self.mask_pqa_apply:
                 mask = get_mask_pqa(pqa, pqa_masks=self.mask_pqa_mask, mask=mask)
+                # _log.info("### mask PQA is [%s]", mask[1000][1000])
+
+            # Add the WOFS mask if we are doing WOFS masking
+
+            if self.mask_wofs_apply and wofs:
+                mask = get_mask_wofs(wofs, wofs_masks=self.mask_wofs_mask, mask=mask)
                 # _log.info("### mask PQA is [%s]", mask[1000][1000])
 
             # Get NBAR dataset
