@@ -54,10 +54,14 @@
 <li><a class="reference internal" href="#output-products">Output Products</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#landsat-clean-pixel-mosaic">Landsat Clean Pixel Mosaic</a></li>
-<li><a class="reference internal" href="#wetness-in-the-landscape">Wetness in the Landscape</a><ul>
+<li><a class="reference internal" href="#landsat-clean-pixel-mosaic">Landsat Clean Pixel Mosaic</a><ul>
 <li><a class="reference internal" href="#id1">Overview</a></li>
 <li><a class="reference internal" href="#id2">Output Products</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#wetness-in-the-landscape">Wetness in the Landscape</a><ul>
+<li><a class="reference internal" href="#id3">Overview</a></li>
+<li><a class="reference internal" href="#id4">Output Products</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#crcsi-applications">CRCSI Applications</a></li>
@@ -145,11 +149,34 @@ the following lat/lon cells:</p>
 </div>
 <div class="section" id="landsat-clean-pixel-mosaic">
 <h2>Landsat Clean Pixel Mosaic<a class="headerlink" href="#landsat-clean-pixel-mosaic" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id1">
+<h3>Overview<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<p>Geoscience Australia makes available an ortho and radiometrically corrected cloud free mosaic of Landsat surface reflectance
+imagery.  This image is made available to external stakeholders, as well as being used internally by Geoscience
+Australia - for example as a backdrop in the <a class="reference external" href="http://sentinel.ga.gov.au">Sentinel National Bushfire Monitoring System</a>
+system.  The current image of choice is derived from Landsat 5 &amp; 7 data acquired in 2006.</p>
+<p>The goal of the Landsat Clean Pixel Mosaic is to provide an automated process where an up-to-date clean pixel mosaic
+of, for example, Landsat 8 Surface Reflectance imagery could be produced on a regular basis (e.g. weekly) as the imagery
+is acquired by Geoscience Australia.</p>
+<p>The Landsat Clean Pixel Mosaic workflow can be summarised as:</p>
+<ul class="simple">
+<li>identify the relevant datasets (typically all Landsat 8 Surface Reflectance datasets);</li>
+<li>start with an empty composite mosaic image;</li>
+<li>process each dataset in order of acquisition, most recent first;</li>
+<li>copy all clean (as per the Pixel Quality Assessment of contiguity, saturation, cloud and cloud shadow) pixels from the current dataset where the corresponding pixel in the composite is currently not populated;</li>
+<li>until all pixels in the composite dataset are populated or the supply of datasets is exhausted.</li>
+</ul>
+</div>
+<div class="section" id="id2">
+<h3>Output Products<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<p>The output is a clean pixel composite image of continental Australia that can be delivered via file (GeoTIFF, ECW, ...) or via web services (OGC WMS/WCS)...</p>
+<img alt="_images/agdc-clean_pixel_ls8_nbar_2014_12_31.png" src="_images/agdc-clean_pixel_ls8_nbar_2014_12_31.png" />
+</div>
 </div>
 <div class="section" id="wetness-in-the-landscape">
 <h2>Wetness in the Landscape<a class="headerlink" href="#wetness-in-the-landscape" title="Permalink to this headline">¶</a></h2>
-<div class="section" id="id1">
-<h3>Overview<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id3">
+<h3>Overview<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
 <p>The Wetness in the Landscape application (WITL) aims to support a deeper understanding of a range of groundwater
 issues, including groundwater recharge/discharge processes and, in the longer term, understanding issues of loading
 and/or deformation in the landscape.</p>
@@ -164,8 +191,8 @@ Reflectance data to produce, at least, the Tasseled Cap Wetness Index (TCWI).</p
 <li>produce a statistical summary of the TWCI values for each pixel for given time slices within the time period (for example, monthly, quarterly, yearly).</li>
 </ul>
 </div>
-<div class="section" id="id2">
-<h3>Output Products<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id4">
+<h3>Output Products<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
 <p>The initial output products will be produced from Landsat 5 &amp; 7 data allowing comparisons of:</p>
 <ul class="simple">
 <li>The Lower Darling (lat/lon 140/-36 to 145/-30):</li>

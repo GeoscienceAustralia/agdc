@@ -52,6 +52,35 @@ the following lat/lon cells:
 Landsat Clean Pixel Mosaic
 ++++++++++++++++++++++++++
 
+Overview
+--------
+
+Geoscience Australia makes available an ortho and radiometrically corrected cloud free mosaic of Landsat surface reflectance
+imagery.  This image is made available to external stakeholders, as well as being used internally by Geoscience
+Australia - for example as a backdrop in the `Sentinel National Bushfire Monitoring System <http://sentinel.ga.gov.au>`_
+system.  The current image of choice is derived from Landsat 5 & 7 data acquired in 2006.
+
+The goal of the Landsat Clean Pixel Mosaic is to provide an automated process where an up-to-date clean pixel mosaic
+of, for example, Landsat 8 Surface Reflectance imagery could be produced on a regular basis (e.g. weekly) as the imagery
+is acquired by Geoscience Australia.
+
+The Landsat Clean Pixel Mosaic workflow can be summarised as:
+
+* identify the relevant datasets (typically all Landsat 8 Surface Reflectance datasets);
+* start with an empty composite mosaic image;
+* process each dataset in order of acquisition, most recent first;
+* copy all clean (as per the Pixel Quality Assessment of contiguity, saturation, cloud and cloud shadow) pixels from the current dataset where the corresponding pixel in the composite is currently not populated;
+* until all pixels in the composite dataset are populated or the supply of datasets is exhausted.
+
+Output Products
+---------------
+
+The output is a clean pixel composite image of continental Australia that can be delivered via file (GeoTIFF, ECW, ...) or via web services (OGC WMS/WCS)...
+
+
+.. image:: agdc-clean_pixel_ls8_nbar_2014_12_31.png
+
+
 Wetness in the Landscape
 ++++++++++++++++++++++++
 
