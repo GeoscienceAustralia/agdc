@@ -1,0 +1,537 @@
+
+
+<!doctype html>
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>API Overview &mdash; agdc-api 0.1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/bizstyle.js"></script>
+    <link rel="top" title="agdc-api 0.1.0 documentation" href="index.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">agdc-api 0.1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">API Overview</a><ul>
+<li><a class="reference internal" href="#model-entities">Model Entities</a></li>
+<li><a class="reference internal" href="#dataset-filtering-aka-querying">Dataset Filtering (aka Querying)…</a><ul>
+<li><a class="reference internal" href="#list-cells">List Cells</a></li>
+<li><a class="reference internal" href="#list-datasets">List Datasets</a></li>
+<li><a class="reference internal" href="#list-by-aoi">List ... by AOI…</a></li>
+<li><a class="reference internal" href="#list-to-csv">List … to CSV…</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#data-access">Data Access</a></li>
+<li><a class="reference internal" href="#pixel-filtering-aka-masking">Pixel Filtering (aka Masking)</a><ul>
+<li><a class="reference internal" href="#pqa-wofs-masking">PQA, WOFS, masking…</a></li>
+<li><a class="reference internal" href="#value-range-masking">Value range masking…</a></li>
+<li><a class="reference internal" href="#ndvi-value-range-masking">NDVI Value range masking…</a></li>
+<li><a class="reference internal" href="#aoi-masking">AOI masking…</a></li>
+<li><a class="reference internal" href="#aoi-masking-an-actual-example">AOI masking – An ACTual example…</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#workflows">Workflows</a><ul>
+<li><a class="reference internal" href="#cell-based-workflows">Cell Based Workflows…</a></li>
+<li><a class="reference internal" href="#other-workflows">Other Workflows</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#workflows-take-2">Workflows - Take 2</a></li>
+<li><a class="reference internal" href="#tools">Tools</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/api_overview.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="toctree-wrapper compound">
+<ul class="simple">
+</ul>
+</div>
+<div class="section" id="api-overview">
+<h1>API Overview<a class="headerlink" href="#api-overview" title="Permalink to this headline">¶</a></h1>
+<img alt="_images/API.png" src="_images/API.png" />
+<div class="section" id="model-entities">
+<h2>Model Entities<a class="headerlink" href="#model-entities" title="Permalink to this headline">¶</a></h2>
+<img alt="_images/model_entities.png" src="_images/model_entities.png" />
+</div>
+<div class="section" id="dataset-filtering-aka-querying">
+<h2>Dataset Filtering (aka Querying)…<a class="headerlink" href="#dataset-filtering-aka-querying" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>List cells or datasets</li>
+<li>List present or missing</li>
+<li>Spatial criteria – x/y or region/AOI (WKT/WKB directly or from vector file)</li>
+<li>DB result set or (to) CSV</li>
+<li>NBAR, PQA, FC, DSM/DEM</li>
+<li>WOFS – currently “fudged” until ingested</li>
+<li>Virtual datasets (NDVI, EVI, Tassel Cap, NBR, …)</li>
+</ul>
+<div class="section" id="list-cells">
+<h3>List Cells<a class="headerlink" href="#list-cells" title="Permalink to this headline">¶</a></h3>
+<p>List cells for which we DO have matching datasets…</p>
+<p>For e.g. LS8 acquired in 2014 for which we DO have NBAR, PQA and DSM…:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">list_cells</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">120</span><span class="p">,</span> <span class="mi">125</span><span class="p">),</span> <span class="n">y</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">20</span><span class="p">],</span>
+           <span class="n">acq_min</span><span class="o">=</span><span class="n">datetime</span><span class="p">(</span><span class="mi">2014</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span>
+           <span class="n">acq_max</span><span class="o">=</span><span class="n">datetime</span><span class="p">(</span><span class="mi">2014</span><span class="p">,</span><span class="mi">12</span><span class="p">,</span><span class="mi">1</span><span class="p">),</span>
+           <span class="n">satellites</span><span class="o">=</span><span class="p">[</span><span class="n">LS8</span><span class="p">],</span> <span class="n">dataset_types</span><span class="o">=</span><span class="p">[</span><span class="n">ARG25</span><span class="p">,</span> <span class="n">PQ25</span><span class="p">,</span> <span class="n">DSM</span><span class="p">])</span>
+
+<span class="p">(</span><span class="mi">120</span><span class="p">,</span> <span class="o">-</span><span class="mi">20</span><span class="p">)</span>
+<span class="p">(</span><span class="mi">121</span><span class="p">,</span> <span class="o">-</span><span class="mi">20</span><span class="p">)</span>
+<span class="p">(</span><span class="mi">122</span><span class="p">,</span> <span class="o">-</span><span class="mi">20</span><span class="p">)</span>
+<span class="p">(</span><span class="mi">123</span><span class="p">,</span> <span class="o">-</span><span class="mi">20</span><span class="p">)</span>
+<span class="p">(</span><span class="mi">124</span><span class="p">,</span> <span class="o">-</span><span class="mi">20</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>List cells for which we have DON’T have matching datasets….</p>
+<p>For e.g. LS8 acquired in 2014 for which we don’t have FC…:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">list_cells_missing</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">120</span><span class="p">,</span> <span class="mi">125</span><span class="p">),</span> <span class="n">y</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">20</span><span class="p">],</span>
+                   <span class="n">acq_min</span><span class="o">=</span><span class="n">datetime</span><span class="p">(</span><span class="mi">2014</span><span class="p">,</span> <span class="mo">01</span><span class="p">,</span> <span class="mo">01</span><span class="p">),</span>
+                   <span class="n">acq_max</span><span class="o">=</span><span class="n">datetime</span><span class="p">(</span><span class="mi">2014</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">31</span><span class="p">),</span>
+                   <span class="n">satellites</span><span class="o">=</span><span class="p">[</span><span class="n">LS8</span><span class="p">],</span> <span class="n">dataset_types</span><span class="o">=</span><span class="p">[</span><span class="n">FC25</span><span class="p">])</span>
+
+<span class="p">(</span><span class="mi">121</span><span class="p">,</span> <span class="o">-</span><span class="mi">20</span><span class="p">)</span>
+<span class="p">(</span><span class="mi">122</span><span class="p">,</span> <span class="o">-</span><span class="mi">20</span><span class="p">)</span>
+<span class="p">(</span><span class="mi">123</span><span class="p">,</span> <span class="o">-</span><span class="mi">20</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="list-datasets">
+<h3>List Datasets<a class="headerlink" href="#list-datasets" title="Permalink to this headline">¶</a></h3>
+<p>List matching datasets…</p>
+<p>For e.g. LS8 acquired in Q1 of 2014 for which we DO have NBAR, PQA and DSM datasets…:</p>
+<div class="highlight-python"><div class="highlight"><pre>list_datasets(x=range(120, 125), y=[-20],
+              acq_min=datetime(2014,1,1),
+              acq_max=datetime(2014,3,31),
+              satellites=[LS8], dataset_types=[ARG25, PQ25, DSM])
+
+(120, -20) 2014-01-10 02:03:44 /g/data/… /g/data/… /g/data/…
+           …
+           2014-03-31 02:02:42 /g/data/… /g/data/… /g/data/…
+
+(121, -20) 2014-02-04 01:57:19 /g/data/… /g/data/… /g/data/…
+           …
+           2014-02-13 01:50:34 /g/data/… /g/data/… /g/data/…
+
+(123, -20) 2014-02-13 01:50:34 /g/data/… /g/data/… /g/data/…
+</pre></div>
+</div>
+<p>List missing datasets…</p>
+<p>For e.g. LS8 acquired in 2014 for which we don’t have FC…:</p>
+<div class="highlight-python"><div class="highlight"><pre>list_datasets_missing(x=range(120, 125), y=[-20],
+                      acq_min=datetime(2014,1,1),
+                      acq_max=datetime(2014,3,31),
+                      satellites=[LS8], dataset_types=[FC25])
+
+(120, -20) 2014-01-10 02:03:44 /g/data/…/LS8_NBAR…
+           …
+           2014-03-31 02:02:42 /g/data/…/LS8_NBAR…
+
+(121, -20) 2014-02-04 01:57:19 /g/data/…/LS8_NBAR…
+           …
+           2014-02-13 01:50:34 /g/data/…/LS8_NBAR…
+
+(123, -20) 2014-02-13 01:50:34 /g/data/…/LS8_NBAR…
+</pre></div>
+</div>
+</div>
+<div class="section" id="list-by-aoi">
+<h3>List ... by AOI…<a class="headerlink" href="#list-by-aoi" title="Permalink to this headline">¶</a></h3>
+<p>The same but WKT or vector file rather than x/y range…:</p>
+<div class="highlight-python"><div class="highlight"><pre>list_cells_wkt(wkt=“POLYGON(…)”, …)
+list_cells_vector_file(file=, layer=, feature=, …)
+
+list_datasets_wkt(wkt=“POLYGON(…)”, …)
+list_datasets_vector_file(file=, layer=, feature=, …)
+
+…
+</pre></div>
+</div>
+</div>
+<div class="section" id="list-to-csv">
+<h3>List … to CSV…<a class="headerlink" href="#list-to-csv" title="Permalink to this headline">¶</a></h3>
+<p>The same but “_to_csv”…:</p>
+<div class="highlight-python"><div class="highlight"><pre>list_cells_to_csv(x, y, …, filename)
+list_cells_missing_to_csv(x, y, …, filename)
+
+list_datasets_to_csv(x, y, …, filename)
+list_datasets_missing_to_csv(x, y, …, filename)
+
+…
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="data-access">
+<h2>Data Access<a class="headerlink" href="#data-access" title="Permalink to this headline">¶</a></h2>
+<p>You provide a “dataset” (e.g. from a list query) and you get back numpy array(s)</p>
+<p>All data or some data – subset by band, space or both:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="c"># all data in all bands</span>
+<span class="n">get_dataset_data</span><span class="p">(</span><span class="n">datasets</span><span class="p">[</span><span class="n">ARG25</span><span class="p">])</span>
+
+<span class="c"># all data in RED &amp; GREEN bands</span>
+<span class="n">get_dataset_data</span><span class="p">(</span><span class="n">datasets</span><span class="p">[</span><span class="n">ARG25</span><span class="p">],</span> <span class="n">bands</span><span class="o">=</span><span class="p">[</span><span class="n">RED</span><span class="p">,</span> <span class="n">GREEN</span><span class="p">])</span>
+
+<span class="c"># 50x50 pixels starting at (100, 100) in RED &amp; GREEN bands</span>
+<span class="n">get_dataset_data</span><span class="p">(</span><span class="n">datasets</span><span class="p">[</span><span class="n">ARG25</span><span class="p">],</span> <span class="n">bands</span><span class="o">=</span><span class="p">[</span><span class="n">RED</span><span class="p">,</span> <span class="n">GREEN</span><span class="p">],</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">50</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Physical datasets – NBAR, PQA, FC, DSM, WOFS, …</p>
+<p>Virtual datasets – NDVI, EVI, NBR, Tassel Cap, ….  Behind the scenes, a virtual dataset points at (a currently SINGLE) physical dataset…:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="c"># all data in all bands in dataset</span>
+<span class="n">get_dataset_data</span><span class="p">(</span><span class="n">datasets</span><span class="p">[</span><span class="n">NDVI</span><span class="p">])</span>
+
+<span class="c"># all data in all bands in dataset</span>
+<span class="n">get_dataset_data</span><span class="p">(</span><span class="n">datasets</span><span class="p">[</span><span class="n">TCI</span><span class="p">])</span>
+
+<span class="c"># 50x50 pixels starting at (100, 100)</span>
+<span class="n">get_dataset_data</span><span class="p">(</span><span class="n">datasets</span><span class="p">[</span><span class="n">NDVI</span><span class="p">],</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">50</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In future “bring your own datasets”</p>
+<p>For e.g. ability to treat your own (intermediate) outputs as fully fledged data cube datasets</p>
+<p>Maybe – haven’t thought my way through all the how’s and why’s of this yet…</p>
+</div>
+<div class="section" id="pixel-filtering-aka-masking">
+<h2>Pixel Filtering (aka Masking)<a class="headerlink" href="#pixel-filtering-aka-masking" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Replaces pixel value with NDV</li>
+<li>PQA</li>
+<li>WOFS</li>
+<li>NDVI</li>
+<li>Range of values</li>
+<li>AOI</li>
+</ul>
+<div class="section" id="pqa-wofs-masking">
+<h3>PQA, WOFS, masking…<a class="headerlink" href="#pqa-wofs-masking" title="Permalink to this headline">¶</a></h3>
+<p>Get FC data with non-clear and water pixels masked out…:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">mask</span> <span class="o">=</span> <span class="bp">None</span>
+
+<span class="n">mask</span> <span class="o">=</span> <span class="n">get_mask_pqa</span><span class="p">(</span><span class="n">datasets</span><span class="p">[</span><span class="n">PQ25</span><span class="p">],</span> <span class="p">[</span><span class="n">PQA_MASK_CLEAR</span><span class="p">],</span> <span class="n">mask</span><span class="p">)</span>
+<span class="n">mask</span> <span class="o">=</span> <span class="n">get_mask_wofs</span><span class="p">(</span><span class="n">datasets</span><span class="p">[</span><span class="n">WATER</span><span class="p">],</span> <span class="p">[</span><span class="n">WATER</span><span class="p">],</span> <span class="n">mask</span><span class="p">)</span>
+
+<span class="n">data</span> <span class="o">=</span> <span class="n">get_dataset_data_masked</span><span class="p">(</span><span class="n">datasets</span><span class="p">[</span><span class="n">FC25</span><span class="p">],</span> <span class="n">mask</span><span class="p">,</span> <span class="n">NDV</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="value-range-masking">
+<h3>Value range masking…<a class="headerlink" href="#value-range-masking" title="Permalink to this headline">¶</a></h3>
+<p>Get FC data with additional masking for values outside 10% - 80% bare soil range…:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">mask</span> <span class="o">=</span> <span class="bp">None</span>
+
+<span class="n">mask</span> <span class="o">=</span> <span class="n">get_mask_pqa</span><span class="p">(</span><span class="n">datasets</span><span class="p">[</span><span class="n">PQ25</span><span class="p">],</span> <span class="p">[</span><span class="n">PQA_MASK_CLEAR</span><span class="p">],</span> <span class="n">mask</span><span class="p">)</span>
+<span class="n">mask</span> <span class="o">=</span> <span class="n">get_mask_wofs</span><span class="p">(</span><span class="n">datasets</span><span class="p">[</span><span class="n">WATER</span><span class="p">],</span> <span class="p">[</span><span class="n">WATER</span><span class="p">],</span> <span class="n">mask</span><span class="p">)</span>
+
+<span class="n">data</span> <span class="o">=</span> <span class="n">get_dataset_data_masked</span><span class="p">(</span><span class="n">datasets</span><span class="p">[</span><span class="n">FC25</span><span class="p">],</span> <span class="n">mask</span><span class="p">,</span> <span class="n">NDV</span><span class="p">)</span>
+
+<span class="n">mask</span> <span class="o">=</span> <span class="n">get_mask_range</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">BARE_SOIL</span><span class="p">],</span> <span class="mi">1000</span><span class="p">,</span> <span class="mi">8000</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
+
+<span class="n">data</span> <span class="o">=</span> <span class="n">apply_mask</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="ndvi-value-range-masking">
+<h3>NDVI Value range masking…<a class="headerlink" href="#ndvi-value-range-masking" title="Permalink to this headline">¶</a></h3>
+<p>Get FC data with additional masking for NDVI values outside 0 to 0.3 range…:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">mask</span> <span class="o">=</span> <span class="bp">None</span>
+
+<span class="n">mask</span> <span class="o">=</span> <span class="n">get_mask_pqa</span><span class="p">(</span><span class="n">datasets</span><span class="p">[</span><span class="n">PQ25</span><span class="p">],</span> <span class="p">[</span><span class="n">PQA_MASK_CLEAR</span><span class="p">],</span> <span class="n">mask</span><span class="p">)</span>
+<span class="n">mask</span> <span class="o">=</span> <span class="n">get_mask_wofs</span><span class="p">(</span><span class="n">datasets</span><span class="p">[</span><span class="n">WATER</span><span class="p">],</span> <span class="p">[</span><span class="n">WATER</span><span class="p">],</span> <span class="n">mask</span><span class="p">)</span>
+
+<span class="n">data</span> <span class="o">=</span> <span class="n">get_dataset_data_masked</span><span class="p">(</span><span class="n">datasets</span><span class="p">[</span><span class="n">FC25</span><span class="p">],</span> <span class="n">mask</span><span class="p">,</span> <span class="n">NDV</span><span class="p">)</span>
+
+<span class="n">mask</span> <span class="o">=</span> <span class="n">get_mask_range</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">BARE_SOIL</span><span class="p">],</span> <span class="mi">1000</span><span class="p">,</span> <span class="mi">8000</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
+
+<span class="n">mask</span> <span class="o">=</span> <span class="n">get_mask_range</span><span class="p">(</span><span class="n">datasets</span><span class="p">[</span><span class="n">NDVI</span><span class="p">],</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
+
+<span class="n">data</span> <span class="o">=</span> <span class="n">apply_mask</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="aoi-masking">
+<h3>AOI masking…<a class="headerlink" href="#aoi-masking" title="Permalink to this headline">¶</a></h3>
+<p>Apply an AOI mask…:</p>
+<div class="highlight-python"><div class="highlight"><pre>mask = None
+
+mask = create_aoi_mask_for_cell(file=, layer=, feature=, x=, y=)
+
+data = get_dataset_data_masked(datasets[FC25], mask, NDV)
+</pre></div>
+</div>
+</div>
+<div class="section" id="aoi-masking-an-actual-example">
+<h3>AOI masking – An ACTual example…<a class="headerlink" href="#aoi-masking-an-actual-example" title="Permalink to this headline">¶</a></h3>
+<p>Lets do some analysis on surface reflectance with an AOI of the ACT…</p>
+<p>Start with the AGDC surface reflectance data…</p>
+<img alt="_images/agdc-clean_pixel_ls8_nbar_2014_12_31_agdc-australian_grid.png" src="_images/agdc-clean_pixel_ls8_nbar_2014_12_31_agdc-australian_grid.png" />
+<p>…and AOI in a vector (shape, KML, etc) file…</p>
+<img alt="_images/agdc-australian_states-ALL.png" src="_images/agdc-australian_states-ALL.png" />
+<p>…and let&#8217;s focus in on the ACT…</p>
+<img alt="_images/agdc-australian_states-ACT.png" src="_images/agdc-australian_states-ACT.png" />
+<p>…find the CELLs that cover the ACT…:</p>
+<div class="highlight-python"><div class="highlight"><pre>list_cells_vector_file(file=“australian_states.shp”,
+                       layer=“australian_states”,
+                       feature=4, …)
+
+(148, -36)
+(149, -36)
+</pre></div>
+</div>
+<p>…grab some NBAR datasets for those cells (148/-36 &amp; 149/-36) from the cube…:</p>
+<div class="highlight-python"><div class="highlight"><pre>for dataset in list_datasets_vector_file(file=“australian_states.shp”,
+                                         layer=“australian_states”,
+                                         feature=4, …):
+
+    get_dataset_data(datasets[ARG25])
+</pre></div>
+</div>
+<p>…which gives us…</p>
+<img alt="_images/agdc-LS_NBAR_ACT_agdc-australian_states_agdc-australian_grid_148_-036.png" src="_images/agdc-LS_NBAR_ACT_agdc-australian_states_agdc-australian_grid_148_-036.png" />
+<img alt="_images/agdc-LS_NBAR_ACT_agdc-australian_states_agdc-australian_grid_149_-036.png" src="_images/agdc-LS_NBAR_ACT_agdc-australian_states_agdc-australian_grid_149_-036.png" />
+<p>…and then adding in AOI masking…:</p>
+<div class="highlight-python"><div class="highlight"><pre>for cell in list_cells_vector_file(file=“australian_states.shp”,
+                                   layer=“australian_states”,
+                                   feature=4, …):
+
+    mask = None
+
+    mask = create_aoi_mask_for_cell(file=“australian_states.shp”,
+                                    layer=“australian_states”,
+                                    feature=4,
+                                    x=cell.x, y=cell.y)
+
+    data = get_dataset_data_masked(datasets[ARG25], mask, NDV)
+</pre></div>
+</div>
+<p>…which gives us…</p>
+<img alt="_images/agdc-LS_NBAR_ACT_masked_148_-036.png" src="_images/agdc-LS_NBAR_ACT_masked_148_-036.png" />
+<img alt="_images/agdc-LS_NBAR_ACT_masked_149_-036.png" src="_images/agdc-LS_NBAR_ACT_masked_149_-036.png" />
+<p>…and maybe mosaic them together…</p>
+<img alt="_images/agdc-LS_NBAR_ACT_masked.png" src="_images/agdc-LS_NBAR_ACT_masked.png" />
+<p>…and apply your favourite analysis formula(ae)…</p>
+<img alt="_images/i_ate_pie.png" src="_images/i_ate_pie.png" />
+</div>
+</div>
+<div class="section" id="workflows">
+<h2>Workflows<a class="headerlink" href="#workflows" title="Permalink to this headline">¶</a></h2>
+<img alt="_images/workflow.png" src="_images/workflow.png" />
+<p>A workflow:</p>
+<ul class="simple">
+<li>takes input(s);</li>
+<li>does “stuff”; which</li>
+<li>turns the inputs into output(s)…</li>
+</ul>
+<p>Have been driven by the applications:</p>
+<ul class="simple">
+<li>Landsat Clean Pixel Mosaic</li>
+<li>Bare Soil</li>
+<li>Wetness in the Landscape</li>
+<li>CRCSI March (Adam’s version(s))</li>
+<li>CRCSI March (Leo’s version(s))</li>
+<li>WOFS</li>
+<li>…</li>
+</ul>
+<img alt="_images/workflow_structure.png" src="_images/workflow_structure.png" />
+<div class="section" id="cell-based-workflows">
+<h3>Cell Based Workflows…<a class="headerlink" href="#cell-based-workflows" title="Permalink to this headline">¶</a></h3>
+<img alt="_images/workflow_cell.png" src="_images/workflow_cell.png" />
+<img alt="_images/workflow_cell_class.png" src="_images/workflow_cell_class.png" />
+<p>PQA Observation Count Example…</p>
+<p>To help validate/improve the PQA algorithm more information about the PQA outputs was desired</p>
+<p>For e.g. for each pixel show how many times it was:</p>
+<blockquote>
+<div><ul class="simple">
+<li>Observed (in total and “clearly” as per PQA)</li>
+<li>Classified as “unclear” on the basis of each of the PQA flags (contiguity, saturation, cloud, cloud shadow, …)</li>
+</ul>
+</div></blockquote>
+<p>So get an output raster for each cell with a band representing each of the above</p>
+<p>This is a CELL workflow:</p>
+<ul class="simple">
+<li>Extend the abstract cell workflow with:
+* ObservationCountWorkflow which extends cell.Workflow
+* ObservationCountSummaryTask which extends cell.SummaryTask
+* ObservationCountCellTask which extends cell.CellTask</li>
+</ul>
+<p>ObservationCountWorkflow…:</p>
+<div class="highlight-python"><div class="highlight"><pre>class ObservationCountWorkflow(cell.Workflow):
+    def create_tasks(self):
+        return [ObservationCountSummaryTask(x_min=, x_max=, …)]
+</pre></div>
+</div>
+<p>ObservationCountSummaryTask…:</p>
+<div class="highlight-python"><div class="highlight"><pre>class ObservationCountSummaryTask(cell.SummaryTask):
+    def create_cell_task(self):
+        return [ObservationCountCellTask(x=, y=, …)]
+</pre></div>
+</div>
+<p>ObservationCountCellTask…:</p>
+<div class="highlight-python"><div class="highlight"><pre>class ObservationCountCellTask(cell.CellTask):
+    def output(self):
+        return LocalTarget(“{satellite}_OBS_{x}_{y}_{acq_min}_{acq_max}.tif”
+
+    def run(self):
+
+        [obs_count[b] = empty_array() for b in [TOTAL CLEAR CONTIGUITY …]]
+
+        for tile in self.get_tiles():
+            data = get_dataset_data(datasets[PQ25])
+
+        obs_count[TOTAL] += 1
+
+        for mask in [CLEAR CONTIGUITY … CLOUD CLOUD_SHADOW …]:
+            obs_count[mask] += numpy.where(data == mask, 1, 0)
+
+        raster_create(self.output().path, data=obs_count,…)
+</pre></div>
+</div>
+</div>
+<div class="section" id="other-workflows">
+<h3>Other Workflows<a class="headerlink" href="#other-workflows" title="Permalink to this headline">¶</a></h3>
+<p>There are also “chunk” workflows that have all the logic for splitting a cell (or a dataset or a …) up into manageable chunks.</p>
+<p>For e.g. for doing full time series depth statistics.</p>
+<p>Etc…</p>
+<p>More info coming soon</p>
+</div>
+</div>
+<div class="section" id="workflows-take-2">
+<h2>Workflows - Take 2<a class="headerlink" href="#workflows-take-2" title="Permalink to this headline">¶</a></h2>
+<p>A workflow:</p>
+<ul class="simple">
+<li>takes input(s);</li>
+<li>does &#8220;stuff&#8221;; which</li>
+<li>produces output(s)</li>
+</ul>
+<p>The parameters for an AGDC workflow are:</p>
+<ul class="simple">
+<li>spatial range</li>
+<li>time range</li>
+<li>time filter criteria (e.g. months of the year)</li>
+<li>time slice (e.g. for each day, week, month, quarter, year)</li>
+<li>dataset filter criteria</li>
+</ul>
+<p>The workflows are:</p>
+<ul class="simple">
+<li>Landsat Clean Pixel Mosaic</li>
+<li>Bare Soil (with/without statistics)</li>
+<li>Wetness</li>
+<li>CRCSI March (Adam and the variations on a theme)<ul>
+<li>datasets that are straight-forward values (NBAR, FC, NDVI, ...)</li>
+<li>datasets that are a little more complicated and requiring some value mapping (WOFS)</li>
+</ul>
+</li>
+<li>CRCSI March (Leo and the variations on a theme)<ul>
+<li>statistics</li>
+<li>textual summaries</li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="tools">
+<h2>Tools<a class="headerlink" href="#tools" title="Permalink to this headline">¶</a></h2>
+<p>There are also a set of “tools” – i.e. packaged executables – aimed at the NPP (Non-Python “People”):</p>
+<ul class="simple">
+<li>Retrieve dataset</li>
+<li>Retrieve pixel time series</li>
+<li>Retrieve dataset time series</li>
+<li>Retrieve dataset stack</li>
+<li>Retrieve aoi time series</li>
+<li>Summarise dataset time series</li>
+<li>…</li>
+</ul>
+</div>
+</div>
+<div class="section" id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><a class="reference internal" href="genindex.html"><span>Index</span></a></li>
+<li><a class="reference internal" href="py-modindex.html"><span>Module Index</span></a></li>
+<li><a class="reference internal" href="search.html"><span>Search Page</span></a></li>
+</ul>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">agdc-api 0.1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2015, Geoscience Australia.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.3.1.
+    </div>
+  </body>
+</html>

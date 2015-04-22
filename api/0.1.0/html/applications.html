@@ -1,0 +1,226 @@
+
+
+<!doctype html>
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>API Applications &mdash; agdc-api 0.1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/bizstyle.js"></script>
+    <link rel="top" title="agdc-api 0.1.0 documentation" href="index.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">agdc-api 0.1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">API Applications</a><ul>
+<li><a class="reference internal" href="#bare-soil">Bare Soil</a><ul>
+<li><a class="reference internal" href="#overview">Overview</a></li>
+<li><a class="reference internal" href="#output-products">Output Products</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#landsat-clean-pixel-mosaic">Landsat Clean Pixel Mosaic</a></li>
+<li><a class="reference internal" href="#wetness-in-the-landscape">Wetness in the Landscape</a><ul>
+<li><a class="reference internal" href="#id1">Overview</a></li>
+<li><a class="reference internal" href="#id2">Output Products</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#crcsi-applications">CRCSI Applications</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/applications.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="toctree-wrapper compound">
+<ul class="simple">
+</ul>
+</div>
+<div class="section" id="api-applications">
+<h1>API Applications<a class="headerlink" href="#api-applications" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="bare-soil">
+<h2>Bare Soil<a class="headerlink" href="#bare-soil" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="overview">
+<h3>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h3>
+<p>In areas of little vegetation Landsat TM/ETM+ imagery has proven to be very effective in mapping lithologies and weathered
+materials including the distribution of iron oxides, clays and silica.</p>
+<p>The Enhanced Mineral and Regolith Mapping (aka Bare Soil) application aims to select pixels through time that have a high
+bare earth component (i.e. low green and dry vegetation) and from this compile corresponding Surface Reflectance composite
+dataset.</p>
+<p>The bare soil application workflow can be summarised as:</p>
+<ul class="simple">
+<li>identify the relevant fractional cover datasets; and for each dataset</li>
+<li>apply standard Pixel Quality masking to mask out pixel values affected by contiguity issues, saturation issues, cloud and cloud shadow;</li>
+<li>apply additional masking to mask out pixels with an NDVI value (derived from the corresponding Surface Reflectance dataset) outside of the 0.0 - 0.3 range;</li>
+<li>apply additional masking to mask out pixels classified as water by the Water Observations From Space algorithm;</li>
+<li>apply additional masking to mask out pixels whose Fractional Cover / Bare Soil percentage value is outside the 0% - 80% range;</li>
+<li>select the acquisition that represents the maximum value of the Fractional Cover / Bare Soil percentage from the remaining unmasked pixel time series and output a corresponding composite mosaic of:<ul>
+<li>Surface Reflectance;</li>
+<li>Fractional Cover;</li>
+<li>Pixel Provenance datasets detailing:<ul>
+<li>the date of the acquisition from which the selected pixel derived;</li>
+<li>the satellite responsbile for the acquisition from which the selected pixel derived.</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="section" id="output-products">
+<h3>Output Products<a class="headerlink" href="#output-products" title="Permalink to this headline">¶</a></h3>
+<p>Initial continental scale runs (i.e. all of continental Australia covering lat/lon 110/-45 to 155/-10) for all
+Landsat 5 &amp; 7 acquisitions have been produced.</p>
+<p>Additional targeted outputs, including pixel level statistics and time series band stacks, have been produced for
+the following lat/lon cells:</p>
+<ul class="simple">
+<li>120/-20</li>
+<li>123/-25</li>
+<li>135/-18</li>
+<li>142/-22</li>
+<li>146/-34</li>
+</ul>
+</div>
+</div>
+<div class="section" id="landsat-clean-pixel-mosaic">
+<h2>Landsat Clean Pixel Mosaic<a class="headerlink" href="#landsat-clean-pixel-mosaic" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="wetness-in-the-landscape">
+<h2>Wetness in the Landscape<a class="headerlink" href="#wetness-in-the-landscape" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id1">
+<h3>Overview<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<p>The Wetness in the Landscape application (WITL) aims to support a deeper understanding of a range of groundwater
+issues, including groundwater recharge/discharge processes and, in the longer term, understanding issues of loading
+and/or deformation in the landscape.</p>
+<p>A key component of the WITL application is the ability to apply a Tasseled Cap Transformation to Landsat Surface
+Reflectance data to produce, at least, the Tasseled Cap Wetness Index (TCWI).</p>
+<p>As well as the detailed TWCI datasets, statistical summaries of the TWCI data over time are produced.</p>
+<p>The WITL application workflow can be summarised as:</p>
+<ul class="simple">
+<li>identify the relevant surface reflectance datasets; and for each dataset</li>
+<li>apply standard Pixel Quality masking to mask out pixel values affected by contiguity issues, saturation issues, cloud and cloud shadow;</li>
+<li>apply the Tasseled Cap Transform to the Surface Reflectance dataset to produce the TWCI dataset;</li>
+<li>produce a statistical summary of the TWCI values for each pixel for given time slices within the time period (for example, monthly, quarterly, yearly).</li>
+</ul>
+</div>
+<div class="section" id="id2">
+<h3>Output Products<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<p>The initial output products will be produced from Landsat 5 &amp; 7 data allowing comparisons of:</p>
+<ul class="simple">
+<li>The Lower Darling (lat/lon 140/-36 to 145/-30):</li>
+</ul>
+<blockquote>
+<div><ul class="simple">
+<li>2006-2009; versus</li>
+<li>2010-2012</li>
+</ul>
+</div></blockquote>
+<ul class="simple">
+<li>The Ord River Scheme (lat/lon 127/-18 to 130/-14) 2006-2013:</li>
+</ul>
+<blockquote>
+<div><ul class="simple">
+<li>Wet Season (November to March); versus</li>
+<li>Dry Season (April to October)</li>
+</ul>
+</div></blockquote>
+</div>
+</div>
+<div class="section" id="crcsi-applications">
+<h2>CRCSI Applications<a class="headerlink" href="#crcsi-applications" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+<div class="section" id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><a class="reference internal" href="genindex.html"><span>Index</span></a></li>
+<li><a class="reference internal" href="py-modindex.html"><span>Module Index</span></a></li>
+<li><a class="reference internal" href="search.html"><span>Search Page</span></a></li>
+</ul>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">agdc-api 0.1.0 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2015, Geoscience Australia.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.3.1.
+    </div>
+  </body>
+</html>
