@@ -31,8 +31,8 @@ The bare soil application workflow can be summarised as:
   * Fractional Cover;
   * Pixel Provenance datasets detailing:
 
-    * the date of the acquisition from which the selected pixel derived;
-    * the satellite responsbile for the acquisition from which the selected pixel derived.
+    * the date the selected pixel value was acquired;
+    * the satellite that acquired the selected pixel.
 
 Output Products
 ---------------
@@ -55,10 +55,11 @@ Landsat Clean Pixel Mosaic
 Overview
 --------
 
-Geoscience Australia makes available an ortho and radiometrically corrected cloud free mosaic of Landsat surface reflectance
-imagery.  This image is made available to external stakeholders, as well as being used internally by Geoscience
-Australia - for example as a backdrop in the `Sentinel National Bushfire Monitoring System <http://sentinel.ga.gov.au>`_
-system.  The current image of choice is derived from Landsat 5 & 7 data acquired in 2006.
+Geoscience Australia makes available a cloud free mosaic of systematically radiometric and geometric accurate Landsat
+surface reflectance imagery.  This image is made available to external stakeholders, as well as being used internally by
+Geoscience Australia - for example as a backdrop in the
+`Sentinel National Bushfire Monitoring System <http://sentinel.ga.gov.au>`_ system.  The current image of choice is
+derived from Landsat 5 & 7 data acquired in 2006.
 
 The goal of the Landsat Clean Pixel Mosaic is to provide an automated process where an up-to-date clean pixel mosaic
 of, for example, Landsat 8 Surface Reflectance imagery could be produced on a regular basis (e.g. weekly) as the imagery
