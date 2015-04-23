@@ -1,0 +1,16 @@
+.. raw:: html
+
+    <style type="text/css">
+    .watermark {
+        -webkit-transform: rotate(-90deg);
+        -moz-transform: rotate(-90deg);
+        width:100px;
+    }
+    </style>
+
+.. role:: watermark
+    :class: watermark
+
+:watermark:`Draft`
+
+Hello

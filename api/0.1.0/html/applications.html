@@ -64,7 +64,19 @@
 <li><a class="reference internal" href="#id4">Output Products</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#crcsi-applications">CRCSI Applications</a></li>
+<li><a class="reference internal" href="#crcsi-big-data-for-environmental-monitoring-applications">CRCSI Big Data for Environmental Monitoring Applications</a><ul>
+<li><a class="reference internal" href="#id5">Overview</a><ul>
+<li><a class="reference internal" href="#area-of-interest-level-summary">Area of Interest Level Summary</a></li>
+<li><a class="reference internal" href="#pixel-level-summary">Pixel Level Summary</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#id6">Output Products</a><ul>
+<li><a class="reference internal" href="#id7">Area of Interest Level Summary</a></li>
+<li><a class="reference internal" href="#id8">Pixel Level Summary</a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 <li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
@@ -171,7 +183,10 @@ is acquired by Geoscience Australia.</p>
 <div class="section" id="id2">
 <h3>Output Products<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
 <p>The output is a clean pixel composite image of continental Australia that can be delivered via file (GeoTIFF, ECW, ...) or via web services (OGC WMS/WCS)...</p>
-<img alt="_images/agdc-clean_pixel_ls8_nbar_2014_12_31.png" src="_images/agdc-clean_pixel_ls8_nbar_2014_12_31.png" />
+<div class="figure" id="id9">
+<img alt="_images/clean_pixel_nbar_ls8_2014.png" src="_images/clean_pixel_nbar_ls8_2014.png" />
+<p class="caption"><span class="caption-text">Most Recent Clean Pixel Landsat 8 Surface Reflectance composite mosaic</span></p>
+</div>
 </div>
 </div>
 <div class="section" id="wetness-in-the-landscape">
@@ -189,12 +204,12 @@ Reflectance data to produce, at least, the Tasseled Cap Wetness Index (TCWI).</p
 <li>identify the relevant surface reflectance datasets; and for each dataset</li>
 <li>apply standard Pixel Quality masking to mask out pixel values affected by contiguity issues, saturation issues, cloud and cloud shadow;</li>
 <li>apply the Tasseled Cap Transform to the Surface Reflectance dataset to produce the TWCI dataset;</li>
-<li>produce a statistical summary of the TWCI values for each pixel for given time slices within the time period (for example, monthly, quarterly, yearly).</li>
+<li>produce a statistical summary of the TWCI values for each pixel for given time slices within the time period (for example, monthly, quarterly, yearly, complete time period).</li>
 </ul>
 </div>
 <div class="section" id="id4">
 <h3>Output Products<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
-<p>The initial output products will be produced from Landsat 5 &amp; 7 data allowing comparisons of:</p>
+<p>The initial output products include data acquired from Landsat 5 &amp; 7 allowing comparisons of:</p>
 <ul class="simple">
 <li>The Lower Darling (lat/lon 140/-36 to 145/-30):</li>
 </ul>
@@ -215,8 +230,79 @@ Reflectance data to produce, at least, the Tasseled Cap Wetness Index (TCWI).</p
 </div></blockquote>
 </div>
 </div>
-<div class="section" id="crcsi-applications">
-<h2>CRCSI Applications<a class="headerlink" href="#crcsi-applications" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="crcsi-big-data-for-environmental-monitoring-applications">
+<h2>CRCSI Big Data for Environmental Monitoring Applications<a class="headerlink" href="#crcsi-big-data-for-environmental-monitoring-applications" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id5">
+<h3>Overview<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h3>
+<p>A set of capabilities are being developed and expanded to meet the needs of the
+<em>CRCSI Big Data for Environmental Monitoring</em> project.</p>
+<p>The current capabilities include:</p>
+<ul class="simple">
+<li>the ability to summarise one or more data attributes for a given area of interest over time;</li>
+<li>the ability to summarise one or more data attributes at a per pixel level for a given spatial and temporal range;</li>
+</ul>
+<div class="section" id="area-of-interest-level-summary">
+<h4>Area of Interest Level Summary<a class="headerlink" href="#area-of-interest-level-summary" title="Permalink to this headline">¶</a></h4>
+</div>
+<div class="section" id="pixel-level-summary">
+<h4>Pixel Level Summary<a class="headerlink" href="#pixel-level-summary" title="Permalink to this headline">¶</a></h4>
+<p>The <em>Pixel Level Summary</em> workflow can be summarised as:</p>
+<ul class="simple">
+<li>identify the relevant datasets; and for each dataset</li>
+<li>apply standard Pixel Quality masking to mask out pixel values affected by contiguity issues, saturation issues, cloud and cloud shadow;</li>
+<li>optionally apply other relevant masking (for example masking of pixels classified as water by the <em>Water Observations from Space</em> algorithm);</li>
+<li>produce a statistical summary of the value(s) of each pixel for given time slices within the time period (for example, monthly, quarterly, yearly, complete time period).</li>
+</ul>
+</div>
+</div>
+<div class="section" id="id6">
+<h3>Output Products<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h3>
+<div class="section" id="id7">
+<h4>Area of Interest Level Summary<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h4>
+</div>
+<div class="section" id="id8">
+<h4>Pixel Level Summary<a class="headerlink" href="#id8" title="Permalink to this headline">¶</a></h4>
+<p>The initial output products were produced from the Landsat - 5, 7 &amp; 8 - Fractional Cover datasets:</p>
+<ul class="simple">
+<li>Photosynthetic Vegetation Fraction:<ul>
+<li>Landsat 5 &amp; 7 acquired during 2005</li>
+<li>Landsat 8 acquired during 2014</li>
+</ul>
+</li>
+<li>Bare Soil Fraction:<ul>
+<li>Landsat 5 &amp; 7 acquired during 2005</li>
+<li>Landsat 8 acquired during 2014</li>
+</ul>
+</li>
+</ul>
+<p>All available datasets with full Pixel Quality Masking were utilised to produce an output rasters containing the following summary values:</p>
+<ul class="simple">
+<li>Total number of times the pixel was observed</li>
+<li>Number of times the pixel was <em>clearly</em> observed (i.e. no contiguity, saturation issues, no cloud/cloud shadow);</li>
+<li>Minimum</li>
+<li>Maximum</li>
+<li>Mean</li>
+<li>25<sup>th</sup>, 50<sup>th</sup>, 75<sup>th</sup>, 90<sup>th</sup> and 95<sup>th</sup> percentiles</li>
+</ul>
+<p>The outputs can be delivered via file (GeoTIFF, ECW, ...) or via web services (OGC WMS/WCS)...</p>
+<div class="figure" id="id10">
+<img alt="_images/crcsi_march_photosynthetic_veg_ls57_2005.png" src="_images/crcsi_march_photosynthetic_veg_ls57_2005.png" />
+<p class="caption"><span class="caption-text">Visualisation of the 95<sup>th</sup> percentile of the <em>Photosynthetic Vegetation Fraction</em> - Landsat 5 &amp; 7 data acquired in 2005</span></p>
+</div>
+<div class="figure" id="id11">
+<img alt="_images/crcsi_march_photosynthetic_veg_ls8_2014.png" src="_images/crcsi_march_photosynthetic_veg_ls8_2014.png" />
+<p class="caption"><span class="caption-text">Visualisation of the 95<sup>th</sup> percentile of the <em>Photosynthetic Vegetation Fraction</em> - Landsat 8 data acquired in 2014</span></p>
+</div>
+<div class="figure" id="id12">
+<img alt="_images/crcsi_march_bare_soil_ls57_2005.png" src="_images/crcsi_march_bare_soil_ls57_2005.png" />
+<p class="caption"><span class="caption-text">Visualisation of the 95<sup>th</sup> percentile of the <em>Bare Soil Fraction</em> - Landsat 5 &amp; 7 data acquired in 2005</span></p>
+</div>
+<div class="figure" id="id13">
+<img alt="_images/crcsi_march_bare_soil_ls8_2014.png" src="_images/crcsi_march_bare_soil_ls8_2014.png" />
+<p class="caption"><span class="caption-text">Visualisation of the 95<sup>th</sup> percentile of the <em>Bare Soil Fraction</em> - Landsat 8 data acquired in 2014</span></p>
+</div>
+</div>
+</div>
 </div>
 </div>
 <div class="section" id="indices-and-tables">
