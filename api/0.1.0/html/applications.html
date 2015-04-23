@@ -243,6 +243,14 @@ Reflectance data to produce, at least, the Tasseled Cap Wetness Index (TCWI).</p
 </ul>
 <div class="section" id="area-of-interest-level-summary">
 <h4>Area of Interest Level Summary<a class="headerlink" href="#area-of-interest-level-summary" title="Permalink to this headline">¶</a></h4>
+<p>The <em>Area of Interest Summary</em> workflow can be summarised as:</p>
+<ul class="simple">
+<li>identify the relevant datasets; and for each dataset</li>
+<li>apply standard Pixel Quality masking to make out pixel values affected by contiguity, saturation issues, cloud and cloud shadow;</li>
+<li>optionally apply other relevant masking (for example masking of pixels classified as water by the <em>Water Observations from Space</em> algorithm);</li>
+<li>apply an <em>Area of Interest</em> masking of pixels outside the given area of interest (for example, specified as a polygon in a vector file);</li>
+<li>for the remaining un-masked pixels calculate, over the area of interest, minimum, maximum and mean values</li>
+</ul>
 </div>
 <div class="section" id="pixel-level-summary">
 <h4>Pixel Level Summary<a class="headerlink" href="#pixel-level-summary" title="Permalink to this headline">¶</a></h4>
@@ -259,6 +267,41 @@ Reflectance data to produce, at least, the Tasseled Cap Wetness Index (TCWI).</p
 <h3>Output Products<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h3>
 <div class="section" id="id7">
 <h4>Area of Interest Level Summary<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h4>
+<p>The initial outputs were produced from the Landsat 5 &amp; 7 data acquired from 1987 to 2014 with the
+following values for a set of areas of interest reported upon:</p>
+<ul class="simple">
+<li>Surface reflectance:
+* all values</li>
+<li>Fractional cover:
+* Photosynthetic vegetation
+* Non-photosynthetic vegetation
+* Bare soil</li>
+</ul>
+<p>A, CSV format, time series output was produced which reported:</p>
+<ul class="simple">
+<li>acquisition date;</li>
+<li>instrument (aka Landsat 5/TM, Landsat 7/ETM+);</li>
+<li>number of pixels in the aggregation of cells covering the area of interest;</li>
+<li>number of pixels in the area of interest;</li>
+</ul>
+<p>and then for each data attribute reported upon:</p>
+<ul class="simple">
+<li>number of data pixels;</li>
+<li>number of data pixels after applying PQA masking;</li>
+<li>number of data pixels after applying PQA + water masking;</li>
+<li>number of data pixels after applying PQA + water + AOI masking;</li>
+<li>minimum value;</li>
+<li>maximum value;</li>
+<li>mean value</li>
+</ul>
+<div class="figure" id="id10">
+<img alt="_images/crcsi_csv.png" src="_images/crcsi_csv.png" />
+<p class="caption"><span class="caption-text">Example of <em>Bare Soil Fraction</em> CSV output</span></p>
+</div>
+<div class="figure" id="id11">
+<img alt="_images/crcsi_graph.png" src="_images/crcsi_graph.png" />
+<p class="caption"><span class="caption-text">Example of <em>Bare Soil Fraction</em> mean value over time graph</span></p>
+</div>
 </div>
 <div class="section" id="id8">
 <h4>Pixel Level Summary<a class="headerlink" href="#id8" title="Permalink to this headline">¶</a></h4>
@@ -285,19 +328,19 @@ Reflectance data to produce, at least, the Tasseled Cap Wetness Index (TCWI).</p
 <li>25<sup>th</sup>, 50<sup>th</sup>, 75<sup>th</sup>, 90<sup>th</sup> and 95<sup>th</sup> percentiles</li>
 </ul>
 <p>The outputs can be delivered via file (GeoTIFF, ECW, ...) or via web services (OGC WMS/WCS)...</p>
-<div class="figure" id="id10">
+<div class="figure" id="id12">
 <img alt="_images/crcsi_march_photosynthetic_veg_ls57_2005.png" src="_images/crcsi_march_photosynthetic_veg_ls57_2005.png" />
 <p class="caption"><span class="caption-text">Visualisation of the 95<sup>th</sup> percentile of the <em>Photosynthetic Vegetation Fraction</em> - Landsat 5 &amp; 7 data acquired in 2005</span></p>
 </div>
-<div class="figure" id="id11">
+<div class="figure" id="id13">
 <img alt="_images/crcsi_march_photosynthetic_veg_ls8_2014.png" src="_images/crcsi_march_photosynthetic_veg_ls8_2014.png" />
 <p class="caption"><span class="caption-text">Visualisation of the 95<sup>th</sup> percentile of the <em>Photosynthetic Vegetation Fraction</em> - Landsat 8 data acquired in 2014</span></p>
 </div>
-<div class="figure" id="id12">
+<div class="figure" id="id14">
 <img alt="_images/crcsi_march_bare_soil_ls57_2005.png" src="_images/crcsi_march_bare_soil_ls57_2005.png" />
 <p class="caption"><span class="caption-text">Visualisation of the 95<sup>th</sup> percentile of the <em>Bare Soil Fraction</em> - Landsat 5 &amp; 7 data acquired in 2005</span></p>
 </div>
-<div class="figure" id="id13">
+<div class="figure" id="id15">
 <img alt="_images/crcsi_march_bare_soil_ls8_2014.png" src="_images/crcsi_march_bare_soil_ls8_2014.png" />
 <p class="caption"><span class="caption-text">Visualisation of the 95<sup>th</sup> percentile of the <em>Bare Soil Fraction</em> - Landsat 8 data acquired in 2014</span></p>
 </div>

@@ -137,6 +137,14 @@ The current capabilities include:
 Area of Interest Level Summary
 ##############################
 
+The *Area of Interest Summary* workflow can be summarised as:
+
+* identify the relevant datasets; and for each dataset
+* apply standard Pixel Quality masking to make out pixel values affected by contiguity, saturation issues, cloud and cloud shadow;
+* optionally apply other relevant masking (for example masking of pixels classified as water by the *Water Observations from Space* algorithm);
+* apply an *Area of Interest* masking of pixels outside the given area of interest (for example, specified as a polygon in a vector file);
+* for the remaining un-masked pixels calculate, over the area of interest, minimum, maximum and mean values
+
 Pixel Level Summary
 ###################
 
@@ -152,6 +160,42 @@ Output Products
 
 Area of Interest Level Summary
 ##############################
+
+The initial outputs were produced from the Landsat 5 & 7 data acquired from 1987 to 2014 with the
+following values for a set of areas of interest reported upon:
+
+* Surface reflectance:
+  * all values
+
+* Fractional cover:
+  * Photosynthetic vegetation
+  * Non-photosynthetic vegetation
+  * Bare soil
+
+A, CSV format, time series output was produced which reported:
+
+* acquisition date;
+* instrument (aka Landsat 5/TM, Landsat 7/ETM+);
+* number of pixels in the aggregation of cells covering the area of interest;
+* number of pixels in the area of interest;
+
+and then for each data attribute reported upon:
+
+* number of data pixels;
+* number of data pixels after applying PQA masking;
+* number of data pixels after applying PQA + water masking;
+* number of data pixels after applying PQA + water + AOI masking;
+* minimum value;
+* maximum value;
+* mean value
+
+.. figure:: crcsi_csv.png
+
+  Example of *Bare Soil Fraction* CSV output
+
+.. figure:: crcsi_graph.png
+
+  Example of *Bare Soil Fraction* mean value over time graph
 
 Pixel Level Summary
 ###################
