@@ -3,15 +3,20 @@
    :maxdepth: 2
 
 
-API Reference
-=============
+AGDC API Python Function Reference
+==================================
 
-The detailed API reference information for the AGDC API is available in the  :doc:`api_reference`
+The detailed reference guide to the *AGDC Python API Functions* is available in the  :doc:`api_reference`
 
-API Overview
-=============
+AGDC API Command Line Tools
+===========================
 
-Higher level, more comprehensive background and usage information for the AGDC API is available in the :doc:`api_overview`
+The *User Guide* to the *AGDC Python Command Line Tools* is available in the  :doc:`api_tools`
+
+AGDC API Overview
+=================
+
+Higher level, background and usage information for the AGDC API is available in the :doc:`api_overview`
 
 AGDC Applications
 =================
