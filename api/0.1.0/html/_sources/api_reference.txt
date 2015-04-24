@@ -3,8 +3,8 @@
    :maxdepth: 2
 
 
-AGDC API Python Function Reference
-==================================
+API Python Function Reference
+=============================
 
 .. autosummary::
    :toctree: api
