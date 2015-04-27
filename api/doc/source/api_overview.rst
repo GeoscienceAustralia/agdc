@@ -384,37 +384,38 @@ Etc…
 
 More info coming soon
 
-Workflows - Take 2
-------------------
+..
+    Workflows - Take 2
+    ------------------
 
-A workflow:
+    A workflow:
 
-* takes input(s);
-* does "stuff"; which
-* produces output(s)
+    * takes input(s);
+    * does "stuff"; which
+    * produces output(s)
 
-The parameters for an AGDC workflow are:
+    The parameters for an AGDC workflow are:
 
-* spatial range
-* time range
-* time filter criteria (e.g. months of the year)
-* time slice (e.g. for each day, week, month, quarter, year)
-* dataset filter criteria
+    * spatial range
+    * time range
+    * time filter criteria (e.g. months of the year)
+    * time slice (e.g. for each day, week, month, quarter, year)
+    * dataset filter criteria
 
-The workflows are:
+    The workflows are:
 
-* Landsat Clean Pixel Mosaic
-* Bare Soil (with/without statistics)
-* Wetness
-* CRCSI March (Adam and the variations on a theme)
+    * Landsat Clean Pixel Mosaic
+    * Bare Soil (with/without statistics)
+    * Wetness
+    * CRCSI March (Adam and the variations on a theme)
 
-  * datasets that are straight-forward values (NBAR, FC, NDVI, ...)
-  * datasets that are a little more complicated and requiring some value mapping (WOFS)
+      * datasets that are straight-forward values (NBAR, FC, NDVI, ...)
+      * datasets that are a little more complicated and requiring some value mapping (WOFS)
 
-* CRCSI March (Leo and the variations on a theme)
+    * CRCSI March (Leo and the variations on a theme)
 
-  * statistics
-  * textual summaries
+      * statistics
+      * textual summaries
 
 
 Tools

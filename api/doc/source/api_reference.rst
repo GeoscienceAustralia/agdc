@@ -3,8 +3,8 @@
    :maxdepth: 2
 
 
-API Reference
-=============
+API Python Function Reference
+=============================
 
 .. autosummary::
    :toctree: api
