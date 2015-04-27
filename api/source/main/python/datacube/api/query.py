@@ -642,7 +642,7 @@ def list_cells_missing_to_file(x, y, satellites, acq_min, acq_max, dataset_types
     :param acq_max: Acquisition date range
     :type acq_max: datetime.datetime
     :param dataset_types: Dataset types
-    :type dataset_types list[datacube.api.model.DatasetType]
+    :type dataset_types: list[datacube.api.model.DatasetType]
     :param filename: The output file
     :type filename: str
     :param sort: Sort order
@@ -1114,6 +1114,26 @@ def build_list_tiles_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_
     if DatasetType.TCI in dataset_types:
         sql += """
             ,['TCI', nbar.tile_pathname]
+        """
+
+    if DatasetType.DSM in dataset_types:
+        sql += """
+            ,['DSM', dsm.tile_pathname]
+        """
+
+    if DatasetType.DEM in dataset_types:
+        sql += """
+            ,['DEM', dem.tile_pathname]
+        """
+
+    if DatasetType.DEM_HYDROLOGICALLY_ENFORCED in dataset_types:
+        sql += """
+            ,['DEM_HYDROLOGICALLY_ENFORCED', dem_h.tile_pathname]
+        """
+
+    if DatasetType.DEM_SMOOTHED in dataset_types:
+        sql += """
+            ,['DEM_SMOOTHED', dem_s.tile_pathname]
         """
 
     sql += """

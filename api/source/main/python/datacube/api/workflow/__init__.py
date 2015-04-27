@@ -26,6 +26,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ===============================================================================
+from datacube.api import writeable_dir, satellite_arg, pqa_mask_arg, wofs_mask_arg, parse_date_min, parse_date_max, \
+    format_date
 
 
 __author__ = "Simon Oldfield"
@@ -42,114 +44,6 @@ from datacube.api.utils import PqaMask, get_satellite_string, WofsMask
 
 
 _log = logging.getLogger()
-
-
-def satellite_arg(s):
-    if s in [s.name for s in Satellite]:
-        return Satellite[s]
-    raise argparse.ArgumentTypeError("{0} is not a supported satellite".format(s))
-
-
-def pqa_mask_arg(s):
-    if s in [m.name for m in PqaMask]:
-        return PqaMask[s]
-    raise argparse.ArgumentTypeError("{0} is not a supported PQA mask".format(s))
-
-
-def wofs_mask_arg(s):
-    if s in [m.name for m in WofsMask]:
-        return WofsMask[s]
-    raise argparse.ArgumentTypeError("{0} is not a supported WOFS mask".format(s))
-
-
-def dataset_type_arg(s):
-    if s in [t.name for t in DatasetType]:
-        return DatasetType[s]
-    raise argparse.ArgumentTypeError("{0} is not a supported dataset type".format(s))
-
-
-def writeable_dir(prospective_dir):
-    if not os.path.exists(prospective_dir):
-        raise argparse.ArgumentTypeError("{0} doesn't exist".format(prospective_dir))
-
-    if not os.path.isdir(prospective_dir):
-        raise argparse.ArgumentTypeError("{0} is not a directory".format(prospective_dir))
-
-    if not os.access(prospective_dir, os.W_OK):
-        raise argparse.ArgumentTypeError("{0} is not writeable".format(prospective_dir))
-
-    return prospective_dir
-
-
-def readable_dir(prospective_dir):
-    if not os.path.exists(prospective_dir):
-        raise argparse.ArgumentTypeError("{0} doesn't exist".format(prospective_dir))
-
-    if not os.path.isdir(prospective_dir):
-        raise argparse.ArgumentTypeError("{0} is not a directory".format(prospective_dir))
-
-    if not os.access(prospective_dir, os.R_OK):
-        raise argparse.ArgumentTypeError("{0} is not readable".format(prospective_dir))
-
-    return prospective_dir
-
-
-def dummy(path):
-    _log.debug("Creating dummy output %s" % path)
-    import os
-
-    if not os.path.exists(path):
-        with open(path, "w") as f:
-            pass
-
-
-def parse_date_min(s):
-    from datetime import datetime
-
-    if s:
-        if len(s) == len("YYYY"):
-            return datetime.strptime(s, "%Y").date()
-
-        elif len(s) == len("YYYY-MM"):
-            return datetime.strptime(s, "%Y-%m").date()
-
-        elif len(s) == len("YYYY-MM-DD"):
-            return datetime.strptime(s, "%Y-%m-%d").date()
-
-    return None
-
-
-def parse_date_max(s):
-    from datetime import date, datetime
-    import calendar
-
-    if s:
-        if len(s) == len("YYYY"):
-            d = datetime.strptime(s, "%Y").date()
-            d = d.replace(month=12, day=31)
-            return d
-
-        elif len(s) == len("YYYY-MM"):
-            d = datetime.strptime(s, "%Y-%m").date()
-
-            first, last = calendar.monthrange(d.year, d.month)
-            d = d.replace(day=last)
-            return d
-
-        elif len(s) == len("YYYY-MM-DD"):
-            d = datetime.strptime(s, "%Y-%m-%d").date()
-            return d
-
-    return None
-
-
-def format_date(d):
-    from datetime import datetime
-
-    if d:
-        return datetime.strftime(d, "%Y_%m_%d")
-
-    return None
 
 
 class Workflow(object):
@@ -390,8 +284,6 @@ class SummaryTask(Task):
 
     def get_cell_csv_filename(self):
 
-        from datacube.api.workflow import parse_date_min, parse_date_max
-
         acq_min = format_date(self.acq_min)
         acq_max = format_date(self.acq_max)
 
@@ -487,8 +379,6 @@ class CellTask(Task):
                     yield Tile.from_csv_record(record)
 
     def get_tile_csv_filename(self):
-
-        from datacube.api.workflow import parse_date_min, parse_date_max
 
         acq_min = format_date(self.acq_min)
         acq_max = format_date(self.acq_max)

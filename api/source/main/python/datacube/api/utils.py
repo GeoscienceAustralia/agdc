@@ -186,17 +186,17 @@ def get_dataset_metadata(dataset):
 
 def get_dataset_data(dataset, bands=None, x=0, y=0, x_size=None, y_size=None):
 
-    dataset_types_physical = [
-        DatasetType.ARG25, DatasetType.PQ25, DatasetType.FC25,
-        DatasetType.WATER,
-        DatasetType.DSM, DatasetType.DEM, DatasetType.DEM_HYDROLOGICALLY_ENFORCED, DatasetType.DEM_SMOOTHED]
-
-    dataset_types_virtual_nbar = [
-        DatasetType.NDVI,
-        DatasetType.EVI,
-        DatasetType.NBR,
-        DatasetType.TCI
-    ]
+    # dataset_types_physical = [
+    #     DatasetType.ARG25, DatasetType.PQ25, DatasetType.FC25,
+    #     DatasetType.WATER,
+    #     DatasetType.DSM, DatasetType.DEM, DatasetType.DEM_HYDROLOGICALLY_ENFORCED, DatasetType.DEM_SMOOTHED]
+    #
+    # dataset_types_virtual_nbar = [
+    #     DatasetType.NDVI,
+    #     DatasetType.EVI,
+    #     DatasetType.NBR,
+    #     DatasetType.TCI
+    # ]
 
     # NDVI calculated using RED and NIR from ARG25
 
@@ -207,7 +207,7 @@ def get_dataset_data(dataset, bands=None, x=0, y=0, x_size=None, y_size=None):
         band_red = bands[Ls57Arg25Bands.RED.name]
         band_nir = bands[Ls57Arg25Bands.NEAR_INFRARED.name]
 
-        data = read_dataset_data(dataset, bands=[band_red, band_nir])
+        data = read_dataset_data(dataset, bands=[band_red, band_nir], x=x, y=y, x_size=x_size, y_size=y_size)
         data = calculate_ndvi(data[band_red], data[band_nir])
 
         return {NdviBands.NDVI: data}
@@ -222,7 +222,7 @@ def get_dataset_data(dataset, bands=None, x=0, y=0, x_size=None, y_size=None):
         band_blue = bands[Ls57Arg25Bands.BLUE.name]
         band_nir = bands[Ls57Arg25Bands.NEAR_INFRARED.name]
 
-        data = read_dataset_data(dataset, bands=[band_red, band_blue, band_nir])
+        data = read_dataset_data(dataset, bands=[band_red, band_blue, band_nir], x=x, y=y, x_size=x_size, y_size=y_size)
         data = calculate_evi(data[band_red], data[band_blue], data[band_nir])
 
         return {EviBands.EVI: data}
@@ -236,7 +236,7 @@ def get_dataset_data(dataset, bands=None, x=0, y=0, x_size=None, y_size=None):
         band_nir = bands[Ls57Arg25Bands.NEAR_INFRARED.name]
         band_swir = bands[Ls57Arg25Bands.SHORT_WAVE_INFRARED_2.name]
 
-        data = read_dataset_data(dataset, bands=[band_nir, band_swir])
+        data = read_dataset_data(dataset, bands=[band_nir, band_swir], x=x, y=y, x_size=x_size, y_size=y_size)
         data = calculate_nbr(data[band_nir], data[band_swir])
 
         return {NbrBands.NBR: data}
@@ -247,7 +247,7 @@ def get_dataset_data(dataset, bands=None, x=0, y=0, x_size=None, y_size=None):
 
         bands = get_bands(DatasetType.ARG25, dataset.satellite)
 
-        data = read_dataset_data(dataset, bands=bands)
+        data = read_dataset_data(dataset, bands=bands, x=x, y=y, x_size=x_size, y_size=y_size)
 
         out = dict()
 
@@ -741,7 +741,8 @@ def calculate_tassel_cap_index(bands, coefficients, input_ndv=NDV, output_ndv=nu
     tci = 0
 
     for b in bands:
-        tci += bands_masked[b] * coefficients[b]
+        if b in coefficients:
+            tci += bands_masked[b] * coefficients[b]
 
     tci = tci.filled(output_ndv)
 
@@ -955,3 +956,45 @@ def get_dataset_filename(dataset, mask_pqa_apply=False, mask_wofs_apply=False):
 # TODO
 def get_dataset_ndv(dataset):
     return NDV
+
+
+def get_band_name_union(dataset_type, satellites):
+
+    bands = [b.name for b in get_bands(dataset_type, satellites[0])]
+
+    for satellite in satellites[1:]:
+        for b in get_bands(dataset_type, satellite):
+            if b.name not in bands:
+                bands.append(b.name)
+
+    return bands
+
+
+def get_band_name_intersection(dataset_type, satellites):
+
+    bands = [b.name for b in get_bands(dataset_type, satellites[0])]
+
+    for satellite in satellites[1:]:
+        for band in bands:
+            if band not in [b.name for b in get_bands(dataset_type, satellite)]:
+                bands.remove(band)
+
+    return bands
+
+
+def format_date(d):
+    from datetime import datetime
+
+    if d:
+        return datetime.strftime(d, "%Y_%m_%d")
+
+    return None
+
+
+def format_date_time(d):
+    from datetime import datetime
+
+    if d:
+        return datetime.strftime(d, "%Y_%m_%d_%H_%M_%S")
+
+    return None
