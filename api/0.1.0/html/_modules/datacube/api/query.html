@@ -26,7 +26,7 @@
     <script type="text/javascript" src="../../../_static/doctools.js"></script>
     <script type="text/javascript" src="../../../_static/bizstyle.js"></script>
     <link rel="top" title="agdc-api 0.1.0 documentation" href="../../../index.html" />
-    <link rel="up" title="Module code" href="../../index.html" />
+    <link rel="up" title="datacube.api" href="../api.html" />
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <!--[if lt IE 9]>
     <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
@@ -43,7 +43,8 @@
           <a href="../../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="nav-item nav-item-0"><a href="../../../index.html">agdc-api 0.1.0 documentation</a> &raquo;</li>
-          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &raquo;</li>
+          <li class="nav-item nav-item-2"><a href="../api.html" accesskey="U">datacube.api</a> &raquo;</li> 
       </ul>
     </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
@@ -1188,6 +1189,26 @@
 <span class="s">            ,[&#39;TCI&#39;, nbar.tile_pathname]</span>
 <span class="s">        &quot;&quot;&quot;</span>
 
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DSM</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            ,[&#39;DSM&#39;, dsm.tile_pathname]</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            ,[&#39;DEM&#39;, dem.tile_pathname]</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM_HYDROLOGICALLY_ENFORCED</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            ,[&#39;DEM_HYDROLOGICALLY_ENFORCED&#39;, dem_h.tile_pathname]</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM_SMOOTHED</span> <span class="ow">in</span> <span class="n">dataset_types</span><span class="p">:</span>
+        <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
+<span class="s">            ,[&#39;DEM_SMOOTHED&#39;, dem_s.tile_pathname]</span>
+<span class="s">        &quot;&quot;&quot;</span>
+
     <span class="n">sql</span> <span class="o">+=</span> <span class="s">&quot;&quot;&quot;</span>
 <span class="s">            ] as datasets</span>
 <span class="s">    &quot;&quot;&quot;</span>
@@ -2092,7 +2113,8 @@
           <a href="../../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="nav-item nav-item-0"><a href="../../../index.html">agdc-api 0.1.0 documentation</a> &raquo;</li>
-          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &raquo;</li> 
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &raquo;</li>
+          <li class="nav-item nav-item-2"><a href="../api.html" >datacube.api</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">

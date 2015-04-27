@@ -26,7 +26,7 @@
     <script type="text/javascript" src="../../../_static/doctools.js"></script>
     <script type="text/javascript" src="../../../_static/bizstyle.js"></script>
     <link rel="top" title="agdc-api 0.1.0 documentation" href="../../../index.html" />
-    <link rel="up" title="Module code" href="../../index.html" />
+    <link rel="up" title="datacube.api" href="../api.html" />
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <!--[if lt IE 9]>
     <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
@@ -43,7 +43,8 @@
           <a href="../../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="nav-item nav-item-0"><a href="../../../index.html">agdc-api 0.1.0 documentation</a> &raquo;</li>
-          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &raquo;</li>
+          <li class="nav-item nav-item-2"><a href="../api.html" accesskey="U">datacube.api</a> &raquo;</li> 
       </ul>
     </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
@@ -177,6 +178,8 @@
 <span class="n">BYTE_MIN</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">ubyte</span><span class="p">)</span><span class="o">.</span><span class="n">min</span>
 <span class="n">BYTE_MAX</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">iinfo</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">ubyte</span><span class="p">)</span><span class="o">.</span><span class="n">max</span>
 
+<span class="n">NAN</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">nan</span>
+
 
 <div class="viewcode-block" id="empty_array"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.empty_array">[docs]</a><span class="k">def</span> <span class="nf">empty_array</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">int16</span><span class="p">,</span> <span class="n">ndv</span><span class="o">=-</span><span class="mi">999</span><span class="p">):</span>
 
@@ -258,17 +261,17 @@
 </div>
 <div class="viewcode-block" id="get_dataset_data"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.get_dataset_data">[docs]</a><span class="k">def</span> <span class="nf">get_dataset_data</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">bands</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">x_size</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">y_size</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
 
-    <span class="n">dataset_types_physical</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">DatasetType</span><span class="o">.</span><span class="n">ARG25</span><span class="p">,</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">PQ25</span><span class="p">,</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">FC25</span><span class="p">,</span>
-        <span class="n">DatasetType</span><span class="o">.</span><span class="n">WATER</span><span class="p">,</span>
-        <span class="n">DatasetType</span><span class="o">.</span><span class="n">DSM</span><span class="p">,</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM</span><span class="p">,</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM_HYDROLOGICALLY_ENFORCED</span><span class="p">,</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">DEM_SMOOTHED</span><span class="p">]</span>
-
-    <span class="n">dataset_types_virtual_nbar</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">DatasetType</span><span class="o">.</span><span class="n">NDVI</span><span class="p">,</span>
-        <span class="n">DatasetType</span><span class="o">.</span><span class="n">EVI</span><span class="p">,</span>
-        <span class="n">DatasetType</span><span class="o">.</span><span class="n">NBR</span><span class="p">,</span>
-        <span class="n">DatasetType</span><span class="o">.</span><span class="n">TCI</span>
-    <span class="p">]</span>
+    <span class="c"># dataset_types_physical = [</span>
+    <span class="c">#     DatasetType.ARG25, DatasetType.PQ25, DatasetType.FC25,</span>
+    <span class="c">#     DatasetType.WATER,</span>
+    <span class="c">#     DatasetType.DSM, DatasetType.DEM, DatasetType.DEM_HYDROLOGICALLY_ENFORCED, DatasetType.DEM_SMOOTHED]</span>
+    <span class="c">#</span>
+    <span class="c"># dataset_types_virtual_nbar = [</span>
+    <span class="c">#     DatasetType.NDVI,</span>
+    <span class="c">#     DatasetType.EVI,</span>
+    <span class="c">#     DatasetType.NBR,</span>
+    <span class="c">#     DatasetType.TCI</span>
+    <span class="c"># ]</span>
 
     <span class="c"># NDVI calculated using RED and NIR from ARG25</span>
 
@@ -279,7 +282,7 @@
         <span class="n">band_red</span> <span class="o">=</span> <span class="n">bands</span><span class="p">[</span><span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">RED</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
         <span class="n">band_nir</span> <span class="o">=</span> <span class="n">bands</span><span class="p">[</span><span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">NEAR_INFRARED</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
 
-        <span class="n">data</span> <span class="o">=</span> <span class="n">read_dataset_data</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">bands</span><span class="o">=</span><span class="p">[</span><span class="n">band_red</span><span class="p">,</span> <span class="n">band_nir</span><span class="p">])</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">read_dataset_data</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">bands</span><span class="o">=</span><span class="p">[</span><span class="n">band_red</span><span class="p">,</span> <span class="n">band_nir</span><span class="p">],</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">x_size</span><span class="o">=</span><span class="n">x_size</span><span class="p">,</span> <span class="n">y_size</span><span class="o">=</span><span class="n">y_size</span><span class="p">)</span>
         <span class="n">data</span> <span class="o">=</span> <span class="n">calculate_ndvi</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">band_red</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="n">band_nir</span><span class="p">])</span>
 
         <span class="k">return</span> <span class="p">{</span><span class="n">NdviBands</span><span class="o">.</span><span class="n">NDVI</span><span class="p">:</span> <span class="n">data</span><span class="p">}</span>
@@ -294,7 +297,7 @@
         <span class="n">band_blue</span> <span class="o">=</span> <span class="n">bands</span><span class="p">[</span><span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">BLUE</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
         <span class="n">band_nir</span> <span class="o">=</span> <span class="n">bands</span><span class="p">[</span><span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">NEAR_INFRARED</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
 
-        <span class="n">data</span> <span class="o">=</span> <span class="n">read_dataset_data</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">bands</span><span class="o">=</span><span class="p">[</span><span class="n">band_red</span><span class="p">,</span> <span class="n">band_blue</span><span class="p">,</span> <span class="n">band_nir</span><span class="p">])</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">read_dataset_data</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">bands</span><span class="o">=</span><span class="p">[</span><span class="n">band_red</span><span class="p">,</span> <span class="n">band_blue</span><span class="p">,</span> <span class="n">band_nir</span><span class="p">],</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">x_size</span><span class="o">=</span><span class="n">x_size</span><span class="p">,</span> <span class="n">y_size</span><span class="o">=</span><span class="n">y_size</span><span class="p">)</span>
         <span class="n">data</span> <span class="o">=</span> <span class="n">calculate_evi</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">band_red</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="n">band_blue</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="n">band_nir</span><span class="p">])</span>
 
         <span class="k">return</span> <span class="p">{</span><span class="n">EviBands</span><span class="o">.</span><span class="n">EVI</span><span class="p">:</span> <span class="n">data</span><span class="p">}</span>
@@ -308,7 +311,7 @@
         <span class="n">band_nir</span> <span class="o">=</span> <span class="n">bands</span><span class="p">[</span><span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">NEAR_INFRARED</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
         <span class="n">band_swir</span> <span class="o">=</span> <span class="n">bands</span><span class="p">[</span><span class="n">Ls57Arg25Bands</span><span class="o">.</span><span class="n">SHORT_WAVE_INFRARED_2</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
 
-        <span class="n">data</span> <span class="o">=</span> <span class="n">read_dataset_data</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">bands</span><span class="o">=</span><span class="p">[</span><span class="n">band_nir</span><span class="p">,</span> <span class="n">band_swir</span><span class="p">])</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">read_dataset_data</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">bands</span><span class="o">=</span><span class="p">[</span><span class="n">band_nir</span><span class="p">,</span> <span class="n">band_swir</span><span class="p">],</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">x_size</span><span class="o">=</span><span class="n">x_size</span><span class="p">,</span> <span class="n">y_size</span><span class="o">=</span><span class="n">y_size</span><span class="p">)</span>
         <span class="n">data</span> <span class="o">=</span> <span class="n">calculate_nbr</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">band_nir</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="n">band_swir</span><span class="p">])</span>
 
         <span class="k">return</span> <span class="p">{</span><span class="n">NbrBands</span><span class="o">.</span><span class="n">NBR</span><span class="p">:</span> <span class="n">data</span><span class="p">}</span>
@@ -319,7 +322,7 @@
 
         <span class="n">bands</span> <span class="o">=</span> <span class="n">get_bands</span><span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">ARG25</span><span class="p">,</span> <span class="n">dataset</span><span class="o">.</span><span class="n">satellite</span><span class="p">)</span>
 
-        <span class="n">data</span> <span class="o">=</span> <span class="n">read_dataset_data</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">bands</span><span class="o">=</span><span class="n">bands</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">read_dataset_data</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">bands</span><span class="o">=</span><span class="n">bands</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">x_size</span><span class="o">=</span><span class="n">x_size</span><span class="p">,</span> <span class="n">y_size</span><span class="o">=</span><span class="n">y_size</span><span class="p">)</span>
 
         <span class="n">out</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
 
@@ -813,7 +816,8 @@
     <span class="n">tci</span> <span class="o">=</span> <span class="mi">0</span>
 
     <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">bands</span><span class="p">:</span>
-        <span class="n">tci</span> <span class="o">+=</span> <span class="n">bands_masked</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">*</span> <span class="n">coefficients</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">coefficients</span><span class="p">:</span>
+            <span class="n">tci</span> <span class="o">+=</span> <span class="n">bands_masked</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">*</span> <span class="n">coefficients</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>
 
     <span class="n">tci</span> <span class="o">=</span> <span class="n">tci</span><span class="o">.</span><span class="n">filled</span><span class="p">(</span><span class="n">output_ndv</span><span class="p">)</span>
 
@@ -1026,7 +1030,49 @@
 
 <span class="c"># TODO</span></div>
 <div class="viewcode-block" id="get_dataset_ndv"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.get_dataset_ndv">[docs]</a><span class="k">def</span> <span class="nf">get_dataset_ndv</span><span class="p">(</span><span class="n">dataset</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">NDV</span></div>
+    <span class="k">return</span> <span class="n">NDV</span>
+
+</div>
+<div class="viewcode-block" id="get_band_name_union"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.get_band_name_union">[docs]</a><span class="k">def</span> <span class="nf">get_band_name_union</span><span class="p">(</span><span class="n">dataset_type</span><span class="p">,</span> <span class="n">satellites</span><span class="p">):</span>
+
+    <span class="n">bands</span> <span class="o">=</span> <span class="p">[</span><span class="n">b</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">get_bands</span><span class="p">(</span><span class="n">dataset_type</span><span class="p">,</span> <span class="n">satellites</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span>
+
+    <span class="k">for</span> <span class="n">satellite</span> <span class="ow">in</span> <span class="n">satellites</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+        <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">get_bands</span><span class="p">(</span><span class="n">dataset_type</span><span class="p">,</span> <span class="n">satellite</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">b</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">bands</span><span class="p">:</span>
+                <span class="n">bands</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">b</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">bands</span>
+
+</div>
+<div class="viewcode-block" id="get_band_name_intersection"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.get_band_name_intersection">[docs]</a><span class="k">def</span> <span class="nf">get_band_name_intersection</span><span class="p">(</span><span class="n">dataset_type</span><span class="p">,</span> <span class="n">satellites</span><span class="p">):</span>
+
+    <span class="n">bands</span> <span class="o">=</span> <span class="p">[</span><span class="n">b</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">get_bands</span><span class="p">(</span><span class="n">dataset_type</span><span class="p">,</span> <span class="n">satellites</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span>
+
+    <span class="k">for</span> <span class="n">satellite</span> <span class="ow">in</span> <span class="n">satellites</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+        <span class="k">for</span> <span class="n">band</span> <span class="ow">in</span> <span class="n">bands</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">band</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="n">b</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">get_bands</span><span class="p">(</span><span class="n">dataset_type</span><span class="p">,</span> <span class="n">satellite</span><span class="p">)]:</span>
+                <span class="n">bands</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">band</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">bands</span>
+
+</div>
+<div class="viewcode-block" id="format_date"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.format_date">[docs]</a><span class="k">def</span> <span class="nf">format_date</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+    <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+
+    <span class="k">if</span> <span class="n">d</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="s">&quot;%Y_%m_</span><span class="si">%d</span><span class="s">&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="bp">None</span>
+
+</div>
+<div class="viewcode-block" id="format_date_time"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.format_date_time">[docs]</a><span class="k">def</span> <span class="nf">format_date_time</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+    <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+
+    <span class="k">if</span> <span class="n">d</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="s">&quot;%Y_%m_</span><span class="si">%d</span><span class="s">_%H_%M_%S&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="bp">None</span></div>
 </pre></div>
 
           </div>
@@ -1044,7 +1090,8 @@
           <a href="../../../py-modindex.html" title="Python Module Index"
              >modules</a> |</li>
         <li class="nav-item nav-item-0"><a href="../../../index.html">agdc-api 0.1.0 documentation</a> &raquo;</li>
-          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &raquo;</li> 
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &raquo;</li>
+          <li class="nav-item nav-item-2"><a href="../api.html" >datacube.api</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
