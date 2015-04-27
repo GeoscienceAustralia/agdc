@@ -41,7 +41,8 @@ from datacube.api.model import DatasetType, Wofs25Bands, Satellite, dataset_type
 from datacube.api.model import dataset_type_derived_nbar
 from datacube.api.query import list_tiles
 from datacube.api.tool import Tool
-from datacube.api.utils import latlon_to_cell, latlon_to_xy, UINT16_MAX, BYTE_MAX, get_mask_pqa, get_band_name_union
+from datacube.api.utils import latlon_to_cell, latlon_to_xy, UINT16_MAX, BYTE_MAX, get_mask_pqa, get_band_name_union, \
+    NAN
 from datacube.api.utils import get_band_name_intersection
 from datacube.api.utils import calculate_tassel_cap_index, TasselCapIndex, TCI_COEFFICIENTS
 from datacube.api.utils import get_mask_wofs, get_dataset_data_masked, calculate_ndvi, calculate_evi, calculate_nbr
@@ -205,8 +206,8 @@ class TimeSeriesRetrievalWorkflow(Tool):
         elif self.dataset_type == DatasetType.WATER:
             ndv = BYTE_MAX
 
-        # elif self.dataset_type == DatasetType.TCI:
-        #     ndv = numpy.nan
+        elif self.dataset_type in [DatasetType.NDVI, DatasetType.EVI, DatasetType.NBR, DatasetType.TCI]:
+            ndv = NAN
 
         with self.get_output_file(self.dataset_type, self.overwrite) as csv_file:
 
@@ -221,7 +222,7 @@ class TimeSeriesRetrievalWorkflow(Tool):
                 if self.dataset_type not in tile.datasets:
                     _log.debug("No [%s] dataset present for [%s] - skipping", self.dataset_type.name, tile.end_datetime)
                     continue
-                    
+
                 dataset = tile.datasets[self.dataset_type]
                 pqa = (self.mask_pqa_apply and DatasetType.PQ25 in tile.datasets) and tile.datasets[DatasetType.PQ25] or None
                 wofs = (self.mask_wofs_apply and DatasetType.WATER in tile.datasets) and tile.datasets[DatasetType.WATER] or None

@@ -105,6 +105,8 @@ UINT16_MAX = numpy.iinfo(numpy.uint16).max
 BYTE_MIN = numpy.iinfo(numpy.ubyte).min
 BYTE_MAX = numpy.iinfo(numpy.ubyte).max
 
+NAN = numpy.nan
+
 
 def empty_array(shape, dtype=numpy.int16, ndv=-999):
 
