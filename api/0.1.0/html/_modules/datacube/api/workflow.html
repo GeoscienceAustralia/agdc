@@ -110,121 +110,14 @@
 <span class="kn">import</span> <span class="nn">luigi</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">datacube.api</span> <span class="kn">import</span> <span class="n">writeable_dir</span><span class="p">,</span> <span class="n">satellite_arg</span><span class="p">,</span> <span class="n">pqa_mask_arg</span><span class="p">,</span> <span class="n">wofs_mask_arg</span><span class="p">,</span> <span class="n">parse_date_min</span><span class="p">,</span> <span class="n">parse_date_max</span>
 <span class="kn">from</span> <span class="nn">datacube.api.model</span> <span class="kn">import</span> <span class="n">Satellite</span><span class="p">,</span> <span class="n">Cell</span><span class="p">,</span> <span class="n">DatasetType</span><span class="p">,</span> <span class="n">Tile</span>
-<span class="kn">from</span> <span class="nn">datacube.api.utils</span> <span class="kn">import</span> <span class="n">PqaMask</span><span class="p">,</span> <span class="n">get_satellite_string</span><span class="p">,</span> <span class="n">WofsMask</span>
+<span class="kn">from</span> <span class="nn">datacube.api.utils</span> <span class="kn">import</span> <span class="n">PqaMask</span><span class="p">,</span> <span class="n">get_satellite_string</span><span class="p">,</span> <span class="n">WofsMask</span><span class="p">,</span> <span class="n">format_date</span>
 
 
 <span class="n">_log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">()</span>
 
 
-<div class="viewcode-block" id="satellite_arg"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.satellite_arg">[docs]</a><span class="k">def</span> <span class="nf">satellite_arg</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">s</span> <span class="ow">in</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">Satellite</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="n">Satellite</span><span class="p">[</span><span class="n">s</span><span class="p">]</span>
-    <span class="k">raise</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentTypeError</span><span class="p">(</span><span class="s">&quot;{0} is not a supported satellite&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
-
-</div>
-<div class="viewcode-block" id="pqa_mask_arg"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.pqa_mask_arg">[docs]</a><span class="k">def</span> <span class="nf">pqa_mask_arg</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">s</span> <span class="ow">in</span> <span class="p">[</span><span class="n">m</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">PqaMask</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="n">PqaMask</span><span class="p">[</span><span class="n">s</span><span class="p">]</span>
-    <span class="k">raise</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentTypeError</span><span class="p">(</span><span class="s">&quot;{0} is not a supported PQA mask&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
-
-</div>
-<div class="viewcode-block" id="wofs_mask_arg"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.wofs_mask_arg">[docs]</a><span class="k">def</span> <span class="nf">wofs_mask_arg</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">s</span> <span class="ow">in</span> <span class="p">[</span><span class="n">m</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">WofsMask</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="n">WofsMask</span><span class="p">[</span><span class="n">s</span><span class="p">]</span>
-    <span class="k">raise</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentTypeError</span><span class="p">(</span><span class="s">&quot;{0} is not a supported WOFS mask&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
-
-</div>
-<div class="viewcode-block" id="dataset_type_arg"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.dataset_type_arg">[docs]</a><span class="k">def</span> <span class="nf">dataset_type_arg</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">s</span> <span class="ow">in</span> <span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">DatasetType</span><span class="p">]:</span>
-        <span class="k">return</span> <span class="n">DatasetType</span><span class="p">[</span><span class="n">s</span><span class="p">]</span>
-    <span class="k">raise</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentTypeError</span><span class="p">(</span><span class="s">&quot;{0} is not a supported dataset type&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
-
-</div>
-<div class="viewcode-block" id="writeable_dir"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.writeable_dir">[docs]</a><span class="k">def</span> <span class="nf">writeable_dir</span><span class="p">(</span><span class="n">prospective_dir</span><span class="p">):</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">prospective_dir</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentTypeError</span><span class="p">(</span><span class="s">&quot;{0} doesn&#39;t exist&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">prospective_dir</span><span class="p">))</span>
-
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">prospective_dir</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentTypeError</span><span class="p">(</span><span class="s">&quot;{0} is not a directory&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">prospective_dir</span><span class="p">))</span>
-
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">access</span><span class="p">(</span><span class="n">prospective_dir</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">W_OK</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentTypeError</span><span class="p">(</span><span class="s">&quot;{0} is not writeable&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">prospective_dir</span><span class="p">))</span>
-
-    <span class="k">return</span> <span class="n">prospective_dir</span>
-
-</div>
-<div class="viewcode-block" id="readable_dir"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.readable_dir">[docs]</a><span class="k">def</span> <span class="nf">readable_dir</span><span class="p">(</span><span class="n">prospective_dir</span><span class="p">):</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">prospective_dir</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentTypeError</span><span class="p">(</span><span class="s">&quot;{0} doesn&#39;t exist&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">prospective_dir</span><span class="p">))</span>
-
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">prospective_dir</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentTypeError</span><span class="p">(</span><span class="s">&quot;{0} is not a directory&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">prospective_dir</span><span class="p">))</span>
-
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">access</span><span class="p">(</span><span class="n">prospective_dir</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">R_OK</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentTypeError</span><span class="p">(</span><span class="s">&quot;{0} is not readable&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">prospective_dir</span><span class="p">))</span>
-
-    <span class="k">return</span> <span class="n">prospective_dir</span>
-
-</div>
-<div class="viewcode-block" id="dummy"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.dummy">[docs]</a><span class="k">def</span> <span class="nf">dummy</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
-    <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Creating dummy output </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
-    <span class="kn">import</span> <span class="nn">os</span>
-
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="k">pass</span>
-
-</div>
-<div class="viewcode-block" id="parse_date_min"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.parse_date_min">[docs]</a><span class="k">def</span> <span class="nf">parse_date_min</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
-    <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
-
-    <span class="k">if</span> <span class="n">s</span><span class="p">:</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="s">&quot;YYYY&quot;</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s">&quot;%Y&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
-
-        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="s">&quot;YYYY-MM&quot;</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s">&quot;%Y-%m&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
-
-        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="s">&quot;YYYY-MM-DD&quot;</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s">&quot;%Y-%m-</span><span class="si">%d</span><span class="s">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
-
-    <span class="k">return</span> <span class="bp">None</span>
-
-</div>
-<div class="viewcode-block" id="parse_date_max"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.parse_date_max">[docs]</a><span class="k">def</span> <span class="nf">parse_date_max</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
-    <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">date</span><span class="p">,</span> <span class="n">datetime</span>
-    <span class="kn">import</span> <span class="nn">calendar</span>
-
-    <span class="k">if</span> <span class="n">s</span><span class="p">:</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="s">&quot;YYYY&quot;</span><span class="p">):</span>
-            <span class="n">d</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s">&quot;%Y&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
-            <span class="n">d</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">month</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span> <span class="n">day</span><span class="o">=</span><span class="mi">31</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">d</span>
-
-        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="s">&quot;YYYY-MM&quot;</span><span class="p">):</span>
-            <span class="n">d</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s">&quot;%Y-%m&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
-
-            <span class="n">first</span><span class="p">,</span> <span class="n">last</span> <span class="o">=</span> <span class="n">calendar</span><span class="o">.</span><span class="n">monthrange</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">d</span><span class="o">.</span><span class="n">month</span><span class="p">)</span>
-            <span class="n">d</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">day</span><span class="o">=</span><span class="n">last</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">d</span>
-
-        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="s">&quot;YYYY-MM-DD&quot;</span><span class="p">):</span>
-            <span class="n">d</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s">&quot;%Y-%m-</span><span class="si">%d</span><span class="s">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
-            <span class="k">return</span> <span class="n">d</span>
-
-    <span class="k">return</span> <span class="bp">None</span>
-
-</div>
-<div class="viewcode-block" id="format_date"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.format_date">[docs]</a><span class="k">def</span> <span class="nf">format_date</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
-    <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
-
-    <span class="k">if</span> <span class="n">d</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="s">&quot;%Y_%m_</span><span class="si">%d</span><span class="s">&quot;</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="bp">None</span>
-
-</div>
 <div class="viewcode-block" id="Workflow"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.Workflow">[docs]</a><span class="k">class</span> <span class="nc">Workflow</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
     <span class="n">__metaclass__</span> <span class="o">=</span> <span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span>
@@ -463,8 +356,6 @@
 </div>
 <div class="viewcode-block" id="SummaryTask.get_cell_csv_filename"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.SummaryTask.get_cell_csv_filename">[docs]</a>    <span class="k">def</span> <span class="nf">get_cell_csv_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
-        <span class="kn">from</span> <span class="nn">datacube.api.workflow</span> <span class="kn">import</span> <span class="n">parse_date_min</span><span class="p">,</span> <span class="n">parse_date_max</span>
-
         <span class="n">acq_min</span> <span class="o">=</span> <span class="n">format_date</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">)</span>
         <span class="n">acq_max</span> <span class="o">=</span> <span class="n">format_date</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">)</span>
 
@@ -560,8 +451,6 @@
                     <span class="k">yield</span> <span class="n">Tile</span><span class="o">.</span><span class="n">from_csv_record</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
 </div>
 <div class="viewcode-block" id="CellTask.get_tile_csv_filename"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.CellTask.get_tile_csv_filename">[docs]</a>    <span class="k">def</span> <span class="nf">get_tile_csv_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-
-        <span class="kn">from</span> <span class="nn">datacube.api.workflow</span> <span class="kn">import</span> <span class="n">parse_date_min</span><span class="p">,</span> <span class="n">parse_date_max</span>
 
         <span class="n">acq_min</span> <span class="o">=</span> <span class="n">format_date</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">)</span>
         <span class="n">acq_max</span> <span class="o">=</span> <span class="n">format_date</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">)</span>

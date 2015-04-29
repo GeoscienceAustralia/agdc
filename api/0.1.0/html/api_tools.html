@@ -50,7 +50,15 @@
   <ul>
 <li><a class="reference internal" href="#">API Command Line Tools</a><ul>
 <li><a class="reference internal" href="#retrieve-pixel-time-series">Retrieve Pixel Time Series</a><ul>
-<li><a class="reference internal" href="#example-uses">Example Uses</a></li>
+<li><a class="reference internal" href="#example-uses">Example Uses</a><ul>
+<li><a class="reference internal" href="#retrieving-a-batch-of-pixel-time-series">Retrieving a &#8220;batch&#8221; of pixel time series...</a></li>
+<li><a class="reference internal" href="#very-rudimentary-pixel-change-detection-using-wofs-water-extents">VERY Rudimentary Pixel Change Detection Using WOFS Water Extents...</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#retrieve-dataset">Retrieve Dataset</a><ul>
+<li><a class="reference internal" href="#id1">Example Uses</a></li>
 </ul>
 </li>
 </ul>
@@ -94,8 +102,8 @@
 <h1>API Command Line Tools<a class="headerlink" href="#api-command-line-tools" title="Permalink to this headline">¶</a></h1>
 <p>There are also a set of “tools” – i.e. packaged executables – aimed at the NPP (Non-Python “People”):</p>
 <ul class="simple">
-<li>Retrieve dataset</li>
 <li>Retrieve pixel time series</li>
+<li>Retrieve dataset</li>
 <li>Retrieve dataset time series</li>
 <li>Retrieve dataset stack</li>
 <li>Retrieve aoi time series</li>
@@ -104,19 +112,25 @@
 </ul>
 <div class="section" id="retrieve-pixel-time-series">
 <h2>Retrieve Pixel Time Series<a class="headerlink" href="#retrieve-pixel-time-series" title="Permalink to this headline">¶</a></h2>
-<p>The <em>Retrieve Pixel Time Series</em> tool extracts the values of a given pixel from the specified dataset over time to a
-CSV file.  Pixel quality masking can be applied.  Acquisitions that are completely masked can be output or omitted.:</p>
+<p>The <cite>Retrieve Pixel Time Series</cite> tool extracts the values of a given pixel from the specified dataset over time to a
+CSV file.  Pixel quality masking can be applied.  Acquisitions that are completely masked can be output or omitted:</p>
 <div class="highlight-python"><div class="highlight"><pre>$ retrieve_pixel_time_series.py -h
 usage: retrieve_pixel_time_series.py
-       [-h] [--quiet | --verbose] [--acq-min ACQ_MIN] [--acq-max ACQ_MAX]
-       [--satellite LS5 LS7 LS8 [LS5 LS7 LS8 ...]] [--mask-pqa-apply]
+       [-h]
+       [--quiet | --verbose]
+       [--acq-min ACQ_MIN] [--acq-max ACQ_MAX]
+       [--satellite LS5 LS7 LS8 [LS5 LS7 LS8 ...]]
+       [--mask-pqa-apply]
        [--mask-pqa-mask PQ_MASK_SATURATION_THERMAL PQ_MASK_SATURATION_OPTICAL PQ_MASK_SATURATION PQ_MASK_CONTIGUITY PQ_MASK_LAND PQ_MASK_CLOUD_ACCA PQ_MASK_CLOUD_FMASK PQ_MASK_CLOUD_SHADOW_ACCA PQ_MASK_CLOUD_SHADOW_FMASK PQ_MASK_CLOUD PQ_MASK_CLEAR [PQ_MASK_SATURATION_THERMAL PQ_MASK_SATURATION_OPTICAL PQ_MASK_SATURATION PQ_MASK_CONTIGUITY PQ_MASK_LAND PQ_MASK_CLOUD_ACCA PQ_MASK_CLOUD_FMASK PQ_MASK_CLOUD_SHADOW_ACCA PQ_MASK_CLOUD_SHADOW_FMASK PQ_MASK_CLOUD PQ_MASK_CLEAR ...]]
        [--mask-wofs-apply]
        [--mask-wofs-mask DRY NO_DATA SATURATION_CONTIGUITY SEA_WATER TERRAIN_SHADOW HIGH_SLOPE CLOUD_SHADOW CLOUD WET [DRY NO_DATA SATURATION_CONTIGUITY SEA_WATER TERRAIN_SHADOW HIGH_SLOPE CLOUD_SHADOW CLOUD WET ...]]
-       --lat LATITUDE --lon LONGITUDE [--hide-no-data] --dataset-type ARG25
-       PQ25 FC25 WATER DSM DEM DEM_HYDROLOGICALLY_ENFORCED DEM_SMOOTHED NDVI
-       EVI NBR TCI [--bands-all | --bands-common] [--delimiter DELIMITER]
-       [--output-directory OUTPUT_DIRECTORY] [--overwrite]
+       --lat LATITUDE --lon LONGITUDE
+       [--hide-no-data]
+       --dataset-type ARG25 PQ25 FC25 WATER DSM DEM DEM_HYDROLOGICALLY_ENFORCED DEM_SMOOTHED NDVI EVI NBR TCI
+       [--bands-all | --bands-common]
+       [--delimiter DELIMITER]
+       [--output-directory OUTPUT_DIRECTORY]
+       [--overwrite]
 
 Time Series Retrieval
 
@@ -150,13 +164,13 @@ optional arguments:
 </div>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p>The ACQ DATE parameters support dates being specified as YYYY or YYYY-MM or YYYY-MM-DD.</p>
-<p>The MIN parameter maps the value down - i.e. 2000 -&gt; 2000-01-01 and 2000-12 -&gt; 2012-12-01</p>
-<p class="last">The MAX parameter maps the value up - i.e. 2000 -&gt; 2000-12-31 and 2000-01 -&gt; 2012-01-31</p>
+<p>The ACQ DATE parameters support dates being specified as <code class="docutils literal"><span class="pre">YYYY</span></code> or <code class="docutils literal"><span class="pre">YYYY-MM</span></code> or <code class="docutils literal"><span class="pre">YYYY-MM-DD</span></code>.</p>
+<p>The MIN parameter maps the value down - i.e. <cite>2000</cite> -&gt; <cite>2000-01-01</cite> and <cite>2000-12</cite> -&gt; <cite>2012-12-01</cite></p>
+<p class="last">The MAX parameter maps the value up - i.e. <cite>2000</cite> -&gt; <cite>2000-12-31</cite> and <cite>2000-01</cite> -&gt; <cite>2012-01-31</cite></p>
 </div>
 <div class="section" id="example-uses">
 <h3>Example Uses<a class="headerlink" href="#example-uses" title="Permalink to this headline">¶</a></h3>
-<p>For example to retrieve the NBAR values...:</p>
+<p>For example to retrieve the NBAR values:</p>
 <div class="highlight-python"><div class="highlight"><pre>$ retrieve_pixel_time_series.py --lon 120.25 --lat -20.25 --acq-min 2013-12 --acq-max 2013-12 --satellite LS7 --dataset-type ARG25 --quiet
 
 SATELLITE,ACQUISITION DATE,BLUE,GREEN,RED,NEAR_INFRARED,SHORT_WAVE_INFRARED_1,SHORT_WAVE_INFRARED_2
@@ -166,7 +180,7 @@ LS7,2013-12-17 01:58:47,388,824,1605,2632,3326,2626
 LS7,2013-12-26 01:53:05,-999,-999,-999,-999,-999,-999
 </pre></div>
 </div>
-<p>and again applying pixel quality masking (defaults to selecting CLEAR pixels but can be changed via the &#8211;pqa-mask argument)...:</p>
+<p>and again applying pixel quality masking (defaults to selecting CLEAR pixels but can be changed via the <code class="docutils literal"><span class="pre">--pqa-mask</span></code> argument):</p>
 <div class="highlight-python"><div class="highlight"><pre>$ retrieve_pixel_time_series.py --lon 120.25 --lat -20.25 --acq-min 2013-12 --acq-max 2013-12 --satellite LS7 --dataset-type ARG25 --quiet --mask-pqa-apply
 
 SATELLITE,ACQUISITION DATE,BLUE,GREEN,RED,NEAR_INFRARED,SHORT_WAVE_INFRARED_1,SHORT_WAVE_INFRARED_2
@@ -176,14 +190,14 @@ LS7,2013-12-17 01:58:47,388,824,1605,2632,3326,2626
 LS7,2013-12-26 01:53:05,-999,-999,-999,-999,-999,-999
 </pre></div>
 </div>
-<p>and again omitting no data values...:</p>
+<p>and again omitting no data values:</p>
 <div class="highlight-python"><div class="highlight"><pre>$ retrieve_pixel_time_series.py --lon 120.25 --lat -20.25 --acq-min 2013-12 --acq-max 2013-12 --satellite LS7 --dataset-type ARG25 --quiet --mask-pqa-apply --hide-no-data
 
 SATELLITE,ACQUISITION DATE,BLUE,GREEN,RED,NEAR_INFRARED,SHORT_WAVE_INFRARED_1,SHORT_WAVE_INFRARED_2
 LS7,2013-12-17 01:58:47,388,824,1605,2632,3326,2626
 </pre></div>
 </div>
-<p>and where a dataset has different bands for different satellites...:</p>
+<p>and mixing and matching Landsat 5, 7 and 8 (i.e. data sets that have different band combinations):</p>
 <div class="highlight-python"><div class="highlight"><pre>$ retrieve_pixel_time_series.py --lon 120.25 --lat -20.25 --acq-min 2013-12 --acq-max 2013-12 --satellite LS7 --dataset-type ARG25 --quiet --mask-pqa-apply --hide-no-data --satellite LS7 LS8
 
 SATELLITE,ACQUISITION DATE,BLUE,GREEN,RED,NEAR_INFRARED,SHORT_WAVE_INFRARED_1,SHORT_WAVE_INFRARED_2,COASTAL_AEROSOL
@@ -193,7 +207,7 @@ LS7,2013-12-17 01:58:47,388,824,1605,2632,3326,2626,
 LS8,2013-12-18 01:57:47,496,847,1605,2638,3252,2509,485
 </pre></div>
 </div>
-<p>which outputs an <strong>empty</strong> value where the band is not applicable; or to only include the bands common across all satellites...:</p>
+<p>which outputs an <strong>empty</strong> value where the band is not applicable; or to only include the bands common across all satellites:</p>
 <div class="highlight-python"><div class="highlight"><pre>$ retrieve_pixel_time_series.py --lon 120.25 --lat -20.25 --acq-min 2013-12 --acq-max 2013-12 --satellite LS7 --dataset-type ARG25 --quiet --mask-pqa-apply --hide-no-data --satellite LS7 LS8 --bands-common
 
 SATELLITE,ACQUISITION DATE,BLUE,GREEN,RED,NEAR_INFRARED,SHORT_WAVE_INFRARED_1,SHORT_WAVE_INFRARED_2
@@ -202,6 +216,461 @@ LS8,2013-12-09 02:04:05,448,820,1592,2596,3260,2550
 LS7,2013-12-17 01:58:47,388,824,1605,2632,3326,2626
 LS8,2013-12-18 01:57:47,496,847,1605,2638,3252,2509
 </pre></div>
+</div>
+<p>To retrieve WOFS water extent values for a pixel:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ retrieve_pixel_time_series.py --lon 120.25 --lat -20.25 --acq-min 2013-12 --acq-max 2013-12 --satellite LS7 --dataset-type WATER --quiet
+
+SATELLITE,ACQUISITION DATE,WATER
+LS7,2013-12-01 01:58:47,Saturation/Contiguity,2
+LS7,2013-12-10 01:53:02,Saturation/Contiguity,2
+LS7,2013-12-17 01:58:47,Dry,0
+LS7,2013-12-26 01:53:05,Saturation/Contiguity,2
+</pre></div>
+</div>
+<div class="section" id="retrieving-a-batch-of-pixel-time-series">
+<h4>Retrieving a &#8220;batch&#8221; of pixel time series...<a class="headerlink" href="#retrieving-a-batch-of-pixel-time-series" title="Permalink to this headline">¶</a></h4>
+<p>If you have a &#8220;batch&#8221; of pixels each of which you would like to retrieve a time series for, this can be scripted something like...</p>
+<p>Create a text file containing the pixel locations (in this instance as lat/lon pairs separated by white space)</p>
+<div class="literal-block-wrapper container" id="pixels-txt">
+<div class="code-block-caption"><span class="caption-text">pixels.txt</span><a class="headerlink" href="#pixels-txt" title="Permalink to this code">¶</a></div>
+<div class="highlight-txt"><div class="highlight"><pre>-20.00  120.00
+-21.25  121.25
+-22.50  122.50
+</pre></div>
+</div>
+</div>
+<p>Run a little (bash) while loop to retrieve the values to files...</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span><span class="k">while</span> <span class="nb">read </span>lat lon<span class="p">;</span> <span class="k">do</span> <span class="nb">echo</span> <span class="s2">&quot;Retrieving time series for </span><span class="nv">$lon</span><span class="s2"> / </span><span class="nv">$lat</span><span class="s2">&quot;</span> <span class="p">;</span> retrieve_pixel_time_series.py --lon <span class="nv">$lon</span> --lat <span class="nv">$lat</span> --acq-min 2013-12 --acq-max 2013-12 --satellite LS7 --dataset-type ARG25 --quiet --output-directory <span class="nv">$PWD</span> <span class="p">;</span> <span class="k">done</span> &lt;pixels.txt
+
+Retrieving <span class="nb">time </span>series <span class="k">for</span> 120.00 / -20.00
+Retrieving <span class="nb">time </span>series <span class="k">for</span> 121.25 / -21.25
+Retrieving <span class="nb">time </span>series <span class="k">for</span> 122.50 / -22.50
+</pre></div>
+</div>
+<p>and then you should have the following output files...</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>ls -l
+
+-rw-r----- <span class="m">1</span> sjo547 v10  <span class="m">345</span> Jan <span class="m">20</span> 13:11 LS7_NBAR_120.00000_-20.00000_2013-12-01_2013-12-31.csv
+-rw-r----- <span class="m">1</span> sjo547 v10  <span class="m">221</span> Jan <span class="m">20</span> 13:11 LS7_NBAR_121.25000_-21.25000_2013-12-01_2013-12-31.csv
+-rw-r----- <span class="m">1</span> sjo547 v10  <span class="m">221</span> Jan <span class="m">20</span> 13:11 LS7_NBAR_122.50000_-22.50000_2013-12-01_2013-12-31.csv
+</pre></div>
+</div>
+</div>
+<div class="section" id="very-rudimentary-pixel-change-detection-using-wofs-water-extents">
+<h4>VERY Rudimentary Pixel Change Detection Using WOFS Water Extents...<a class="headerlink" href="#very-rudimentary-pixel-change-detection-using-wofs-water-extents" title="Permalink to this headline">¶</a></h4>
+<p>A <strong>VERY</strong> basic form of change detection for a pixel can be done quite simply with the outputs from the the pixel drill by:</p>
+<ol class="arabic simple">
+<li>Executing the pixel drill for your chosen pixel</li>
+<li>Filter the list back to only WATER and NON WATER observations</li>
+<li>Filter the list back to only changes from WATER to NON WATER and vice versa</li>
+</ol>
+<p>For example to get the change history for the <code class="docutils literal"><span class="pre">150.07994</span></code> / <code class="docutils literal"><span class="pre">-36.36939</span></code> pixel...</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>retrieve_pixel_time_series.py --lon 150.07994 --lat -36.36939 --acq-min <span class="m">1987</span> --acq-max <span class="m">2015</span> --satellite LS5 LS7 --dataset-type WATER --quiet --output-directory <span class="nv">$PWD</span>
+</pre></div>
+</div>
+<p>Then to filter back to only WATER and NON WATER observations...</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ </span>grep -e <span class="s1">&#39;Wet\|Dry&#39;</span> LS_WOFS_150.07994_-36.36939_1987-01-01_2015-12-31.csv <span class="p">|</span> sort -u -t <span class="s1">&#39;,&#39;</span> -k 2,2 &gt;LS_WOFS_150.07994_-36.36939_1987-01-01_2015-12-31.filtered.sorted.csv
+</pre></div>
+</div>
+<p>This drops back from the initial 940 observations to 215 observations.</p>
+<p>Then to filter back to only observations that indication a change...</p>
+<div class="highlight-bash"><div class="highlight"><pre><span class="nv">$ IFS</span><span class="o">=</span><span class="s2">&quot;,&quot;</span> <span class="p">;</span> <span class="nb">unset </span>pclass <span class="p">;</span> <span class="k">while</span> <span class="nb">read </span>sat acq class iclass<span class="p">;</span> <span class="k">do</span> <span class="k">if</span> <span class="o">[</span> -z <span class="s2">&quot;</span><span class="nv">$pclass</span><span class="s2">&quot;</span> <span class="o">]</span> <span class="o">||</span> <span class="o">[</span> <span class="s2">&quot;</span><span class="nv">$class</span><span class="s2">&quot;</span> !<span class="o">=</span> <span class="s2">&quot;</span><span class="nv">$pclass</span><span class="s2">&quot;</span> <span class="o">]</span><span class="p">;</span> <span class="k">then</span> <span class="nb">echo</span> <span class="s2">&quot;</span><span class="nv">$acq</span><span class="s2">,</span><span class="nv">$pclass</span><span class="s2">,</span><span class="nv">$class</span><span class="s2">&quot;</span><span class="p">;</span> <span class="nv">pclass</span><span class="o">=</span><span class="s2">&quot;</span><span class="nv">$class</span><span class="s2">&quot;</span> <span class="p">;</span> <span class="k">fi</span><span class="p">;</span> <span class="k">done</span> &lt;LS_WOFS_150.07994_-36.36939_1987-01-01_2015-12-31.filtered.sorted.csv &gt;LS_WOFS_150.07994_-36.36939_1987-01-01_2015-12-31.changes.csv
+</pre></div>
+</div>
+<p>This filters back to 19 &#8220;change&#8221; observations.</p>
+<p>This can be imported into Excel, for example, and a couple of calculated cells added and so on...</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="18%" />
+<col width="7%" />
+<col width="7%" />
+<col width="21%" />
+<col width="25%" />
+<col width="23%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">DATE</th>
+<th class="head">FROM</th>
+<th class="head">TO</th>
+<th class="head">DAYS BETWEEN</th>
+<th class="head">MONTHS BETWEEN</th>
+<th class="head">YEARS BETWEEN</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>1988-02-25</td>
+<td>&nbsp;</td>
+<td>Dry</td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+<td>&nbsp;</td>
+</tr>
+<tr class="row-odd"><td>1988-09-29</td>
+<td>Dry</td>
+<td>Wet</td>
+<td>217</td>
+<td>7</td>
+<td>1</td>
+</tr>
+<tr class="row-even"><td>1998-01-19</td>
+<td>Wet</td>
+<td>Dry</td>
+<td>3,399</td>
+<td>113</td>
+<td>9</td>
+</tr>
+<tr class="row-odd"><td>2002-03-27</td>
+<td>Dry</td>
+<td>Wet</td>
+<td>1,528</td>
+<td>51</td>
+<td>4</td>
+</tr>
+<tr class="row-even"><td>2002-04-05</td>
+<td>Wet</td>
+<td>Dry</td>
+<td>9</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="row-odd"><td>2002-09-19</td>
+<td>Dry</td>
+<td>Wet</td>
+<td>167</td>
+<td>6</td>
+<td>0</td>
+</tr>
+<tr class="row-even"><td>2002-10-05</td>
+<td>Wet</td>
+<td>Dry</td>
+<td>16</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr class="row-odd"><td>2005-10-05</td>
+<td>Dry</td>
+<td>Wet</td>
+<td>1,096</td>
+<td>37</td>
+<td>3</td>
+</tr>
+<tr class="row-even"><td>2005-10-06</td>
+<td>Wet</td>
+<td>Dry</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="row-odd"><td>2010-03-17</td>
+<td>Dry</td>
+<td>Wet</td>
+<td>1,623</td>
+<td>54</td>
+<td>4</td>
+</tr>
+<tr class="row-even"><td>2010-04-19</td>
+<td>Wet</td>
+<td>Dry</td>
+<td>33</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr class="row-odd"><td>2010-08-24</td>
+<td>Dry</td>
+<td>Wet</td>
+<td>127</td>
+<td>4</td>
+<td>0</td>
+</tr>
+<tr class="row-even"><td>2011-09-20</td>
+<td>Wet</td>
+<td>Dry</td>
+<td>392</td>
+<td>13</td>
+<td>1</td>
+</tr>
+<tr class="row-odd"><td>2011-09-21</td>
+<td>Dry</td>
+<td>Wet</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="row-even"><td>2013-01-04</td>
+<td>Wet</td>
+<td>Dry</td>
+<td>471</td>
+<td>16</td>
+<td>1</td>
+</tr>
+<tr class="row-odd"><td>2013-01-20</td>
+<td>Dry</td>
+<td>Wet</td>
+<td>16</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr class="row-even"><td>2013-09-10</td>
+<td>Wet</td>
+<td>Dry</td>
+<td>233</td>
+<td>8</td>
+<td>1</td>
+</tr>
+<tr class="row-odd"><td>2013-11-13</td>
+<td>Dry</td>
+<td>Wet</td>
+<td>64</td>
+<td>2</td>
+<td>0</td>
+</tr>
+<tr class="row-even"><td>2014-02-24</td>
+<td>Wet</td>
+<td>Dry</td>
+<td>103</td>
+<td>3</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="section" id="retrieve-dataset">
+<h2>Retrieve Dataset<a class="headerlink" href="#retrieve-dataset" title="Permalink to this headline">¶</a></h2>
+<p>The retrieve dataset tool retrieves the given dataset(s) optionally applying pixel quality masks.  It can retrieve both
+&#8220;physical&#8221; - NBAR, FC, PQA - and virtual/derived/calculated - NDVI, EVI, NBR, TCI - datasets:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ retrieve_dataset.py -h
+
+usage: retrieve_dataset.py
+       [-h]
+       [--quiet | --verbose]
+       [--acq-min ACQ_MIN] [--acq-max ACQ_MAX]
+       [--satellite LS5 LS7 LS8 [LS5 LS7 LS8 ...]]
+       [--mask-pqa-apply]
+       [--mask-pqa-mask PQ_MASK_SATURATION_THERMAL PQ_MASK_SATURATION_OPTICAL PQ_MASK_SATURATION PQ_MASK_CONTIGUITY PQ_MASK_LAND PQ_MASK_CLOUD_ACCA PQ_MASK_CLOUD_FMASK PQ_MASK_CLOUD_SHADOW_ACCA PQ_MASK_CLOUD_SHADOW_FMASK PQ_MASK_CLOUD PQ_MASK_CLEAR [PQ_MASK_SATURATION_THERMAL PQ_MASK_SATURATION_OPTICAL PQ_MASK_SATURATION PQ_MASK_CONTIGUITY PQ_MASK_LAND PQ_MASK_CLOUD_ACCA PQ_MASK_CLOUD_FMASK PQ_MASK_CLOUD_SHADOW_ACCA PQ_MASK_CLOUD_SHADOW_FMASK PQ_MASK_CLOUD PQ_MASK_CLEAR ...]]
+       [--mask-wofs-apply]
+       [--mask-wofs-mask DRY NO_DATA SATURATION_CONTIGUITY SEA_WATER TERRAIN_SHADOW HIGH_SLOPE CLOUD_SHADOW CLOUD WET [DRY NO_DATA SATURATION_CONTIGUITY SEA_WATER TERRAIN_SHADOW HIGH_SLOPE CLOUD_SHADOW CLOUD WET ...]]
+       --x [110 - 155] --y [-45 - -10]
+       --dataset-type ARG25 PQ25 FC25 WATER DSM DEM DEM_HYDROLOGICALLY_ENFORCED DEM_SMOOTHED NDVI EVI NBR TCI [ARG25 PQ25 FC25 WATER DSM DEM DEM_HYDROLOGICALLY_ENFORCED DEM_SMOOTHED NDVI EVI NBR TCI ...]
+       --output-directory OUTPUT_DIRECTORY
+       [--overwrite]
+       [--list-only]
+
+Dataset Retrieval
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --quiet               Less output
+  --verbose             More output
+  --acq-min ACQ_MIN     Acquisition Date
+  --acq-max ACQ_MAX     Acquisition Date
+  --satellite LS5 LS7 LS8 [LS5 LS7 LS8 ...]
+                        The satellite(s) to include
+  --mask-pqa-apply      Apply PQA mask
+  --mask-pqa-mask PQ_MASK_SATURATION_THERMAL PQ_MASK_SATURATION_OPTICAL PQ_MASK_SATURATION PQ_MASK_CONTIGUITY PQ_MASK_LAND PQ_MASK_CLOUD_ACCA PQ_MASK_CLOUD_FMASK PQ_MASK_CLOUD_SHADOW_ACCA PQ_MASK_CLOUD_SHADOW_FMASK PQ_MASK_CLOUD PQ_MASK_CLEAR [PQ_MASK_SATURATION_THERMAL PQ_MASK_SATURATION_OPTICAL PQ_MASK_SATURATION PQ_MASK_CONTIGUITY PQ_MASK_LAND PQ_MASK_CLOUD_ACCA PQ_MASK_CLOUD_FMASK PQ_MASK_CLOUD_SHADOW_ACCA PQ_MASK_CLOUD_SHADOW_FMASK PQ_MASK_CLOUD PQ_MASK_CLEAR ...]
+                        The PQA mask to apply
+  --mask-wofs-apply     Apply WOFS mask
+  --mask-wofs-mask DRY NO_DATA SATURATION_CONTIGUITY SEA_WATER TERRAIN_SHADOW HIGH_SLOPE CLOUD_SHADOW CLOUD WET [DRY NO_DATA SATURATION_CONTIGUITY SEA_WATER TERRAIN_SHADOW HIGH_SLOPE CLOUD_SHADOW CLOUD WET ...]
+                        The WOFS mask to apply
+  --x [110 - 155]       X grid reference
+  --y [-45 - -10]       Y grid reference
+  --dataset-type ARG25 PQ25 FC25 WATER DSM DEM DEM_HYDROLOGICALLY_ENFORCED DEM_SMOOTHED NDVI EVI NBR TCI [ARG25 PQ25 FC25 WATER DSM DEM DEM_HYDROLOGICALLY_ENFORCED DEM_SMOOTHED NDVI EVI NBR TCI ...]
+                        The type(s) of dataset to retrieve
+  --output-directory OUTPUT_DIRECTORY
+                        Output directory
+  --overwrite           Over write existing output file
+  --list-only           List the datasets that would be retrieved rather than retrieving them
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>The ACQ DATE parameters support dates being specified as <code class="docutils literal"><span class="pre">YYYY</span></code> or <code class="docutils literal"><span class="pre">YYYY-MM</span></code> or <code class="docutils literal"><span class="pre">YYYY-MM-DD</span></code>.</p>
+<p>The MIN parameter maps the value down - i.e. <cite>2000</cite> -&gt; <cite>2000-01-01</cite> and <cite>2000-12</cite> -&gt; <cite>2012-12-01</cite></p>
+<p class="last">The MAX parameter maps the value up - i.e. <cite>2000</cite> -&gt; <cite>2000-12-31</cite> and <cite>2000-01</cite> -&gt; <cite>2012-01-31</cite></p>
+</div>
+<div class="section" id="id1">
+<h3>Example Uses<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<p>For example to find out what LS8 datasets we have from December 2013 for the 120/-25 cell:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ retrieve_dataset.py --x 120 --y -20 --satellite LS8 --acq-min 2013-12 --acq-max 2013-12 --dataset-type ARG25 --list-only --output-directory /tmp
+
+2015-04-29 10:13:49,448 INFO
+        acq = 2013-12-01 to 2013-12-31
+        satellites = LS8
+        PQA mask =
+        WOFS mask =
+
+2015-04-29 10:13:49,448 INFO
+        x = 120
+        y = -020
+
+2015-04-29 10:13:49,448 INFO
+        datasets to retrieve = ARG25
+        output directory = /tmp
+        over write existing = False
+        list only = True
+
+2015-04-29 10:13:50,187 INFO Would retrieve datasets [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_NBAR_120_-020_2013-12-02T01-57-07.vrt]
+2015-04-29 10:13:50,188 INFO Would retrieve datasets [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_NBAR_120_-020_2013-12-09T02-03-41.tif]
+2015-04-29 10:13:50,188 INFO Would retrieve datasets [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_NBAR_120_-020_2013-12-18T01-56-59.vrt]
+</pre></div>
+</div>
+<p>To retrieve the NBAR and FC datasets apply PQ mask (saturation and contiguity only):</p>
+<div class="highlight-python"><div class="highlight"><pre>$ retrieve_dataset.py --x 120 --y -20 --satellite LS8 --acq-min 2013-12 --acq-max 2013-12 --dataset-type ARG25 FC25 --mask-pqa-apply --mask-pqa-mask PQ_MASK_SATURATION PQ_MASK_CONTIGUITY --output-directory /tmp
+
+2015-04-29 11:07:59,063 INFO
+        acq = 2013-12-01 to 2013-12-31
+        satellites = LS8
+        PQA mask = PQ_MASK_SATURATION PQ_MASK_CONTIGUITY
+        WOFS mask =
+
+2015-04-29 11:07:59,063 INFO
+        x = 120
+        y = -020
+
+2015-04-29 11:07:59,063 INFO
+        datasets to retrieve = ARG25 FC25
+        output directory = /tmp
+        over write existing = False
+        list only = False
+
+2015-04-29 11:07:59,257 INFO Retrieving data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_NBAR_120_-020_2013-12-02T01-57-07.vrt] with pq [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-02T01-57-07.tif] and pq mask [[&lt;PqaMask.PQ_MASK_SATURATION: 255&gt;, &lt;PqaMask.PQ_MASK_CONTIGUITY: 256&gt;]] and wofs [] and wofs mask [] to [/g/data/u46/sjo/testing/0.1.0-b20150428/LS8_OLI_TIRS_NBAR_WITH_PQA_120_-020_2013-12-02T01-57-07.tif]
+2015-04-29 11:08:37,438 INFO Retrieving data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-02T01-57-07.vrt] with pq [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-02T01-57-07.tif] and pq mask [[&lt;PqaMask.PQ_MASK_SATURATION: 255&gt;, &lt;PqaMask.PQ_MASK_CONTIGUITY: 256&gt;]] and wofs [] and wofs mask [] to [/g/data/u46/sjo/testing/0.1.0-b20150428/LS8_OLI_TIRS_FC_WITH_PQA_120_-020_2013-12-02T01-57-07.tif]
+
+2015-04-29 11:08:53,955 INFO Retrieving data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_NBAR_120_-020_2013-12-09T02-03-41.tif] with pq [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_PQA_120_-020_2013-12-09T02-03-41.tif] and pq mask [[&lt;PqaMask.PQ_MASK_SATURATION: 255&gt;, &lt;PqaMask.PQ_MASK_CONTIGUITY: 256&gt;]] and wofs [] and wofs mask [] to [/g/data/u46/sjo/testing/0.1.0-b20150428/LS8_OLI_TIRS_NBAR_WITH_PQA_120_-020_2013-12-09T02-03-41.tif]
+2015-04-29 11:09:15,763 INFO Retrieving data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_FC_120_-020_2013-12-09T02-03-41.tif] with pq [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_PQA_120_-020_2013-12-09T02-03-41.tif] and pq mask [[&lt;PqaMask.PQ_MASK_SATURATION: 255&gt;, &lt;PqaMask.PQ_MASK_CONTIGUITY: 256&gt;]] and wofs [] and wofs mask [] to [/g/data/u46/sjo/testing/0.1.0-b20150428/LS8_OLI_TIRS_FC_WITH_PQA_120_-020_2013-12-09T02-03-41.tif]
+
+2015-04-29 11:09:27,515 INFO Retrieving data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_NBAR_120_-020_2013-12-18T01-56-59.vrt] with pq [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-18T01-56-59.tif] and pq mask [[&lt;PqaMask.PQ_MASK_SATURATION: 255&gt;, &lt;PqaMask.PQ_MASK_CONTIGUITY: 256&gt;]] and wofs [] and wofs mask [] to [/g/data/u46/sjo/testing/0.1.0-b20150428/LS8_OLI_TIRS_NBAR_WITH_PQA_120_-020_2013-12-18T01-56-59.tif]
+2015-04-29 11:10:00,857 INFO Retrieving data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-18T01-56-59.vrt] with pq [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-18T01-56-59.tif] and pq mask [[&lt;PqaMask.PQ_MASK_SATURATION: 255&gt;, &lt;PqaMask.PQ_MASK_CONTIGUITY: 256&gt;]] and wofs [] and wofs mask [] to [/g/data/u46/sjo/testing/0.1.0-b20150428/LS8_OLI_TIRS_FC_WITH_PQA_120_-020_2013-12-18T01-56-59.tif]
+</pre></div>
+</div>
+<div class="literal-block-wrapper container" id="nbar-and-fc-outputs">
+<div class="code-block-caption"><span class="caption-text">NBAR and FC outputs</span><a class="headerlink" href="#nbar-and-fc-outputs" title="Permalink to this code">¶</a></div>
+<div class="highlight-text"><div class="highlight"><pre>$ ls -lh
+
+-rw-r----- 1 sjo547 u46 214M Apr 29 10:28 LS8_OLI_TIRS_NBAR_WITH_PQA_120_-020_2013-12-02T01-57-07.tif
+-rw-r----- 1 sjo547 u46 123M Apr 29 10:28 LS8_OLI_TIRS_FC_WITH_PQA_120_-020_2013-12-02T01-57-07.tif
+
+-rw-r----- 1 sjo547 u46 214M Apr 29 10:28 LS8_OLI_TIRS_NBAR_WITH_PQA_120_-020_2013-12-09T02-03-41.tif
+-rw-r----- 1 sjo547 u46 123M Apr 29 10:29 LS8_OLI_TIRS_FC_WITH_PQA_120_-020_2013-12-09T02-03-41.tif
+
+-rw-r----- 1 sjo547 u46 123M Apr 29 10:30 LS8_OLI_TIRS_FC_WITH_PQA_120_-020_2013-12-18T01-56-59.tif
+-rw-r----- 1 sjo547 u46 214M Apr 29 10:29 LS8_OLI_TIRS_NBAR_WITH_PQA_120_-020_2013-12-18T01-56-59.tif
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper container" id="ls8-oli-tirs-fc-with-pqa-120-020-2013-12-02t01-57-07-tif">
+<div class="code-block-caption"><span class="caption-text"><cite>LS8_OLI_TIRS_FC_WITH_PQA_120_-020_2013-12-02T01-57-07.tif</cite>...</span><a class="headerlink" href="#ls8-oli-tirs-fc-with-pqa-120-020-2013-12-02t01-57-07-tif" title="Permalink to this code">¶</a></div>
+<div class="highlight-text"><div class="highlight"><pre>$ gdalinfo LS8_OLI_TIRS_FC_WITH_PQA_120_-020_2013-12-02T01-57-07.tif
+
+Driver: GTiff/GeoTIFF
+Files: LS8_OLI_TIRS_FC_WITH_PQA_120_-020_2013-12-02T01-57-07.tif
+Size is 4000, 4000
+...
+Origin = (120.000000000000000,-19.000000000000000)
+Pixel Size = (0.000250000000000,-0.000250000000000)
+...
+Metadata:
+  ACQUISITION_DATE=2013-12-02 01:57:31
+  AREA_OR_POINT=Area
+  DATASET_TYPE=FC25
+  PIXEL_QUALITY_FILTER=PQ_MASK_SATURATION PQ_MASK_CONTIGUITY
+  SATELLITE=LS8
+  X_INDEX=120
+  Y_INDEX=-020
+...
+Band 1 Block=4000x1 Type=Int16, ColorInterp=Gray
+  Description = PHOTOSYNTHETIC_VEGETATION
+  Minimum=0.000, Maximum=16959.000, Mean=6743.956, StdDev=6415.091
+  NoData Value=-999
+...
+Band 2 Block=4000x1 Type=Int16, ColorInterp=Undefined
+  Description = NON_PHOTOSYNTHETIC_VEGETATION
+  Minimum=0.000, Maximum=21059.000, Mean=10392.389, StdDev=4577.513
+  NoData Value=-999
+...
+Band 3 Block=4000x1 Type=Int16, ColorInterp=Undefined
+  Description = BARE_SOIL
+  Minimum=0.000, Maximum=16959.000, Mean=5404.868, StdDev=7320.007
+  NoData Value=-999
+...
+Band 4 Block=4000x1 Type=Int16, ColorInterp=Undefined
+  Description = UNMIXING_ERROR
+  Minimum=326.000, Maximum=16959.000, Mean=7182.122, StdDev=6224.030
+  NoData Value=-999
+</pre></div>
+</div>
+</div>
+<p>To generate NDVI and NBR datasets from each NBAR dataset after applying PQA:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ retrieve_dataset.py --x 120 --y -20 --satellite LS8 --acq-min 2013-12 --acq-max 2013-12 --dataset-type NDVI NBR --mask-pqa-apply --output-directory /tmp
+
+2015-04-29 11:45:14,860 INFO
+        acq = 2013-12-01 to 2013-12-31
+        satellites = LS8
+        PQA mask = PQ_MASK_CLEAR
+        WOFS mask =
+
+2015-04-29 11:45:14,860 INFO
+        x = 120
+        y = -020
+
+2015-04-29 11:45:14,861 INFO
+        datasets to retrieve = NDVI NBR
+        output directory = /tmp
+        over write existing = False
+        list only = False
+
+2015-04-29 11:45:15,474 INFO Retrieving data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_NBAR_120_-020_2013-12-02T01-57-07.vrt] with pq [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-02T01-57-07.tif] and pq mask [[&lt;PqaMask.PQ_MASK_CLEAR: 16383&gt;]] and wofs [] and wofs mask [] to [/g/data/u46/sjo/testing/0.1.0-b20150428/LS8_OLI_TIRS_NDVI_WITH_PQA_120_-020_2013-12-02T01-57-07.tif]
+2015-04-29 11:45:23,697 INFO Retrieving data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_NBAR_120_-020_2013-12-02T01-57-07.vrt] with pq [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-02T01-57-07.tif] and pq mask [[&lt;PqaMask.PQ_MASK_CLEAR: 16383&gt;]] and wofs [] and wofs mask [] to [/g/data/u46/sjo/testing/0.1.0-b20150428/LS8_OLI_TIRS_NBR_WITH_PQA_120_-020_2013-12-02T01-57-07.tif]
+
+2015-04-29 11:45:30,774 INFO Retrieving data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_NBAR_120_-020_2013-12-09T02-03-41.tif] with pq [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_PQA_120_-020_2013-12-09T02-03-41.tif] and pq mask [[&lt;PqaMask.PQ_MASK_CLEAR: 16383&gt;]] and wofs [] and wofs mask [] to [/g/data/u46/sjo/testing/0.1.0-b20150428/LS8_OLI_TIRS_NDVI_WITH_PQA_120_-020_2013-12-09T02-03-41.tif]
+2015-04-29 11:45:34,722 INFO Retrieving data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_NBAR_120_-020_2013-12-09T02-03-41.tif] with pq [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_PQA_120_-020_2013-12-09T02-03-41.tif] and pq mask [[&lt;PqaMask.PQ_MASK_CLEAR: 16383&gt;]] and wofs [] and wofs mask [] to [/g/data/u46/sjo/testing/0.1.0-b20150428/LS8_OLI_TIRS_NBR_WITH_PQA_120_-020_2013-12-09T02-03-41.tif]
+
+2015-04-29 11:45:38,428 INFO Retrieving data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_NBAR_120_-020_2013-12-18T01-56-59.vrt] with pq [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-18T01-56-59.tif] and pq mask [[&lt;PqaMask.PQ_MASK_CLEAR: 16383&gt;]] and wofs [] and wofs mask [] to [/g/data/u46/sjo/testing/0.1.0-b20150428/LS8_OLI_TIRS_NDVI_WITH_PQA_120_-020_2013-12-18T01-56-59.tif]
+2015-04-29 11:45:45,491 INFO Retrieving data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_NBAR_120_-020_2013-12-18T01-56-59.vrt] with pq [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-18T01-56-59.tif] and pq mask [[&lt;PqaMask.PQ_MASK_CLEAR: 16383&gt;]] and wofs [] and wofs mask [] to [/g/data/u46/sjo/testing/0.1.0-b20150428/LS8_OLI_TIRS_NBR_WITH_PQA_120_-020_2013-12-18T01-56-59.tif]
+</pre></div>
+</div>
+<div class="literal-block-wrapper container" id="ndvi-and-nbr-outputs">
+<div class="code-block-caption"><span class="caption-text">NDVI and NBR outputs</span><a class="headerlink" href="#ndvi-and-nbr-outputs" title="Permalink to this code">¶</a></div>
+<div class="highlight-text"><div class="highlight"><pre>$ ls -lh
+
+-rw-r----- 1 sjo547 u46 62M Apr 29 11:45 LS8_OLI_TIRS_NDVI_WITH_PQA_120_-020_2013-12-02T01-57-07.tif
+-rw-r----- 1 sjo547 u46 62M Apr 29 11:45 LS8_OLI_TIRS_NBR_WITH_PQA_120_-020_2013-12-02T01-57-07.tif
+
+-rw-r----- 1 sjo547 u46 62M Apr 29 11:45 LS8_OLI_TIRS_NDVI_WITH_PQA_120_-020_2013-12-09T02-03-41.tif
+-rw-r----- 1 sjo547 u46 62M Apr 29 11:45 LS8_OLI_TIRS_NBR_WITH_PQA_120_-020_2013-12-09T02-03-41.tif
+
+-rw-r----- 1 sjo547 u46 62M Apr 29 11:45 LS8_OLI_TIRS_NBR_WITH_PQA_120_-020_2013-12-18T01-56-59.tif
+-rw-r----- 1 sjo547 u46 62M Apr 29 11:45 LS8_OLI_TIRS_NDVI_WITH_PQA_120_-020_2013-12-18T01-56-59.tif
+</pre></div>
+</div>
+</div>
+<div class="literal-block-wrapper container" id="ls8-oli-tirs-ndvi-with-pqa-120-020-2013-12-02t01-57-07-tif">
+<div class="code-block-caption"><span class="caption-text"><cite>LS8_OLI_TIRS_NDVI_WITH_PQA_120_-020_2013-12-02T01-57-07.tif</cite>...</span><a class="headerlink" href="#ls8-oli-tirs-ndvi-with-pqa-120-020-2013-12-02t01-57-07-tif" title="Permalink to this code">¶</a></div>
+<div class="highlight-text"><div class="highlight"><pre>$ gdalinfo LS8_OLI_TIRS_NDVI_WITH_PQA_120_-020_2013-12-02T01-57-07.tif
+
+Driver: GTiff/GeoTIFF
+Files: LS8_OLI_TIRS_NDVI_WITH_PQA_120_-020_2013-12-02T01-57-07.tif
+Size is 4000, 4000
+...
+Origin = (120.000000000000000,-19.000000000000000)
+Pixel Size = (0.000250000000000,-0.000250000000000)
+...
+Metadata:
+  ACQUISITION_DATE=2013-12-02 01:57:31
+  AREA_OR_POINT=Area
+  DATASET_TYPE=NDVI
+  PIXEL_QUALITY_FILTER=PQ_MASK_CLEAR
+  SATELLITE=LS8
+  X_INDEX=120
+  Y_INDEX=-020
+...
+Band 1 Block=4000x1 Type=Float32, ColorInterp=Gray
+  Description = NDVI
+  Minimum=-0.585, Maximum=100000002004089995264.000, Mean=82418751651744006144.000, StdDev=38066057144637997056.000
+  NoData Value=nan
+</pre></div>
+</div>
 </div>
 </div>
 </div>
