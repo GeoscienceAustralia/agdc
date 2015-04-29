@@ -35,10 +35,12 @@ from setuptools import setup
 
 
 setup(name="agdc-api",
-      version="0.1.0-b20150427",
+      version="0.1.0-b20150428",
       package_dir={"": "source/main/python", "test": "source/test/python"},
       packages=["datacube", "datacube.api", "datacube.api.tool", "datacube.api.workflow"],
-      scripts=["source/main/python/datacube/api/tool/retrieve_pixel_time_series.py"],
+      scripts=[
+          "source/main/python/datacube/api/tool/retrieve_pixel_time_series.py",
+          "source/main/python/datacube/api/tool/retrieve_dataset.py"],
       author="Geoscience Australia",
       maintainer="Geoscience Australia",
       description="AGDC API",

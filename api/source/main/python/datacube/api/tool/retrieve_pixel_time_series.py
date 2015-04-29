@@ -37,16 +37,13 @@ import os
 import sys
 from enum import Enum
 from datacube.api import dataset_type_arg, writeable_dir
-from datacube.api.model import DatasetType, Wofs25Bands, Satellite, dataset_type_database, NdviBands, get_bands
-from datacube.api.model import dataset_type_derived_nbar
-from datacube.api.query import list_tiles
+from datacube.api.model import DatasetType, Wofs25Bands, Satellite
 from datacube.api.tool import Tool
-from datacube.api.utils import latlon_to_cell, latlon_to_xy, UINT16_MAX, BYTE_MAX, get_mask_pqa, get_band_name_union, \
-    NAN
+from datacube.api.utils import latlon_to_cell, latlon_to_xy, UINT16_MAX, BYTE_MAX, get_mask_pqa, get_band_name_union
+from datacube.api.utils import NAN
 from datacube.api.utils import get_band_name_intersection
-from datacube.api.utils import calculate_tassel_cap_index, TasselCapIndex, TCI_COEFFICIENTS
-from datacube.api.utils import get_mask_wofs, get_dataset_data_masked, calculate_ndvi, calculate_evi, calculate_nbr
-from datacube.api.utils import union, get_dataset_metadata, NDV
+from datacube.api.utils import get_mask_wofs, get_dataset_data_masked
+from datacube.api.utils import get_dataset_metadata, NDV
 
 
 _log = logging.getLogger()
@@ -328,6 +325,7 @@ def decode_data(dataset_type, dataset, bands, data):
 
 
 def retrieve_pixel_value(dataset, pqa, pqa_masks, wofs, wofs_masks, latitude, longitude, ndv=NDV):
+
     _log.debug(
         "Retrieving pixel value(s) at lat=[%f] lon=[%f] from [%s] with pqa [%s] and paq mask [%s] and wofs [%s] and wofs mask [%s]",
         latitude, longitude, dataset.path, pqa and pqa.path or "", pqa and pqa_masks or "",
@@ -354,52 +352,6 @@ def retrieve_pixel_value(dataset, pqa, pqa_masks, wofs, wofs_masks, latitude, lo
     _log.debug("data is [%s]", data)
 
     return data
-
-
-def retrieve_pixel_value_derived_nbar(dataset_type, nbar, pqa, pqa_masks, wofs, wofs_masks, latitude, longitude, ndv=NDV):
-    _log.debug(
-        "Retrieving pixel value(s) at lat=[%f] lon=[%f] from [%s] derived from [%s] with pqa [%s] and paq mask [%s] and wofs [%s] and wofs mask [%s]",
-        latitude, longitude, dataset_type.name, nbar.path, pqa and pqa.path or "", pqa and pqa_masks or "",
-        wofs and wofs.path or "", wofs and wofs_masks or "")
-
-    metadata = get_dataset_metadata(nbar)
-
-    x, y = latlon_to_xy(latitude, longitude, metadata.transform)
-
-    _log.debug("Retrieving value at x=[%d] y=[%d]", x, y)
-
-    mask = None
-
-    if pqa:
-        mask = get_mask_pqa(pqa, pqa_masks, x=x, y=y, x_size=1, y_size=1)
-
-    if wofs:
-        mask = get_mask_wofs(wofs, wofs_masks, x=x, y=y, x_size=1, y_size=1, mask=mask)
-
-    data = get_dataset_data_masked(nbar, x=x, y=y, x_size=1, y_size=1, mask=mask, ndv=ndv)
-
-    if dataset_type == DatasetType.NDVI:
-        data = calculate_ndvi(data[nbar.bands.RED], data[nbar.bands.NEAR_INFRARED])
-
-    elif dataset_type == DatasetType.EVI:
-        data = calculate_evi(data[nbar.bands.RED], data[nbar.bands.BLUE], data[nbar.bands.NEAR_INFRARED])
-
-    elif dataset_type == DatasetType.NBR:
-        data = calculate_nbr(data[nbar.bands.NEAR_INFRARED], data[nbar.bands.SHORT_WAVE_INFRARED_2])
-
-    elif dataset_type == DatasetType.TCI:
-        # tct = dict()
-        #
-        # # TODO calculate_tassel_cap_index should do this
-        # for index in TasselCapIndex:
-        #     tct[index] = calculate_tassel_cap_index(data, coefficients=TCI_COEFFICIENTS[nbar.satellite][index])[DatasetType.TCI]
-        #
-        # data = tct
-        data = calculate_tassel_cap_index(data, coefficients=TCI_COEFFICIENTS[nbar.satellite][TasselCapIndex.WETNESS])
-
-    _log.debug("data is [%s]", data)
-
-    return {dataset_type.name: data}
 
 
 # A WaterTile stores 1 data layer encoded as unsigned BYTE values as described in the WaterConstants.py file.

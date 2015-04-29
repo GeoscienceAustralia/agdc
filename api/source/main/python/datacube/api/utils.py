@@ -925,7 +925,8 @@ def get_dataset_filename(dataset, mask_pqa_apply=False, mask_wofs_apply=False):
         DatasetType.NDVI: "_NBAR_",
         DatasetType.EVI: "_NBAR_",
         DatasetType.NBR: "_NBAR_",
-        DatasetType.TCI: "_NBAR_"
+        DatasetType.TCI: "_NBAR_",
+        DatasetType.DSM: "DSM_"
     }[dataset.dataset_type]
 
     dataset_type_to_string = {
@@ -936,7 +937,8 @@ def get_dataset_filename(dataset, mask_pqa_apply=False, mask_wofs_apply=False):
         DatasetType.NDVI: "_NDVI_",
         DatasetType.EVI: "_EVI_",
         DatasetType.NBR: "_NBR_",
-        DatasetType.TCI: "_TCI_"
+        DatasetType.TCI: "_TCI_",
+        DatasetType.DSM: "DSM_"
     }[dataset.dataset_type]
 
     if mask_pqa_apply and mask_wofs_apply:
@@ -955,9 +957,32 @@ def get_dataset_filename(dataset, mask_pqa_apply=False, mask_wofs_apply=False):
     return filename
 
 
-# TODO
+def get_dataset_datatype(dataset):
+    return {
+        DatasetType.ARG25: GDT_Int16,
+        DatasetType.PQ25: GDT_Int16,
+        DatasetType.FC25: GDT_Int16,
+        DatasetType.WATER: GDT_Byte,
+        DatasetType.NDVI: GDT_Float32,
+        DatasetType.EVI: GDT_Float32,
+        DatasetType.NBR: GDT_Float32,
+        DatasetType.TCI: GDT_Float32,
+        DatasetType.DSM: GDT_Int16
+    }[dataset.dataset_type]
+
+
 def get_dataset_ndv(dataset):
-    return NDV
+    return {
+        DatasetType.ARG25: NDV,
+        DatasetType.PQ25: UINT16_MAX,
+        DatasetType.FC25: NDV,
+        DatasetType.WATER: BYTE_MAX,
+        DatasetType.NDVI: NAN,
+        DatasetType.EVI: NAN,
+        DatasetType.NBR: NAN,
+        DatasetType.TCI: NAN,
+        DatasetType.DSM: NDV
+    }[dataset.dataset_type]
 
 
 def get_band_name_union(dataset_type, satellites):

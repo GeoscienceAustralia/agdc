@@ -26,8 +26,6 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ===============================================================================
-from datacube.api import writeable_dir, satellite_arg, pqa_mask_arg, wofs_mask_arg, parse_date_min, parse_date_max, \
-    format_date
 
 
 __author__ = "Simon Oldfield"
@@ -39,8 +37,9 @@ import logging
 import luigi
 import os
 import sys
+from datacube.api import writeable_dir, satellite_arg, pqa_mask_arg, wofs_mask_arg, parse_date_min, parse_date_max
 from datacube.api.model import Satellite, Cell, DatasetType, Tile
-from datacube.api.utils import PqaMask, get_satellite_string, WofsMask
+from datacube.api.utils import PqaMask, get_satellite_string, WofsMask, format_date
 
 
 _log = logging.getLogger()
