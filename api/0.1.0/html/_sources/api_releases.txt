@@ -39,6 +39,80 @@ both ``u46`` and ``el8``::
 
 * Enhancement - `Issue 28 Implement Retrieve Dataset tool <https://github.com/GeoscienceAustralia/agdc/issues/28>`_
 
+Packaging an AGDC API Release
+-----------------------------
+
+The AGDC API is packaged as a loadable module on ``raijin`` at the NCI.
+
+The ``agdc-api`` module has the following dependencies:
+
+* ``python/2.7.6``
+* ``psycopg2``
+* ``gdal``
+* ``enum34``
+* ``luigi-mpi``
+* ``psutil``
+* ``numpy``
+* ``scipy``
+
+The first step in building the AGDC API module is to obtain the source code from the `AGDC GitHub Repository <https://github.com/GeoscienceAustralia/agdc>`_.
+
+Then do something like the following to build the package::
+
+    $ cd source/agdc-api/api
+
+    $ MY_MODULE_NAME=agdc-api
+    $ MY_MODULE_VERSION=0.1.0-b20150430
+    $ #MY_MODULE_DIR=$HOME/modules
+    $ #MY_MODULE_DIR=/projects/u46/opt/modules
+    $ #MY_MODULE_DIR=/projects/el8/opt/modules
+
+    $ mkdir -p $MY_MODULE_DIR/$MY_MODULE_NAME/$MY_MODULE_VERSION/lib/python2.7/site-packages
+
+    $ PYTHONPATH=$PYTHONPATH:$MY_MODULE_DIR/$MY_MODULE_NAME/$MY_MODULE_VERSION/lib/python2.7/site-packages python setup.py install --prefix $MY_MODULE_DIR/$MY_MODULE_NAME/$MY_MODULE_VERSION
+
+The add a module file:
+
+.. code-block:: text
+    :caption: ``/projects/el8/opt/modules/modulefiles/agdc-api/0.1.0-b20150430``
+
+    #%Module########################################################################
+    ##
+    ## agdc-api modulefile
+    ##
+    proc ModulesHelp { } {
+            global version
+            puts stderr "   This module loads the AGDC API module"
+            puts stderr "   Version $version"
+    }
+    set version       0.0.1-2015-01-16-001
+    set name          agdc-api
+    set base          /projects/el8/opt/modules
+    module-whatis   "Loads the AGDC API version $version"
+    if { [ module-info mode load ] } {
+        if { ! [is-loaded enum34] } {
+            module load enum34
+        }
+        if { ! [is-loaded gdal] } {
+            module load gdal
+        }
+        if { ! [is-loaded psycopg2] } {
+            module load psycopg2
+        }
+        if { ! [is-loaded python/2.7.6] } {
+            module load python/2.7.6
+        }
+        prepend-path        PYTHONPATH $base/$name/$version/lib/python2.7/site-packages
+        prepend-path        PATH $base/$name/$version/bin
+    }
+    if { [ module-info mode remove ] } {
+        remove-path PYTHONPATH $base/$name/$version/lib/python2.7/site-packages
+        remove-path PATH $base/$name/$version/bin
+        module unload enum34
+        module unload gdal
+        module unload psycopg2
+        module unload python/2.7.6
+    }
 
 Indices and tables
 ==================

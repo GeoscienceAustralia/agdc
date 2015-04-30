@@ -51,6 +51,7 @@
 <li><a class="reference internal" href="#">API Releases</a><ul>
 <li><a class="reference internal" href="#agdc-api-v0-1-0-2015-04-27-snapshot">AGDC API v0.1.0 (2015-04-27 snapshot)</a></li>
 <li><a class="reference internal" href="#agdc-api-v0-1-0-2015-04-28-snapshot">AGDC API v0.1.0 (2015-04-28 snapshot)</a></li>
+<li><a class="reference internal" href="#packaging-an-agdc-api-release">Packaging an AGDC API Release</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
@@ -119,6 +120,79 @@ both <code class="docutils literal"><span class="pre">u46</span></code> and <cod
 <ul class="simple">
 <li>Enhancement - <a class="reference external" href="https://github.com/GeoscienceAustralia/agdc/issues/28">Issue 28 Implement Retrieve Dataset tool</a></li>
 </ul>
+</div>
+<div class="section" id="packaging-an-agdc-api-release">
+<h2>Packaging an AGDC API Release<a class="headerlink" href="#packaging-an-agdc-api-release" title="Permalink to this headline">¶</a></h2>
+<p>The AGDC API is packaged as a loadable module on <code class="docutils literal"><span class="pre">raijin</span></code> at the NCI.</p>
+<p>The <code class="docutils literal"><span class="pre">agdc-api</span></code> module has the following dependencies:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">python/2.7.6</span></code></li>
+<li><code class="docutils literal"><span class="pre">psycopg2</span></code></li>
+<li><code class="docutils literal"><span class="pre">gdal</span></code></li>
+<li><code class="docutils literal"><span class="pre">enum34</span></code></li>
+<li><code class="docutils literal"><span class="pre">luigi-mpi</span></code></li>
+<li><code class="docutils literal"><span class="pre">psutil</span></code></li>
+<li><code class="docutils literal"><span class="pre">numpy</span></code></li>
+<li><code class="docutils literal"><span class="pre">scipy</span></code></li>
+</ul>
+<p>The first step in building the AGDC API module is to obtain the source code from the <a class="reference external" href="https://github.com/GeoscienceAustralia/agdc">AGDC GitHub Repository</a>.</p>
+<p>Then do something like the following to build the package:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ cd source/agdc-api/api
+
+$ MY_MODULE_NAME=agdc-api
+$ MY_MODULE_VERSION=0.1.0-b20150430
+$ #MY_MODULE_DIR=$HOME/modules
+$ #MY_MODULE_DIR=/projects/u46/opt/modules
+$ #MY_MODULE_DIR=/projects/el8/opt/modules
+
+$ mkdir -p $MY_MODULE_DIR/$MY_MODULE_NAME/$MY_MODULE_VERSION/lib/python2.7/site-packages
+
+$ PYTHONPATH=$PYTHONPATH:$MY_MODULE_DIR/$MY_MODULE_NAME/$MY_MODULE_VERSION/lib/python2.7/site-packages python setup.py install --prefix $MY_MODULE_DIR/$MY_MODULE_NAME/$MY_MODULE_VERSION
+</pre></div>
+</div>
+<p>The add a module file:</p>
+<div class="literal-block-wrapper container" id="projects-el8-opt-modules-modulefiles-agdc-api-0-1-0-b20150430">
+<div class="code-block-caption"><span class="caption-text"><code class="docutils literal"><span class="pre">/projects/el8/opt/modules/modulefiles/agdc-api/0.1.0-b20150430</span></code></span><a class="headerlink" href="#projects-el8-opt-modules-modulefiles-agdc-api-0-1-0-b20150430" title="Permalink to this code">¶</a></div>
+<div class="highlight-text"><div class="highlight"><pre>#%Module########################################################################
+##
+## agdc-api modulefile
+##
+proc ModulesHelp { } {
+        global version
+        puts stderr &quot;   This module loads the AGDC API module&quot;
+        puts stderr &quot;   Version $version&quot;
+}
+set version       0.0.1-2015-01-16-001
+set name          agdc-api
+set base          /projects/el8/opt/modules
+module-whatis   &quot;Loads the AGDC API version $version&quot;
+if { [ module-info mode load ] } {
+    if { ! [is-loaded enum34] } {
+        module load enum34
+    }
+    if { ! [is-loaded gdal] } {
+        module load gdal
+    }
+    if { ! [is-loaded psycopg2] } {
+        module load psycopg2
+    }
+    if { ! [is-loaded python/2.7.6] } {
+        module load python/2.7.6
+    }
+    prepend-path        PYTHONPATH $base/$name/$version/lib/python2.7/site-packages
+    prepend-path        PATH $base/$name/$version/bin
+}
+if { [ module-info mode remove ] } {
+    remove-path PYTHONPATH $base/$name/$version/lib/python2.7/site-packages
+    remove-path PATH $base/$name/$version/bin
+    module unload enum34
+    module unload gdal
+    module unload psycopg2
+    module unload python/2.7.6
+}
+</pre></div>
+</div>
+</div>
 </div>
 </div>
 <div class="section" id="indices-and-tables">
