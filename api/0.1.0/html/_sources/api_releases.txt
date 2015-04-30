@@ -18,6 +18,9 @@ both ``u46`` and ``el8``::
 
 **Changes in this release...**
 
+* Enhancement - `Issue 35 Implement query API <https://github.com/GeoscienceAustralia/agdc/issues/35>`_
+* Enhancement - `Issue 37 Add the ability to query the AGDC and export the results to CSV file <https://github.com/GeoscienceAustralia/agdc/issues/37>`_
+* Enhancement - `Issue 38 Add the ability to query the AGDC for WOFS datasets <https://github.com/GeoscienceAustralia/agdc/issues/38>`_
 * Enhancement - `Issue 12 Add ability to query for "DSM" datasets <https://github.com/GeoscienceAustralia/agdc/issues/12>`_
 * Enhancement - `Issue 21 Add ability to query for "missing" datasets <https://github.com/GeoscienceAustralia/agdc/issues/21>`_
 * Enhancement - `Issue 27 Implement Retrieve Pixel Time Series tool <https://github.com/GeoscienceAustralia/agdc/issues/27>`_
