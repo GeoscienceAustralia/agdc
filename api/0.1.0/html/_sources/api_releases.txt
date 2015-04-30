@@ -82,29 +82,55 @@ The add a module file:
     ##
     proc ModulesHelp { } {
             global version
+
             puts stderr "   This module loads the AGDC API module"
             puts stderr "   Version $version"
     }
-    set version       0.0.1-2015-01-16-001
+
+    set version       0.1.0-b20150430
     set name          agdc-api
-    set base          /projects/el8/opt/modules
+    set base          /projects/u46/opt/modules
+
     module-whatis   "Loads the AGDC API version $version"
+
     if { [ module-info mode load ] } {
+
         if { ! [is-loaded enum34] } {
             module load enum34
         }
+
         if { ! [is-loaded gdal] } {
             module load gdal
         }
+
         if { ! [is-loaded psycopg2] } {
             module load psycopg2
         }
+
         if { ! [is-loaded python/2.7.6] } {
             module load python/2.7.6
         }
+
+        if { ! [is-loaded luigi-mpi] } {
+            module load luigi-mpi
+        }
+
+        if { ! [is-loaded psutil] } {
+            module load psutil
+        }
+
+        if { ! [is-loaded numpy] } {
+            module load numpy
+        }
+
+        if { ! [is-loaded scipy] } {
+            module load scipy
+        }
+
         prepend-path        PYTHONPATH $base/$name/$version/lib/python2.7/site-packages
         prepend-path        PATH $base/$name/$version/bin
     }
+
     if { [ module-info mode remove ] } {
         remove-path PYTHONPATH $base/$name/$version/lib/python2.7/site-packages
         remove-path PATH $base/$name/$version/bin
@@ -112,6 +138,10 @@ The add a module file:
         module unload gdal
         module unload psycopg2
         module unload python/2.7.6
+        module unload luigi-mpi
+        module unload psutil
+        module unload numpy
+        module unload scipy
     }
 
 Indices and tables
