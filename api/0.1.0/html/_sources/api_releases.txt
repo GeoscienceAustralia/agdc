@@ -1,0 +1,49 @@
+
+.. toctree::
+   :maxdepth: 2
+
+
+API Releases
+============
+
+AGDC API v0.1.0 (2015-04-27 snapshot)
+-------------------------------------
+
+The source code is available on the ``api`` branch from the ``agdc-api-0.1.0-b20150427`` tag.
+
+The packaged version is available as a loadable module on ``raijin`` at the NCI as ``agdc-api/0.1.0-b20150427`` in
+both ``u46`` and ``el8``::
+
+    $ module load agdc-api/0.1.0-b20150427
+
+**Changes in this release...**
+
+* Enhancement - `Issue 12 Add ability to query for "DSM" datasets <https://github.com/GeoscienceAustralia/agdc/issues/12>`_
+* Enhancement - `Issue 21 Add ability to query for "missing" datasets <https://github.com/GeoscienceAustralia/agdc/issues/21>`_
+* Enhancement - `Issue 27 Implement Retrieve Pixel Time Series tool <https://github.com/GeoscienceAustralia/agdc/issues/27>`_
+* Bug         - `Issue 20 Satellite filter not being applied for WATER tiles in Retrieve Pixel Time Series tool <https://github.com/GeoscienceAustralia/agdc/issues/20>`_
+* Enhancement - `Issue 24 Allow retrieve pixel drill tool to operate over satellites with non-identical band <https://github.com/GeoscienceAustralia/agdc/issues/24>`_
+
+
+AGDC API v0.1.0 (2015-04-28 snapshot)
+-------------------------------------
+
+The source code is available on the ``api`` branch from the ``agdc-api-0.1.0-b20150428`` tag.
+
+The packaged version is available as a loadable module on ``raijin`` at the NCI as ``agdc-api/0.1.0-b20150428`` in
+both ``u46`` and ``el8``::
+
+    $ module load agdc-api/0.1.0-b20150428
+
+**Changes in this release...**
+
+* Enhancement - `Issue 28 Implement Retrieve Dataset tool <https://github.com/GeoscienceAustralia/agdc/issues/28>`_
+
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
+

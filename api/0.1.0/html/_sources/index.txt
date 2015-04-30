@@ -23,6 +23,11 @@ AGDC API Python Function Reference
 
 The detailed reference guide to the *AGDC Python API Functions* is available in the  :doc:`api_reference`
 
+AGDC API Releases
+=================
+
+Information about the various releases of the *AGDC API* and their contents can be found at :doc:`api_releases`
+
 Indices and tables
 ==================
 
