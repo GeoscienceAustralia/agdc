@@ -43,7 +43,7 @@ from datacube.api.utils import get_dataset_filename, get_dataset_ndv, get_datase
 _log = logging.getLogger()
 
 
-class DatasetRetrievalWorkflow(CellTool):
+class RetrieveDatasetTool(CellTool):
 
     def __init__(self, name):
 
@@ -167,11 +167,11 @@ class DatasetRetrievalWorkflow(CellTool):
 def retrieve_data(x, y, acq_dt, dataset, pqa, pqa_masks, wofs, wofs_masks, path, overwrite=False, data_type=None, ndv=None):
 
     _log.info("Retrieving data from [%s] with pq [%s] and pq mask [%s] and wofs [%s] and wofs mask [%s] to [%s]",
-               dataset.path,
-               pqa and pqa.path or "",
-               pqa and pqa_masks or "",
-               wofs and wofs.path or "", wofs and wofs_masks or "",
-               path)
+              dataset.path,
+              pqa and pqa.path or "",
+              pqa and pqa_masks or "",
+              wofs and wofs.path or "", wofs and wofs_masks or "",
+              path)
 
     if os.path.exists(path) and not overwrite:
         _log.error("Output file [%s] exists", path)
@@ -226,4 +226,4 @@ def format_date_time(d):
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
 
-    DatasetRetrievalWorkflow("Dataset Retrieval").run()
+    RetrieveDatasetTool("Dataset Retrieval").run()

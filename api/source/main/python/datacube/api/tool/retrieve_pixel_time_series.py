@@ -57,7 +57,7 @@ class BandListType(Enum):
     COMMON = "COMMON"
 
 
-class TimeSeriesRetrievalWorkflow(Tool):
+class RetrievePixelTimeSeriesTool(Tool):
 
     def __init__(self, name):
 
@@ -419,4 +419,4 @@ def format_date_time(d):
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
 
-    TimeSeriesRetrievalWorkflow("Time Series Retrieval").run()
+    RetrievePixelTimeSeriesTool("Time Series Retrieval").run()
