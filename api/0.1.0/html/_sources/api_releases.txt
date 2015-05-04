@@ -19,6 +19,7 @@ both ``u46`` and ``el8``::
 **Changes in this release...**
 
 * Enhancement - `Issue 31 Implement Retrieve Dataset Stack tool <https://github.com/GeoscienceAustralia/agdc/issues/31>`_
+* Enhancement - `Issue 40 Allow Retrieve Dataset Stack tool to operate over satellites with non-identical bands <https://github.com/GeoscienceAustralia/agdc/issues/40>`_
 
 AGDC API v0.1.0 (2015-04-28 snapshot)
 -------------------------------------
