@@ -957,6 +957,54 @@ def get_dataset_filename(dataset, mask_pqa_apply=False, mask_wofs_apply=False):
     return filename
 
 
+def get_dataset_band_stack_filename(dataset, band, mask_pqa_apply=False, mask_wofs_apply=False):
+
+    filename = dataset.path
+
+    filename = os.path.basename(filename)
+
+    dataset_type_from_string = {
+        DatasetType.ARG25: "_NBAR_",
+        DatasetType.PQ25: "_PQA_",
+        DatasetType.FC25: "_FC_",
+        DatasetType.WATER: "_WATER_",
+        DatasetType.NDVI: "_NBAR_",
+        DatasetType.EVI: "_NBAR_",
+        DatasetType.NBR: "_NBAR_",
+        DatasetType.TCI: "_NBAR_",
+        DatasetType.DSM: "DSM_"
+    }[dataset.dataset_type]
+
+    dataset_type_to_string = {
+        DatasetType.ARG25: "_NBAR_",
+        DatasetType.PQ25: "_PQA_",
+        DatasetType.FC25: "_FC_",
+        DatasetType.WATER: "_WATER_",
+        DatasetType.NDVI: "_NDVI_",
+        DatasetType.EVI: "_EVI_",
+        DatasetType.NBR: "_NBR_",
+        DatasetType.TCI: "_TCI_",
+        DatasetType.DSM: "DSM_"
+    }[dataset.dataset_type]
+
+    if mask_pqa_apply and mask_wofs_apply:
+        dataset_type_to_string += "WITH_PQA_WATER_"
+
+    elif mask_pqa_apply:
+        dataset_type_to_string += "WITH_PQA_"
+
+    elif mask_wofs_apply:
+        dataset_type_to_string += + "WITH_WATER_"
+
+    dataset_type_to_string += "STACK_" + band.name + "_"
+
+    filename = filename.replace(dataset_type_from_string, dataset_type_to_string)
+    filename = filename.replace(".vrt", ".tif")
+    filename = filename.replace(".tiff", ".tif")
+
+    return filename
+
+
 def get_dataset_datatype(dataset):
     return {
         DatasetType.ARG25: GDT_Int16,

@@ -6,7 +6,6 @@ Subpackages
 
 .. toctree::
 
-    datacube.api.raster
     datacube.api.workflow
 
 Submodules

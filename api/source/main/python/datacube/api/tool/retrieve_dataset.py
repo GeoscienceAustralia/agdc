@@ -194,8 +194,9 @@ def retrieve_data(x, y, acq_dt, dataset, pqa, pqa_masks, wofs, wofs_masks, path,
     data_type = data_type or get_dataset_datatype(dataset)
     ndv = ndv or get_dataset_ndv(dataset)
 
-    dataset_info = generate_raster_metadata(x, y, acq_dt, dataset, pqa is not None, pqa_masks,
-                                                wofs is not None, wofs_masks)
+    dataset_info = generate_raster_metadata(x, y, acq_dt, dataset,
+                                            pqa is not None, pqa_masks,
+                                            wofs is not None, wofs_masks)
 
     band_info = [b.name for b in dataset.bands]
 
@@ -226,4 +227,4 @@ def format_date_time(d):
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
 
-    RetrieveDatasetTool("Dataset Retrieval").run()
+    RetrieveDatasetTool("Retrieve Dataset").run()
