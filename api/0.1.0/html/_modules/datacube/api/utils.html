@@ -1030,6 +1030,54 @@
     <span class="k">return</span> <span class="n">filename</span>
 
 </div>
+<div class="viewcode-block" id="get_dataset_band_stack_filename"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.get_dataset_band_stack_filename">[docs]</a><span class="k">def</span> <span class="nf">get_dataset_band_stack_filename</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">band</span><span class="p">,</span> <span class="n">mask_pqa_apply</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">mask_wofs_apply</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">path</span>
+
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+    <span class="n">dataset_type_from_string</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">ARG25</span><span class="p">:</span> <span class="s">&quot;_NBAR_&quot;</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">PQ25</span><span class="p">:</span> <span class="s">&quot;_PQA_&quot;</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">FC25</span><span class="p">:</span> <span class="s">&quot;_FC_&quot;</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">WATER</span><span class="p">:</span> <span class="s">&quot;_WATER_&quot;</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">NDVI</span><span class="p">:</span> <span class="s">&quot;_NBAR_&quot;</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">EVI</span><span class="p">:</span> <span class="s">&quot;_NBAR_&quot;</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">NBR</span><span class="p">:</span> <span class="s">&quot;_NBAR_&quot;</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">TCI</span><span class="p">:</span> <span class="s">&quot;_NBAR_&quot;</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">DSM</span><span class="p">:</span> <span class="s">&quot;DSM_&quot;</span>
+    <span class="p">}[</span><span class="n">dataset</span><span class="o">.</span><span class="n">dataset_type</span><span class="p">]</span>
+
+    <span class="n">dataset_type_to_string</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">ARG25</span><span class="p">:</span> <span class="s">&quot;_NBAR_&quot;</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">PQ25</span><span class="p">:</span> <span class="s">&quot;_PQA_&quot;</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">FC25</span><span class="p">:</span> <span class="s">&quot;_FC_&quot;</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">WATER</span><span class="p">:</span> <span class="s">&quot;_WATER_&quot;</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">NDVI</span><span class="p">:</span> <span class="s">&quot;_NDVI_&quot;</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">EVI</span><span class="p">:</span> <span class="s">&quot;_EVI_&quot;</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">NBR</span><span class="p">:</span> <span class="s">&quot;_NBR_&quot;</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">TCI</span><span class="p">:</span> <span class="s">&quot;_TCI_&quot;</span><span class="p">,</span>
+        <span class="n">DatasetType</span><span class="o">.</span><span class="n">DSM</span><span class="p">:</span> <span class="s">&quot;DSM_&quot;</span>
+    <span class="p">}[</span><span class="n">dataset</span><span class="o">.</span><span class="n">dataset_type</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">mask_pqa_apply</span> <span class="ow">and</span> <span class="n">mask_wofs_apply</span><span class="p">:</span>
+        <span class="n">dataset_type_to_string</span> <span class="o">+=</span> <span class="s">&quot;WITH_PQA_WATER_&quot;</span>
+
+    <span class="k">elif</span> <span class="n">mask_pqa_apply</span><span class="p">:</span>
+        <span class="n">dataset_type_to_string</span> <span class="o">+=</span> <span class="s">&quot;WITH_PQA_&quot;</span>
+
+    <span class="k">elif</span> <span class="n">mask_wofs_apply</span><span class="p">:</span>
+        <span class="n">dataset_type_to_string</span> <span class="o">+=</span> <span class="o">+</span> <span class="s">&quot;WITH_WATER_&quot;</span>
+
+    <span class="n">dataset_type_to_string</span> <span class="o">+=</span> <span class="s">&quot;STACK_&quot;</span> <span class="o">+</span> <span class="n">band</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s">&quot;_&quot;</span>
+
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">dataset_type_from_string</span><span class="p">,</span> <span class="n">dataset_type_to_string</span><span class="p">)</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;.vrt&quot;</span><span class="p">,</span> <span class="s">&quot;.tif&quot;</span><span class="p">)</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;.tiff&quot;</span><span class="p">,</span> <span class="s">&quot;.tif&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">filename</span>
+
+</div>
 <div class="viewcode-block" id="get_dataset_datatype"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.get_dataset_datatype">[docs]</a><span class="k">def</span> <span class="nf">get_dataset_datatype</span><span class="p">(</span><span class="n">dataset</span><span class="p">):</span>
     <span class="k">return</span> <span class="p">{</span>
         <span class="n">DatasetType</span><span class="o">.</span><span class="n">ARG25</span><span class="p">:</span> <span class="n">GDT_Int16</span><span class="p">,</span>

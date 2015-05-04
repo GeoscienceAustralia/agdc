@@ -19,11 +19,13 @@ There are also a set of “tools” – i.e. packaged executables – aimed at t
 Retrieve Pixel Time Series
 --------------------------
 
-The `Retrieve Pixel Time Series` tool extracts the values of a given pixel from the specified dataset over time to a
+The *Retrieve Pixel Time Series* tool extracts the values of a given pixel from the specified dataset over time to a
 CSV file.  Pixel quality masking can be applied.  Acquisitions that are completely masked can be output or omitted::
 
     $ retrieve_pixel_time_series.py -h
+
     usage: retrieve_pixel_time_series.py
+
            [-h]
            [--quiet | --verbose]
            [--acq-min ACQ_MIN] [--acq-max ACQ_MAX]
@@ -40,7 +42,7 @@ CSV file.  Pixel quality masking can be applied.  Acquisitions that are complete
            [--output-directory OUTPUT_DIRECTORY]
            [--overwrite]
 
-    Time Series Retrieval
+    Retrieve Pixel Time Series
 
     optional arguments:
       -h, --help            show this help message and exit
@@ -90,7 +92,7 @@ For example to retrieve the NBAR values::
     LS7,2013-12-17 01:58:47,388,824,1605,2632,3326,2626
     LS7,2013-12-26 01:53:05,-999,-999,-999,-999,-999,-999
 
-and again applying pixel quality masking (defaults to selecting CLEAR pixels but can be changed via the ``--pqa-mask`` argument)::
+and again applying pixel quality masking (defaults to selecting CLEAR pixels but can be changed via the ``--mask-pqa-mask`` argument)::
 
     $ retrieve_pixel_time_series.py --lon 120.25 --lat -20.25 --acq-min 2013-12 --acq-max 2013-12 --satellite LS7 --dataset-type ARG25 --quiet --mask-pqa-apply
 
@@ -144,7 +146,7 @@ If you have a "batch" of pixels each of which you would like to retrieve a time 
 
 Create a text file containing the pixel locations (in this instance as lat/lon pairs separated by white space)
 
-.. code-block:: txt
+.. code-block:: text
     :caption: pixels.txt
 
     -20.00  120.00
@@ -249,12 +251,13 @@ This can be imported into Excel, for example, and a couple of calculated cells a
 Retrieve Dataset
 ----------------
 
-The retrieve dataset tool retrieves the given dataset(s) optionally applying pixel quality masks.  It can retrieve both
+The *Retrieve Dataset* tool retrieves the given dataset(s) optionally applying pixel quality masks.  It can retrieve both
 "physical" - NBAR, FC, PQA - and virtual/derived/calculated - NDVI, EVI, NBR, TCI - datasets::
 
     $ retrieve_dataset.py -h
 
     usage: retrieve_dataset.py
+
            [-h]
            [--quiet | --verbose]
            [--acq-min ACQ_MIN] [--acq-max ACQ_MAX]
@@ -269,7 +272,7 @@ The retrieve dataset tool retrieves the given dataset(s) optionally applying pix
            [--overwrite]
            [--list-only]
 
-    Dataset Retrieval
+    Retrieve Dataset
 
     optional arguments:
       -h, --help            show this help message and exit
@@ -481,6 +484,240 @@ To generate NDVI and NBR datasets from each NBAR dataset after applying PQA::
       Description = NDVI
       Minimum=-0.585, Maximum=100000002004089995264.000, Mean=82418751651744006144.000, StdDev=38066057144637997056.000
       NoData Value=nan
+
+Retrieve Dataset Stack
+----------------------
+
+The *Retrieve Dataset Stack* tool retrieves the given dataset(s), optionally applying pixel quality masks, as a band
+stack.
+
+That is, a raster file for each band of the requested dataset where each band represents that band from a given acquisition
+forming a time series.
+
+It can retrieve both "physical" - NBAR, FC, PQA - and virtual/derived/calculated - NDVI, EVI, NBR, TCI - datasets::
+
+    $ retrieve_dataset_stack.py -h
+
+    usage: retrieve_dataset_stack.py
+
+           [-h]
+           [--quiet | --verbose] [
+           --acq-min ACQ_MIN] [--acq-max ACQ_MAX]
+           [--satellite LS5 LS7 LS8 [LS5 LS7 LS8 ...]]
+           [--mask-pqa-apply]
+           [--mask-pqa-mask PQ_MASK_SATURATION_THERMAL PQ_MASK_SATURATION_OPTICAL PQ_MASK_SATURATION PQ_MASK_CONTIGUITY PQ_MASK_LAND PQ_MASK_CLOUD_ACCA PQ_MASK_CLOUD_FMASK PQ_MASK_CLOUD_SHADOW_ACCA PQ_MASK_CLOUD_SHADOW_FMASK PQ_MASK_CLOUD PQ_MASK_CLEAR [PQ_MASK_SATURATION_THERMAL PQ_MASK_SATURATION_OPTICAL PQ_MASK_SATURATION PQ_MASK_CONTIGUITY PQ_MASK_LAND PQ_MASK_CLOUD_ACCA PQ_MASK_CLOUD_FMASK PQ_MASK_CLOUD_SHADOW_ACCA PQ_MASK_CLOUD_SHADOW_FMASK PQ_MASK_CLOUD PQ_MASK_CLEAR ...]]
+           [--mask-wofs-apply]
+           [--mask-wofs-mask DRY NO_DATA SATURATION_CONTIGUITY SEA_WATER TERRAIN_SHADOW HIGH_SLOPE CLOUD_SHADOW CLOUD WET [DRY NO_DATA SATURATION_CONTIGUITY SEA_WATER TERRAIN_SHADOW HIGH_SLOPE CLOUD_SHADOW CLOUD WET ...]]
+           --x [110 - 155] --y [-45 - -10]
+           --dataset-type ARG25 PQ25 FC25 WATER DSM DEM DEM_HYDROLOGICALLY_ENFORCED DEM_SMOOTHED NDVI EVI NBR TCI
+           [--bands-all | --bands-common]
+           --output-directory OUTPUT_DIRECTORY
+           [--overwrite]
+           [--list-only]
+
+    Retrieve Dataset Stack
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      --quiet               Less output
+      --verbose             More output
+      --acq-min ACQ_MIN     Acquisition Date
+      --acq-max ACQ_MAX     Acquisition Date
+      --satellite LS5 LS7 LS8 [LS5 LS7 LS8 ...]
+                            The satellite(s) to include
+      --mask-pqa-apply      Apply PQA mask
+      --mask-pqa-mask PQ_MASK_SATURATION_THERMAL PQ_MASK_SATURATION_OPTICAL PQ_MASK_SATURATION PQ_MASK_CONTIGUITY PQ_MASK_LAND PQ_MASK_CLOUD_ACCA PQ_MASK_CLOUD_FMASK PQ_MASK_CLOUD_SHADOW_ACCA PQ_MASK_CLOUD_SHADOW_FMASK PQ_MASK_CLOUD PQ_MASK_CLEAR [PQ_MASK_SATURATION_THERMAL PQ_MASK_SATURATION_OPTICAL PQ_MASK_SATURATION PQ_MASK_CONTIGUITY PQ_MASK_LAND PQ_MASK_CLOUD_ACCA PQ_MASK_CLOUD_FMASK PQ_MASK_CLOUD_SHADOW_ACCA PQ_MASK_CLOUD_SHADOW_FMASK PQ_MASK_CLOUD PQ_MASK_CLEAR ...]
+                            The PQA mask to apply
+      --mask-wofs-apply     Apply WOFS mask
+      --mask-wofs-mask DRY NO_DATA SATURATION_CONTIGUITY SEA_WATER TERRAIN_SHADOW HIGH_SLOPE CLOUD_SHADOW CLOUD WET [DRY NO_DATA SATURATION_CONTIGUITY SEA_WATER TERRAIN_SHADOW HIGH_SLOPE CLOUD_SHADOW CLOUD WET ...]
+                            The WOFS mask to apply
+      --x [110 - 155]       X grid reference
+      --y [-45 - -10]       Y grid reference
+      --dataset-type ARG25 PQ25 FC25 WATER DSM DEM DEM_HYDROLOGICALLY_ENFORCED DEM_SMOOTHED NDVI EVI NBR TCI
+                            The type(s) of dataset to retrieve
+      --bands-all           Retrieve all bands with NULL values where the band is N/A
+      --bands-common        Retrieve only bands in common across all satellites
+      --output-directory OUTPUT_DIRECTORY
+                            Output directory
+      --overwrite           Over write existing output file
+      --list-only           List the datasets that would be retrieved rather than retrieving them
+
+.. NOTE::
+
+    The ACQ DATE parameters support dates being specified as ``YYYY`` or ``YYYY-MM`` or ``YYYY-MM-DD``.
+
+    The MIN parameter maps the value down - i.e. `2000` -> `2000-01-01` and `2000-12` -> `2012-12-01`
+
+    The MAX parameter maps the value up - i.e. `2000` -> `2000-12-31` and `2000-01` -> `2012-01-31`
+
+Example Uses
+++++++++++++
+
+For example to stack the LS8 Fractional Cover datasets from December 2013 for the 120/-25 cell::
+
+    $ retrieve_dataset_stack.py --x 120 --y -20 --satellite LS8 --acq-min 2013-12 --acq-max 2013-12 --dataset-type FC25 --mask-pqa-apply --output-directory /tmp
+
+    2015-05-04 13:58:15,015 INFO
+            acq = 2013-12-01 to 2013-12-31
+            satellites = LS8
+            PQA mask = PQ_MASK_CLEAR
+            WOFS mask =
+
+    2015-05-04 13:58:15,016 INFO
+            x = 120
+            y = -020
+
+    2015-05-04 13:58:15,016 INFO
+            datasets to retrieve = FC25
+            bands to retrieve = ['PHOTOSYNTHETIC_VEGETATION', 'NON_PHOTOSYNTHETIC_VEGETATION', 'BARE_SOIL', 'UNMIXING_ERROR']
+            output directory = /tmp
+            over write existing = False
+            list only = False
+
+    2015-05-04 13:58:15,166 INFO Total tiles found [3]
+
+    2015-05-04 13:58:15,167 INFO Creating stack for band [PHOTOSYNTHETIC_VEGETATION]
+    2015-05-04 13:58:15,167 INFO Total tiles for band [PHOTOSYNTHETIC_VEGETATION] is [3]
+    2015-05-04 13:58:15,353 INFO Stacking [PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-02T01-57-07.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-02T01-57-07.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-02T01-57-07.tif]
+    2015-05-04 13:58:23,276 INFO Stacking [PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_FC_120_-020_2013-12-09T02-03-41.tif] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_PQA_120_-020_2013-12-09T02-03-41.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-09T02-03-41.tif]
+    2015-05-04 13:58:26,521 INFO Stacking [PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-18T01-56-59.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-18T01-56-59.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-18T01-56-59.tif]
+
+    2015-05-04 13:58:33,807 INFO Creating stack for band [NON_PHOTOSYNTHETIC_VEGETATION]
+    2015-05-04 13:58:33,807 INFO Total tiles for band [NON_PHOTOSYNTHETIC_VEGETATION] is [3]
+    2015-05-04 13:58:33,930 INFO Stacking [NON_PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-02T01-57-07.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-02T01-57-07.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_NON_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-02T01-57-07.tif]
+    2015-05-04 13:58:41,766 INFO Stacking [NON_PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_FC_120_-020_2013-12-09T02-03-41.tif] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_PQA_120_-020_2013-12-09T02-03-41.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_NON_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-09T02-03-41.tif]
+    2015-05-04 13:58:45,061 INFO Stacking [NON_PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-18T01-56-59.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-18T01-56-59.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_NON_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-18T01-56-59.tif]
+
+    2015-05-04 13:58:52,159 INFO Creating stack for band [BARE_SOIL]
+    2015-05-04 13:58:52,159 INFO Total tiles for band [BARE_SOIL] is [3]
+    2015-05-04 13:58:52,283 INFO Stacking [BARE_SOIL] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-02T01-57-07.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-02T01-57-07.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013-12-02T01-57-07.tif]
+    2015-05-04 13:58:59,740 INFO Stacking [BARE_SOIL] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_FC_120_-020_2013-12-09T02-03-41.tif] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_PQA_120_-020_2013-12-09T02-03-41.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013-12-09T02-03-41.tif]
+    2015-05-04 13:59:02,922 INFO Stacking [BARE_SOIL] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-18T01-56-59.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-18T01-56-59.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013-12-18T01-56-59.tif]
+
+    2015-05-04 13:59:10,027 INFO Creating stack for band [UNMIXING_ERROR]
+    2015-05-04 13:59:10,028 INFO Total tiles for band [UNMIXING_ERROR] is [3]
+    2015-05-04 13:59:10,160 INFO Stacking [UNMIXING_ERROR] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-02T01-57-07.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-02T01-57-07.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_UNMIXING_ERROR_120_-020_2013-12-02T01-57-07.tif]
+    2015-05-04 13:59:17,514 INFO Stacking [UNMIXING_ERROR] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_FC_120_-020_2013-12-09T02-03-41.tif] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_PQA_120_-020_2013-12-09T02-03-41.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_UNMIXING_ERROR_120_-020_2013-12-09T02-03-41.tif]
+    2015-05-04 13:59:20,467 INFO Stacking [UNMIXING_ERROR] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-18T01-56-59.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-18T01-56-59.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_UNMIXING_ERROR_120_-020_2013-12-18T01-56-59.tif]
+
+.. code-block:: text
+    :caption: FC stack outputs
+
+    $ ls -lh
+
+    -rw-r----- 1 sjo547 u46 92M May  4 13:59 LS8_OLI_TIRS_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013-12-02T01-57-07.tif
+    -rw-r----- 1 sjo547 u46 92M May  4 13:58 LS8_OLI_TIRS_FC_WITH_PQA_STACK_NON_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-02T01-57-07.tif
+    -rw-r----- 1 sjo547 u46 92M May  4 13:58 LS8_OLI_TIRS_FC_WITH_PQA_STACK_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-02T01-57-07.tif
+    -rw-r----- 1 sjo547 u46 92M May  4 13:59 LS8_OLI_TIRS_FC_WITH_PQA_STACK_UNMIXING_ERROR_120_-020_2013-12-02T01-57-07.tif
+
+.. code-block:: text
+    :caption: `LS8_OLI_TIRS_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013-12-02T01-57-07.tif`...
+
+    $ gdalinfo LS8_OLI_TIRS_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013-12-02T01-57-07.tif
+    Driver: GTiff/GeoTIFF
+    Files: LS8_OLI_TIRS_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013-12-02T01-57-07.tif
+    Size is 4000, 4000
+    ...
+    Origin = (120.000000000000000,-19.000000000000000)
+    Pixel Size = (0.000250000000000,-0.000250000000000)
+    ...
+    Metadata:
+      ACQUISITION_DATE=2013_12_01 to 2013_12_31
+      AREA_OR_POINT=Area
+      DATASET_TYPE=FC25
+      PIXEL_QUALITY_FILTER=PQ_MASK_CLEAR
+      SATELLITES=LS8
+      X_INDEX=120
+      Y_INDEX=-020
+    ...
+    Band 1 Block=4000x1 Type=Int16, ColorInterp=Gray
+      Description = LS8_OLI_TIRS_FC_120_-020_2013-12-02T01-57-07.vrt
+      NoData Value=-999
+      Metadata:
+        ACQ_DATE=2013_12_02
+        SATELLITE=LS8
+    ...
+    Band 2 Block=4000x1 Type=Int16, ColorInterp=Undefined
+      Description = LS8_OLI_TIRS_FC_120_-020_2013-12-09T02-03-41.tif
+      NoData Value=-999
+      Metadata:
+        ACQ_DATE=2013_12_09
+        SATELLITE=LS8
+    ...
+    Band 3 Block=4000x1 Type=Int16, ColorInterp=Undefined
+      Description = LS8_OLI_TIRS_FC_120_-020_2013-12-18T01-56-59.vrt
+      NoData Value=-999
+      Metadata:
+        ACQ_DATE=2013_12_18
+        SATELLITE=LS8
+
+To stack the **COMMON** ARG25 bands across Landsat 5, 7, and 8::
+
+    $ retrieve_dataset_stack.py --x 120 --y -20 --satellite LS5 LS7 LS8 --acq-min 2013-12 --acq-max 2013-12 --dataset-type ARG25 --mask-pqa-apply --output-directory /tmp --bands-common
+
+    2015-05-04 14:07:06,396 INFO
+            acq = 2013-12-01 to 2013-12-31
+            satellites = LS5 LS7 LS8
+            PQA mask = PQ_MASK_CLEAR
+            WOFS mask =
+
+    2015-05-04 14:07:06,396 INFO
+            x = 120
+            y = -020
+
+    2015-05-04 14:07:06,396 INFO
+            datasets to retrieve = ARG25
+            bands to retrieve = ['BLUE', 'GREEN', 'RED', 'NEAR_INFRARED', 'SHORT_WAVE_INFRARED_1', 'SHORT_WAVE_INFRARED_2']
+            output directory = /tmp
+            over write existing = False
+            list only = False
+
+.. code-block:: text
+    :caption: NBAR stack outputs - **COMMON**
+
+    $ ls -lh
+
+    -rw-r----- 1 sjo547 u46 154M May  4 14:07 LS7_ETM_NBAR_WITH_PQA_STACK_BLUE_120_-020_2013-12-01T01-58-23.045319.tif
+    -rw-r----- 1 sjo547 u46 154M May  4 14:08 LS7_ETM_NBAR_WITH_PQA_STACK_GREEN_120_-020_2013-12-01T01-58-23.045319.tif
+    -rw-r----- 1 sjo547 u46 154M May  4 14:10 LS7_ETM_NBAR_WITH_PQA_STACK_NEAR_INFRARED_120_-020_2013-12-01T01-58-23.045319.tif
+    -rw-r----- 1 sjo547 u46 154M May  4 14:09 LS7_ETM_NBAR_WITH_PQA_STACK_RED_120_-020_2013-12-01T01-58-23.045319.tif
+    -rw-r----- 1 sjo547 u46 154M May  4 14:11 LS7_ETM_NBAR_WITH_PQA_STACK_SHORT_WAVE_INFRARED_1_120_-020_2013-12-01T01-58-23.045319.tif
+    -rw-r----- 1 sjo547 u46 154M May  4 14:12 LS7_ETM_NBAR_WITH_PQA_STACK_SHORT_WAVE_INFRARED_2_120_-020_2013-12-01T01-58-23.045319.tif
+
+To stack **ALL** ARG25 bands across Landsat 5, 7, and 8::
+
+    $ retrieve_dataset_stack.py --x 120 --y -20 --satellite LS5 LS7 LS8 --acq-min 2013-12 --acq-max 2013-12 --dataset-type ARG25 --mask-pqa-apply --output-directory /tmp --bands-all
+
+    2015-05-04 14:15:29,724 INFO
+            acq = 2013-12-01 to 2013-12-31
+            satellites = LS5 LS7 LS8
+            PQA mask = PQ_MASK_CLEAR
+            WOFS mask =
+
+    2015-05-04 14:15:29,725 INFO
+            x = 120
+            y = -020
+
+    2015-05-04 14:15:29,725 INFO
+            datasets to retrieve = ARG25
+            bands to retrieve = ['BLUE', 'GREEN', 'RED', 'NEAR_INFRARED', 'SHORT_WAVE_INFRARED_1', 'SHORT_WAVE_INFRARED_2', 'COASTAL_AEROSOL']
+            output directory = /g/data/u46/sjo/testing/0.1.0
+            over write existing = False
+            list only = False
+
+.. code-block:: text
+    :caption: NBAR stack outputs - **ALL**
+
+    $ ls -lh
+
+    -rw-r----- 1 sjo547 u46 154M May  4 14:16 LS7_ETM_NBAR_WITH_PQA_STACK_BLUE_120_-020_2013-12-01T01-58-23.045319.tif
+    -rw-r----- 1 sjo547 u46 154M May  4 14:17 LS7_ETM_NBAR_WITH_PQA_STACK_GREEN_120_-020_2013-12-01T01-58-23.045319.tif
+    -rw-r----- 1 sjo547 u46 154M May  4 14:18 LS7_ETM_NBAR_WITH_PQA_STACK_NEAR_INFRARED_120_-020_2013-12-01T01-58-23.045319.tif
+    -rw-r----- 1 sjo547 u46 154M May  4 14:18 LS7_ETM_NBAR_WITH_PQA_STACK_RED_120_-020_2013-12-01T01-58-23.045319.tif
+    -rw-r----- 1 sjo547 u46 154M May  4 14:19 LS7_ETM_NBAR_WITH_PQA_STACK_SHORT_WAVE_INFRARED_1_120_-020_2013-12-01T01-58-23.045319.tif
+    -rw-r----- 1 sjo547 u46 154M May  4 14:20 LS7_ETM_NBAR_WITH_PQA_STACK_SHORT_WAVE_INFRARED_2_120_-020_2013-12-01T01-58-23.045319.tif
+
+    -rw-r----- 1 sjo547 u46 154M May  4 14:21 LS8_OLI_TIRS_NBAR_WITH_PQA_STACK_COASTAL_AEROSOL_120_-020_2013-12-02T01-57-07.tif
 
 Indices and tables
 ==================
