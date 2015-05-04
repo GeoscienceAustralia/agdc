@@ -605,6 +605,7 @@ It can retrieve both "physical" - NBAR, FC, PQA - and virtual/derived/calculated
            --output-directory OUTPUT_DIRECTORY
            [--overwrite]
            [--list-only]
+           [--output-format GEOTIFF ENVI]
 
     Retrieve Dataset Stack
 
@@ -632,6 +633,8 @@ It can retrieve both "physical" - NBAR, FC, PQA - and virtual/derived/calculated
                             Output directory
       --overwrite           Over write existing output file
       --list-only           List the datasets that would be retrieved rather than retrieving them
+      --output-format GEOTIFF ENVI
+                            The format of the output dataset
 
 .. NOTE::
 
@@ -720,6 +723,116 @@ For example to stack the LS8 Fractional Cover datasets from December 2013 for th
       SATELLITES=LS8
       X_INDEX=120
       Y_INDEX=-020
+    ...
+    Band 1 Block=4000x1 Type=Int16, ColorInterp=Gray
+      Description = LS8_OLI_TIRS_FC_120_-020_2013-12-02T01-57-07.vrt
+      NoData Value=-999
+      Metadata:
+        ACQ_DATE=2013_12_02
+        SATELLITE=LS8
+    ...
+    Band 2 Block=4000x1 Type=Int16, ColorInterp=Undefined
+      Description = LS8_OLI_TIRS_FC_120_-020_2013-12-09T02-03-41.tif
+      NoData Value=-999
+      Metadata:
+        ACQ_DATE=2013_12_09
+        SATELLITE=LS8
+    ...
+    Band 3 Block=4000x1 Type=Int16, ColorInterp=Undefined
+      Description = LS8_OLI_TIRS_FC_120_-020_2013-12-18T01-56-59.vrt
+      NoData Value=-999
+      Metadata:
+        ACQ_DATE=2013_12_18
+        SATELLITE=LS8
+
+As ENVI format::
+
+    $ retrieve_dataset_stack.py --x 120 --y -20 --satellite LS8 --acq-min 2013-12 --acq-max 2013-12 --dataset-type FC25 --mask-pqa-apply --output-directory /tmp --output-format ENVI
+
+    2015-05-04 16:07:34,072 INFO
+            acq = 2013-12-01 to 2013-12-31
+            satellites = LS8
+            PQA mask = PQ_MASK_CLEAR
+            WOFS mask =
+
+    2015-05-04 16:07:34,072 INFO
+            x = 120
+            y = -020
+
+    2015-05-04 16:07:34,072 INFO
+            datasets to retrieve = FC25
+            bands to retrieve = ['PHOTOSYNTHETIC_VEGETATION', 'NON_PHOTOSYNTHETIC_VEGETATION', 'BARE_SOIL', 'UNMIXING_ERROR']
+            output directory = /tmp
+            over write existing = False
+            list only = False
+            output format = ENVI
+
+    2015-05-04 16:07:34,294 INFO Total tiles found [3]
+
+    2015-05-04 16:07:34,294 INFO Creating stack for band [PHOTOSYNTHETIC_VEGETATION]
+    2015-05-04 16:07:34,294 INFO Total tiles for band [PHOTOSYNTHETIC_VEGETATION] is [3]
+    2015-05-04 16:07:34,537 INFO Stacking [PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-02T01-57-07.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-02T01-57-07.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-02T01-57-07.dat]
+    2015-05-04 16:07:41,748 INFO Stacking [PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_FC_120_-020_2013-12-09T02-03-41.tif] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_PQA_120_-020_2013-12-09T02-03-41.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-09T02-03-41.dat]
+    2015-05-04 16:07:44,019 INFO Stacking [PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-18T01-56-59.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-18T01-56-59.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-18T01-56-59.dat]
+
+    2015-05-04 16:07:50,668 INFO Creating stack for band [NON_PHOTOSYNTHETIC_VEGETATION]
+    2015-05-04 16:07:50,668 INFO Total tiles for band [NON_PHOTOSYNTHETIC_VEGETATION] is [3]
+    2015-05-04 16:07:50,815 INFO Stacking [NON_PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-02T01-57-07.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-02T01-57-07.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_NON_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-02T01-57-07.dat]
+    2015-05-04 16:07:58,340 INFO Stacking [NON_PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_FC_120_-020_2013-12-09T02-03-41.tif] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_PQA_120_-020_2013-12-09T02-03-41.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_NON_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-09T02-03-41.dat]
+    2015-05-04 16:08:00,590 INFO Stacking [NON_PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-18T01-56-59.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-18T01-56-59.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_NON_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-18T01-56-59.dat]
+
+    2015-05-04 16:08:07,055 INFO Creating stack for band [BARE_SOIL]
+    2015-05-04 16:08:07,056 INFO Total tiles for band [BARE_SOIL] is [3]
+    2015-05-04 16:08:07,194 INFO Stacking [BARE_SOIL] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-02T01-57-07.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-02T01-57-07.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013-12-02T01-57-07.dat]
+    2015-05-04 16:08:14,140 INFO Stacking [BARE_SOIL] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_FC_120_-020_2013-12-09T02-03-41.tif] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_PQA_120_-020_2013-12-09T02-03-41.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013-12-09T02-03-41.dat]
+    2015-05-04 16:08:16,343 INFO Stacking [BARE_SOIL] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-18T01-56-59.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-18T01-56-59.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013-12-18T01-56-59.dat]
+
+    2015-05-04 16:08:23,121 INFO Creating stack for band [UNMIXING_ERROR]
+    2015-05-04 16:08:23,121 INFO Total tiles for band [UNMIXING_ERROR] is [3]
+    2015-05-04 16:08:23,270 INFO Stacking [UNMIXING_ERROR] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-02T01-57-07.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-02T01-57-07.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_UNMIXING_ERROR_120_-020_2013-12-02T01-57-07.dat]
+    2015-05-04 16:08:30,392 INFO Stacking [UNMIXING_ERROR] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_FC_120_-020_2013-12-09T02-03-41.tif] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_PQA_120_-020_2013-12-09T02-03-41.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_UNMIXING_ERROR_120_-020_2013-12-09T02-03-41.dat]
+    2015-05-04 16:08:32,526 INFO Stacking [UNMIXING_ERROR] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-18T01-56-59.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-18T01-56-59.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_UNMIXING_ERROR_120_-020_2013-12-18T01-56-59.dat]
+
+.. code-block:: text
+    :caption: ENVI FC stack outputs
+
+    $ ls -lh
+
+    -rw-r----- 1 sjo547 u46 92M May  4 16:08 LS8_OLI_TIRS_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013-12-02T01-57-07.dat
+    -rw-r----- 1 sjo547 u46 669 May  4 16:08 LS8_OLI_TIRS_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013-12-02T01-57-07.hdr
+
+    -rw-r----- 1 sjo547 u46 92M May  4 16:08 LS8_OLI_TIRS_FC_WITH_PQA_STACK_NON_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-02T01-57-07.dat
+    -rw-r----- 1 sjo547 u46 689 May  4 16:08 LS8_OLI_TIRS_FC_WITH_PQA_STACK_NON_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-02T01-57-07.hdr
+
+    -rw-r----- 1 sjo547 u46 92M May  4 16:07 LS8_OLI_TIRS_FC_WITH_PQA_STACK_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-02T01-57-07.dat
+    -rw-r----- 1 sjo547 u46 685 May  4 16:07 LS8_OLI_TIRS_FC_WITH_PQA_STACK_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-02T01-57-07.hdr
+
+    -rw-r----- 1 sjo547 u46 92M May  4 16:08 LS8_OLI_TIRS_FC_WITH_PQA_STACK_UNMIXING_ERROR_120_-020_2013-12-02T01-57-07.dat
+    -rw-r----- 1 sjo547 u46 674 May  4 16:08 LS8_OLI_TIRS_FC_WITH_PQA_STACK_UNMIXING_ERROR_120_-020_2013-12-02T01-57-07.hdr
+
+.. code-block:: text
+    :caption: `LS8_OLI_TIRS_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013-12-02T01-57-07.dat`...
+
+    $ gdalinfo LS8_OLI_TIRS_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013-12-02T01-57-07.dat
+
+    Driver: ENVI/ENVI .hdr Labelled
+    Files: LS8_OLI_TIRS_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013-12-02T01-57-07.dat
+           LS8_OLI_TIRS_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013-12-02T01-57-07.hdr
+    Size is 4000, 4000
+    ...
+    Origin = (120.000000000000000,-19.000000000000000)
+    Pixel Size = (0.000250000000000,-0.000250000000000)
+    ...
+    Metadata:
+      ACQUISITION_DATE=2013_12_01 to 2013_12_31
+      DATASET_TYPE=FC25
+      PIXEL_QUALITY_FILTER=PQ_MASK_CLEAR
+      SATELLITES=LS8
+      X_INDEX=120
+      Y_INDEX=-020
+      Band_1=LS8_OLI_TIRS_FC_120_-020_2013-12-02T01-57-07.vrt
+      Band_2=LS8_OLI_TIRS_FC_120_-020_2013-12-09T02-03-41.tif
+      Band_3=LS8_OLI_TIRS_FC_120_-020_2013-12-18T01-56-59.vrt
     ...
     Band 1 Block=4000x1 Type=Int16, ColorInterp=Gray
       Description = LS8_OLI_TIRS_FC_120_-020_2013-12-02T01-57-07.vrt

@@ -33,10 +33,10 @@ __author__ = "Simon Oldfield"
 
 import logging
 import os
-from datacube.api import dataset_type_arg, writeable_dir
+from datacube.api import dataset_type_arg, writeable_dir, output_format_arg
 from datacube.api.model import DatasetType
 from datacube.api.tool import CellTool
-from datacube.api.utils import get_mask_pqa, get_mask_wofs, get_dataset_data_masked, format_date
+from datacube.api.utils import get_mask_pqa, get_mask_wofs, get_dataset_data_masked, format_date, OutputFormat
 from datacube.api.utils import get_dataset_band_stack_filename
 from datacube.api.utils import get_band_name_union, get_band_name_intersection
 from datacube.api.utils import get_dataset_ndv, get_dataset_datatype, get_dataset_metadata
@@ -68,6 +68,8 @@ class RetrieveDatasetStackTool(CellTool):
         self.output_directory = None
         self.overwrite = None
         self.list_only = None
+
+        self.output_format = None
 
     def setup_arguments(self):
 
@@ -105,6 +107,13 @@ class RetrieveDatasetStackTool(CellTool):
                                  help="List the datasets that would be retrieved rather than retrieving them",
                                  action="store_true", dest="list_only", default=False)
 
+        self.parser.add_argument("--output-format", help="The format of the output dataset",
+                                 action="store",
+                                 dest="output_format",
+                                 type=output_format_arg,
+                                 choices=OutputFormat, default=OutputFormat.GEOTIFF,
+                                 metavar=" ".join([f.name for f in OutputFormat]))
+
     def process_arguments(self, args):
 
         # Call method on super class
@@ -122,6 +131,8 @@ class RetrieveDatasetStackTool(CellTool):
         self.overwrite = args.overwrite
         self.list_only = args.list_only
 
+        self.output_format = args.output_format
+
     def log_arguments(self):
 
         # Call method on super class
@@ -134,11 +145,13 @@ class RetrieveDatasetStackTool(CellTool):
         output directory = {output}
         over write existing = {overwrite}
         list only = {list_only}
+        output format = {output_format}
         """.format(dataset_type=self.dataset_type.name,
                    bands=self.bands,
                    output=self.output_directory,
                    overwrite=self.overwrite,
-                   list_only=self.list_only))
+                   list_only=self.list_only,
+                   output_format=self.output_format.name))
 
     def get_tiles(self):
 
@@ -217,6 +230,7 @@ class RetrieveDatasetStackTool(CellTool):
 
                 filename = os.path.join(self.output_directory,
                                         get_dataset_band_stack_filename(dataset, band,
+                                                                        output_format=self.output_format,
                                                                         mask_pqa_apply=self.mask_pqa_apply,
                                                                         mask_wofs_apply=self.mask_wofs_apply))
 
@@ -233,11 +247,21 @@ class RetrieveDatasetStackTool(CellTool):
                     assert ndv
 
                 if not driver:
-                    driver = gdal.GetDriverByName("GTiff")
+
+                    if self.output_format == OutputFormat.GEOTIFF:
+                        driver = gdal.GetDriverByName("GTiff")
+                    elif self.output_format == OutputFormat.ENVI:
+                        driver = gdal.GetDriverByName("ENVI")
+
                     assert driver
 
                 if not raster:
-                    raster = driver.Create(filename, metadata.shape[0], metadata.shape[1], len(tiles), data_type, options=["BIGTIFF=YES", "INTERLEAVE=BAND"])
+
+                    if self.output_format == OutputFormat.GEOTIFF:
+                        raster = driver.Create(filename, metadata.shape[0], metadata.shape[1], len(tiles), data_type, options=["BIGTIFF=YES", "INTERLEAVE=BAND"])
+                    elif self.output_format == OutputFormat.ENVI:
+                        raster = driver.Create(filename, metadata.shape[0], metadata.shape[1], len(tiles), data_type, options=["INTERLEAVE=BSQ"])
+
                     assert raster
 
                     # NOTE: could do this without the metadata!!

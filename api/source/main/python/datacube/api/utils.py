@@ -1037,7 +1037,7 @@ def get_dataset_filename(dataset, output_format=OutputFormat.GEOTIFF, mask_pqa_a
     return filename
 
 
-def get_dataset_band_stack_filename(dataset, band, mask_pqa_apply=False, mask_wofs_apply=False):
+def get_dataset_band_stack_filename(dataset, band, output_format=OutputFormat.GEOTIFF, mask_pqa_apply=False, mask_wofs_apply=False):
 
     filename = dataset.path
 
@@ -1079,8 +1079,12 @@ def get_dataset_band_stack_filename(dataset, band, mask_pqa_apply=False, mask_wo
     dataset_type_to_string += "STACK_" + band.name + "_"
 
     filename = filename.replace(dataset_type_from_string, dataset_type_to_string)
-    filename = filename.replace(".vrt", ".tif")
-    filename = filename.replace(".tiff", ".tif")
+
+    ext = {OutputFormat.GEOTIFF: ".tif", OutputFormat.ENVI: ".dat"}[output_format]
+
+    filename = filename.replace(".vrt", ext)
+    filename = filename.replace(".tiff", ext)
+    filename = filename.replace(".tif", ext)
 
     return filename
 
