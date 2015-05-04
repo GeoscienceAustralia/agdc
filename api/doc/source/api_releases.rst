@@ -6,6 +6,20 @@
 API Releases
 ============
 
+AGDC API v0.1.0 (2015-05-05 snapshot)
+-------------------------------------
+
+The source code is available on the ``api`` branch from the ``agdc-api-0.1.0-b20150505`` tag.
+
+The packaged version is available as a loadable module on ``raijin`` at the NCI as ``agdc-api/0.1.0-b20150505`` in
+both ``u46`` and ``el8``::
+
+    $ module load agdc-api/0.1.0-b20150505
+
+**Changes in this release...**
+
+* Enhancement - `Issue 29 Enhance Retrieve Dataset Tool to support ENVI output format <https://github.com/GeoscienceAustralia/agdc/issues/29>`_
+
 AGDC API v0.1.0 (2015-04-30 snapshot)
 -------------------------------------
 
@@ -19,6 +33,7 @@ both ``u46`` and ``el8``::
 **Changes in this release...**
 
 * Enhancement - `Issue 31 Implement Retrieve Dataset Stack tool <https://github.com/GeoscienceAustralia/agdc/issues/31>`_
+* Enhancement - `Issue 40 Allow Retrieve Dataset Stack tool to operate over satellites with non-identical bands <https://github.com/GeoscienceAustralia/agdc/issues/40>`_
 
 AGDC API v0.1.0 (2015-04-28 snapshot)
 -------------------------------------

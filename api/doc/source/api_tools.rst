@@ -271,6 +271,7 @@ The *Retrieve Dataset* tool retrieves the given dataset(s) optionally applying p
            --output-directory OUTPUT_DIRECTORY
            [--overwrite]
            [--list-only]
+           [--output-format GEOTIFF ENVI]
 
     Retrieve Dataset
 
@@ -296,6 +297,8 @@ The *Retrieve Dataset* tool retrieves the given dataset(s) optionally applying p
                             Output directory
       --overwrite           Over write existing output file
       --list-only           List the datasets that would be retrieved rather than retrieving them
+      --output-format GEOTIFF ENVI
+                            The format of the output dataset
 
 .. NOTE::
 
@@ -484,6 +487,94 @@ To generate NDVI and NBR datasets from each NBAR dataset after applying PQA::
       Description = NDVI
       Minimum=-0.585, Maximum=100000002004089995264.000, Mean=82418751651744006144.000, StdDev=38066057144637997056.000
       NoData Value=nan
+
+To retrieve the FC datasets applying PQ mask in ENVI format::
+
+    $ retrieve_dataset.py --acq-min 2014-01 --acq-max 2014-01 --satellite LS5 LS7 LS8 --mask-pqa-apply --x 120 --y -25 --dataset-type FC25 --output-directory /tmp --output-format ENVI
+
+    2015-05-04 15:46:04,641 INFO
+            acq = 2014-01-01 to 2014-01-31
+            satellites = LS5 LS7 LS8
+            PQA mask = PQ_MASK_CLEAR
+            WOFS mask =
+
+    2015-05-04 15:46:04,641 INFO
+            x = 120
+            y = -025
+
+    2015-05-04 15:46:04,642 INFO
+            datasets to retrieve = FC25
+            output directory = /tmp
+            over write existing = False
+            list only = False
+            output format = ENVI
+
+    2015-05-04 15:46:04,863 INFO Retrieving data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-025/2014/mosaic_cache/LS8_OLI_TIRS_FC_120_-025_2014-01-03T01-58-04.vrt] with pq [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-025/2014/mosaic_cache/LS8_OLI_TIRS_PQA_120_-025_2014-01-03T01-58-04.tif] and pq mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and wofs [] and wofs mask [] to [ENVI] file [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_120_-025_2014-01-03T01-58-04.dat]
+    2015-05-04 15:46:12,963 INFO Retrieving data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/120_-025/2014/LS7_ETM_FC_120_-025_2014-01-04T01-47-21.tif] with pq [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/120_-025/2014/LS7_ETM_PQA_120_-025_2014-01-04T01-47-21.148399.tif] and pq mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and wofs [] and wofs mask [] to [ENVI] file [/g/data/u46/sjo/testing/0.1.0/LS7_ETM_FC_WITH_PQA_120_-025_2014-01-04T01-47-21.dat]
+    2015-05-04 15:46:15,648 INFO Retrieving data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-025/2014/LS8_OLI_TIRS_FC_120_-025_2014-01-12T01-52-08.tif] with pq [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-025/2014/LS8_OLI_TIRS_PQA_120_-025_2014-01-12T01-52-08.tif] and pq mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and wofs [] and wofs mask [] to [ENVI] file [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_120_-025_2014-01-12T01-52-08.dat]
+    2015-05-04 15:46:18,494 INFO Retrieving data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-025/2014/LS8_OLI_TIRS_FC_120_-025_2014-01-19T01-58-14.tif] with pq [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-025/2014/LS8_OLI_TIRS_PQA_120_-025_2014-01-19T01-58-14.tif] and pq mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and wofs [] and wofs mask [] to [ENVI] file [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_120_-025_2014-01-19T01-58-14.dat]
+
+.. code-block:: text
+    :caption: FC ENVI outputs
+
+    $ ls -lh
+
+    -rw-r----- 1 sjo547 u46 123M May  4 15:46 LS7_ETM_FC_WITH_PQA_120_-025_2014-01-04T01-47-21.dat
+    -rw-r----- 1 sjo547 u46  583 May  4 15:46 LS7_ETM_FC_WITH_PQA_120_-025_2014-01-04T01-47-21.hdr
+
+    -rw-r----- 1 sjo547 u46 123M May  4 15:46 LS8_OLI_TIRS_FC_WITH_PQA_120_-025_2014-01-03T01-58-04.dat
+    -rw-r----- 1 sjo547 u46  588 May  4 15:46 LS8_OLI_TIRS_FC_WITH_PQA_120_-025_2014-01-03T01-58-04.hdr
+
+    -rw-r----- 1 sjo547 u46 123M May  4 15:46 LS8_OLI_TIRS_FC_WITH_PQA_120_-025_2014-01-12T01-52-08.dat
+    -rw-r----- 1 sjo547 u46  588 May  4 15:46 LS8_OLI_TIRS_FC_WITH_PQA_120_-025_2014-01-12T01-52-08.hdr
+
+    -rw-r----- 1 sjo547 u46 123M May  4 15:46 LS8_OLI_TIRS_FC_WITH_PQA_120_-025_2014-01-19T01-58-14.dat
+    -rw-r----- 1 sjo547 u46  588 May  4 15:46 LS8_OLI_TIRS_FC_WITH_PQA_120_-025_2014-01-19T01-58-14.hdr
+
+.. code-block:: text
+    :caption: `LS7_ETM_FC_WITH_PQA_120_-025_2014-01-04T01-47-21.dat`...
+
+    $ gdalinfo LS7_ETM_FC_WITH_PQA_120_-025_2014-01-04T01-47-21.dat
+
+    Driver: ENVI/ENVI .hdr Labelled
+    Files: LS7_ETM_FC_WITH_PQA_120_-025_2014-01-04T01-47-21.dat
+           LS7_ETM_FC_WITH_PQA_120_-025_2014-01-04T01-47-21.hdr
+    Size is 4000, 4000
+    ...
+    Origin = (120.000000000000000,-19.000000000000000)
+    Pixel Size = (0.000250000000000,-0.000250000000000)
+    ...
+    Metadata:
+      ACQUISITION_DATE=2014-01-04 01:47:45
+      DATASET_TYPE=FC25
+      PIXEL_QUALITY_FILTER=PQ_MASK_CLEAR
+      SATELLITE=LS7
+      X_INDEX=120
+      Y_INDEX=-025
+      Band_1=PHOTOSYNTHETIC_VEGETATION
+      Band_2=NON_PHOTOSYNTHETIC_VEGETATION
+      Band_3=BARE_SOIL
+      Band_4=UNMIXING_ERROR
+    ...
+    Band 1 Block=4000x1 Type=Int16, ColorInterp=Gray
+      Description = PHOTOSYNTHETIC_VEGETATION
+      Minimum=0.000, Maximum=16959.000, Mean=6743.956, StdDev=6415.091
+      NoData Value=-999
+    ...
+    Band 2 Block=4000x1 Type=Int16, ColorInterp=Undefined
+      Description = NON_PHOTOSYNTHETIC_VEGETATION
+      Minimum=0.000, Maximum=21059.000, Mean=10392.389, StdDev=4577.513
+      NoData Value=-999
+    ...
+    Band 3 Block=4000x1 Type=Int16, ColorInterp=Undefined
+      Description = BARE_SOIL
+      Minimum=0.000, Maximum=16959.000, Mean=5404.868, StdDev=7320.007
+      NoData Value=-999
+    ...
+    Band 4 Block=4000x1 Type=Int16, ColorInterp=Undefined
+      Description = UNMIXING_ERROR
+      Minimum=326.000, Maximum=16959.000, Mean=7182.122, StdDev=6224.030
+      NoData Value=-999
 
 Retrieve Dataset Stack
 ----------------------

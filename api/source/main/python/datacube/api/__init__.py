@@ -33,7 +33,7 @@ import argparse
 import logging
 import os
 from datacube.api.model import Satellite, DatasetType
-from datacube.api.utils import PqaMask, WofsMask
+from datacube.api.utils import PqaMask, WofsMask, OutputFormat
 
 
 _log = logging.getLogger()
@@ -149,6 +149,12 @@ def parse_date_max(s):
             return d
 
     return None
+
+
+def output_format_arg(s):
+    if s in [f.name for f in OutputFormat]:
+        return OutputFormat[s]
+    raise argparse.ArgumentTypeError("{0} is not a supported output format".format(s))
 
 
 

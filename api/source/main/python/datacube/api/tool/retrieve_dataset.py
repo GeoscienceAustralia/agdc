@@ -33,10 +33,11 @@ __author__ = "Simon Oldfield"
 
 import logging
 import os
-from datacube.api import dataset_type_arg, writeable_dir
+from datacube.api import dataset_type_arg, writeable_dir, output_format_arg, OutputFormat
 from datacube.api.model import DatasetType
 from datacube.api.tool import CellTool
-from datacube.api.utils import raster_create, intersection, get_mask_pqa, get_mask_wofs, get_dataset_data_masked
+from datacube.api.utils import intersection, get_mask_pqa, get_mask_wofs, get_dataset_data_masked
+from datacube.api.utils import raster_create_geotiff, raster_create_envi
 from datacube.api.utils import get_dataset_filename, get_dataset_ndv, get_dataset_datatype, get_dataset_metadata
 
 
@@ -56,6 +57,8 @@ class RetrieveDatasetTool(CellTool):
         self.output_directory = None
         self.overwrite = None
         self.list_only = None
+
+        self.output_format = None
 
     def setup_arguments(self):
 
@@ -81,6 +84,13 @@ class RetrieveDatasetTool(CellTool):
                                  help="List the datasets that would be retrieved rather than retrieving them",
                                  action="store_true", dest="list_only", default=False)
 
+        self.parser.add_argument("--output-format", help="The format of the output dataset",
+                                 action="store",
+                                 dest="output_format",
+                                 type=output_format_arg,
+                                 choices=OutputFormat, default=OutputFormat.GEOTIFF,
+                                 metavar=" ".join([f.name for f in OutputFormat]))
+
     def process_arguments(self, args):
 
         # Call method on super class
@@ -93,6 +103,8 @@ class RetrieveDatasetTool(CellTool):
         self.overwrite = args.overwrite
         self.list_only = args.list_only
 
+        self.output_format = args.output_format
+
     def log_arguments(self):
 
         # Call method on super class
@@ -104,10 +116,12 @@ class RetrieveDatasetTool(CellTool):
         output directory = {output}
         over write existing = {overwrite}
         list only = {list_only}
+        output format = {output_format}
         """.format(dataset_type=" ".join([d.name for d in self.dataset_types]),
                    output=self.output_directory,
                    overwrite=self.overwrite,
-                   list_only=self.list_only))
+                   list_only=self.list_only,
+                   output_format=self.output_format.name))
 
     def get_tiles(self):
 
@@ -157,21 +171,22 @@ class RetrieveDatasetTool(CellTool):
 
                 filename = os.path.join(self.output_directory,
                                         get_dataset_filename(dataset,
+                                                             output_format=self.output_format,
                                                              mask_pqa_apply=self.mask_pqa_apply,
                                                              mask_wofs_apply=self.mask_wofs_apply))
 
-                retrieve_data(tile.x, tile.y, tile.end_datetime, dataset,
-                              pqa, self.mask_pqa_mask, wofs, self.mask_wofs_mask, filename, self.overwrite)
+                retrieve_data(tile.x, tile.y, tile.end_datetime, dataset, pqa, self.mask_pqa_mask,
+                              wofs, self.mask_wofs_mask, filename, self.output_format, self.overwrite)
 
 
-def retrieve_data(x, y, acq_dt, dataset, pqa, pqa_masks, wofs, wofs_masks, path, overwrite=False, data_type=None, ndv=None):
+def retrieve_data(x, y, acq_dt, dataset, pqa, pqa_masks, wofs, wofs_masks, path, output_format, overwrite=False, data_type=None, ndv=None):
 
-    _log.info("Retrieving data from [%s] with pq [%s] and pq mask [%s] and wofs [%s] and wofs mask [%s] to [%s]",
+    _log.info("Retrieving data from [%s] with pq [%s] and pq mask [%s] and wofs [%s] and wofs mask [%s] to [%s] file [%s]",
               dataset.path,
               pqa and pqa.path or "",
               pqa and pqa_masks or "",
               wofs and wofs.path or "", wofs and wofs_masks or "",
-              path)
+              output_format.name, path)
 
     if os.path.exists(path) and not overwrite:
         _log.error("Output file [%s] exists", path)
@@ -200,8 +215,15 @@ def retrieve_data(x, y, acq_dt, dataset, pqa, pqa_masks, wofs, wofs_masks, path,
 
     band_info = [b.name for b in dataset.bands]
 
-    raster_create(path, [data[b] for b in dataset.bands], metadata.transform, metadata.projection, ndv, data_type,
-                  dataset_metadata=dataset_info, band_ids=band_info)
+    if output_format == OutputFormat.GEOTIFF:
+        raster_create_geotiff(path, [data[b] for b in dataset.bands], metadata.transform, metadata.projection, ndv,
+                              data_type,
+                              dataset_metadata=dataset_info, band_ids=band_info)
+
+    elif output_format == OutputFormat.ENVI:
+        raster_create_envi(path, [data[b] for b in dataset.bands], metadata.transform, metadata.projection, ndv,
+                           data_type,
+                           dataset_metadata=dataset_info, band_ids=band_info)
 
 
 def generate_raster_metadata(x, y, acq_dt, dataset,

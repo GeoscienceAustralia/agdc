@@ -36,8 +36,8 @@ import gdal
 import os
 from gdalconst import *
 from enum import Enum
-from datacube.api.model import Pq25Bands, Ls57Arg25Bands, Satellite, DatasetType, Ls8Arg25Bands, Wofs25Bands, NdviBands, \
-    get_bands, EviBands, NbrBands, TciBands
+from datacube.api.model import Pq25Bands, Ls57Arg25Bands, Satellite, DatasetType, Ls8Arg25Bands, Wofs25Bands, NdviBands
+from datacube.api.model import get_bands, EviBands, NbrBands, TciBands
 from datetime import datetime
 
 
@@ -91,6 +91,13 @@ class WofsMask(Enum):
     CLOUD_SHADOW = 32
     CLOUD = 64
     WET = 128
+
+
+class OutputFormat(Enum):
+    __order__ = "GEOTIFF ENVI"
+
+    GEOTIFF = "GTiff"
+    ENVI = "ENVI"
 
 
 # Standard no data value
@@ -432,10 +439,23 @@ def get_mask_wofs(wofs, wofs_masks=DEFAULT_MASK_WOFS, x=0, y=0, x_size=None, y_s
     return mask
 
 
+# TODO generalise/refactor this!!!
+
+def raster_create(path, data, transform, projection, no_data_value, data_type,
+                  # options=["INTERLEAVE=PIXEL", "COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=9"]):
+                  # options=["INTERLEAVE=PIXEL", "COMPRESS=DEFLATE", "PREDICTOR=1", "ZLEVEL=6"]):
+                  options=["INTERLEAVE=PIXEL"],
+                  # options=["INTERLEAVE=PIXEL", "COMPRESS=LZW"],
+                  # options=["INTERLEAVE=PIXEL", "COMPRESS=LZW", "TILED=YES"],
+                  width=None, height=None, dataset_metadata=None, band_ids=None):
+    raster_create_geotiff(path, data, transform, projection, no_data_value, data_type, options, width, height,
+                          dataset_metadata, band_ids)
+
+
 # TODO I've dodgied this to get band names in.  Should redo it properly so you pass in a lit of band data structures
 # that have a name, the data, the NDV, etc
 
-def raster_create(path, data, transform, projection, no_data_value, data_type,
+def raster_create_geotiff(path, data, transform, projection, no_data_value, data_type,
                   # options=["INTERLEAVE=PIXEL", "COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=9"]):
                   # options=["INTERLEAVE=PIXEL", "COMPRESS=DEFLATE", "PREDICTOR=1", "ZLEVEL=6"]):
                   options=["INTERLEAVE=PIXEL"],
@@ -459,6 +479,62 @@ def raster_create(path, data, transform, projection, no_data_value, data_type,
                len(data), data_type)
 
     driver = gdal.GetDriverByName("GTiff")
+    assert driver
+
+    width = width or numpy.shape(data[0])[1]
+    height = height or numpy.shape(data[0])[0]
+
+    raster = driver.Create(path, width, height, len(data), data_type, options)
+    assert raster
+
+    raster.SetGeoTransform(transform)
+    raster.SetProjection(projection)
+
+    if dataset_metadata:
+        raster.SetMetadata(dataset_metadata)
+
+    for i in range(0, len(data)):
+        _log.debug("Writing band %d", i + 1)
+
+        band = raster.GetRasterBand(i + 1)
+
+        if band_ids and len(band_ids) - 1 >= i:
+            band.SetDescription(band_ids[i])
+        band.SetNoDataValue(no_data_value)
+        band.WriteArray(data[i])
+        band.ComputeStatistics(True)
+
+        band.FlushCache()
+        del band
+
+    raster.FlushCache()
+    del raster
+
+
+def raster_create_envi(path, data, transform, projection, no_data_value, data_type,
+                  # options=["INTERLEAVE=PIXEL", "COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=9"]):
+                  # options=["INTERLEAVE=PIXEL", "COMPRESS=DEFLATE", "PREDICTOR=1", "ZLEVEL=6"]):
+                  options=["INTERLEAVE=BSQ"],
+                  # options=["INTERLEAVE=PIXEL", "COMPRESS=LZW"],
+                  # options=["INTERLEAVE=PIXEL", "COMPRESS=LZW", "TILED=YES"],
+                  width=None, height=None, dataset_metadata=None, band_ids=None):
+    """
+    Create a raster from a list of numpy arrays
+
+    :param path: path to the output raster
+    :param data: list of numpy arrays
+    :param transform: geo transform
+    :param projection: projection
+    :param no_data_value: no data value
+    :param data_type: data type
+    :param options: raster creation options
+    """
+
+    _log.debug("creating output raster %s", path)
+    _log.debug("filename=%s | shape = %s | bands = %d | data type = %s", path, (numpy.shape(data[0])[0], numpy.shape(data[0])[1]),
+               len(data), data_type)
+
+    driver = gdal.GetDriverByName("ENVI")
     assert driver
 
     width = width or numpy.shape(data[0])[1]
@@ -911,7 +987,7 @@ def date_to_integer(d):
     return d.year * 10000 + d.month * 100 + d.day
 
 
-def get_dataset_filename(dataset, mask_pqa_apply=False, mask_wofs_apply=False):
+def get_dataset_filename(dataset, output_format=OutputFormat.GEOTIFF, mask_pqa_apply=False, mask_wofs_apply=False):
 
     filename = dataset.path
 
@@ -951,8 +1027,12 @@ def get_dataset_filename(dataset, mask_pqa_apply=False, mask_wofs_apply=False):
         dataset_type_to_string += + "WITH_WATER_"
 
     filename = filename.replace(dataset_type_from_string, dataset_type_to_string)
-    filename = filename.replace(".vrt", ".tif")
-    filename = filename.replace(".tiff", ".tif")
+
+    ext = {OutputFormat.GEOTIFF: ".tif", OutputFormat.ENVI: ".dat"}[output_format]
+
+    filename = filename.replace(".vrt", ext)
+    filename = filename.replace(".tiff", ext)
+    filename = filename.replace(".tif", ext)
 
     return filename
 
