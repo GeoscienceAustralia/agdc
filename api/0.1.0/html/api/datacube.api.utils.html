@@ -88,6 +88,12 @@
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.Enum</span></code></p>
 </dd></dl>
 
+<dl class="class">
+<dt id="datacube.api.utils.OutputFormat">
+<em class="property">class </em><code class="descclassname">datacube.api.utils.</code><code class="descname">OutputFormat</code><a class="reference internal" href="../_modules/datacube/api/utils.html#OutputFormat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.OutputFormat" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.Enum</span></code></p>
+</dd></dl>
+
 <dl class="function">
 <dt id="datacube.api.utils.empty_array">
 <code class="descclassname">datacube.api.utils.</code><code class="descname">empty_array</code><span class="sig-paren">(</span><em>shape</em>, <em>dtype=&lt;type 'numpy.int16'&gt;</em>, <em>ndv=-999</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#empty_array"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.empty_array" title="Permalink to this definition">¶</a></dt>
@@ -290,6 +296,34 @@
 <dl class="function">
 <dt id="datacube.api.utils.raster_create">
 <code class="descclassname">datacube.api.utils.</code><code class="descname">raster_create</code><span class="sig-paren">(</span><em>path, data, transform, projection, no_data_value, data_type, options=['INTERLEAVE=PIXEL'], width=None, height=None, dataset_metadata=None, band_ids=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#raster_create"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.raster_create" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.raster_create_geotiff">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">raster_create_geotiff</code><span class="sig-paren">(</span><em>path, data, transform, projection, no_data_value, data_type, options=['INTERLEAVE=PIXEL'], width=None, height=None, dataset_metadata=None, band_ids=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#raster_create_geotiff"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.raster_create_geotiff" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a raster from a list of numpy arrays</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>path</strong> &#8211; path to the output raster</li>
+<li><strong>data</strong> &#8211; list of numpy arrays</li>
+<li><strong>transform</strong> &#8211; geo transform</li>
+<li><strong>projection</strong> &#8211; projection</li>
+<li><strong>no_data_value</strong> &#8211; no data value</li>
+<li><strong>data_type</strong> &#8211; data type</li>
+<li><strong>options</strong> &#8211; raster creation options</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.raster_create_envi">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">raster_create_envi</code><span class="sig-paren">(</span><em>path, data, transform, projection, no_data_value, data_type, options=['INTERLEAVE=BSQ'], width=None, height=None, dataset_metadata=None, band_ids=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#raster_create_envi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.raster_create_envi" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a raster from a list of numpy arrays</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -471,12 +505,12 @@ that is, that is, 120/-20 does NOT contain lat value of -20</dd>
 
 <dl class="function">
 <dt id="datacube.api.utils.get_dataset_filename">
-<code class="descclassname">datacube.api.utils.</code><code class="descname">get_dataset_filename</code><span class="sig-paren">(</span><em>dataset</em>, <em>mask_pqa_apply=False</em>, <em>mask_wofs_apply=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#get_dataset_filename"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.get_dataset_filename" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.utils.</code><code class="descname">get_dataset_filename</code><span class="sig-paren">(</span><em>dataset</em>, <em>output_format=&lt;OutputFormat.GEOTIFF: 'GTiff'&gt;</em>, <em>mask_pqa_apply=False</em>, <em>mask_wofs_apply=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#get_dataset_filename"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.get_dataset_filename" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
 <dt id="datacube.api.utils.get_dataset_band_stack_filename">
-<code class="descclassname">datacube.api.utils.</code><code class="descname">get_dataset_band_stack_filename</code><span class="sig-paren">(</span><em>dataset</em>, <em>band</em>, <em>mask_pqa_apply=False</em>, <em>mask_wofs_apply=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#get_dataset_band_stack_filename"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.get_dataset_band_stack_filename" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.utils.</code><code class="descname">get_dataset_band_stack_filename</code><span class="sig-paren">(</span><em>dataset</em>, <em>band</em>, <em>output_format=&lt;OutputFormat.GEOTIFF: 'GTiff'&gt;</em>, <em>mask_pqa_apply=False</em>, <em>mask_wofs_apply=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#get_dataset_band_stack_filename"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.get_dataset_band_stack_filename" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">

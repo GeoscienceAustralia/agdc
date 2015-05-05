@@ -109,8 +109,8 @@
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">from</span> <span class="nn">gdalconst</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
-<span class="kn">from</span> <span class="nn">datacube.api.model</span> <span class="kn">import</span> <span class="n">Pq25Bands</span><span class="p">,</span> <span class="n">Ls57Arg25Bands</span><span class="p">,</span> <span class="n">Satellite</span><span class="p">,</span> <span class="n">DatasetType</span><span class="p">,</span> <span class="n">Ls8Arg25Bands</span><span class="p">,</span> <span class="n">Wofs25Bands</span><span class="p">,</span> <span class="n">NdviBands</span><span class="p">,</span> \
-    <span class="n">get_bands</span><span class="p">,</span> <span class="n">EviBands</span><span class="p">,</span> <span class="n">NbrBands</span><span class="p">,</span> <span class="n">TciBands</span>
+<span class="kn">from</span> <span class="nn">datacube.api.model</span> <span class="kn">import</span> <span class="n">Pq25Bands</span><span class="p">,</span> <span class="n">Ls57Arg25Bands</span><span class="p">,</span> <span class="n">Satellite</span><span class="p">,</span> <span class="n">DatasetType</span><span class="p">,</span> <span class="n">Ls8Arg25Bands</span><span class="p">,</span> <span class="n">Wofs25Bands</span><span class="p">,</span> <span class="n">NdviBands</span>
+<span class="kn">from</span> <span class="nn">datacube.api.model</span> <span class="kn">import</span> <span class="n">get_bands</span><span class="p">,</span> <span class="n">EviBands</span><span class="p">,</span> <span class="n">NbrBands</span><span class="p">,</span> <span class="n">TciBands</span>
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
 
 
@@ -164,6 +164,13 @@
     <span class="n">CLOUD_SHADOW</span> <span class="o">=</span> <span class="mi">32</span>
     <span class="n">CLOUD</span> <span class="o">=</span> <span class="mi">64</span>
     <span class="n">WET</span> <span class="o">=</span> <span class="mi">128</span>
+
+</div>
+<div class="viewcode-block" id="OutputFormat"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.OutputFormat">[docs]</a><span class="k">class</span> <span class="nc">OutputFormat</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">__order__</span> <span class="o">=</span> <span class="s">&quot;GEOTIFF ENVI&quot;</span>
+
+    <span class="n">GEOTIFF</span> <span class="o">=</span> <span class="s">&quot;GTiff&quot;</span>
+    <span class="n">ENVI</span> <span class="o">=</span> <span class="s">&quot;ENVI&quot;</span>
 
 
 <span class="c"># Standard no data value</span></div>
@@ -505,10 +512,23 @@
     <span class="k">return</span> <span class="n">mask</span>
 
 
+<span class="c"># TODO generalise/refactor this!!!</span>
+</div>
+<div class="viewcode-block" id="raster_create"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.raster_create">[docs]</a><span class="k">def</span> <span class="nf">raster_create</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">transform</span><span class="p">,</span> <span class="n">projection</span><span class="p">,</span> <span class="n">no_data_value</span><span class="p">,</span> <span class="n">data_type</span><span class="p">,</span>
+                  <span class="c"># options=[&quot;INTERLEAVE=PIXEL&quot;, &quot;COMPRESS=DEFLATE&quot;, &quot;PREDICTOR=2&quot;, &quot;ZLEVEL=9&quot;]):</span>
+                  <span class="c"># options=[&quot;INTERLEAVE=PIXEL&quot;, &quot;COMPRESS=DEFLATE&quot;, &quot;PREDICTOR=1&quot;, &quot;ZLEVEL=6&quot;]):</span>
+                  <span class="n">options</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;INTERLEAVE=PIXEL&quot;</span><span class="p">],</span>
+                  <span class="c"># options=[&quot;INTERLEAVE=PIXEL&quot;, &quot;COMPRESS=LZW&quot;],</span>
+                  <span class="c"># options=[&quot;INTERLEAVE=PIXEL&quot;, &quot;COMPRESS=LZW&quot;, &quot;TILED=YES&quot;],</span>
+                  <span class="n">width</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">dataset_metadata</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">band_ids</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="n">raster_create_geotiff</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">transform</span><span class="p">,</span> <span class="n">projection</span><span class="p">,</span> <span class="n">no_data_value</span><span class="p">,</span> <span class="n">data_type</span><span class="p">,</span> <span class="n">options</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span>
+                          <span class="n">dataset_metadata</span><span class="p">,</span> <span class="n">band_ids</span><span class="p">)</span>
+
+
 <span class="c"># TODO I&#39;ve dodgied this to get band names in.  Should redo it properly so you pass in a lit of band data structures</span>
 <span class="c"># that have a name, the data, the NDV, etc</span>
 </div>
-<div class="viewcode-block" id="raster_create"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.raster_create">[docs]</a><span class="k">def</span> <span class="nf">raster_create</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">transform</span><span class="p">,</span> <span class="n">projection</span><span class="p">,</span> <span class="n">no_data_value</span><span class="p">,</span> <span class="n">data_type</span><span class="p">,</span>
+<div class="viewcode-block" id="raster_create_geotiff"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.raster_create_geotiff">[docs]</a><span class="k">def</span> <span class="nf">raster_create_geotiff</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">transform</span><span class="p">,</span> <span class="n">projection</span><span class="p">,</span> <span class="n">no_data_value</span><span class="p">,</span> <span class="n">data_type</span><span class="p">,</span>
                   <span class="c"># options=[&quot;INTERLEAVE=PIXEL&quot;, &quot;COMPRESS=DEFLATE&quot;, &quot;PREDICTOR=2&quot;, &quot;ZLEVEL=9&quot;]):</span>
                   <span class="c"># options=[&quot;INTERLEAVE=PIXEL&quot;, &quot;COMPRESS=DEFLATE&quot;, &quot;PREDICTOR=1&quot;, &quot;ZLEVEL=6&quot;]):</span>
                   <span class="n">options</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;INTERLEAVE=PIXEL&quot;</span><span class="p">],</span>
@@ -532,6 +552,62 @@
                <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">data_type</span><span class="p">)</span>
 
     <span class="n">driver</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">GetDriverByName</span><span class="p">(</span><span class="s">&quot;GTiff&quot;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">driver</span>
+
+    <span class="n">width</span> <span class="o">=</span> <span class="n">width</span> <span class="ow">or</span> <span class="n">numpy</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">height</span> <span class="o">=</span> <span class="n">height</span> <span class="ow">or</span> <span class="n">numpy</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">raster</span> <span class="o">=</span> <span class="n">driver</span><span class="o">.</span><span class="n">Create</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">data_type</span><span class="p">,</span> <span class="n">options</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">raster</span>
+
+    <span class="n">raster</span><span class="o">.</span><span class="n">SetGeoTransform</span><span class="p">(</span><span class="n">transform</span><span class="p">)</span>
+    <span class="n">raster</span><span class="o">.</span><span class="n">SetProjection</span><span class="p">(</span><span class="n">projection</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">dataset_metadata</span><span class="p">:</span>
+        <span class="n">raster</span><span class="o">.</span><span class="n">SetMetadata</span><span class="p">(</span><span class="n">dataset_metadata</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)):</span>
+        <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Writing band </span><span class="si">%d</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">band</span> <span class="o">=</span> <span class="n">raster</span><span class="o">.</span><span class="n">GetRasterBand</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">band_ids</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">band_ids</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">&gt;=</span> <span class="n">i</span><span class="p">:</span>
+            <span class="n">band</span><span class="o">.</span><span class="n">SetDescription</span><span class="p">(</span><span class="n">band_ids</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">band</span><span class="o">.</span><span class="n">SetNoDataValue</span><span class="p">(</span><span class="n">no_data_value</span><span class="p">)</span>
+        <span class="n">band</span><span class="o">.</span><span class="n">WriteArray</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">band</span><span class="o">.</span><span class="n">ComputeStatistics</span><span class="p">(</span><span class="bp">True</span><span class="p">)</span>
+
+        <span class="n">band</span><span class="o">.</span><span class="n">FlushCache</span><span class="p">()</span>
+        <span class="k">del</span> <span class="n">band</span>
+
+    <span class="n">raster</span><span class="o">.</span><span class="n">FlushCache</span><span class="p">()</span>
+    <span class="k">del</span> <span class="n">raster</span>
+
+</div>
+<div class="viewcode-block" id="raster_create_envi"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.raster_create_envi">[docs]</a><span class="k">def</span> <span class="nf">raster_create_envi</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">transform</span><span class="p">,</span> <span class="n">projection</span><span class="p">,</span> <span class="n">no_data_value</span><span class="p">,</span> <span class="n">data_type</span><span class="p">,</span>
+                  <span class="c"># options=[&quot;INTERLEAVE=PIXEL&quot;, &quot;COMPRESS=DEFLATE&quot;, &quot;PREDICTOR=2&quot;, &quot;ZLEVEL=9&quot;]):</span>
+                  <span class="c"># options=[&quot;INTERLEAVE=PIXEL&quot;, &quot;COMPRESS=DEFLATE&quot;, &quot;PREDICTOR=1&quot;, &quot;ZLEVEL=6&quot;]):</span>
+                  <span class="n">options</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;INTERLEAVE=BSQ&quot;</span><span class="p">],</span>
+                  <span class="c"># options=[&quot;INTERLEAVE=PIXEL&quot;, &quot;COMPRESS=LZW&quot;],</span>
+                  <span class="c"># options=[&quot;INTERLEAVE=PIXEL&quot;, &quot;COMPRESS=LZW&quot;, &quot;TILED=YES&quot;],</span>
+                  <span class="n">width</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">dataset_metadata</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">band_ids</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a raster from a list of numpy arrays</span>
+
+<span class="sd">    :param path: path to the output raster</span>
+<span class="sd">    :param data: list of numpy arrays</span>
+<span class="sd">    :param transform: geo transform</span>
+<span class="sd">    :param projection: projection</span>
+<span class="sd">    :param no_data_value: no data value</span>
+<span class="sd">    :param data_type: data type</span>
+<span class="sd">    :param options: raster creation options</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;creating output raster </span><span class="si">%s</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+    <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;filename=</span><span class="si">%s</span><span class="s"> | shape = </span><span class="si">%s</span><span class="s"> | bands = </span><span class="si">%d</span><span class="s"> | data type = </span><span class="si">%s</span><span class="s">&quot;</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">],</span> <span class="n">numpy</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">1</span><span class="p">]),</span>
+               <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">),</span> <span class="n">data_type</span><span class="p">)</span>
+
+    <span class="n">driver</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">GetDriverByName</span><span class="p">(</span><span class="s">&quot;ENVI&quot;</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">driver</span>
 
     <span class="n">width</span> <span class="o">=</span> <span class="n">width</span> <span class="ow">or</span> <span class="n">numpy</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">1</span><span class="p">]</span>
@@ -984,7 +1060,7 @@
     <span class="k">return</span> <span class="n">d</span><span class="o">.</span><span class="n">year</span> <span class="o">*</span> <span class="mi">10000</span> <span class="o">+</span> <span class="n">d</span><span class="o">.</span><span class="n">month</span> <span class="o">*</span> <span class="mi">100</span> <span class="o">+</span> <span class="n">d</span><span class="o">.</span><span class="n">day</span>
 
 </div>
-<div class="viewcode-block" id="get_dataset_filename"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.get_dataset_filename">[docs]</a><span class="k">def</span> <span class="nf">get_dataset_filename</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">mask_pqa_apply</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">mask_wofs_apply</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+<div class="viewcode-block" id="get_dataset_filename"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.get_dataset_filename">[docs]</a><span class="k">def</span> <span class="nf">get_dataset_filename</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">output_format</span><span class="o">=</span><span class="n">OutputFormat</span><span class="o">.</span><span class="n">GEOTIFF</span><span class="p">,</span> <span class="n">mask_pqa_apply</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">mask_wofs_apply</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
 
     <span class="n">filename</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">path</span>
 
@@ -1024,13 +1100,17 @@
         <span class="n">dataset_type_to_string</span> <span class="o">+=</span> <span class="o">+</span> <span class="s">&quot;WITH_WATER_&quot;</span>
 
     <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">dataset_type_from_string</span><span class="p">,</span> <span class="n">dataset_type_to_string</span><span class="p">)</span>
-    <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;.vrt&quot;</span><span class="p">,</span> <span class="s">&quot;.tif&quot;</span><span class="p">)</span>
-    <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;.tiff&quot;</span><span class="p">,</span> <span class="s">&quot;.tif&quot;</span><span class="p">)</span>
+
+    <span class="n">ext</span> <span class="o">=</span> <span class="p">{</span><span class="n">OutputFormat</span><span class="o">.</span><span class="n">GEOTIFF</span><span class="p">:</span> <span class="s">&quot;.tif&quot;</span><span class="p">,</span> <span class="n">OutputFormat</span><span class="o">.</span><span class="n">ENVI</span><span class="p">:</span> <span class="s">&quot;.dat&quot;</span><span class="p">}[</span><span class="n">output_format</span><span class="p">]</span>
+
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;.vrt&quot;</span><span class="p">,</span> <span class="n">ext</span><span class="p">)</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;.tiff&quot;</span><span class="p">,</span> <span class="n">ext</span><span class="p">)</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;.tif&quot;</span><span class="p">,</span> <span class="n">ext</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">filename</span>
 
 </div>
-<div class="viewcode-block" id="get_dataset_band_stack_filename"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.get_dataset_band_stack_filename">[docs]</a><span class="k">def</span> <span class="nf">get_dataset_band_stack_filename</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">band</span><span class="p">,</span> <span class="n">mask_pqa_apply</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">mask_wofs_apply</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+<div class="viewcode-block" id="get_dataset_band_stack_filename"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.get_dataset_band_stack_filename">[docs]</a><span class="k">def</span> <span class="nf">get_dataset_band_stack_filename</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">band</span><span class="p">,</span> <span class="n">output_format</span><span class="o">=</span><span class="n">OutputFormat</span><span class="o">.</span><span class="n">GEOTIFF</span><span class="p">,</span> <span class="n">mask_pqa_apply</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">mask_wofs_apply</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
 
     <span class="n">filename</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">path</span>
 
@@ -1072,8 +1152,12 @@
     <span class="n">dataset_type_to_string</span> <span class="o">+=</span> <span class="s">&quot;STACK_&quot;</span> <span class="o">+</span> <span class="n">band</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s">&quot;_&quot;</span>
 
     <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">dataset_type_from_string</span><span class="p">,</span> <span class="n">dataset_type_to_string</span><span class="p">)</span>
-    <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;.vrt&quot;</span><span class="p">,</span> <span class="s">&quot;.tif&quot;</span><span class="p">)</span>
-    <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;.tiff&quot;</span><span class="p">,</span> <span class="s">&quot;.tif&quot;</span><span class="p">)</span>
+
+    <span class="n">ext</span> <span class="o">=</span> <span class="p">{</span><span class="n">OutputFormat</span><span class="o">.</span><span class="n">GEOTIFF</span><span class="p">:</span> <span class="s">&quot;.tif&quot;</span><span class="p">,</span> <span class="n">OutputFormat</span><span class="o">.</span><span class="n">ENVI</span><span class="p">:</span> <span class="s">&quot;.dat&quot;</span><span class="p">}[</span><span class="n">output_format</span><span class="p">]</span>
+
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;.vrt&quot;</span><span class="p">,</span> <span class="n">ext</span><span class="p">)</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;.tiff&quot;</span><span class="p">,</span> <span class="n">ext</span><span class="p">)</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;.tif&quot;</span><span class="p">,</span> <span class="n">ext</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">filename</span>
 

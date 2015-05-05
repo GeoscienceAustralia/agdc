@@ -77,6 +77,12 @@
   <div class="section" id="module-datacube.api.workflow.cell_dataset_band">
 <span id="datacube-api-workflow-cell-dataset-band-module"></span><h1>datacube.api.workflow.cell_dataset_band module<a class="headerlink" href="#module-datacube.api.workflow.cell_dataset_band" title="Permalink to this headline">¶</a></h1>
 <dl class="class">
+<dt id="datacube.api.workflow.cell_dataset_band.BandListType">
+<em class="property">class </em><code class="descclassname">datacube.api.workflow.cell_dataset_band.</code><code class="descname">BandListType</code><a class="reference internal" href="../_modules/datacube/api/workflow/cell_dataset_band.html#BandListType"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.workflow.cell_dataset_band.BandListType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.Enum</span></code></p>
+</dd></dl>
+
+<dl class="class">
 <dt id="datacube.api.workflow.cell_dataset_band.Workflow">
 <em class="property">class </em><code class="descclassname">datacube.api.workflow.cell_dataset_band.</code><code class="descname">Workflow</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/workflow/cell_dataset_band.html#Workflow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.workflow.cell_dataset_band.Workflow" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="datacube.api.workflow.html#datacube.api.workflow.Workflow" title="datacube.api.workflow.Workflow"><code class="xref py py-class docutils literal"><span class="pre">datacube.api.workflow.Workflow</span></code></a></p>
@@ -219,6 +225,16 @@
 <dd></dd></dl>
 
 <dl class="attribute">
+<dt id="datacube.api.workflow.cell_dataset_band.CellDatasetBandTask.mask_wofs_apply">
+<code class="descname">mask_wofs_apply</code><em class="property"> = &lt;luigi.parameter.BooleanParameter object&gt;</em><a class="headerlink" href="#datacube.api.workflow.cell_dataset_band.CellDatasetBandTask.mask_wofs_apply" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="datacube.api.workflow.cell_dataset_band.CellDatasetBandTask.mask_wofs_mask">
+<code class="descname">mask_wofs_mask</code><em class="property"> = &lt;luigi.parameter.Parameter object&gt;</em><a class="headerlink" href="#datacube.api.workflow.cell_dataset_band.CellDatasetBandTask.mask_wofs_mask" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
 <dt id="datacube.api.workflow.cell_dataset_band.CellDatasetBandTask.dataset_type">
 <code class="descname">dataset_type</code><em class="property"> = &lt;luigi.parameter.Parameter object&gt;</em><a class="headerlink" href="#datacube.api.workflow.cell_dataset_band.CellDatasetBandTask.dataset_type" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -226,6 +242,26 @@
 <dl class="attribute">
 <dt id="datacube.api.workflow.cell_dataset_band.CellDatasetBandTask.band">
 <code class="descname">band</code><em class="property"> = &lt;luigi.parameter.Parameter object&gt;</em><a class="headerlink" href="#datacube.api.workflow.cell_dataset_band.CellDatasetBandTask.band" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="datacube.api.workflow.cell_dataset_band.CellDatasetBandTask.get_tiles">
+<code class="descname">get_tiles</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/workflow/cell_dataset_band.html#CellDatasetBandTask.get_tiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.workflow.cell_dataset_band.CellDatasetBandTask.get_tiles" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="datacube.api.workflow.cell_dataset_band.CellDatasetBandTask.get_tiles_from_csv">
+<code class="descname">get_tiles_from_csv</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/workflow/cell_dataset_band.html#CellDatasetBandTask.get_tiles_from_csv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.workflow.cell_dataset_band.CellDatasetBandTask.get_tiles_from_csv" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="datacube.api.workflow.cell_dataset_band.CellDatasetBandTask.get_tile_csv_filename">
+<code class="descname">get_tile_csv_filename</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/workflow/cell_dataset_band.html#CellDatasetBandTask.get_tile_csv_filename"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.workflow.cell_dataset_band.CellDatasetBandTask.get_tile_csv_filename" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="datacube.api.workflow.cell_dataset_band.CellDatasetBandTask.get_tiles_from_db">
+<code class="descname">get_tiles_from_db</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/workflow/cell_dataset_band.html#CellDatasetBandTask.get_tiles_from_db"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.workflow.cell_dataset_band.CellDatasetBandTask.get_tiles_from_db" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="attribute">

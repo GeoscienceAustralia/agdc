@@ -107,14 +107,26 @@
 
 <span class="kn">import</span> <span class="nn">abc</span>
 <span class="kn">import</span> <span class="nn">datacube.api.workflow</span> <span class="kn">as</span> <span class="nn">workflow</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">luigi</span>
-<span class="kn">from</span> <span class="nn">datacube.api.model</span> <span class="kn">import</span> <span class="n">Ls57Arg25Bands</span><span class="p">,</span> <span class="n">get_bands</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">datacube.api.model</span> <span class="kn">import</span> <span class="n">Tile</span><span class="p">,</span> <span class="n">DatasetType</span>
+<span class="kn">from</span> <span class="nn">datacube.api.utils</span> <span class="kn">import</span> <span class="n">get_band_name_union</span><span class="p">,</span> <span class="n">get_band_name_intersection</span><span class="p">,</span> <span class="n">format_date</span><span class="p">,</span> <span class="n">get_satellite_string</span>
+<span class="kn">from</span> <span class="nn">datacube.api</span> <span class="kn">import</span> <span class="n">dataset_type_arg</span>
 
 
 <span class="n">_log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">()</span>
 
 
+<div class="viewcode-block" id="BandListType"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell_dataset_band.html#datacube.api.workflow.cell_dataset_band.BandListType">[docs]</a><span class="k">class</span> <span class="nc">BandListType</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">__order__</span> <span class="o">=</span> <span class="s">&quot;EXPLICIT ALL COMMON&quot;</span>
+
+    <span class="n">EXPLICIT</span> <span class="o">=</span> <span class="s">&quot;EXPLICIT&quot;</span>
+    <span class="n">ALL</span> <span class="o">=</span> <span class="s">&quot;ALL&quot;</span>
+    <span class="n">COMMON</span> <span class="o">=</span> <span class="s">&quot;COMMON&quot;</span>
+
+</div>
 <div class="viewcode-block" id="Workflow"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell_dataset_band.html#datacube.api.workflow.cell_dataset_band.Workflow">[docs]</a><span class="k">class</span> <span class="nc">Workflow</span><span class="p">(</span><span class="n">workflow</span><span class="o">.</span><span class="n">Workflow</span><span class="p">):</span>
 
     <span class="n">__metaclass__</span> <span class="o">=</span> <span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span>
@@ -136,13 +148,23 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--dataset-type&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;The type of dataset to process&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span>
                                  <span class="n">dest</span><span class="o">=</span><span class="s">&quot;dataset_type&quot;</span><span class="p">,</span>
-                                 <span class="nb">type</span><span class="o">=</span><span class="n">workflow</span><span class="o">.</span><span class="n">dataset_type_arg</span><span class="p">,</span>
+                                 <span class="nb">type</span><span class="o">=</span><span class="n">dataset_type_arg</span><span class="p">,</span>
                                  <span class="n">choices</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_supported_dataset_types</span><span class="p">(),</span> <span class="n">required</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
                                  <span class="n">metavar</span><span class="o">=</span><span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
                                      <span class="p">[</span><span class="n">dataset_type</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">dataset_type</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_supported_dataset_types</span><span class="p">()]))</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--band&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;The band(s) from the dataset to process&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
-                                 <span class="n">dest</span><span class="o">=</span><span class="s">&quot;bands&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s">&quot;+&quot;</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">b</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">Ls57Arg25Bands</span><span class="p">]))</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_mutually_exclusive_group</span><span class="p">()</span>
+
+        <span class="c"># self.parser.add_argument(&quot;--band&quot;, help=&quot;The band(s) from the dataset to process&quot;, action=&quot;store&quot;, required=True,</span>
+        <span class="c">#                          dest=&quot;bands&quot;, type=str, nargs=&quot;+&quot;, metavar=&quot; &quot;.join([b.name for b in Ls57Arg25Bands]))</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--bands-all&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;Retrieve all bands with NULL values where the band is N/A&quot;</span><span class="p">,</span>
+                           <span class="n">action</span><span class="o">=</span><span class="s">&quot;store_const&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;bands&quot;</span><span class="p">,</span> <span class="n">const</span><span class="o">=</span><span class="n">BandListType</span><span class="o">.</span><span class="n">ALL</span><span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--bands-common&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;Retrieve only bands in common across all satellites&quot;</span><span class="p">,</span>
+                           <span class="n">action</span><span class="o">=</span><span class="s">&quot;store_const&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;bands&quot;</span><span class="p">,</span> <span class="n">const</span><span class="o">=</span><span class="n">BandListType</span><span class="o">.</span><span class="n">COMMON</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">set_defaults</span><span class="p">(</span><span class="n">bands</span><span class="o">=</span><span class="n">BandListType</span><span class="o">.</span><span class="n">ALL</span><span class="p">)</span>
 </div>
 <div class="viewcode-block" id="Workflow.process_arguments"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell_dataset_band.html#datacube.api.workflow.cell_dataset_band.Workflow.process_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">process_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
 
@@ -151,14 +173,20 @@
         <span class="n">workflow</span><span class="o">.</span><span class="n">Workflow</span><span class="o">.</span><span class="n">process_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">dataset_type</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">dataset_type</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">bands</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">bands</span>
 
-        <span class="c"># Verify that all the requested satellites have the requested bands</span>
+        <span class="c"># self.bands = args.bands</span>
 
-        <span class="k">for</span> <span class="n">satellite</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">item</span> <span class="ow">in</span> <span class="p">[</span><span class="n">b</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">get_bands</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_type</span><span class="p">,</span> <span class="n">satellite</span><span class="p">)]</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">bands</span><span class="p">):</span>
-                <span class="n">_log</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s">&quot;Requested bands [</span><span class="si">%s</span><span class="s">] not ALL present for satellite [</span><span class="si">%s</span><span class="s">]&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">bands</span><span class="p">,</span> <span class="n">satellite</span><span class="p">)</span>
-                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;Not all bands present for all satellites&quot;</span><span class="p">)</span>
+        <span class="c"># # Verify that all the requested satellites have the requested bands</span>
+        <span class="c">#</span>
+        <span class="c"># for satellite in self.satellites:</span>
+        <span class="c">#     if not all(item in [b.name for b in get_bands(self.dataset_type, satellite)] for item in self.bands):</span>
+        <span class="c">#         _log.error(&quot;Requested bands [%s] not ALL present for satellite [%s]&quot;, self.bands, satellite)</span>
+        <span class="c">#         raise Exception(&quot;Not all bands present for all satellites&quot;)</span>
+
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">bands</span> <span class="o">==</span> <span class="n">BandListType</span><span class="o">.</span><span class="n">ALL</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bands</span> <span class="o">=</span> <span class="n">get_band_name_union</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">bands</span> <span class="o">=</span> <span class="n">get_band_name_intersection</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">)</span>
 </div>
 <div class="viewcode-block" id="Workflow.log_arguments"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell_dataset_band.html#datacube.api.workflow.cell_dataset_band.Workflow.log_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">log_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
@@ -166,9 +194,14 @@
         <span class="c"># super(self.__class__, self).log_arguments()</span>
         <span class="n">workflow</span><span class="o">.</span><span class="n">Workflow</span><span class="o">.</span><span class="n">log_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 
+        <span class="c"># _log.info(&quot;&quot;&quot;</span>
+        <span class="c"># dataset to retrieve = {dataset_type}</span>
+        <span class="c"># bands = {bands}</span>
+        <span class="c"># &quot;&quot;&quot;.format(dataset_type=self.dataset_type.name, bands=self.bands))</span>
+
         <span class="n">_log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;&quot;&quot;</span>
 <span class="s">        dataset to retrieve = {dataset_type}</span>
-<span class="s">        bands = {bands}</span>
+<span class="s">        bands to retrieve = {bands}</span>
 <span class="s">        &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dataset_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_type</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">bands</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bands</span><span class="p">))</span>
 </div>
     <span class="nd">@abc.abstractmethod</span>
@@ -232,8 +265,69 @@
     <span class="n">mask_pqa_apply</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">BooleanParameter</span><span class="p">()</span>
     <span class="n">mask_pqa_mask</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">()</span>
 
+    <span class="n">mask_wofs_apply</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">BooleanParameter</span><span class="p">()</span>
+    <span class="n">mask_wofs_mask</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">()</span>
+
     <span class="n">dataset_type</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">()</span>
-    <span class="n">band</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">()</span></div>
+    <span class="n">band</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">()</span>
+
+<div class="viewcode-block" id="CellDatasetBandTask.get_tiles"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell_dataset_band.html#datacube.api.workflow.cell_dataset_band.CellDatasetBandTask.get_tiles">[docs]</a>    <span class="k">def</span> <span class="nf">get_tiles</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="c"># get list of tiles from CSV</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">csv</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_tiles_from_csv</span><span class="p">())</span>
+
+        <span class="c"># get list of tiles from DB</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_tiles_from_db</span><span class="p">())</span>
+</div>
+<div class="viewcode-block" id="CellDatasetBandTask.get_tiles_from_csv"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell_dataset_band.html#datacube.api.workflow.cell_dataset_band.CellDatasetBandTask.get_tiles_from_csv">[docs]</a>    <span class="k">def</span> <span class="nf">get_tiles_from_csv</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_tile_csv_filename</span><span class="p">()):</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_tile_csv_filename</span><span class="p">(),</span> <span class="s">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="kn">import</span> <span class="nn">csv</span>
+
+                <span class="n">reader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">DictReader</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">:</span>
+                    <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Found CSV record [</span><span class="si">%s</span><span class="s">]&quot;</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span>
+                    <span class="k">yield</span> <span class="n">Tile</span><span class="o">.</span><span class="n">from_csv_record</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="CellDatasetBandTask.get_tile_csv_filename"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell_dataset_band.html#datacube.api.workflow.cell_dataset_band.CellDatasetBandTask.get_tile_csv_filename">[docs]</a>    <span class="k">def</span> <span class="nf">get_tile_csv_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="n">acq_min</span> <span class="o">=</span> <span class="n">format_date</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">)</span>
+        <span class="n">acq_max</span> <span class="o">=</span> <span class="n">format_date</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">)</span>
+
+        <span class="c"># TODO other distinguishing characteristics (e.g. dataset types)</span>
+
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">output_directory</span><span class="p">,</span>
+            <span class="s">&quot;tiles_{satellites}_{x_min:03d}_{x_max:03d}_{y_min:04d}_{y_max:04d}_{acq_min}_{acq_max}.csv&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">satellites</span><span class="o">=</span><span class="n">get_satellite_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">),</span>
+                <span class="n">x_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">x_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">y_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">y_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,</span>
+                <span class="n">acq_min</span><span class="o">=</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="o">=</span><span class="n">acq_max</span>
+            <span class="p">))</span>
+</div>
+<div class="viewcode-block" id="CellDatasetBandTask.get_tiles_from_db"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell_dataset_band.html#datacube.api.workflow.cell_dataset_band.CellDatasetBandTask.get_tiles_from_db">[docs]</a>    <span class="k">def</span> <span class="nf">get_tiles_from_db</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="kn">from</span> <span class="nn">datacube.api.query</span> <span class="kn">import</span> <span class="n">list_tiles</span>
+
+        <span class="n">x_list</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">]</span>
+        <span class="n">y_list</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">]</span>
+
+        <span class="n">dataset_types</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_type</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_pqa_apply</span><span class="p">:</span>
+            <span class="n">dataset_types</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">PQ25</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_wofs_apply</span><span class="p">:</span>
+            <span class="n">dataset_types</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">WATER</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">tile</span> <span class="ow">in</span> <span class="n">list_tiles</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x_list</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y_list</span><span class="p">,</span> <span class="n">acq_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">,</span>
+                               <span class="n">satellites</span><span class="o">=</span><span class="p">[</span><span class="n">satellite</span> <span class="k">for</span> <span class="n">satellite</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">],</span>
+                               <span class="n">dataset_types</span><span class="o">=</span><span class="n">dataset_types</span><span class="p">):</span>
+            <span class="k">yield</span> <span class="n">tile</span></div></div>
 </pre></div>
 
           </div>

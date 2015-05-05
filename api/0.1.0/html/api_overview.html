@@ -68,10 +68,13 @@
 </li>
 <li><a class="reference internal" href="#workflows">Workflows</a><ul>
 <li><a class="reference internal" href="#cell-based-workflows">Cell Based Workflows…</a></li>
+<li><a class="reference internal" href="#cell-chunk-based-workflows">Cell Chunk Based Workflows…</a></li>
+<li><a class="reference internal" href="#cell-dataset-band-based-workflows">Cell Dataset Band Based Workflows…</a></li>
+<li><a class="reference internal" href="#cell-dataset-band-chunk-based-workflows">Cell Dataset Band Chunk Based Workflows…</a></li>
+<li><a class="reference internal" href="#band-stack-workflow">Band Stack Workflow…</a></li>
 <li><a class="reference internal" href="#other-workflows">Other Workflows</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#tools">Tools</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
@@ -396,7 +399,7 @@ data = get_dataset_data_masked(datasets[FC25], mask, NDV)
 <h3>Cell Based Workflows…<a class="headerlink" href="#cell-based-workflows" title="Permalink to this headline">¶</a></h3>
 <img alt="_images/workflow_cell.png" src="_images/workflow_cell.png" />
 <img alt="_images/workflow_cell_class.png" src="_images/workflow_cell_class.png" />
-<p>PQA Observation Count Example…</p>
+<p><strong>PQA Observation Count Example…</strong></p>
 <p>To help validate/improve the PQA algorithm more information about the PQA outputs was desired</p>
 <p>For e.g. for each pixel show how many times it was:</p>
 <blockquote>
@@ -406,26 +409,33 @@ data = get_dataset_data_masked(datasets[FC25], mask, NDV)
 </ul>
 </div></blockquote>
 <p>So get an output raster for each cell with a band representing each of the above</p>
-<p>This is a CELL workflow:</p>
+<p>This is a <em>Cell</em> workflow:</p>
 <ul class="simple">
-<li>Extend the abstract cell workflow with:
-* ObservationCountWorkflow which extends cell.Workflow
-* ObservationCountSummaryTask which extends cell.SummaryTask
-* ObservationCountCellTask which extends cell.CellTask</li>
+<li>Extend the abstract cell workflow with:<ul>
+<li><code class="docutils literal"><span class="pre">ObservationCountWorkflow</span></code> which extends <code class="docutils literal"><span class="pre">cell.Workflow</span></code></li>
+<li><code class="docutils literal"><span class="pre">ObservationCountSummaryTask</span></code> which extends <code class="docutils literal"><span class="pre">cell.SummaryTask</span></code></li>
+<li><code class="docutils literal"><span class="pre">ObservationCountCellTask</span></code> which extends <code class="docutils literal"><span class="pre">cell.CellTask</span></code></li>
 </ul>
-<p>ObservationCountWorkflow…:</p>
+</li>
+</ul>
+<div class="literal-block-wrapper container" id="observationcountworkflow">
+<div class="code-block-caption"><span class="caption-text"><code class="docutils literal"><span class="pre">ObservationCountWorkflow</span></code>…</span><a class="headerlink" href="#observationcountworkflow" title="Permalink to this code">¶</a></div>
 <div class="highlight-python"><div class="highlight"><pre>class ObservationCountWorkflow(cell.Workflow):
     def create_tasks(self):
         return [ObservationCountSummaryTask(x_min=, x_max=, …)]
 </pre></div>
 </div>
-<p>ObservationCountSummaryTask…:</p>
+</div>
+<div class="literal-block-wrapper container" id="observationcountsummarytask">
+<div class="code-block-caption"><span class="caption-text"><code class="docutils literal"><span class="pre">ObservationCountSummaryTask</span></code>…</span><a class="headerlink" href="#observationcountsummarytask" title="Permalink to this code">¶</a></div>
 <div class="highlight-python"><div class="highlight"><pre>class ObservationCountSummaryTask(cell.SummaryTask):
     def create_cell_task(self):
         return [ObservationCountCellTask(x=, y=, …)]
 </pre></div>
 </div>
-<p>ObservationCountCellTask…:</p>
+</div>
+<div class="literal-block-wrapper container" id="observationcountcelltask">
+<div class="code-block-caption"><span class="caption-text"><code class="docutils literal"><span class="pre">ObservationCountCellTask</span></code>…</span><a class="headerlink" href="#observationcountcelltask" title="Permalink to this code">¶</a></div>
 <div class="highlight-python"><div class="highlight"><pre>class ObservationCountCellTask(cell.CellTask):
     def output(self):
         return LocalTarget(“{satellite}_OBS_{x}_{y}_{acq_min}_{acq_max}.tif”
@@ -446,6 +456,83 @@ data = get_dataset_data_masked(datasets[FC25], mask, NDV)
 </pre></div>
 </div>
 </div>
+</div>
+<div class="section" id="cell-chunk-based-workflows">
+<h3>Cell Chunk Based Workflows…<a class="headerlink" href="#cell-chunk-based-workflows" title="Permalink to this headline">¶</a></h3>
+<p>Process a cell in manageable chunks…</p>
+</div>
+<div class="section" id="cell-dataset-band-based-workflows">
+<h3>Cell Dataset Band Based Workflows…<a class="headerlink" href="#cell-dataset-band-based-workflows" title="Permalink to this headline">¶</a></h3>
+<p>Process a dataset / dataset band…</p>
+</div>
+<div class="section" id="cell-dataset-band-chunk-based-workflows">
+<h3>Cell Dataset Band Chunk Based Workflows…<a class="headerlink" href="#cell-dataset-band-chunk-based-workflows" title="Permalink to this headline">¶</a></h3>
+<p>Process a dataset / dataset band in manageable chunks…</p>
+</div>
+<div class="section" id="band-stack-workflow">
+<h3>Band Stack Workflow…<a class="headerlink" href="#band-stack-workflow" title="Permalink to this headline">¶</a></h3>
+<p>The <em>Band Stack</em> workflow is a specific instance of the <em>Cell Dataset Band</em> workflow which produces a set of band stack
+outputs.  It can be run as a stand-alone workflow or the individual tasks incorporated into other workflows.</p>
+<p>The class structure is:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">BandStackWorkflow</span></code> which extends <code class="docutils literal"><span class="pre">datacube.api.workflow.cell_dataset_band.Workflow</span></code></li>
+<li><code class="docutils literal"><span class="pre">BandStackSummaryTask</span></code> which extends <code class="docutils literal"><span class="pre">datacube.api.workflow.cell_dataset_band.SummaryTask</span></code></li>
+<li><code class="docutils literal"><span class="pre">BandStackCellTask</span></code> which extends <code class="docutils literal"><span class="pre">datacube.api.workflow.cell_dataset_band.CellTask</span></code></li>
+<li><code class="docutils literal"><span class="pre">BandStackCellDatasetBandTask</span></code> which extends <code class="docutils literal"><span class="pre">datacube.api.workflow.cell_dataset_band.CellDatasetBandTask</span></code></li>
+</ul>
+<p>It can be run as:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ band_stack.py --x-min 120 --x-max 120 --y-min -20 --y-max -20 --satellite LS5 LS7 LS8 --acq-min 2013-12 --acq-max 2013-12 --dataset-type ARG25 --mask-pqa-apply --output-directory /tmp --local-scheduler --workers 16 --output-format ENVI
+</pre></div>
+</div>
+<p>which produces:</p>
+<div class="highlight-python"><div class="highlight"><pre>$ ls -lh
+
+-rw-r----- 1 sjo547 u46 153M May  5 10:13 LS578_NBAR_WITH_PQA_STACK_BLUE_120_-020_2013_12_01_2013_12_31.dat
+-rw-r----- 1 sjo547 u46  775 May  5 10:13 LS578_NBAR_WITH_PQA_STACK_BLUE_120_-020_2013_12_01_2013_12_31.hdr
+
+-rw-r----- 1 sjo547 u46  92M May  5 10:13 LS578_NBAR_WITH_PQA_STACK_COASTAL_AEROSOL_120_-020_2013_12_01_2013_12_31.dat
+-rw-r----- 1 sjo547 u46  694 May  5 10:13 LS578_NBAR_WITH_PQA_STACK_COASTAL_AEROSOL_120_-020_2013_12_01_2013_12_31.hdr
+
+-rw-r----- 1 sjo547 u46 153M May  5 10:13 LS578_NBAR_WITH_PQA_STACK_GREEN_120_-020_2013_12_01_2013_12_31.dat
+-rw-r----- 1 sjo547 u46  776 May  5 10:13 LS578_NBAR_WITH_PQA_STACK_GREEN_120_-020_2013_12_01_2013_12_31.hdr
+
+-rw-r----- 1 sjo547 u46 153M May  5 10:13 LS578_NBAR_WITH_PQA_STACK_NEAR_INFRARED_120_-020_2013_12_01_2013_12_31.dat
+-rw-r----- 1 sjo547 u46  784 May  5 10:13 LS578_NBAR_WITH_PQA_STACK_NEAR_INFRARED_120_-020_2013_12_01_2013_12_31.hdr
+
+-rw-r----- 1 sjo547 u46 153M May  5 10:13 LS578_NBAR_WITH_PQA_STACK_RED_120_-020_2013_12_01_2013_12_31.dat
+-rw-r----- 1 sjo547 u46  774 May  5 10:13 LS578_NBAR_WITH_PQA_STACK_RED_120_-020_2013_12_01_2013_12_31.hdr
+
+-rw-r----- 1 sjo547 u46 153M May  5 10:13 LS578_NBAR_WITH_PQA_STACK_SHORT_WAVE_INFRARED_1_120_-020_2013_12_01_2013_12_31.dat
+-rw-r----- 1 sjo547 u46  792 May  5 10:13 LS578_NBAR_WITH_PQA_STACK_SHORT_WAVE_INFRARED_1_120_-020_2013_12_01_2013_12_31.hdr
+
+-rw-r----- 1 sjo547 u46 153M May  5 10:13 LS578_NBAR_WITH_PQA_STACK_SHORT_WAVE_INFRARED_2_120_-020_2013_12_01_2013_12_31.dat
+-rw-r----- 1 sjo547 u46  792 May  5 10:13 LS578_NBAR_WITH_PQA_STACK_SHORT_WAVE_INFRARED_2_120_-020_2013_12_01_2013_12_31.hdr
+
+-rw-r----- 1 sjo547 u46  92M May  5 10:10 LS8_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013_12_01_2013_12_31.dat
+-rw-r----- 1 sjo547 u46  662 May  5 10:10 LS8_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013_12_01_2013_12_31.hdr
+
+-rw-r----- 1 sjo547 u46  92M May  5 10:10 LS8_FC_WITH_PQA_STACK_NON_PHOTOSYNTHETIC_VEGETATION_120_-020_2013_12_01_2013_12_31.dat
+-rw-r----- 1 sjo547 u46  682 May  5 10:10 LS8_FC_WITH_PQA_STACK_NON_PHOTOSYNTHETIC_VEGETATION_120_-020_2013_12_01_2013_12_31.hdr
+
+-rw-r----- 1 sjo547 u46  92M May  5 10:10 LS8_FC_WITH_PQA_STACK_PHOTOSYNTHETIC_VEGETATION_120_-020_2013_12_01_2013_12_31.dat
+-rw-r----- 1 sjo547 u46  678 May  5 10:10 LS8_FC_WITH_PQA_STACK_PHOTOSYNTHETIC_VEGETATION_120_-020_2013_12_01_2013_12_31.hdr
+
+-rw-r----- 1 sjo547 u46  92M May  5 10:10 LS8_FC_WITH_PQA_STACK_UNMIXING_ERROR_120_-020_2013_12_01_2013_12_31.dat
+-rw-r----- 1 sjo547 u46  667 May  5 10:10 LS8_FC_WITH_PQA_STACK_UNMIXING_ERROR_120_-020_2013_12_01_2013_12_31.hdr
+</pre></div>
+</div>
+<p>If incorporating it into other workflows you would <code class="docutils literal"><span class="pre">yield</span></code>/<code class="docutils literal"><span class="pre">return</span></code> in your workflow a <code class="docutils literal"><span class="pre">BandStackCellTask</span></code> task something like:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">BandStackCellTask</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="mi">120</span><span class="p">,</span> <span class="n">y</span><span class="o">=-</span><span class="mi">20</span><span class="p">,</span>
+                  <span class="n">acq_min</span><span class="o">=</span><span class="n">datetime</span><span class="p">(</span><span class="mi">2014</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">acq_max</span><span class="o">=</span><span class="n">datetime</span><span class="p">(</span><span class="mi">2014</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">31</span><span class="p">),</span>
+                  <span class="n">satellites</span><span class="o">=</span><span class="p">[</span><span class="n">Satellite</span><span class="o">.</span><span class="n">LS5</span><span class="p">,</span> <span class="n">Satellite</span><span class="o">.</span><span class="n">LS7</span><span class="p">,</span> <span class="n">Satellite</span><span class="o">.</span><span class="n">LS8</span><span class="p">],</span>
+                  <span class="n">output_directory</span><span class="o">=</span><span class="s">&quot;/tmp&quot;</span><span class="p">,</span>
+                  <span class="n">csv</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">dummy</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+                  <span class="n">mask_pqa_apply</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">mask_pqa_mask</span><span class="o">=</span><span class="p">[</span><span class="n">PqaMask</span><span class="o">.</span><span class="n">PQ_MASK_CLEAR</span><span class="p">],</span>
+                  <span class="n">mask_wofs_apply</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">mask_wofs_mask</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+                  <span class="n">dataset_type</span><span class="o">=</span><span class="p">[</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">ARG25</span><span class="p">],</span> <span class="n">bands</span><span class="o">=</span><span class="n">BandListType</span><span class="o">.</span><span class="n">COMMON</span><span class="p">,</span> <span class="n">output_format</span><span class="o">=</span><span class="n">OutputFormat</span><span class="o">.</span><span class="n">ENVI</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
 <div class="section" id="other-workflows">
 <h3>Other Workflows<a class="headerlink" href="#other-workflows" title="Permalink to this headline">¶</a></h3>
 <p>There are also “chunk” workflows that have all the logic for splitting a cell (or a dataset or a …) up into manageable chunks.</p>
@@ -453,19 +540,6 @@ data = get_dataset_data_masked(datasets[FC25], mask, NDV)
 <p>Etc…</p>
 <p>More info coming soon</p>
 </div>
-</div>
-<div class="section" id="tools">
-<h2>Tools<a class="headerlink" href="#tools" title="Permalink to this headline">¶</a></h2>
-<p>There are also a set of “tools” – i.e. packaged executables – aimed at the NPP (Non-Python “People”):</p>
-<ul class="simple">
-<li>Retrieve dataset</li>
-<li>Retrieve pixel time series</li>
-<li>Retrieve dataset time series</li>
-<li>Retrieve dataset stack</li>
-<li>Retrieve aoi time series</li>
-<li>Summarise dataset time series</li>
-<li>…</li>
-</ul>
 </div>
 </div>
 <div class="section" id="indices-and-tables">
