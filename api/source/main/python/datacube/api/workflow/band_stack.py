@@ -26,8 +26,6 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ===============================================================================
-from datacube.api.utils import get_dataset_metadata, get_dataset_datatype, get_dataset_ndv, get_mask_pqa, get_mask_wofs, \
-    get_dataset_data_masked, format_date
 
 
 __author__ = "Simon Oldfield"
@@ -36,8 +34,11 @@ __author__ = "Simon Oldfield"
 import logging
 import luigi
 import os
-from datacube.api.workflow.cell_dataset_band import Workflow, SummaryTask, CellTask, CellDatasetBandTask
+from datacube.api import output_format_arg
 from datacube.api.model import dataset_type_database, dataset_type_derived_nbar, DatasetType
+from datacube.api.utils import get_dataset_metadata, get_dataset_datatype, get_dataset_ndv, get_mask_pqa, get_mask_wofs
+from datacube.api.utils import get_dataset_data_masked, format_date, OutputFormat
+from datacube.api.workflow.cell_dataset_band import Workflow, SummaryTask, CellTask, CellDatasetBandTask
 
 
 _log = logging.getLogger()
@@ -49,6 +50,39 @@ class BandStackWorkflow(Workflow):
 
         Workflow.__init__(self, name="Band Stack")
 
+        self.output_format = None
+
+    def setup_arguments(self):
+
+        # Call method on super class
+        # super(self.__class__, self).setup_arguments()
+        Workflow.setup_arguments(self)
+
+        self.parser.add_argument("--output-format", help="The format of the output dataset",
+                                 action="store",
+                                 dest="output_format",
+                                 type=output_format_arg,
+                                 choices=OutputFormat, default=OutputFormat.GEOTIFF,
+                                 metavar=" ".join([f.name for f in OutputFormat]))
+
+    def process_arguments(self, args):
+
+        # Call method on super class
+        # super(self.__class__, self).process_arguments(args)
+        Workflow.process_arguments(self, args)
+
+        self.output_format = args.output_format
+
+    def log_arguments(self):
+
+        # Call method on super class
+        # super(self.__class__, self).log_arguments()
+        Workflow.log_arguments(self)
+
+        _log.info("""
+        output format = {output_format}
+        """.format(output_format=self.output_format.name))
+
     def create_summary_tasks(self):
 
         return [BandStackSummaryTask(x_min=self.x_min, x_max=self.x_max, y_min=self.y_min, y_max=self.y_max,
@@ -56,7 +90,8 @@ class BandStackWorkflow(Workflow):
                                      output_directory=self.output_directory, csv=self.csv, dummy=self.dummy,
                                      mask_pqa_apply=self.mask_pqa_apply, mask_pqa_mask=self.mask_pqa_mask,
                                      mask_wofs_apply=self.mask_wofs_apply, mask_wofs_mask=self.mask_wofs_mask,
-                                     dataset_type=self.dataset_type, bands=self.bands)]
+                                     dataset_type=self.dataset_type, bands=self.bands,
+                                     output_format=self.output_format)]
 
     def get_supported_dataset_types(self):
         return dataset_type_database + dataset_type_derived_nbar
@@ -64,16 +99,20 @@ class BandStackWorkflow(Workflow):
 
 class BandStackSummaryTask(SummaryTask):
 
+    output_format = luigi.Parameter()
+
     def create_cell_tasks(self, x, y):
 
         return BandStackCellTask(x=x, y=y, acq_min=self.acq_min, acq_max=self.acq_max, satellites=self.satellites,
                                  output_directory=self.output_directory, csv=self.csv, dummy=self.dummy,
                                  mask_pqa_apply=self.mask_pqa_apply, mask_pqa_mask=self.mask_pqa_mask,
                                  mask_wofs_apply=self.mask_wofs_apply, mask_wofs_mask=self.mask_wofs_mask,
-                                 dataset_type=self.dataset_type, bands=self.bands)
+                                 dataset_type=self.dataset_type, bands=self.bands, output_format=self.output_format)
 
 
 class BandStackCellTask(CellTask):
+
+    output_format = luigi.Parameter()
 
     def create_cell_dataset_band_task(self, band):
 
@@ -82,10 +121,12 @@ class BandStackCellTask(CellTask):
                                             output_directory=self.output_directory, csv=self.csv, dummy=self.dummy,
                                             mask_pqa_apply=self.mask_pqa_apply, mask_pqa_mask=self.mask_pqa_mask,
                                             mask_wofs_apply=self.mask_wofs_apply, mask_wofs_mask=self.mask_wofs_mask,
-                                            dataset_type=self.dataset_type, band=band)
+                                            dataset_type=self.dataset_type, band=band, output_format=self.output_format)
 
 
 class BandStackCellDatasetBandTask(CellDatasetBandTask):
+
+    output_format = luigi.Parameter()
 
     def output(self):
 
@@ -116,10 +157,11 @@ class BandStackCellDatasetBandTask(CellDatasetBandTask):
         elif self.mask_wofs_apply:
             dataset_type_string += + "_WITH_WATER"
 
-        filename = "{satellites}_{dataset_type}_STACK_{band}_{x:03d}_{y:04d}_{acq_min}_{acq_max}.tif".format(
+        ext = {OutputFormat.GEOTIFF: "tif", OutputFormat.ENVI: "dat"}[self.output_format]
+
+        filename = "{satellites}_{dataset_type}_STACK_{band}_{x:03d}_{y:04d}_{acq_min}_{acq_max}.{ext}".format(
             satellites=get_satellite_string(self.satellites), dataset_type=dataset_type_string, band=self.band,
-            x=self.x, y=self.y, acq_min=acq_min, acq_max=acq_max
-        )
+            x=self.x, y=self.y, acq_min=acq_min, acq_max=acq_max, ext=ext)
 
         filename = os.path.join(self.output_directory, filename)
 
@@ -186,22 +228,20 @@ class BandStackCellDatasetBandTask(CellDatasetBandTask):
 
             if not driver:
 
-                # if self.output_format == OutputFormat.GEOTIFF:
-                #     driver = gdal.GetDriverByName("GTiff")
-                # elif self.output_format == OutputFormat.ENVI:
-                #     driver = gdal.GetDriverByName("ENVI")
+                if self.output_format == OutputFormat.GEOTIFF:
+                    driver = gdal.GetDriverByName("GTiff")
+                elif self.output_format == OutputFormat.ENVI:
+                    driver = gdal.GetDriverByName("ENVI")
 
-                driver = gdal.GetDriverByName("GTiff")
                 assert driver
 
             if not raster:
 
-                # if self.output_format == OutputFormat.GEOTIFF:
-                #     raster = driver.Create(filename, metadata.shape[0], metadata.shape[1], len(tiles), data_type, options=["BIGTIFF=YES", "INTERLEAVE=BAND"])
-                # elif self.output_format == OutputFormat.ENVI:
-                #     raster = driver.Create(filename, metadata.shape[0], metadata.shape[1], len(tiles), data_type, options=["INTERLEAVE=BSQ"])
+                if self.output_format == OutputFormat.GEOTIFF:
+                    raster = driver.Create(filename, metadata.shape[0], metadata.shape[1], len(tiles), data_type, options=["BIGTIFF=YES", "INTERLEAVE=BAND"])
+                elif self.output_format == OutputFormat.ENVI:
+                    raster = driver.Create(filename, metadata.shape[0], metadata.shape[1], len(tiles), data_type, options=["INTERLEAVE=BSQ"])
 
-                raster = driver.Create(filename, metadata.shape[0], metadata.shape[1], len(tiles), data_type, options=["BIGTIFF=YES", "INTERLEAVE=BAND"])
                 assert raster
 
                 # NOTE: could do this without the metadata!!

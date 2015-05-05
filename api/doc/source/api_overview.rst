@@ -322,7 +322,7 @@ Cell Based Workflows…
 
 .. image:: workflow_cell_class.png
 
-PQA Observation Count Example…
+**PQA Observation Count Example…**
 
 To help validate/improve the PQA algorithm more information about the PQA outputs was desired
 
@@ -333,26 +333,30 @@ For e.g. for each pixel show how many times it was:
 
 So get an output raster for each cell with a band representing each of the above
 
-This is a CELL workflow:
+This is a *Cell* workflow:
 
 * Extend the abstract cell workflow with:
-  * ObservationCountWorkflow which extends cell.Workflow
-  * ObservationCountSummaryTask which extends cell.SummaryTask
-  * ObservationCountCellTask which extends cell.CellTask
 
-ObservationCountWorkflow…::
+  * ``ObservationCountWorkflow`` which extends ``cell.Workflow``
+  * ``ObservationCountSummaryTask`` which extends ``cell.SummaryTask``
+  * ``ObservationCountCellTask`` which extends ``cell.CellTask``
+
+.. code-block:: python
+    :caption: ``ObservationCountWorkflow``…
 
     class ObservationCountWorkflow(cell.Workflow):
         def create_tasks(self):
             return [ObservationCountSummaryTask(x_min=, x_max=, …)]
 
-ObservationCountSummaryTask…::
+.. code-block:: python
+    :caption: ``ObservationCountSummaryTask``…
 
     class ObservationCountSummaryTask(cell.SummaryTask):
         def create_cell_task(self):
             return [ObservationCountCellTask(x=, y=, …)]
 
-ObservationCountCellTask…::
+.. code-block:: python
+    :caption: ``ObservationCountCellTask``…
 
     class ObservationCountCellTask(cell.CellTask):
         def output(self):
@@ -372,6 +376,85 @@ ObservationCountCellTask…::
 
             raster_create(self.output().path, data=obs_count,…)
 
+Cell Chunk Based Workflows…
++++++++++++++++++++++++++++
+
+Process a cell in manageable chunks…
+
+Cell Dataset Band Based Workflows…
+++++++++++++++++++++++++++++++++++
+
+Process a dataset / dataset band…
+
+Cell Dataset Band Chunk Based Workflows…
++++++++++++++++++++++++++++++++++++++++++
+
+Process a dataset / dataset band in manageable chunks…
+
+Band Stack Workflow…
++++++++++++++++++++++++++++++++++++++++++
+
+The *Band Stack* workflow is a specific instance of the *Cell Dataset Band* workflow which produces a set of band stack
+outputs.  It can be run as a stand-alone workflow or the individual tasks incorporated into other workflows.
+
+The class structure is:
+
+* ``BandStackWorkflow`` which extends ``datacube.api.workflow.cell_dataset_band.Workflow``
+* ``BandStackSummaryTask`` which extends ``datacube.api.workflow.cell_dataset_band.SummaryTask``
+* ``BandStackCellTask`` which extends ``datacube.api.workflow.cell_dataset_band.CellTask``
+* ``BandStackCellDatasetBandTask`` which extends ``datacube.api.workflow.cell_dataset_band.CellDatasetBandTask``
+
+It can be run as::
+
+    $ band_stack.py --x-min 120 --x-max 120 --y-min -20 --y-max -20 --satellite LS5 LS7 LS8 --acq-min 2013-12 --acq-max 2013-12 --dataset-type ARG25 --mask-pqa-apply --output-directory /tmp --local-scheduler --workers 16 --output-format ENVI
+
+which produces::
+
+    $ ls -lh
+
+    -rw-r----- 1 sjo547 u46 153M May  5 10:13 LS578_NBAR_WITH_PQA_STACK_BLUE_120_-020_2013_12_01_2013_12_31.dat
+    -rw-r----- 1 sjo547 u46  775 May  5 10:13 LS578_NBAR_WITH_PQA_STACK_BLUE_120_-020_2013_12_01_2013_12_31.hdr
+
+    -rw-r----- 1 sjo547 u46  92M May  5 10:13 LS578_NBAR_WITH_PQA_STACK_COASTAL_AEROSOL_120_-020_2013_12_01_2013_12_31.dat
+    -rw-r----- 1 sjo547 u46  694 May  5 10:13 LS578_NBAR_WITH_PQA_STACK_COASTAL_AEROSOL_120_-020_2013_12_01_2013_12_31.hdr
+
+    -rw-r----- 1 sjo547 u46 153M May  5 10:13 LS578_NBAR_WITH_PQA_STACK_GREEN_120_-020_2013_12_01_2013_12_31.dat
+    -rw-r----- 1 sjo547 u46  776 May  5 10:13 LS578_NBAR_WITH_PQA_STACK_GREEN_120_-020_2013_12_01_2013_12_31.hdr
+
+    -rw-r----- 1 sjo547 u46 153M May  5 10:13 LS578_NBAR_WITH_PQA_STACK_NEAR_INFRARED_120_-020_2013_12_01_2013_12_31.dat
+    -rw-r----- 1 sjo547 u46  784 May  5 10:13 LS578_NBAR_WITH_PQA_STACK_NEAR_INFRARED_120_-020_2013_12_01_2013_12_31.hdr
+
+    -rw-r----- 1 sjo547 u46 153M May  5 10:13 LS578_NBAR_WITH_PQA_STACK_RED_120_-020_2013_12_01_2013_12_31.dat
+    -rw-r----- 1 sjo547 u46  774 May  5 10:13 LS578_NBAR_WITH_PQA_STACK_RED_120_-020_2013_12_01_2013_12_31.hdr
+
+    -rw-r----- 1 sjo547 u46 153M May  5 10:13 LS578_NBAR_WITH_PQA_STACK_SHORT_WAVE_INFRARED_1_120_-020_2013_12_01_2013_12_31.dat
+    -rw-r----- 1 sjo547 u46  792 May  5 10:13 LS578_NBAR_WITH_PQA_STACK_SHORT_WAVE_INFRARED_1_120_-020_2013_12_01_2013_12_31.hdr
+
+    -rw-r----- 1 sjo547 u46 153M May  5 10:13 LS578_NBAR_WITH_PQA_STACK_SHORT_WAVE_INFRARED_2_120_-020_2013_12_01_2013_12_31.dat
+    -rw-r----- 1 sjo547 u46  792 May  5 10:13 LS578_NBAR_WITH_PQA_STACK_SHORT_WAVE_INFRARED_2_120_-020_2013_12_01_2013_12_31.hdr
+
+    -rw-r----- 1 sjo547 u46  92M May  5 10:10 LS8_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013_12_01_2013_12_31.dat
+    -rw-r----- 1 sjo547 u46  662 May  5 10:10 LS8_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013_12_01_2013_12_31.hdr
+
+    -rw-r----- 1 sjo547 u46  92M May  5 10:10 LS8_FC_WITH_PQA_STACK_NON_PHOTOSYNTHETIC_VEGETATION_120_-020_2013_12_01_2013_12_31.dat
+    -rw-r----- 1 sjo547 u46  682 May  5 10:10 LS8_FC_WITH_PQA_STACK_NON_PHOTOSYNTHETIC_VEGETATION_120_-020_2013_12_01_2013_12_31.hdr
+
+    -rw-r----- 1 sjo547 u46  92M May  5 10:10 LS8_FC_WITH_PQA_STACK_PHOTOSYNTHETIC_VEGETATION_120_-020_2013_12_01_2013_12_31.dat
+    -rw-r----- 1 sjo547 u46  678 May  5 10:10 LS8_FC_WITH_PQA_STACK_PHOTOSYNTHETIC_VEGETATION_120_-020_2013_12_01_2013_12_31.hdr
+
+    -rw-r----- 1 sjo547 u46  92M May  5 10:10 LS8_FC_WITH_PQA_STACK_UNMIXING_ERROR_120_-020_2013_12_01_2013_12_31.dat
+    -rw-r----- 1 sjo547 u46  667 May  5 10:10 LS8_FC_WITH_PQA_STACK_UNMIXING_ERROR_120_-020_2013_12_01_2013_12_31.hdr
+
+If incorporating it into other workflows you would ``yield``/``return`` in your workflow a ``BandStackCellTask`` task something like::
+
+    BandStackCellTask(x=120, y=-20,
+                      acq_min=datetime(2014, 12, 1), acq_max=datetime(2014, 12, 31),
+                      satellites=[Satellite.LS5, Satellite.LS7, Satellite.LS8],
+                      output_directory="/tmp",
+                      csv=False, dummy=False,
+                      mask_pqa_apply=True, mask_pqa_mask=[PqaMask.PQ_MASK_CLEAR],
+                      mask_wofs_apply=False, mask_wofs_mask=None,
+                      dataset_type=[DatasetType.ARG25], bands=BandListType.COMMON, output_format=OutputFormat.ENVI)
 
 Other Workflows
 +++++++++++++++
@@ -416,21 +499,6 @@ More info coming soon
 
       * statistics
       * textual summaries
-
-
-Tools
------
-
-There are also a set of “tools” – i.e. packaged executables – aimed at the NPP (Non-Python “People”):
-
-* Retrieve dataset
-* Retrieve pixel time series
-* Retrieve dataset time series
-* Retrieve dataset stack
-* Retrieve aoi time series
-* Summarise dataset time series
-* …
-
 
 Indices and tables
 ==================

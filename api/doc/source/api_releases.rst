@@ -20,6 +20,8 @@ both ``u46`` and ``el8``::
 
 * Enhancement - `Issue 29 Enhance Retrieve Dataset tool to support ENVI output format <https://github.com/GeoscienceAustralia/agdc/issues/29>`_
 * Enhancement - `Issue 32 Enhance Retrieve Dataset Stack tool to support ENVI output format <https://github.com/GeoscienceAustralia/agdc/issues/32>`_
+* Enhancement - `Issue 23 Implement Retrieve Dataset Stack Luigi workflow <https://github.com/GeoscienceAustralia/agdc/issues/23>`_
+* Enhancement - `Issue 41 Enhance the Retrieve Dataset Stack Luigi workflow to support ENVI output format <https://github.com/GeoscienceAustralia/agdc/issues/41>`_
 
 AGDC API v0.1.0 (2015-04-30 snapshot)
 -------------------------------------
