@@ -6,6 +6,7 @@ Submodules
 
 .. toctree::
 
+   datacube.api.workflow.band_stack
    datacube.api.workflow.cell
    datacube.api.workflow.cell_chunk
    datacube.api.workflow.cell_dataset_band
