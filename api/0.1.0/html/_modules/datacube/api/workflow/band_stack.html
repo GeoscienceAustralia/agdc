@@ -1,0 +1,412 @@
+
+
+<!doctype html>
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>datacube.api.workflow.band_stack &mdash; agdc-api 0.1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../../../_static/bizstyle.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../../',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="../../../../_static/bizstyle.js"></script>
+    <link rel="top" title="agdc-api 0.1.0 documentation" href="../../../../index.html" />
+    <link rel="up" title="datacube.api.workflow" href="../workflow.html" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="_static/css3-mediaqueries.js"></script>
+    <![endif]-->
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">agdc-api 0.1.0 documentation</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &raquo;</li>
+          <li class="nav-item nav-item-2"><a href="../../api.html" >datacube.api</a> &raquo;</li>
+          <li class="nav-item nav-item-3"><a href="../workflow.html" accesskey="U">datacube.api.workflow</a> &raquo;</li> 
+      </ul>
+    </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for datacube.api.workflow.band_stack</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+
+<span class="c"># ===============================================================================</span>
+<span class="c"># Copyright (c)  2014 Geoscience Australia</span>
+<span class="c"># All rights reserved.</span>
+<span class="c">#</span>
+<span class="c"># Redistribution and use in source and binary forms, with or without</span>
+<span class="c"># modification, are permitted provided that the following conditions are met:</span>
+<span class="c">#     * Redistributions of source code must retain the above copyright</span>
+<span class="c">#       notice, this list of conditions and the following disclaimer.</span>
+<span class="c">#     * Redistributions in binary form must reproduce the above copyright</span>
+<span class="c">#       notice, this list of conditions and the following disclaimer in the</span>
+<span class="c">#       documentation and/or other materials provided with the distribution.</span>
+<span class="c">#     * Neither Geoscience Australia nor the names of its contributors may be</span>
+<span class="c">#       used to endorse or promote products derived from this software</span>
+<span class="c">#       without specific prior written permission.</span>
+<span class="c">#</span>
+<span class="c"># THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot; AND</span>
+<span class="c"># ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED</span>
+<span class="c"># WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE</span>
+<span class="c"># DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY</span>
+<span class="c"># DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES</span>
+<span class="c"># (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;</span>
+<span class="c"># LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND</span>
+<span class="c"># ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT</span>
+<span class="c"># (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS</span>
+<span class="c"># SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</span>
+<span class="c"># ===============================================================================</span>
+
+
+<span class="n">__author__</span> <span class="o">=</span> <span class="s">&quot;Simon Oldfield&quot;</span>
+
+
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">luigi</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">from</span> <span class="nn">datacube.api</span> <span class="kn">import</span> <span class="n">output_format_arg</span>
+<span class="kn">from</span> <span class="nn">datacube.api.model</span> <span class="kn">import</span> <span class="n">dataset_type_database</span><span class="p">,</span> <span class="n">dataset_type_derived_nbar</span><span class="p">,</span> <span class="n">DatasetType</span>
+<span class="kn">from</span> <span class="nn">datacube.api.utils</span> <span class="kn">import</span> <span class="n">get_dataset_metadata</span><span class="p">,</span> <span class="n">get_dataset_datatype</span><span class="p">,</span> <span class="n">get_dataset_ndv</span><span class="p">,</span> <span class="n">get_mask_pqa</span><span class="p">,</span> <span class="n">get_mask_wofs</span>
+<span class="kn">from</span> <span class="nn">datacube.api.utils</span> <span class="kn">import</span> <span class="n">get_dataset_data_masked</span><span class="p">,</span> <span class="n">format_date</span><span class="p">,</span> <span class="n">OutputFormat</span>
+<span class="kn">from</span> <span class="nn">datacube.api.workflow.cell_dataset_band</span> <span class="kn">import</span> <span class="n">Workflow</span><span class="p">,</span> <span class="n">SummaryTask</span><span class="p">,</span> <span class="n">CellTask</span><span class="p">,</span> <span class="n">CellDatasetBandTask</span>
+
+
+<span class="n">_log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="BandStackWorkflow"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.band_stack.html#datacube.api.workflow.band_stack.BandStackWorkflow">[docs]</a><span class="k">class</span> <span class="nc">BandStackWorkflow</span><span class="p">(</span><span class="n">Workflow</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="n">Workflow</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s">&quot;Band Stack&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_format</span> <span class="o">=</span> <span class="bp">None</span>
+
+<div class="viewcode-block" id="BandStackWorkflow.setup_arguments"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.band_stack.html#datacube.api.workflow.band_stack.BandStackWorkflow.setup_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">setup_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="c"># Call method on super class</span>
+        <span class="c"># super(self.__class__, self).setup_arguments()</span>
+        <span class="n">Workflow</span><span class="o">.</span><span class="n">setup_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--output-format&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;The format of the output dataset&quot;</span><span class="p">,</span>
+                                 <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span>
+                                 <span class="n">dest</span><span class="o">=</span><span class="s">&quot;output_format&quot;</span><span class="p">,</span>
+                                 <span class="nb">type</span><span class="o">=</span><span class="n">output_format_arg</span><span class="p">,</span>
+                                 <span class="n">choices</span><span class="o">=</span><span class="n">OutputFormat</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">OutputFormat</span><span class="o">.</span><span class="n">GEOTIFF</span><span class="p">,</span>
+                                 <span class="n">metavar</span><span class="o">=</span><span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">f</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">OutputFormat</span><span class="p">]))</span>
+</div>
+<div class="viewcode-block" id="BandStackWorkflow.process_arguments"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.band_stack.html#datacube.api.workflow.band_stack.BandStackWorkflow.process_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">process_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+
+        <span class="c"># Call method on super class</span>
+        <span class="c"># super(self.__class__, self).process_arguments(args)</span>
+        <span class="n">Workflow</span><span class="o">.</span><span class="n">process_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">output_format</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">output_format</span>
+</div>
+<div class="viewcode-block" id="BandStackWorkflow.log_arguments"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.band_stack.html#datacube.api.workflow.band_stack.BandStackWorkflow.log_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">log_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="c"># Call method on super class</span>
+        <span class="c"># super(self.__class__, self).log_arguments()</span>
+        <span class="n">Workflow</span><span class="o">.</span><span class="n">log_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="n">_log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;&quot;&quot;</span>
+<span class="s">        output format = {output_format}</span>
+<span class="s">        &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">output_format</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_format</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+</div>
+<div class="viewcode-block" id="BandStackWorkflow.create_summary_tasks"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.band_stack.html#datacube.api.workflow.band_stack.BandStackWorkflow.create_summary_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">create_summary_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">BandStackSummaryTask</span><span class="p">(</span><span class="n">x_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y_max</span><span class="p">,</span>
+                                     <span class="n">acq_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">,</span> <span class="n">satellites</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">,</span>
+                                     <span class="n">output_directory</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_directory</span><span class="p">,</span> <span class="n">csv</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">csv</span><span class="p">,</span> <span class="n">dummy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dummy</span><span class="p">,</span>
+                                     <span class="n">mask_pqa_apply</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_pqa_apply</span><span class="p">,</span> <span class="n">mask_pqa_mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_pqa_mask</span><span class="p">,</span>
+                                     <span class="n">mask_wofs_apply</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_wofs_apply</span><span class="p">,</span> <span class="n">mask_wofs_mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_wofs_mask</span><span class="p">,</span>
+                                     <span class="n">dataset_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_type</span><span class="p">,</span> <span class="n">bands</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bands</span><span class="p">,</span>
+                                     <span class="n">output_format</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_format</span><span class="p">)]</span>
+</div>
+<div class="viewcode-block" id="BandStackWorkflow.get_supported_dataset_types"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.band_stack.html#datacube.api.workflow.band_stack.BandStackWorkflow.get_supported_dataset_types">[docs]</a>    <span class="k">def</span> <span class="nf">get_supported_dataset_types</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">dataset_type_database</span> <span class="o">+</span> <span class="n">dataset_type_derived_nbar</span>
+
+</div></div>
+<div class="viewcode-block" id="BandStackSummaryTask"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.band_stack.html#datacube.api.workflow.band_stack.BandStackSummaryTask">[docs]</a><span class="k">class</span> <span class="nc">BandStackSummaryTask</span><span class="p">(</span><span class="n">SummaryTask</span><span class="p">):</span>
+
+    <span class="n">output_format</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">()</span>
+
+<div class="viewcode-block" id="BandStackSummaryTask.create_cell_tasks"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.band_stack.html#datacube.api.workflow.band_stack.BandStackSummaryTask.create_cell_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">create_cell_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+
+        <span class="k">return</span> <span class="n">BandStackCellTask</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y</span><span class="p">,</span> <span class="n">acq_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">,</span> <span class="n">satellites</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">,</span>
+                                 <span class="n">output_directory</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_directory</span><span class="p">,</span> <span class="n">csv</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">csv</span><span class="p">,</span> <span class="n">dummy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dummy</span><span class="p">,</span>
+                                 <span class="n">mask_pqa_apply</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_pqa_apply</span><span class="p">,</span> <span class="n">mask_pqa_mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_pqa_mask</span><span class="p">,</span>
+                                 <span class="n">mask_wofs_apply</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_wofs_apply</span><span class="p">,</span> <span class="n">mask_wofs_mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_wofs_mask</span><span class="p">,</span>
+                                 <span class="n">dataset_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_type</span><span class="p">,</span> <span class="n">bands</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">bands</span><span class="p">,</span> <span class="n">output_format</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_format</span><span class="p">)</span>
+
+</div></div>
+<div class="viewcode-block" id="BandStackCellTask"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.band_stack.html#datacube.api.workflow.band_stack.BandStackCellTask">[docs]</a><span class="k">class</span> <span class="nc">BandStackCellTask</span><span class="p">(</span><span class="n">CellTask</span><span class="p">):</span>
+
+    <span class="n">output_format</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">()</span>
+
+<div class="viewcode-block" id="BandStackCellTask.create_cell_dataset_band_task"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.band_stack.html#datacube.api.workflow.band_stack.BandStackCellTask.create_cell_dataset_band_task">[docs]</a>    <span class="k">def</span> <span class="nf">create_cell_dataset_band_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">band</span><span class="p">):</span>
+
+        <span class="k">return</span> <span class="n">BandStackCellDatasetBandTask</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">acq_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">,</span>
+                                            <span class="n">satellites</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">,</span>
+                                            <span class="n">output_directory</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_directory</span><span class="p">,</span> <span class="n">csv</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">csv</span><span class="p">,</span> <span class="n">dummy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dummy</span><span class="p">,</span>
+                                            <span class="n">mask_pqa_apply</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_pqa_apply</span><span class="p">,</span> <span class="n">mask_pqa_mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_pqa_mask</span><span class="p">,</span>
+                                            <span class="n">mask_wofs_apply</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_wofs_apply</span><span class="p">,</span> <span class="n">mask_wofs_mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_wofs_mask</span><span class="p">,</span>
+                                            <span class="n">dataset_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_type</span><span class="p">,</span> <span class="n">band</span><span class="o">=</span><span class="n">band</span><span class="p">,</span> <span class="n">output_format</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_format</span><span class="p">)</span>
+
+</div></div>
+<div class="viewcode-block" id="BandStackCellDatasetBandTask"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.band_stack.html#datacube.api.workflow.band_stack.BandStackCellDatasetBandTask">[docs]</a><span class="k">class</span> <span class="nc">BandStackCellDatasetBandTask</span><span class="p">(</span><span class="n">CellDatasetBandTask</span><span class="p">):</span>
+
+    <span class="n">output_format</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">()</span>
+
+<div class="viewcode-block" id="BandStackCellDatasetBandTask.output"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.band_stack.html#datacube.api.workflow.band_stack.BandStackCellDatasetBandTask.output">[docs]</a>    <span class="k">def</span> <span class="nf">output</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="kn">from</span> <span class="nn">datacube.api.workflow</span> <span class="kn">import</span> <span class="n">format_date</span>
+        <span class="kn">from</span> <span class="nn">datacube.api.utils</span> <span class="kn">import</span> <span class="n">get_satellite_string</span>
+
+        <span class="n">acq_min</span> <span class="o">=</span> <span class="n">format_date</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">)</span>
+        <span class="n">acq_max</span> <span class="o">=</span> <span class="n">format_date</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">)</span>
+
+        <span class="n">dataset_type_string</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">DatasetType</span><span class="o">.</span><span class="n">ARG25</span><span class="p">:</span> <span class="s">&quot;NBAR&quot;</span><span class="p">,</span>
+            <span class="n">DatasetType</span><span class="o">.</span><span class="n">PQ25</span><span class="p">:</span> <span class="s">&quot;PQA&quot;</span><span class="p">,</span>
+            <span class="n">DatasetType</span><span class="o">.</span><span class="n">FC25</span><span class="p">:</span> <span class="s">&quot;FC&quot;</span><span class="p">,</span>
+            <span class="n">DatasetType</span><span class="o">.</span><span class="n">WATER</span><span class="p">:</span> <span class="s">&quot;WATER&quot;</span><span class="p">,</span>
+            <span class="n">DatasetType</span><span class="o">.</span><span class="n">NDVI</span><span class="p">:</span> <span class="s">&quot;NDVI&quot;</span><span class="p">,</span>
+            <span class="n">DatasetType</span><span class="o">.</span><span class="n">EVI</span><span class="p">:</span> <span class="s">&quot;EVI&quot;</span><span class="p">,</span>
+            <span class="n">DatasetType</span><span class="o">.</span><span class="n">NBR</span><span class="p">:</span> <span class="s">&quot;NBR&quot;</span><span class="p">,</span>
+            <span class="n">DatasetType</span><span class="o">.</span><span class="n">TCI</span><span class="p">:</span> <span class="s">&quot;TCI&quot;</span><span class="p">,</span>
+            <span class="n">DatasetType</span><span class="o">.</span><span class="n">DSM</span><span class="p">:</span> <span class="s">&quot;DSM&quot;</span>
+        <span class="p">}[</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_type</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_pqa_apply</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_wofs_apply</span><span class="p">:</span>
+            <span class="n">dataset_type_string</span> <span class="o">+=</span> <span class="s">&quot;_WITH_PQA_WATER&quot;</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_pqa_apply</span><span class="p">:</span>
+            <span class="n">dataset_type_string</span> <span class="o">+=</span> <span class="s">&quot;_WITH_PQA&quot;</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_wofs_apply</span><span class="p">:</span>
+            <span class="n">dataset_type_string</span> <span class="o">+=</span> <span class="o">+</span> <span class="s">&quot;_WITH_WATER&quot;</span>
+
+        <span class="n">ext</span> <span class="o">=</span> <span class="p">{</span><span class="n">OutputFormat</span><span class="o">.</span><span class="n">GEOTIFF</span><span class="p">:</span> <span class="s">&quot;tif&quot;</span><span class="p">,</span> <span class="n">OutputFormat</span><span class="o">.</span><span class="n">ENVI</span><span class="p">:</span> <span class="s">&quot;dat&quot;</span><span class="p">}[</span><span class="bp">self</span><span class="o">.</span><span class="n">output_format</span><span class="p">]</span>
+
+        <span class="n">filename</span> <span class="o">=</span> <span class="s">&quot;{satellites}_{dataset_type}_STACK_{band}_{x:03d}_{y:04d}_{acq_min}_{acq_max}.{ext}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">satellites</span><span class="o">=</span><span class="n">get_satellite_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">),</span> <span class="n">dataset_type</span><span class="o">=</span><span class="n">dataset_type_string</span><span class="p">,</span> <span class="n">band</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">band</span><span class="p">,</span>
+            <span class="n">x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">,</span> <span class="n">acq_min</span><span class="o">=</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="o">=</span><span class="n">acq_max</span><span class="p">,</span> <span class="n">ext</span><span class="o">=</span><span class="n">ext</span><span class="p">)</span>
+
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_directory</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">luigi</span><span class="o">.</span><span class="n">LocalTarget</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="BandStackCellDatasetBandTask.run"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.band_stack.html#datacube.api.workflow.band_stack.BandStackCellDatasetBandTask.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="c"># TODO move the dicking around with bands stuff into utils?</span>
+
+        <span class="kn">import</span> <span class="nn">gdal</span>
+
+        <span class="n">driver</span> <span class="o">=</span> <span class="n">raster</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="n">metadata</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="n">data_type</span> <span class="o">=</span> <span class="n">ndv</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="n">tiles</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_tiles</span><span class="p">()</span>
+        <span class="n">_log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Total tiles found [</span><span class="si">%d</span><span class="s">]&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">tiles</span><span class="p">))</span>
+
+        <span class="n">_log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Creating stack for band [</span><span class="si">%s</span><span class="s">]&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">band</span><span class="p">)</span>
+
+        <span class="n">relevant_tiles</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">tile</span> <span class="ow">in</span> <span class="n">tiles</span><span class="p">:</span>
+
+            <span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_type</span> <span class="ow">in</span> <span class="n">tile</span><span class="o">.</span><span class="n">datasets</span> <span class="ow">and</span> <span class="n">tile</span><span class="o">.</span><span class="n">datasets</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_type</span><span class="p">]</span> <span class="ow">or</span> <span class="bp">None</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">dataset</span><span class="p">:</span>
+                <span class="n">_log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;No applicable [</span><span class="si">%s</span><span class="s">] dataset for [</span><span class="si">%s</span><span class="s">]&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_type</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">tile</span><span class="o">.</span><span class="n">end_datetime</span><span class="p">)</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">band</span> <span class="ow">in</span> <span class="p">[</span><span class="n">b</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">tile</span><span class="o">.</span><span class="n">datasets</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_type</span><span class="p">]</span><span class="o">.</span><span class="n">bands</span><span class="p">]:</span>
+                <span class="n">relevant_tiles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tile</span><span class="p">)</span>
+
+        <span class="n">_log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Total tiles for band [</span><span class="si">%s</span><span class="s">] is [</span><span class="si">%d</span><span class="s">]&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">band</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">relevant_tiles</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">tile</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">relevant_tiles</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+
+            <span class="n">dataset</span> <span class="o">=</span> <span class="n">tile</span><span class="o">.</span><span class="n">datasets</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_type</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="n">dataset</span>
+
+            <span class="n">band</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">bands</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">band</span><span class="p">]</span>
+            <span class="k">assert</span> <span class="n">band</span>
+
+            <span class="n">pqa</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_pqa_apply</span> <span class="ow">and</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">PQ25</span> <span class="ow">in</span> <span class="n">tile</span><span class="o">.</span><span class="n">datasets</span><span class="p">)</span> <span class="ow">and</span> <span class="n">tile</span><span class="o">.</span><span class="n">datasets</span><span class="p">[</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">PQ25</span><span class="p">]</span> <span class="ow">or</span> <span class="bp">None</span>
+            <span class="n">wofs</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_wofs_apply</span> <span class="ow">and</span> <span class="n">DatasetType</span><span class="o">.</span><span class="n">WATER</span> <span class="ow">in</span> <span class="n">tile</span><span class="o">.</span><span class="n">datasets</span><span class="p">)</span> <span class="ow">and</span> <span class="n">tile</span><span class="o">.</span><span class="n">datasets</span><span class="p">[</span><span class="n">DatasetType</span><span class="o">.</span><span class="n">WATER</span><span class="p">]</span> <span class="ow">or</span> <span class="bp">None</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tile</span><span class="o">.</span><span class="n">datasets</span><span class="p">:</span>
+                <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;No [</span><span class="si">%s</span><span class="s">] dataset present for [</span><span class="si">%s</span><span class="s">] - skipping&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_type</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">tile</span><span class="o">.</span><span class="n">end_datetime</span><span class="p">)</span>
+                <span class="k">continue</span>
+
+            <span class="n">filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">()</span><span class="o">.</span><span class="n">path</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">metadata</span><span class="p">:</span>
+                <span class="n">metadata</span> <span class="o">=</span> <span class="n">get_dataset_metadata</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
+                <span class="k">assert</span> <span class="n">metadata</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">data_type</span><span class="p">:</span>
+                <span class="n">data_type</span> <span class="o">=</span> <span class="n">get_dataset_datatype</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
+                <span class="k">assert</span> <span class="n">data_type</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">ndv</span><span class="p">:</span>
+                <span class="n">ndv</span> <span class="o">=</span> <span class="n">get_dataset_ndv</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
+                <span class="k">assert</span> <span class="n">ndv</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">driver</span><span class="p">:</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_format</span> <span class="o">==</span> <span class="n">OutputFormat</span><span class="o">.</span><span class="n">GEOTIFF</span><span class="p">:</span>
+                    <span class="n">driver</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">GetDriverByName</span><span class="p">(</span><span class="s">&quot;GTiff&quot;</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_format</span> <span class="o">==</span> <span class="n">OutputFormat</span><span class="o">.</span><span class="n">ENVI</span><span class="p">:</span>
+                    <span class="n">driver</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">GetDriverByName</span><span class="p">(</span><span class="s">&quot;ENVI&quot;</span><span class="p">)</span>
+
+                <span class="k">assert</span> <span class="n">driver</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">raster</span><span class="p">:</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_format</span> <span class="o">==</span> <span class="n">OutputFormat</span><span class="o">.</span><span class="n">GEOTIFF</span><span class="p">:</span>
+                    <span class="n">raster</span> <span class="o">=</span> <span class="n">driver</span><span class="o">.</span><span class="n">Create</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">metadata</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">metadata</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="n">tiles</span><span class="p">),</span> <span class="n">data_type</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;BIGTIFF=YES&quot;</span><span class="p">,</span> <span class="s">&quot;INTERLEAVE=BAND&quot;</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_format</span> <span class="o">==</span> <span class="n">OutputFormat</span><span class="o">.</span><span class="n">ENVI</span><span class="p">:</span>
+                    <span class="n">raster</span> <span class="o">=</span> <span class="n">driver</span><span class="o">.</span><span class="n">Create</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">metadata</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">metadata</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="n">tiles</span><span class="p">),</span> <span class="n">data_type</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="p">[</span><span class="s">&quot;INTERLEAVE=BSQ&quot;</span><span class="p">])</span>
+
+                <span class="k">assert</span> <span class="n">raster</span>
+
+                <span class="c"># NOTE: could do this without the metadata!!</span>
+                <span class="n">raster</span><span class="o">.</span><span class="n">SetGeoTransform</span><span class="p">(</span><span class="n">metadata</span><span class="o">.</span><span class="n">transform</span><span class="p">)</span>
+                <span class="n">raster</span><span class="o">.</span><span class="n">SetProjection</span><span class="p">(</span><span class="n">metadata</span><span class="o">.</span><span class="n">projection</span><span class="p">)</span>
+
+            <span class="n">raster</span><span class="o">.</span><span class="n">SetMetadata</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">generate_raster_metadata</span><span class="p">())</span>
+
+            <span class="n">mask</span> <span class="o">=</span> <span class="bp">None</span>
+
+            <span class="k">if</span> <span class="n">pqa</span><span class="p">:</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="n">get_mask_pqa</span><span class="p">(</span><span class="n">pqa</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_pqa_mask</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">wofs</span><span class="p">:</span>
+                <span class="n">mask</span> <span class="o">=</span> <span class="n">get_mask_wofs</span><span class="p">(</span><span class="n">wofs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_wofs_mask</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">)</span>
+
+            <span class="n">_log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;Stacking [</span><span class="si">%s</span><span class="s">] band data from [</span><span class="si">%s</span><span class="s">] with PQA [</span><span class="si">%s</span><span class="s">] and PQA mask [</span><span class="si">%s</span><span class="s">] and WOFS [</span><span class="si">%s</span><span class="s">] and WOFS mask [</span><span class="si">%s</span><span class="s">] to [</span><span class="si">%s</span><span class="s">]&quot;</span><span class="p">,</span>
+                      <span class="n">band</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">dataset</span><span class="o">.</span><span class="n">path</span><span class="p">,</span>
+                      <span class="n">pqa</span> <span class="ow">and</span> <span class="n">pqa</span><span class="o">.</span><span class="n">path</span> <span class="ow">or</span> <span class="s">&quot;&quot;</span><span class="p">,</span>
+                      <span class="n">pqa</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_pqa_mask</span> <span class="ow">or</span> <span class="s">&quot;&quot;</span><span class="p">,</span>
+                      <span class="n">wofs</span> <span class="ow">and</span> <span class="n">wofs</span><span class="o">.</span><span class="n">path</span> <span class="ow">or</span> <span class="s">&quot;&quot;</span><span class="p">,</span> <span class="n">wofs</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_wofs_mask</span> <span class="ow">or</span> <span class="s">&quot;&quot;</span><span class="p">,</span>
+                      <span class="n">filename</span><span class="p">)</span>
+
+            <span class="n">data</span> <span class="o">=</span> <span class="n">get_dataset_data_masked</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="n">ndv</span><span class="o">=</span><span class="n">ndv</span><span class="p">)</span>
+
+            <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;data is [</span><span class="si">%s</span><span class="s">]&quot;</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+
+            <span class="n">stack_band</span> <span class="o">=</span> <span class="n">raster</span><span class="o">.</span><span class="n">GetRasterBand</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+
+            <span class="n">stack_band</span><span class="o">.</span><span class="n">SetDescription</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">path</span><span class="p">))</span>
+            <span class="n">stack_band</span><span class="o">.</span><span class="n">SetNoDataValue</span><span class="p">(</span><span class="n">ndv</span><span class="p">)</span>
+            <span class="n">stack_band</span><span class="o">.</span><span class="n">WriteArray</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">band</span><span class="p">])</span>
+            <span class="n">stack_band</span><span class="o">.</span><span class="n">ComputeStatistics</span><span class="p">(</span><span class="bp">True</span><span class="p">)</span>
+            <span class="n">stack_band</span><span class="o">.</span><span class="n">SetMetadata</span><span class="p">({</span><span class="s">&quot;ACQ_DATE&quot;</span><span class="p">:</span> <span class="n">format_date</span><span class="p">(</span><span class="n">tile</span><span class="o">.</span><span class="n">end_datetime</span><span class="p">),</span> <span class="s">&quot;SATELLITE&quot;</span><span class="p">:</span> <span class="n">dataset</span><span class="o">.</span><span class="n">satellite</span><span class="o">.</span><span class="n">name</span><span class="p">})</span>
+
+            <span class="n">stack_band</span><span class="o">.</span><span class="n">FlushCache</span><span class="p">()</span>
+            <span class="k">del</span> <span class="n">stack_band</span>
+
+        <span class="k">if</span> <span class="n">raster</span><span class="p">:</span>
+            <span class="n">raster</span><span class="o">.</span><span class="n">FlushCache</span><span class="p">()</span>
+            <span class="k">del</span> <span class="n">raster</span>
+            <span class="n">raster</span> <span class="o">=</span> <span class="bp">None</span>
+</div>
+<div class="viewcode-block" id="BandStackCellDatasetBandTask.generate_raster_metadata"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.band_stack.html#datacube.api.workflow.band_stack.BandStackCellDatasetBandTask.generate_raster_metadata">[docs]</a>    <span class="k">def</span> <span class="nf">generate_raster_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s">&quot;X_INDEX&quot;</span><span class="p">:</span> <span class="s">&quot;{x:03d}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x</span><span class="p">),</span>
+            <span class="s">&quot;Y_INDEX&quot;</span><span class="p">:</span> <span class="s">&quot;{y:04d}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">y</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y</span><span class="p">),</span>
+            <span class="s">&quot;DATASET_TYPE&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset_type</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="s">&quot;ACQUISITION_DATE&quot;</span><span class="p">:</span> <span class="s">&quot;{acq_min} to {acq_max}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">acq_min</span><span class="o">=</span><span class="n">format_date</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">),</span> <span class="n">acq_max</span><span class="o">=</span><span class="n">format_date</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">)),</span>
+            <span class="s">&quot;SATELLITES&quot;</span><span class="p">:</span> <span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">s</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">]),</span>
+            <span class="s">&quot;PIXEL_QUALITY_FILTER&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_pqa_apply</span> <span class="ow">and</span> <span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">mask</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">mask</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_pqa_mask</span><span class="p">])</span> <span class="ow">or</span> <span class="s">&quot;&quot;</span><span class="p">,</span>
+            <span class="s">&quot;WATER_FILTER&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_wofs_apply</span> <span class="ow">and</span> <span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">mask</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">mask</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_wofs_mask</span><span class="p">])</span> <span class="ow">or</span> <span class="s">&quot;&quot;</span>
+        <span class="p">}</span>
+
+</div></div>
+<div class="viewcode-block" id="format_date_time"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.band_stack.html#datacube.api.workflow.band_stack.format_date_time">[docs]</a><span class="k">def</span> <span class="nf">format_date_time</span><span class="p">(</span><span class="n">d</span><span class="p">):</span>
+    <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+
+    <span class="k">if</span> <span class="n">d</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="s">&quot;%Y-%m-</span><span class="si">%d</span><span class="s"> %H:%M:%S&quot;</span><span class="p">)</span>
+
+</div>
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">,</span> <span class="n">format</span><span class="o">=</span><span class="s">&#39;</span><span class="si">%(asctime)s</span><span class="s"> </span><span class="si">%(levelname)s</span><span class="s"> </span><span class="si">%(message)s</span><span class="s">&#39;</span><span class="p">)</span>
+
+    <span class="n">BandStackWorkflow</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../../index.html">agdc-api 0.1.0 documentation</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="../../../index.html" >Module code</a> &raquo;</li>
+          <li class="nav-item nav-item-2"><a href="../../api.html" >datacube.api</a> &raquo;</li>
+          <li class="nav-item nav-item-3"><a href="../workflow.html" >datacube.api.workflow</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2015, Geoscience Australia.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.3.1.
+    </div>
+  </body>
+</html>
