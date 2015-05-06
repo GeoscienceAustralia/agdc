@@ -26,8 +26,6 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ===============================================================================
-import numpy
-from datacube.api.workflow import format_date
 
 
 __author__ = "Simon Oldfield"
@@ -36,11 +34,13 @@ __author__ = "Simon Oldfield"
 import gdal
 import logging
 import luigi
+import numpy
 import os
 import osr
 from datacube.api.workflow.cell import Workflow, SummaryTask, CellTask
 from datacube.api.model import DatasetType, TciBands
 from datacube.api.utils import log_mem
+from datacube.api.workflow import format_date
 
 
 _log = logging.getLogger()
