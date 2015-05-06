@@ -266,6 +266,10 @@ The *Retrieve Dataset* tool retrieves the given dataset(s) optionally applying p
            [--mask-pqa-mask PQ_MASK_SATURATION_THERMAL PQ_MASK_SATURATION_OPTICAL PQ_MASK_SATURATION PQ_MASK_CONTIGUITY PQ_MASK_LAND PQ_MASK_CLOUD_ACCA PQ_MASK_CLOUD_FMASK PQ_MASK_CLOUD_SHADOW_ACCA PQ_MASK_CLOUD_SHADOW_FMASK PQ_MASK_CLOUD PQ_MASK_CLEAR [PQ_MASK_SATURATION_THERMAL PQ_MASK_SATURATION_OPTICAL PQ_MASK_SATURATION PQ_MASK_CONTIGUITY PQ_MASK_LAND PQ_MASK_CLOUD_ACCA PQ_MASK_CLOUD_FMASK PQ_MASK_CLOUD_SHADOW_ACCA PQ_MASK_CLOUD_SHADOW_FMASK PQ_MASK_CLOUD PQ_MASK_CLEAR ...]]
            [--mask-wofs-apply]
            [--mask-wofs-mask DRY NO_DATA SATURATION_CONTIGUITY SEA_WATER TERRAIN_SHADOW HIGH_SLOPE CLOUD_SHADOW CLOUD WET [DRY NO_DATA SATURATION_CONTIGUITY SEA_WATER TERRAIN_SHADOW HIGH_SLOPE CLOUD_SHADOW CLOUD WET ...]]
+           [--mask-vector-apply]
+           [--mask-vector-file MASK_VECTOR_FILE]
+           [--mask-vector-layer MASK_VECTOR_LAYER]
+           [--mask-vector-feature MASK_VECTOR_FEATURE]
            --x [110 - 155] --y [-45 - -10]
            --dataset-type ARG25 PQ25 FC25 WATER DSM DEM DEM_HYDROLOGICALLY_ENFORCED DEM_SMOOTHED NDVI EVI NBR TCI [ARG25 PQ25 FC25 WATER DSM DEM DEM_HYDROLOGICALLY_ENFORCED DEM_SMOOTHED NDVI EVI NBR TCI ...]
            --output-directory OUTPUT_DIRECTORY
@@ -289,6 +293,13 @@ The *Retrieve Dataset* tool retrieves the given dataset(s) optionally applying p
       --mask-wofs-apply     Apply WOFS mask
       --mask-wofs-mask DRY NO_DATA SATURATION_CONTIGUITY SEA_WATER TERRAIN_SHADOW HIGH_SLOPE CLOUD_SHADOW CLOUD WET [DRY NO_DATA SATURATION_CONTIGUITY SEA_WATER TERRAIN_SHADOW HIGH_SLOPE CLOUD_SHADOW CLOUD WET ...]
                             The WOFS mask to apply
+      --mask-vector-apply   Apply mask from feature in vector file
+      --mask-vector-file MASK_VECTOR_FILE
+                            The vector file containing the mask
+      --mask-vector-layer MASK_VECTOR_LAYER
+                            The vector layer containing the mask
+      --mask-vector-feature MASK_VECTOR_FEATURE
+                            The vector feature containing the mask
       --x [110 - 155]       X grid reference
       --y [-45 - -10]       Y grid reference
       --dataset-type ARG25 PQ25 FC25 WATER DSM DEM DEM_HYDROLOGICALLY_ENFORCED DEM_SMOOTHED NDVI EVI NBR TCI [ARG25 PQ25 FC25 WATER DSM DEM DEM_HYDROLOGICALLY_ENFORCED DEM_SMOOTHED NDVI EVI NBR TCI ...]
@@ -509,10 +520,10 @@ To retrieve the FC datasets applying PQ mask in ENVI format::
             list only = False
             output format = ENVI
 
-    2015-05-04 15:46:04,863 INFO Retrieving data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-025/2014/mosaic_cache/LS8_OLI_TIRS_FC_120_-025_2014-01-03T01-58-04.vrt] with pq [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-025/2014/mosaic_cache/LS8_OLI_TIRS_PQA_120_-025_2014-01-03T01-58-04.tif] and pq mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and wofs [] and wofs mask [] to [ENVI] file [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_120_-025_2014-01-03T01-58-04.dat]
-    2015-05-04 15:46:12,963 INFO Retrieving data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/120_-025/2014/LS7_ETM_FC_120_-025_2014-01-04T01-47-21.tif] with pq [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/120_-025/2014/LS7_ETM_PQA_120_-025_2014-01-04T01-47-21.148399.tif] and pq mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and wofs [] and wofs mask [] to [ENVI] file [/g/data/u46/sjo/testing/0.1.0/LS7_ETM_FC_WITH_PQA_120_-025_2014-01-04T01-47-21.dat]
-    2015-05-04 15:46:15,648 INFO Retrieving data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-025/2014/LS8_OLI_TIRS_FC_120_-025_2014-01-12T01-52-08.tif] with pq [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-025/2014/LS8_OLI_TIRS_PQA_120_-025_2014-01-12T01-52-08.tif] and pq mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and wofs [] and wofs mask [] to [ENVI] file [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_120_-025_2014-01-12T01-52-08.dat]
-    2015-05-04 15:46:18,494 INFO Retrieving data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-025/2014/LS8_OLI_TIRS_FC_120_-025_2014-01-19T01-58-14.tif] with pq [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-025/2014/LS8_OLI_TIRS_PQA_120_-025_2014-01-19T01-58-14.tif] and pq mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and wofs [] and wofs mask [] to [ENVI] file [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_120_-025_2014-01-19T01-58-14.dat]
+    2015-05-04 15:46:04,863 INFO Retrieving data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-025/2014/mosaic_cache/LS8_OLI_TIRS_FC_120_-025_2014-01-03T01-58-04.vrt] with pq [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-025/2014/mosaic_cache/LS8_OLI_TIRS_PQA_120_-025_2014-01-03T01-58-04.tif] and pq mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and wofs [] and wofs mask [] to [ENVI] file [/tmp/LS8_OLI_TIRS_FC_WITH_PQA_120_-025_2014-01-03T01-58-04.dat]
+    2015-05-04 15:46:12,963 INFO Retrieving data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/120_-025/2014/LS7_ETM_FC_120_-025_2014-01-04T01-47-21.tif] with pq [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/120_-025/2014/LS7_ETM_PQA_120_-025_2014-01-04T01-47-21.148399.tif] and pq mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and wofs [] and wofs mask [] to [ENVI] file [/tmp/LS7_ETM_FC_WITH_PQA_120_-025_2014-01-04T01-47-21.dat]
+    2015-05-04 15:46:15,648 INFO Retrieving data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-025/2014/LS8_OLI_TIRS_FC_120_-025_2014-01-12T01-52-08.tif] with pq [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-025/2014/LS8_OLI_TIRS_PQA_120_-025_2014-01-12T01-52-08.tif] and pq mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and wofs [] and wofs mask [] to [ENVI] file [/tmp/LS8_OLI_TIRS_FC_WITH_PQA_120_-025_2014-01-12T01-52-08.dat]
+    2015-05-04 15:46:18,494 INFO Retrieving data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-025/2014/LS8_OLI_TIRS_FC_120_-025_2014-01-19T01-58-14.tif] with pq [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-025/2014/LS8_OLI_TIRS_PQA_120_-025_2014-01-19T01-58-14.tif] and pq mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and wofs [] and wofs mask [] to [ENVI] file [/tmp/LS8_OLI_TIRS_FC_WITH_PQA_120_-025_2014-01-19T01-58-14.dat]
 
 .. code-block:: text
     :caption: FC ENVI outputs
@@ -575,6 +586,89 @@ To retrieve the FC datasets applying PQ mask in ENVI format::
       Description = UNMIXING_ERROR
       Minimum=326.000, Maximum=16959.000, Mean=7182.122, StdDev=6224.030
       NoData Value=-999
+
+To retrieve the Landsat 8 *Surface Reflectance* dataset from 11\ :sub:`th` October 2013::
+
+    $ retrieve_dataset.py --acq-min 2013-10-11 --acq-max 2013-10-11 --satellite LS8 --x 148 --y -36 --dataset-type ARG25 --output-directory /tmp             
+    2015-05-06 14:17:14,639 INFO 
+            acq = 2013-10-11 to 2013-10-11
+            satellites = LS8
+            PQA mask = 
+            WOFS mask = 
+            
+    2015-05-06 14:17:14,639 INFO 
+            x = 148
+            y = -036
+            VECTOR mask = 
+            
+    2015-05-06 14:17:14,639 INFO 
+            datasets to retrieve = ARG25
+            output directory = /tmp
+            over write existing = False
+            list only = False
+            output format = GEOTIFF
+            
+    2015-05-06 14:17:14,784 INFO Retrieving data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/148_-036/2013/mosaic_cache/LS8_OLI_TIRS_NBAR_148_-036_2013-10-11T23-51-59.vrt] with pq [] and pq mask [] and wofs [] and wofs mask [] to [GEOTIFF] file [/tmp/LS8_OLI_TIRS_NBAR_148_-036_2013-10-11T23-51-59.tif]
+
+.. figure:: LS8_OLI_TIRS_NBAR_148_-036_2013-10-11T23-51-59.png
+
+    ``LS8_OLI_TIRS_NBAR_148_-036_2013-10-11T23-51-59.png``
+
+To retrieve the Landsat 8 *Surface Reflectance* dataset from 11\ :sub:`th` October 2013 with Pixel Quality masking applied::
+
+    $ retrieve_dataset.py --acq-min 2013-10-11 --acq-max 2013-10-11 --satellite LS8 --x 148 --y -36 --dataset-type ARG25 --output-directory $PWD --mask-pqa-apply
+
+    2015-05-06 14:38:49,329 INFO
+            acq = 2013-10-11 to 2013-10-11
+            satellites = LS8
+            PQA mask = PQ_MASK_CLEAR
+            WOFS mask =
+
+    2015-05-06 14:38:49,330 INFO
+            x = 148
+            y = -036
+            VECTOR mask =
+
+    2015-05-06 14:38:49,330 INFO
+            datasets to retrieve = ARG25
+            output directory = /tmp
+            over write existing = False
+            list only = False
+            output format = GEOTIFF
+
+    2015-05-06 14:38:49,521 INFO Retrieving data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/148_-036/2013/mosaic_cache/LS8_OLI_TIRS_NBAR_148_-036_2013-10-11T23-51-59.vrt] with pq [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/148_-036/2013/mosaic_cache/LS8_OLI_TIRS_PQA_148_-036_2013-10-11T23-51-59.tif] and pq mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and wofs [] and wofs mask [] to [GEOTIFF] file [/tmp/LS8_OLI_TIRS_NBAR_WITH_PQA_148_-036_2013-10-11T23-51-59.tif]
+
+.. figure:: LS8_OLI_TIRS_NBAR_WITH_PQA_148_-036_2013-10-11T23-51-59.png
+
+    ``LS8_OLI_TIRS_NBAR_WITH_PQA_148_-036_2013-10-11T23-51-59.png``
+
+To retrieve the Landsat 8 *Surface Reflectance* dataset from 11\ :sub:`th` October 2013 with Pixel Quality and an ACT area of interest masking applied::
+
+    $ retrieve_dataset.py --acq-min 2013-10-11 --acq-max 2013-10-11 --satellite LS8 --x 148 --y -36 --dataset-type ARG25 --output-directory /tmp --mask-pqa-apply --mask-vector-apply --mask-vector-file australian_states.shp --mask-vector-layer australian_states --mask-vector-feature 4
+
+    2015-05-06 14:43:32,967 INFO
+            acq = 2013-10-11 to 2013-10-11
+            satellites = LS8
+            PQA mask = PQ_MASK_CLEAR
+            WOFS mask =
+
+    2015-05-06 14:43:32,967 INFO
+            x = 148
+            y = -036
+            VECTOR mask = /g/data/u46/sjo/tmp/Mainlands.shp Mainlands 4
+
+    2015-05-06 14:43:32,967 INFO
+            datasets to retrieve = ARG25
+            output directory = /g/data/u46/sjo/testing/0.1.0
+            over write existing = False
+            list only = False
+            output format = GEOTIFF
+
+    2015-05-06 14:43:33,285 INFO Retrieving data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/148_-036/2013/mosaic_cache/LS8_OLI_TIRS_NBAR_148_-036_2013-10-11T23-51-59.vrt] with pq [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/148_-036/2013/mosaic_cache/LS8_OLI_TIRS_PQA_148_-036_2013-10-11T23-51-59.tif] and pq mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and wofs [] and wofs mask [] to [GEOTIFF] file [/tmp/LS8_OLI_TIRS_NBAR_WITH_PQA_VECTOR_148_-036_2013-10-11T23-51-59.tif]
+
+.. figure:: LS8_OLI_TIRS_NBAR_WITH_PQA_VECTOR_148_-036_2013-10-11T23-51-59.png
+
+    ``LS8_OLI_TIRS_NBAR_WITH_PQA_VECTOR_148_-036_2013-10-11T23-51-59.png``
 
 Retrieve Dataset Stack
 ----------------------
@@ -672,27 +766,27 @@ For example to stack the LS8 Fractional Cover datasets from December 2013 for th
 
     2015-05-04 13:58:15,167 INFO Creating stack for band [PHOTOSYNTHETIC_VEGETATION]
     2015-05-04 13:58:15,167 INFO Total tiles for band [PHOTOSYNTHETIC_VEGETATION] is [3]
-    2015-05-04 13:58:15,353 INFO Stacking [PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-02T01-57-07.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-02T01-57-07.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-02T01-57-07.tif]
-    2015-05-04 13:58:23,276 INFO Stacking [PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_FC_120_-020_2013-12-09T02-03-41.tif] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_PQA_120_-020_2013-12-09T02-03-41.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-09T02-03-41.tif]
-    2015-05-04 13:58:26,521 INFO Stacking [PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-18T01-56-59.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-18T01-56-59.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-18T01-56-59.tif]
+    2015-05-04 13:58:15,353 INFO Stacking [PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-02T01-57-07.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-02T01-57-07.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/tmp/LS8_OLI_TIRS_FC_WITH_PQA_STACK_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-02T01-57-07.tif]
+    2015-05-04 13:58:23,276 INFO Stacking [PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_FC_120_-020_2013-12-09T02-03-41.tif] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_PQA_120_-020_2013-12-09T02-03-41.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/tmp/LS8_OLI_TIRS_FC_WITH_PQA_STACK_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-09T02-03-41.tif]
+    2015-05-04 13:58:26,521 INFO Stacking [PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-18T01-56-59.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-18T01-56-59.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/tmp/LS8_OLI_TIRS_FC_WITH_PQA_STACK_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-18T01-56-59.tif]
 
     2015-05-04 13:58:33,807 INFO Creating stack for band [NON_PHOTOSYNTHETIC_VEGETATION]
     2015-05-04 13:58:33,807 INFO Total tiles for band [NON_PHOTOSYNTHETIC_VEGETATION] is [3]
-    2015-05-04 13:58:33,930 INFO Stacking [NON_PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-02T01-57-07.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-02T01-57-07.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_NON_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-02T01-57-07.tif]
-    2015-05-04 13:58:41,766 INFO Stacking [NON_PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_FC_120_-020_2013-12-09T02-03-41.tif] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_PQA_120_-020_2013-12-09T02-03-41.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_NON_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-09T02-03-41.tif]
-    2015-05-04 13:58:45,061 INFO Stacking [NON_PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-18T01-56-59.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-18T01-56-59.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_NON_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-18T01-56-59.tif]
+    2015-05-04 13:58:33,930 INFO Stacking [NON_PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-02T01-57-07.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-02T01-57-07.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/tmp/LS8_OLI_TIRS_FC_WITH_PQA_STACK_NON_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-02T01-57-07.tif]
+    2015-05-04 13:58:41,766 INFO Stacking [NON_PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_FC_120_-020_2013-12-09T02-03-41.tif] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_PQA_120_-020_2013-12-09T02-03-41.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/tmp/LS8_OLI_TIRS_FC_WITH_PQA_STACK_NON_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-09T02-03-41.tif]
+    2015-05-04 13:58:45,061 INFO Stacking [NON_PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-18T01-56-59.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-18T01-56-59.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/tmp/LS8_OLI_TIRS_FC_WITH_PQA_STACK_NON_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-18T01-56-59.tif]
 
     2015-05-04 13:58:52,159 INFO Creating stack for band [BARE_SOIL]
     2015-05-04 13:58:52,159 INFO Total tiles for band [BARE_SOIL] is [3]
-    2015-05-04 13:58:52,283 INFO Stacking [BARE_SOIL] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-02T01-57-07.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-02T01-57-07.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013-12-02T01-57-07.tif]
-    2015-05-04 13:58:59,740 INFO Stacking [BARE_SOIL] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_FC_120_-020_2013-12-09T02-03-41.tif] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_PQA_120_-020_2013-12-09T02-03-41.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013-12-09T02-03-41.tif]
-    2015-05-04 13:59:02,922 INFO Stacking [BARE_SOIL] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-18T01-56-59.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-18T01-56-59.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013-12-18T01-56-59.tif]
+    2015-05-04 13:58:52,283 INFO Stacking [BARE_SOIL] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-02T01-57-07.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-02T01-57-07.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/tmp/LS8_OLI_TIRS_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013-12-02T01-57-07.tif]
+    2015-05-04 13:58:59,740 INFO Stacking [BARE_SOIL] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_FC_120_-020_2013-12-09T02-03-41.tif] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_PQA_120_-020_2013-12-09T02-03-41.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/tmp/LS8_OLI_TIRS_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013-12-09T02-03-41.tif]
+    2015-05-04 13:59:02,922 INFO Stacking [BARE_SOIL] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-18T01-56-59.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-18T01-56-59.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/tmp/LS8_OLI_TIRS_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013-12-18T01-56-59.tif]
 
     2015-05-04 13:59:10,027 INFO Creating stack for band [UNMIXING_ERROR]
     2015-05-04 13:59:10,028 INFO Total tiles for band [UNMIXING_ERROR] is [3]
-    2015-05-04 13:59:10,160 INFO Stacking [UNMIXING_ERROR] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-02T01-57-07.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-02T01-57-07.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_UNMIXING_ERROR_120_-020_2013-12-02T01-57-07.tif]
-    2015-05-04 13:59:17,514 INFO Stacking [UNMIXING_ERROR] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_FC_120_-020_2013-12-09T02-03-41.tif] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_PQA_120_-020_2013-12-09T02-03-41.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_UNMIXING_ERROR_120_-020_2013-12-09T02-03-41.tif]
-    2015-05-04 13:59:20,467 INFO Stacking [UNMIXING_ERROR] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-18T01-56-59.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-18T01-56-59.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_UNMIXING_ERROR_120_-020_2013-12-18T01-56-59.tif]
+    2015-05-04 13:59:10,160 INFO Stacking [UNMIXING_ERROR] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-02T01-57-07.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-02T01-57-07.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/tmp/LS8_OLI_TIRS_FC_WITH_PQA_STACK_UNMIXING_ERROR_120_-020_2013-12-02T01-57-07.tif]
+    2015-05-04 13:59:17,514 INFO Stacking [UNMIXING_ERROR] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_FC_120_-020_2013-12-09T02-03-41.tif] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_PQA_120_-020_2013-12-09T02-03-41.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/tmp/LS8_OLI_TIRS_FC_WITH_PQA_STACK_UNMIXING_ERROR_120_-020_2013-12-09T02-03-41.tif]
+    2015-05-04 13:59:20,467 INFO Stacking [UNMIXING_ERROR] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-18T01-56-59.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-18T01-56-59.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/tmp/LS8_OLI_TIRS_FC_WITH_PQA_STACK_UNMIXING_ERROR_120_-020_2013-12-18T01-56-59.tif]
 
 .. code-block:: text
     :caption: FC stack outputs
@@ -771,27 +865,27 @@ As ENVI format::
 
     2015-05-04 16:07:34,294 INFO Creating stack for band [PHOTOSYNTHETIC_VEGETATION]
     2015-05-04 16:07:34,294 INFO Total tiles for band [PHOTOSYNTHETIC_VEGETATION] is [3]
-    2015-05-04 16:07:34,537 INFO Stacking [PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-02T01-57-07.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-02T01-57-07.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-02T01-57-07.dat]
-    2015-05-04 16:07:41,748 INFO Stacking [PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_FC_120_-020_2013-12-09T02-03-41.tif] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_PQA_120_-020_2013-12-09T02-03-41.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-09T02-03-41.dat]
-    2015-05-04 16:07:44,019 INFO Stacking [PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-18T01-56-59.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-18T01-56-59.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-18T01-56-59.dat]
+    2015-05-04 16:07:34,537 INFO Stacking [PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-02T01-57-07.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-02T01-57-07.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/tmp/LS8_OLI_TIRS_FC_WITH_PQA_STACK_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-02T01-57-07.dat]
+    2015-05-04 16:07:41,748 INFO Stacking [PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_FC_120_-020_2013-12-09T02-03-41.tif] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_PQA_120_-020_2013-12-09T02-03-41.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/tmp/LS8_OLI_TIRS_FC_WITH_PQA_STACK_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-09T02-03-41.dat]
+    2015-05-04 16:07:44,019 INFO Stacking [PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-18T01-56-59.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-18T01-56-59.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/tmp/LS8_OLI_TIRS_FC_WITH_PQA_STACK_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-18T01-56-59.dat]
 
     2015-05-04 16:07:50,668 INFO Creating stack for band [NON_PHOTOSYNTHETIC_VEGETATION]
     2015-05-04 16:07:50,668 INFO Total tiles for band [NON_PHOTOSYNTHETIC_VEGETATION] is [3]
-    2015-05-04 16:07:50,815 INFO Stacking [NON_PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-02T01-57-07.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-02T01-57-07.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_NON_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-02T01-57-07.dat]
-    2015-05-04 16:07:58,340 INFO Stacking [NON_PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_FC_120_-020_2013-12-09T02-03-41.tif] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_PQA_120_-020_2013-12-09T02-03-41.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_NON_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-09T02-03-41.dat]
-    2015-05-04 16:08:00,590 INFO Stacking [NON_PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-18T01-56-59.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-18T01-56-59.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_NON_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-18T01-56-59.dat]
+    2015-05-04 16:07:50,815 INFO Stacking [NON_PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-02T01-57-07.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-02T01-57-07.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/tmp/LS8_OLI_TIRS_FC_WITH_PQA_STACK_NON_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-02T01-57-07.dat]
+    2015-05-04 16:07:58,340 INFO Stacking [NON_PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_FC_120_-020_2013-12-09T02-03-41.tif] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_PQA_120_-020_2013-12-09T02-03-41.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/tmp/LS8_OLI_TIRS_FC_WITH_PQA_STACK_NON_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-09T02-03-41.dat]
+    2015-05-04 16:08:00,590 INFO Stacking [NON_PHOTOSYNTHETIC_VEGETATION] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-18T01-56-59.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-18T01-56-59.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/tmp/LS8_OLI_TIRS_FC_WITH_PQA_STACK_NON_PHOTOSYNTHETIC_VEGETATION_120_-020_2013-12-18T01-56-59.dat]
 
     2015-05-04 16:08:07,055 INFO Creating stack for band [BARE_SOIL]
     2015-05-04 16:08:07,056 INFO Total tiles for band [BARE_SOIL] is [3]
-    2015-05-04 16:08:07,194 INFO Stacking [BARE_SOIL] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-02T01-57-07.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-02T01-57-07.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013-12-02T01-57-07.dat]
-    2015-05-04 16:08:14,140 INFO Stacking [BARE_SOIL] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_FC_120_-020_2013-12-09T02-03-41.tif] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_PQA_120_-020_2013-12-09T02-03-41.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013-12-09T02-03-41.dat]
-    2015-05-04 16:08:16,343 INFO Stacking [BARE_SOIL] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-18T01-56-59.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-18T01-56-59.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013-12-18T01-56-59.dat]
+    2015-05-04 16:08:07,194 INFO Stacking [BARE_SOIL] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-02T01-57-07.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-02T01-57-07.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/tmp/LS8_OLI_TIRS_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013-12-02T01-57-07.dat]
+    2015-05-04 16:08:14,140 INFO Stacking [BARE_SOIL] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_FC_120_-020_2013-12-09T02-03-41.tif] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_PQA_120_-020_2013-12-09T02-03-41.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/tmp/LS8_OLI_TIRS_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013-12-09T02-03-41.dat]
+    2015-05-04 16:08:16,343 INFO Stacking [BARE_SOIL] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-18T01-56-59.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-18T01-56-59.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/tmp/LS8_OLI_TIRS_FC_WITH_PQA_STACK_BARE_SOIL_120_-020_2013-12-18T01-56-59.dat]
 
     2015-05-04 16:08:23,121 INFO Creating stack for band [UNMIXING_ERROR]
     2015-05-04 16:08:23,121 INFO Total tiles for band [UNMIXING_ERROR] is [3]
-    2015-05-04 16:08:23,270 INFO Stacking [UNMIXING_ERROR] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-02T01-57-07.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-02T01-57-07.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_UNMIXING_ERROR_120_-020_2013-12-02T01-57-07.dat]
-    2015-05-04 16:08:30,392 INFO Stacking [UNMIXING_ERROR] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_FC_120_-020_2013-12-09T02-03-41.tif] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_PQA_120_-020_2013-12-09T02-03-41.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_UNMIXING_ERROR_120_-020_2013-12-09T02-03-41.dat]
-    2015-05-04 16:08:32,526 INFO Stacking [UNMIXING_ERROR] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-18T01-56-59.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-18T01-56-59.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_FC_WITH_PQA_STACK_UNMIXING_ERROR_120_-020_2013-12-18T01-56-59.dat]
+    2015-05-04 16:08:23,270 INFO Stacking [UNMIXING_ERROR] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-02T01-57-07.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-02T01-57-07.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/tmp/LS8_OLI_TIRS_FC_WITH_PQA_STACK_UNMIXING_ERROR_120_-020_2013-12-02T01-57-07.dat]
+    2015-05-04 16:08:30,392 INFO Stacking [UNMIXING_ERROR] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_FC_120_-020_2013-12-09T02-03-41.tif] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/LS8_OLI_TIRS_PQA_120_-020_2013-12-09T02-03-41.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/tmp/LS8_OLI_TIRS_FC_WITH_PQA_STACK_UNMIXING_ERROR_120_-020_2013-12-09T02-03-41.dat]
+    2015-05-04 16:08:32,526 INFO Stacking [UNMIXING_ERROR] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_FC_120_-020_2013-12-18T01-56-59.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/120_-020/2013/mosaic_cache/LS8_OLI_TIRS_PQA_120_-020_2013-12-18T01-56-59.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/tmp/LS8_OLI_TIRS_FC_WITH_PQA_STACK_UNMIXING_ERROR_120_-020_2013-12-18T01-56-59.dat]
 
 .. code-block:: text
     :caption: ENVI FC stack outputs

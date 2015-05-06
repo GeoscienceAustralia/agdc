@@ -178,6 +178,11 @@ class CellTool(Tool):
         self.x = None
         self.y = None
 
+        self.mask_vector_apply = None
+        self.mask_vector_file = None
+        self.mask_vector_layer = None
+        self.mask_vector_feature = None
+
     def setup_arguments(self):
 
         # Call method on super class
@@ -189,6 +194,16 @@ class CellTool(Tool):
         self.parser.add_argument("--y", help="Y grid reference", action="store", dest="y", type=int,
                                  choices=range(-45, -10 + 1), required=True, metavar="[-45 - -10]")
 
+        self.parser.add_argument("--mask-vector-apply", help="Apply mask from feature in vector file",
+                                 action="store_true", dest="mask_vector_apply", default=False)
+        self.parser.add_argument("--mask-vector-file", help="The vector file containing the mask",
+                                 action="store", dest="mask_vector_file",
+                                 type=readable_file)
+        self.parser.add_argument("--mask-vector-layer", help="The vector layer containing the mask",
+                                 action="store", dest="mask_vector_layer", type=str)
+        self.parser.add_argument("--mask-vector-feature", help="The vector feature containing the mask",
+                                 action="store", dest="mask_vector_feature", type=int)
+
     def process_arguments(self, args):
 
         # Call method on super class
@@ -197,6 +212,11 @@ class CellTool(Tool):
 
         self.x = args.x
         self.y = args.y
+
+        self.mask_vector_apply = args.mask_vector_apply
+        self.mask_vector_file = args.mask_vector_file
+        self.mask_vector_layer = args.mask_vector_layer
+        self.mask_vector_feature = args.mask_vector_feature
 
     def log_arguments(self):
 
@@ -207,7 +227,9 @@ class CellTool(Tool):
         _log.info("""
         x = {x:03d}
         y = {y:04d}
-        """.format(x=self.x, y=self.y))
+        VECTOR mask = {vector_mask}
+        """.format(x=self.x, y=self.y,
+                   vector_mask=self.mask_vector_apply and " ".join([self.mask_vector_file, self.mask_vector_layer, str(self.mask_vector_feature)]) or ""))
 
     @abc.abstractmethod
     def go(self):

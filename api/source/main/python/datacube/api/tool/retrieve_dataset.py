@@ -36,7 +36,8 @@ import os
 from datacube.api import dataset_type_arg, writeable_dir, output_format_arg, OutputFormat
 from datacube.api.model import DatasetType
 from datacube.api.tool import CellTool
-from datacube.api.utils import intersection, get_mask_pqa, get_mask_wofs, get_dataset_data_masked
+from datacube.api.utils import intersection, get_mask_pqa, get_mask_wofs, get_dataset_data_masked, \
+    get_mask_vector_for_cell
 from datacube.api.utils import raster_create_geotiff, raster_create_envi
 from datacube.api.utils import get_dataset_filename, get_dataset_ndv, get_dataset_datatype, get_dataset_metadata
 
@@ -150,6 +151,13 @@ class RetrieveDatasetTool(CellTool):
 
     def go(self):
 
+        # If we are applying a vector mask then calculate it not (once as it is the same for all tiles)
+
+        mask = None
+
+        if self.mask_vector_apply:
+            mask = get_mask_vector_for_cell(self.x, self.y, self.mask_vector_file, self.mask_vector_layer, self.mask_vector_feature)
+
         for tile in self.get_tiles():
 
             if self.list_only:
@@ -173,13 +181,15 @@ class RetrieveDatasetTool(CellTool):
                                         get_dataset_filename(dataset,
                                                              output_format=self.output_format,
                                                              mask_pqa_apply=self.mask_pqa_apply,
-                                                             mask_wofs_apply=self.mask_wofs_apply))
+                                                             mask_wofs_apply=self.mask_wofs_apply,
+                                                             mask_vector_apply=self.mask_vector_apply))
 
                 retrieve_data(tile.x, tile.y, tile.end_datetime, dataset, pqa, self.mask_pqa_mask,
-                              wofs, self.mask_wofs_mask, filename, self.output_format, self.overwrite)
+                              wofs, self.mask_wofs_mask, filename, self.output_format, self.overwrite, mask=mask)
 
 
-def retrieve_data(x, y, acq_dt, dataset, pqa, pqa_masks, wofs, wofs_masks, path, output_format, overwrite=False, data_type=None, ndv=None):
+def retrieve_data(x, y, acq_dt, dataset, pqa, pqa_masks, wofs, wofs_masks, path, output_format, overwrite=False,
+                  data_type=None, ndv=None, mask=None):
 
     _log.info("Retrieving data from [%s] with pq [%s] and pq mask [%s] and wofs [%s] and wofs mask [%s] to [%s] file [%s]",
               dataset.path,
@@ -194,7 +204,7 @@ def retrieve_data(x, y, acq_dt, dataset, pqa, pqa_masks, wofs, wofs_masks, path,
 
     metadata = get_dataset_metadata(dataset)
 
-    mask = None
+    # mask = None
 
     if pqa:
         mask = get_mask_pqa(pqa, pqa_masks, mask=mask)

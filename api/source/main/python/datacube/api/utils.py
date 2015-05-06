@@ -439,6 +439,82 @@ def get_mask_wofs(wofs, wofs_masks=DEFAULT_MASK_WOFS, x=0, y=0, x_size=None, y_s
     return mask
 
 
+def get_mask_vector_for_cell(x, y, vector_file, vector_layer, vector_feature, width=4000, height=4000,
+                             pixel_size_x=0.00025, pixel_size_y=-0.00025):
+
+    """
+    Return a mask for the given cell based on the specified feature in the vector file
+
+    :param x: X cell index
+    :type x: int
+    :param y: X cell
+    :type y: int
+    :param vector_file: Vector file containing the mask polygon
+    :type vector_file: str
+    :param vector_layer: Layer name within the vector file
+    :type vector_layer: str
+    :param vector_feature: Feature id (index starts at 0) within the layer
+    :type vector_feature: int
+    :param width: Width of the mask
+    :type width: int
+    :param height: Height of the mask
+    :type height: int
+    :param pixel_size_x: X pixel size
+    :type pixel_size_x: float
+    :param pixel_size_y: Y pixel size
+    :type pixel_size_y: float
+
+    :return: The mask
+    :rtype: numpy.ma.MaskedArray.mask (array of boolean)
+    """
+
+    import gdal
+    import osr
+
+    driver = gdal.GetDriverByName("MEM")
+    assert driver
+
+    raster = driver.Create("", width, height, 1, gdal.GDT_Byte)
+    assert raster
+
+    raster.SetGeoTransform((x, pixel_size_x, 0.0, y+1, 0.0, pixel_size_y))
+
+    srs = osr.SpatialReference()
+    srs.ImportFromEPSG(4326)
+
+    raster.SetProjection(srs.ExportToWkt())
+
+    import ogr
+    from gdalconst import GA_ReadOnly
+
+    vector = ogr.Open(vector_file, GA_ReadOnly)
+    assert vector
+
+    # layer = vector.GetLayer()
+    # assert layer
+
+    layer = vector.GetLayerByName(vector_layer)
+    assert layer
+
+    # layer = vector.GetLayerByIndex(vector_layer)
+    # assert layer
+
+    layer.SetAttributeFilter("FID={fid}".format(fid=vector_feature))
+
+    gdal.RasterizeLayer(raster, [1], layer, burn_values=[1])
+
+    del layer
+
+    band = raster.GetRasterBand(1)
+    assert band
+
+    data = band.ReadAsArray()
+    import numpy
+
+    _log.debug("Read [%s] from memory AOI mask dataset", numpy.shape(data))
+    return numpy.ma.masked_not_equal(data, 1, copy=False).mask
+
+
 # TODO generalise/refactor this!!!
 
 def raster_create(path, data, transform, projection, no_data_value, data_type,
@@ -987,7 +1063,7 @@ def date_to_integer(d):
     return d.year * 10000 + d.month * 100 + d.day
 
 
-def get_dataset_filename(dataset, output_format=OutputFormat.GEOTIFF, mask_pqa_apply=False, mask_wofs_apply=False):
+def get_dataset_filename(dataset, output_format=OutputFormat.GEOTIFF, mask_pqa_apply=False, mask_wofs_apply=False, mask_vector_apply=False):
 
     filename = dataset.path
 
@@ -1017,14 +1093,10 @@ def get_dataset_filename(dataset, output_format=OutputFormat.GEOTIFF, mask_pqa_a
         DatasetType.DSM: "DSM_"
     }[dataset.dataset_type]
 
-    if mask_pqa_apply and mask_wofs_apply:
-        dataset_type_to_string += "WITH_PQA_WATER_"
-
-    elif mask_pqa_apply:
-        dataset_type_to_string += "WITH_PQA_"
-
-    elif mask_wofs_apply:
-        dataset_type_to_string += + "WITH_WATER_"
+    dataset_type_to_string += ((mask_pqa_apply or mask_wofs_apply or mask_vector_apply) and "WITH_" or "") + \
+                              (mask_pqa_apply and "PQA_" or "") + \
+                              (mask_wofs_apply and "WATER_" or "") + \
+                              (mask_vector_apply and "VECTOR_" or "")
 
     filename = filename.replace(dataset_type_from_string, dataset_type_to_string)
 
