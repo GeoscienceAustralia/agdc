@@ -294,6 +294,37 @@
 </dd></dl>
 
 <dl class="function">
+<dt id="datacube.api.utils.get_mask_vector_for_cell">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">get_mask_vector_for_cell</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>vector_file</em>, <em>vector_layer</em>, <em>vector_feature</em>, <em>width=4000</em>, <em>height=4000</em>, <em>pixel_size_x=0.00025</em>, <em>pixel_size_y=-0.00025</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#get_mask_vector_for_cell"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.get_mask_vector_for_cell" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a mask for the given cell based on the specified feature in the vector file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; X cell index</li>
+<li><strong>y</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; X cell</li>
+<li><strong>vector_file</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Vector file containing the mask polygon</li>
+<li><strong>vector_layer</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Layer name within the vector file</li>
+<li><strong>vector_feature</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Feature id (index starts at 0) within the layer</li>
+<li><strong>width</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Width of the mask</li>
+<li><strong>height</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Height of the mask</li>
+<li><strong>pixel_size_x</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; X pixel size</li>
+<li><strong>pixel_size_y</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#float" title="(in Python v2.7)"><em>float</em></a>) &#8211; Y pixel size</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The mask</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">numpy.ma.MaskedArray.mask (array of boolean)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
 <dt id="datacube.api.utils.raster_create">
 <code class="descclassname">datacube.api.utils.</code><code class="descname">raster_create</code><span class="sig-paren">(</span><em>path, data, transform, projection, no_data_value, data_type, options=['INTERLEAVE=PIXEL'], width=None, height=None, dataset_metadata=None, band_ids=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#raster_create"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.raster_create" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -505,7 +536,7 @@ that is, that is, 120/-20 does NOT contain lat value of -20</dd>
 
 <dl class="function">
 <dt id="datacube.api.utils.get_dataset_filename">
-<code class="descclassname">datacube.api.utils.</code><code class="descname">get_dataset_filename</code><span class="sig-paren">(</span><em>dataset</em>, <em>output_format=&lt;OutputFormat.GEOTIFF: 'GTiff'&gt;</em>, <em>mask_pqa_apply=False</em>, <em>mask_wofs_apply=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#get_dataset_filename"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.get_dataset_filename" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.utils.</code><code class="descname">get_dataset_filename</code><span class="sig-paren">(</span><em>dataset</em>, <em>output_format=&lt;OutputFormat.GEOTIFF: 'GTiff'&gt;</em>, <em>mask_pqa_apply=False</em>, <em>mask_wofs_apply=False</em>, <em>mask_vector_apply=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#get_dataset_filename"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.get_dataset_filename" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">

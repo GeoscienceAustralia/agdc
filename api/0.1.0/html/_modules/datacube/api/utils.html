@@ -511,6 +511,82 @@
 
     <span class="k">return</span> <span class="n">mask</span>
 
+</div>
+<div class="viewcode-block" id="get_mask_vector_for_cell"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.get_mask_vector_for_cell">[docs]</a><span class="k">def</span> <span class="nf">get_mask_vector_for_cell</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">vector_file</span><span class="p">,</span> <span class="n">vector_layer</span><span class="p">,</span> <span class="n">vector_feature</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">4000</span><span class="p">,</span> <span class="n">height</span><span class="o">=</span><span class="mi">4000</span><span class="p">,</span>
+                             <span class="n">pixel_size_x</span><span class="o">=</span><span class="mf">0.00025</span><span class="p">,</span> <span class="n">pixel_size_y</span><span class="o">=-</span><span class="mf">0.00025</span><span class="p">):</span>
+
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return a mask for the given cell based on the specified feature in the vector file</span>
+
+<span class="sd">    :param x: X cell index</span>
+<span class="sd">    :type x: int</span>
+<span class="sd">    :param y: X cell</span>
+<span class="sd">    :type y: int</span>
+<span class="sd">    :param vector_file: Vector file containing the mask polygon</span>
+<span class="sd">    :type vector_file: str</span>
+<span class="sd">    :param vector_layer: Layer name within the vector file</span>
+<span class="sd">    :type vector_layer: str</span>
+<span class="sd">    :param vector_feature: Feature id (index starts at 0) within the layer</span>
+<span class="sd">    :type vector_feature: int</span>
+<span class="sd">    :param width: Width of the mask</span>
+<span class="sd">    :type width: int</span>
+<span class="sd">    :param height: Height of the mask</span>
+<span class="sd">    :type height: int</span>
+<span class="sd">    :param pixel_size_x: X pixel size</span>
+<span class="sd">    :type pixel_size_x: float</span>
+<span class="sd">    :param pixel_size_y: Y pixel size</span>
+<span class="sd">    :type pixel_size_y: float</span>
+
+<span class="sd">    :return: The mask</span>
+<span class="sd">    :rtype: numpy.ma.MaskedArray.mask (array of boolean)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="kn">import</span> <span class="nn">gdal</span>
+    <span class="kn">import</span> <span class="nn">osr</span>
+
+    <span class="n">driver</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">GetDriverByName</span><span class="p">(</span><span class="s">&quot;MEM&quot;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">driver</span>
+
+    <span class="n">raster</span> <span class="o">=</span> <span class="n">driver</span><span class="o">.</span><span class="n">Create</span><span class="p">(</span><span class="s">&quot;&quot;</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">gdal</span><span class="o">.</span><span class="n">GDT_Byte</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">raster</span>
+
+    <span class="n">raster</span><span class="o">.</span><span class="n">SetGeoTransform</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">pixel_size_x</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">y</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">pixel_size_y</span><span class="p">))</span>
+
+    <span class="n">srs</span> <span class="o">=</span> <span class="n">osr</span><span class="o">.</span><span class="n">SpatialReference</span><span class="p">()</span>
+    <span class="n">srs</span><span class="o">.</span><span class="n">ImportFromEPSG</span><span class="p">(</span><span class="mi">4326</span><span class="p">)</span>
+
+    <span class="n">raster</span><span class="o">.</span><span class="n">SetProjection</span><span class="p">(</span><span class="n">srs</span><span class="o">.</span><span class="n">ExportToWkt</span><span class="p">())</span>
+
+    <span class="kn">import</span> <span class="nn">ogr</span>
+    <span class="kn">from</span> <span class="nn">gdalconst</span> <span class="kn">import</span> <span class="n">GA_ReadOnly</span>
+
+    <span class="n">vector</span> <span class="o">=</span> <span class="n">ogr</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">vector_file</span><span class="p">,</span> <span class="n">GA_ReadOnly</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">vector</span>
+
+    <span class="c"># layer = vector.GetLayer()</span>
+    <span class="c"># assert layer</span>
+
+    <span class="n">layer</span> <span class="o">=</span> <span class="n">vector</span><span class="o">.</span><span class="n">GetLayerByName</span><span class="p">(</span><span class="n">vector_layer</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">layer</span>
+
+    <span class="c"># layer = vector.GetLayerByIndex(vector_layer)</span>
+    <span class="c"># assert layer</span>
+
+    <span class="n">layer</span><span class="o">.</span><span class="n">SetAttributeFilter</span><span class="p">(</span><span class="s">&quot;FID={fid}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fid</span><span class="o">=</span><span class="n">vector_feature</span><span class="p">))</span>
+
+    <span class="n">gdal</span><span class="o">.</span><span class="n">RasterizeLayer</span><span class="p">(</span><span class="n">raster</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">layer</span><span class="p">,</span> <span class="n">burn_values</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="k">del</span> <span class="n">layer</span>
+
+    <span class="n">band</span> <span class="o">=</span> <span class="n">raster</span><span class="o">.</span><span class="n">GetRasterBand</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">band</span>
+
+    <span class="n">data</span> <span class="o">=</span> <span class="n">band</span><span class="o">.</span><span class="n">ReadAsArray</span><span class="p">()</span>
+    <span class="kn">import</span> <span class="nn">numpy</span>
+
+    <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Read [</span><span class="si">%s</span><span class="s">] from memory AOI mask dataset&quot;</span><span class="p">,</span> <span class="n">numpy</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ma</span><span class="o">.</span><span class="n">masked_not_equal</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span><span class="o">.</span><span class="n">mask</span>
+
 
 <span class="c"># TODO generalise/refactor this!!!</span>
 </div>
@@ -1060,7 +1136,7 @@
     <span class="k">return</span> <span class="n">d</span><span class="o">.</span><span class="n">year</span> <span class="o">*</span> <span class="mi">10000</span> <span class="o">+</span> <span class="n">d</span><span class="o">.</span><span class="n">month</span> <span class="o">*</span> <span class="mi">100</span> <span class="o">+</span> <span class="n">d</span><span class="o">.</span><span class="n">day</span>
 
 </div>
-<div class="viewcode-block" id="get_dataset_filename"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.get_dataset_filename">[docs]</a><span class="k">def</span> <span class="nf">get_dataset_filename</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">output_format</span><span class="o">=</span><span class="n">OutputFormat</span><span class="o">.</span><span class="n">GEOTIFF</span><span class="p">,</span> <span class="n">mask_pqa_apply</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">mask_wofs_apply</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+<div class="viewcode-block" id="get_dataset_filename"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.get_dataset_filename">[docs]</a><span class="k">def</span> <span class="nf">get_dataset_filename</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">output_format</span><span class="o">=</span><span class="n">OutputFormat</span><span class="o">.</span><span class="n">GEOTIFF</span><span class="p">,</span> <span class="n">mask_pqa_apply</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">mask_wofs_apply</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">mask_vector_apply</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
 
     <span class="n">filename</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">path</span>
 
@@ -1090,14 +1166,10 @@
         <span class="n">DatasetType</span><span class="o">.</span><span class="n">DSM</span><span class="p">:</span> <span class="s">&quot;DSM_&quot;</span>
     <span class="p">}[</span><span class="n">dataset</span><span class="o">.</span><span class="n">dataset_type</span><span class="p">]</span>
 
-    <span class="k">if</span> <span class="n">mask_pqa_apply</span> <span class="ow">and</span> <span class="n">mask_wofs_apply</span><span class="p">:</span>
-        <span class="n">dataset_type_to_string</span> <span class="o">+=</span> <span class="s">&quot;WITH_PQA_WATER_&quot;</span>
-
-    <span class="k">elif</span> <span class="n">mask_pqa_apply</span><span class="p">:</span>
-        <span class="n">dataset_type_to_string</span> <span class="o">+=</span> <span class="s">&quot;WITH_PQA_&quot;</span>
-
-    <span class="k">elif</span> <span class="n">mask_wofs_apply</span><span class="p">:</span>
-        <span class="n">dataset_type_to_string</span> <span class="o">+=</span> <span class="o">+</span> <span class="s">&quot;WITH_WATER_&quot;</span>
+    <span class="n">dataset_type_to_string</span> <span class="o">+=</span> <span class="p">((</span><span class="n">mask_pqa_apply</span> <span class="ow">or</span> <span class="n">mask_wofs_apply</span> <span class="ow">or</span> <span class="n">mask_vector_apply</span><span class="p">)</span> <span class="ow">and</span> <span class="s">&quot;WITH_&quot;</span> <span class="ow">or</span> <span class="s">&quot;&quot;</span><span class="p">)</span> <span class="o">+</span> \
+                              <span class="p">(</span><span class="n">mask_pqa_apply</span> <span class="ow">and</span> <span class="s">&quot;PQA_&quot;</span> <span class="ow">or</span> <span class="s">&quot;&quot;</span><span class="p">)</span> <span class="o">+</span> \
+                              <span class="p">(</span><span class="n">mask_wofs_apply</span> <span class="ow">and</span> <span class="s">&quot;WATER_&quot;</span> <span class="ow">or</span> <span class="s">&quot;&quot;</span><span class="p">)</span> <span class="o">+</span> \
+                              <span class="p">(</span><span class="n">mask_vector_apply</span> <span class="ow">and</span> <span class="s">&quot;VECTOR_&quot;</span> <span class="ow">or</span> <span class="s">&quot;&quot;</span><span class="p">)</span>
 
     <span class="n">filename</span> <span class="o">=</span> <span class="n">filename</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">dataset_type_from_string</span><span class="p">,</span> <span class="n">dataset_type_to_string</span><span class="p">)</span>
 

@@ -6,6 +6,20 @@
 API Releases
 ============
 
+AGDC API v0.1.0 (2015-05-07 snapshot)
+-------------------------------------
+
+The source code is available on the ``api`` branch from the ``agdc-api-0.1.0-b20150507`` tag.
+
+The packaged version is available as a loadable module on ``raijin`` at the NCI as ``agdc-api/0.1.0-b20150507`` in
+both ``u46`` and ``el8``::
+
+    $ module load agdc-api/0.1.0-b20150507
+
+**Changes in this release...**
+
+* Enhancement - `Issue 43 Enhance the Retrieve Dataset tool with the ability to apply a vector mask <https://github.com/GeoscienceAustralia/agdc/issues/43>`_
+
 AGDC API v0.1.0 (2015-05-05 snapshot)
 -------------------------------------
 
