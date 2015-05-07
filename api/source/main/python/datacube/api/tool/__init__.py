@@ -199,10 +199,10 @@ class CellTool(Tool):
         self.parser.add_argument("--mask-vector-file", help="The vector file containing the mask",
                                  action="store", dest="mask_vector_file",
                                  type=readable_file)
-        self.parser.add_argument("--mask-vector-layer", help="The vector layer containing the mask",
-                                 action="store", dest="mask_vector_layer", type=str)
-        self.parser.add_argument("--mask-vector-feature", help="The vector feature containing the mask",
-                                 action="store", dest="mask_vector_feature", type=int)
+        self.parser.add_argument("--mask-vector-layer", help="The (index of) the layer containing the mask",
+                                 action="store", dest="mask_vector_layer", type=int, default=0)
+        self.parser.add_argument("--mask-vector-feature", help="The (index of) the feature containing the mask",
+                                 action="store", dest="mask_vector_feature", type=int, default=0)
 
     def process_arguments(self, args):
 
@@ -229,7 +229,10 @@ class CellTool(Tool):
         y = {y:04d}
         VECTOR mask = {vector_mask}
         """.format(x=self.x, y=self.y,
-                   vector_mask=self.mask_vector_apply and " ".join([self.mask_vector_file, self.mask_vector_layer, str(self.mask_vector_feature)]) or ""))
+                   vector_mask=self.mask_vector_apply and " ".join(
+                       ["=".join(["file", self.mask_vector_file]),
+                        "=".join(["layer", str(self.mask_vector_layer)]),
+                        "=".join(["feature", str(self.mask_vector_feature)])]) or ""))
 
     @abc.abstractmethod
     def go(self):

@@ -36,8 +36,8 @@ import os
 from datacube.api import dataset_type_arg, writeable_dir, output_format_arg, OutputFormat
 from datacube.api.model import DatasetType
 from datacube.api.tool import CellTool
-from datacube.api.utils import intersection, get_mask_pqa, get_mask_wofs, get_dataset_data_masked, \
-    get_mask_vector_for_cell
+from datacube.api.utils import intersection, get_mask_pqa, get_mask_wofs, get_dataset_data_masked
+from datacube.api.utils import get_mask_vector_for_cell
 from datacube.api.utils import raster_create_geotiff, raster_create_envi
 from datacube.api.utils import get_dataset_filename, get_dataset_ndv, get_dataset_datatype, get_dataset_metadata
 
@@ -151,12 +151,13 @@ class RetrieveDatasetTool(CellTool):
 
     def go(self):
 
-        # If we are applying a vector mask then calculate it not (once as it is the same for all tiles)
+        # If we are applying a vector mask then calculate it (once as it is the same for all tiles)
 
         mask = None
 
         if self.mask_vector_apply:
-            mask = get_mask_vector_for_cell(self.x, self.y, self.mask_vector_file, self.mask_vector_layer, self.mask_vector_feature)
+            mask = get_mask_vector_for_cell(self.x, self.y,
+                                            self.mask_vector_file, self.mask_vector_layer, self.mask_vector_feature)
 
         for tile in self.get_tiles():
 
@@ -256,6 +257,8 @@ def format_date_time(d):
         return datetime.strftime(d, "%Y-%m-%d %H:%M:%S")
 
     return None
+
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
 

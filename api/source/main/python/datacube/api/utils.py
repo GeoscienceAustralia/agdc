@@ -484,6 +484,8 @@ def get_mask_vector_for_cell(x, y, vector_file, vector_layer, vector_feature, wi
 
     raster.SetProjection(srs.ExportToWkt())
 
+    _log.debug("Reading feature [%d] from layer [%d] of file [%s]", vector_feature, vector_layer, vector_file)
+
     import ogr
     from gdalconst import GA_ReadOnly
 
@@ -493,11 +495,11 @@ def get_mask_vector_for_cell(x, y, vector_file, vector_layer, vector_feature, wi
     # layer = vector.GetLayer()
     # assert layer
 
-    layer = vector.GetLayerByName(vector_layer)
-    assert layer
-
-    # layer = vector.GetLayerByIndex(vector_layer)
+    # layer = vector.GetLayerByName(vector_layer)
     # assert layer
+
+    layer = vector.GetLayerByIndex(vector_layer)
+    assert layer
 
     layer.SetAttributeFilter("FID={fid}".format(fid=vector_feature))
 
@@ -1063,7 +1065,8 @@ def date_to_integer(d):
     return d.year * 10000 + d.month * 100 + d.day
 
 
-def get_dataset_filename(dataset, output_format=OutputFormat.GEOTIFF, mask_pqa_apply=False, mask_wofs_apply=False, mask_vector_apply=False):
+def get_dataset_filename(dataset, output_format=OutputFormat.GEOTIFF,
+                         mask_pqa_apply=False, mask_wofs_apply=False, mask_vector_apply=False):
 
     filename = dataset.path
 
@@ -1109,7 +1112,8 @@ def get_dataset_filename(dataset, output_format=OutputFormat.GEOTIFF, mask_pqa_a
     return filename
 
 
-def get_dataset_band_stack_filename(dataset, band, output_format=OutputFormat.GEOTIFF, mask_pqa_apply=False, mask_wofs_apply=False):
+def get_dataset_band_stack_filename(dataset, band, output_format=OutputFormat.GEOTIFF,
+                                    mask_pqa_apply=False, mask_wofs_apply=False, mask_vector_apply=False):
 
     filename = dataset.path
 
@@ -1139,14 +1143,10 @@ def get_dataset_band_stack_filename(dataset, band, output_format=OutputFormat.GE
         DatasetType.DSM: "DSM_"
     }[dataset.dataset_type]
 
-    if mask_pqa_apply and mask_wofs_apply:
-        dataset_type_to_string += "WITH_PQA_WATER_"
-
-    elif mask_pqa_apply:
-        dataset_type_to_string += "WITH_PQA_"
-
-    elif mask_wofs_apply:
-        dataset_type_to_string += + "WITH_WATER_"
+    dataset_type_to_string += ((mask_pqa_apply or mask_wofs_apply or mask_vector_apply) and "WITH_" or "") + \
+                              (mask_pqa_apply and "PQA_" or "") + \
+                              (mask_wofs_apply and "WATER_" or "") + \
+                              (mask_vector_apply and "VECTOR_" or "")
 
     dataset_type_to_string += "STACK_" + band.name + "_"
 

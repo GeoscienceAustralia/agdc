@@ -297,9 +297,9 @@ The *Retrieve Dataset* tool retrieves the given dataset(s) optionally applying p
       --mask-vector-file MASK_VECTOR_FILE
                             The vector file containing the mask
       --mask-vector-layer MASK_VECTOR_LAYER
-                            The vector layer containing the mask
+                            The (index of) the layer containing the mask
       --mask-vector-feature MASK_VECTOR_FEATURE
-                            The vector feature containing the mask
+                            The (index of) the feature containing the mask
       --x [110 - 155]       X grid reference
       --y [-45 - -10]       Y grid reference
       --dataset-type ARG25 PQ25 FC25 WATER DSM DEM DEM_HYDROLOGICALLY_ENFORCED DEM_SMOOTHED NDVI EVI NBR TCI [ARG25 PQ25 FC25 WATER DSM DEM DEM_HYDROLOGICALLY_ENFORCED DEM_SMOOTHED NDVI EVI NBR TCI ...]
@@ -612,7 +612,7 @@ To retrieve the Landsat 8 *Surface Reflectance* dataset from 11\ :sub:`th` Octob
 
 .. figure:: LS8_OLI_TIRS_NBAR_148_-036_2013-10-11T23-51-59.png
 
-    ``LS8_OLI_TIRS_NBAR_148_-036_2013-10-11T23-51-59.png``
+    ``LS8_OLI_TIRS_NBAR_148_-036_2013-10-11T23-51-59.tif``
 
 To retrieve the Landsat 8 *Surface Reflectance* dataset from 11\ :sub:`th` October 2013 with Pixel Quality masking applied::
 
@@ -640,7 +640,7 @@ To retrieve the Landsat 8 *Surface Reflectance* dataset from 11\ :sub:`th` Octob
 
 .. figure:: LS8_OLI_TIRS_NBAR_WITH_PQA_148_-036_2013-10-11T23-51-59.png
 
-    ``LS8_OLI_TIRS_NBAR_WITH_PQA_148_-036_2013-10-11T23-51-59.png``
+    ``LS8_OLI_TIRS_NBAR_WITH_PQA_148_-036_2013-10-11T23-51-59.tif``
 
 To retrieve the Landsat 8 *Surface Reflectance* dataset from 11\ :sub:`th` October 2013 with Pixel Quality and an ACT area of interest masking applied::
 
@@ -668,7 +668,7 @@ To retrieve the Landsat 8 *Surface Reflectance* dataset from 11\ :sub:`th` Octob
 
 .. figure:: LS8_OLI_TIRS_NBAR_WITH_PQA_VECTOR_148_-036_2013-10-11T23-51-59.png
 
-    ``LS8_OLI_TIRS_NBAR_WITH_PQA_VECTOR_148_-036_2013-10-11T23-51-59.png``
+    ``LS8_OLI_TIRS_NBAR_WITH_PQA_VECTOR_148_-036_2013-10-11T23-51-59.tif``
 
 Retrieve Dataset Stack
 ----------------------
@@ -693,6 +693,10 @@ It can retrieve both "physical" - NBAR, FC, PQA - and virtual/derived/calculated
            [--mask-pqa-mask PQ_MASK_SATURATION_THERMAL PQ_MASK_SATURATION_OPTICAL PQ_MASK_SATURATION PQ_MASK_CONTIGUITY PQ_MASK_LAND PQ_MASK_CLOUD_ACCA PQ_MASK_CLOUD_FMASK PQ_MASK_CLOUD_SHADOW_ACCA PQ_MASK_CLOUD_SHADOW_FMASK PQ_MASK_CLOUD PQ_MASK_CLEAR [PQ_MASK_SATURATION_THERMAL PQ_MASK_SATURATION_OPTICAL PQ_MASK_SATURATION PQ_MASK_CONTIGUITY PQ_MASK_LAND PQ_MASK_CLOUD_ACCA PQ_MASK_CLOUD_FMASK PQ_MASK_CLOUD_SHADOW_ACCA PQ_MASK_CLOUD_SHADOW_FMASK PQ_MASK_CLOUD PQ_MASK_CLEAR ...]]
            [--mask-wofs-apply]
            [--mask-wofs-mask DRY NO_DATA SATURATION_CONTIGUITY SEA_WATER TERRAIN_SHADOW HIGH_SLOPE CLOUD_SHADOW CLOUD WET [DRY NO_DATA SATURATION_CONTIGUITY SEA_WATER TERRAIN_SHADOW HIGH_SLOPE CLOUD_SHADOW CLOUD WET ...]]
+           [--mask-vector-apply]
+           [--mask-vector-file MASK_VECTOR_FILE]
+           [--mask-vector-layer MASK_VECTOR_LAYER]
+           [--mask-vector-feature MASK_VECTOR_FEATURE]
            --x [110 - 155] --y [-45 - -10]
            --dataset-type ARG25 PQ25 FC25 WATER DSM DEM DEM_HYDROLOGICALLY_ENFORCED DEM_SMOOTHED NDVI EVI NBR TCI
            [--bands-all | --bands-common]
@@ -717,6 +721,13 @@ It can retrieve both "physical" - NBAR, FC, PQA - and virtual/derived/calculated
       --mask-wofs-apply     Apply WOFS mask
       --mask-wofs-mask DRY NO_DATA SATURATION_CONTIGUITY SEA_WATER TERRAIN_SHADOW HIGH_SLOPE CLOUD_SHADOW CLOUD WET [DRY NO_DATA SATURATION_CONTIGUITY SEA_WATER TERRAIN_SHADOW HIGH_SLOPE CLOUD_SHADOW CLOUD WET ...]
                             The WOFS mask to apply
+      --mask-vector-apply   Apply mask from feature in vector file
+      --mask-vector-file MASK_VECTOR_FILE
+                            The vector file containing the mask
+      --mask-vector-layer MASK_VECTOR_LAYER
+                            The (index of) the layer containing the mask
+      --mask-vector-feature MASK_VECTOR_FEATURE
+                            The (index of) the feature containing the mask
       --x [110 - 155]       X grid reference
       --y [-45 - -10]       Y grid reference
       --dataset-type ARG25 PQ25 FC25 WATER DSM DEM DEM_HYDROLOGICALLY_ENFORCED DEM_SMOOTHED NDVI EVI NBR TCI
@@ -1016,6 +1027,76 @@ To stack **ALL** ARG25 bands across Landsat 5, 7, and 8::
     -rw-r----- 1 sjo547 u46 154M May  4 14:20 LS7_ETM_NBAR_WITH_PQA_STACK_SHORT_WAVE_INFRARED_2_120_-020_2013-12-01T01-58-23.045319.tif
 
     -rw-r----- 1 sjo547 u46 154M May  4 14:21 LS8_OLI_TIRS_NBAR_WITH_PQA_STACK_COASTAL_AEROSOL_120_-020_2013-12-02T01-57-07.tif
+
+Creating a stack applying a mask from a vector file::
+
+    $ retrieve_dataset_stack.py --acq-min 2013-10-11 --acq-max 2013-10-11 --satellite LS8 --x 148 --y -36 --dataset-type ARG25 --output-directory $PWD --mask-pqa-apply --mask-vector-apply --mask-vector-file australian_shapes.shp --mask-vector-layer 0 --mask-vector-feature 4
+
+    2015-05-07 10:42:18,414 INFO
+            acq = 2013-10-11 to 2013-10-11
+            satellites = LS8
+            PQA mask = PQ_MASK_CLEAR
+            WOFS mask =
+
+    2015-05-07 10:42:18,414 INFO
+            x = 148
+            y = -036
+            VECTOR mask = file=australian_states.shp layer=0 feature=4
+
+    2015-05-07 10:42:18,414 INFO
+            datasets to retrieve = ARG25
+            bands to retrieve = ['COASTAL_AEROSOL', 'BLUE', 'GREEN', 'RED', 'NEAR_INFRARED', 'SHORT_WAVE_INFRARED_1', 'SHORT_WAVE_INFRARED_2']
+            output directory = /tmp
+            over write existing = False
+            list only = False
+            output format = GEOTIFF
+
+    2015-05-07 10:42:19,743 INFO Total tiles found [1]
+
+    2015-05-07 10:42:19,743 INFO Creating stack for band [COASTAL_AEROSOL]
+    2015-05-07 10:42:19,743 INFO Total tiles for band [COASTAL_AEROSOL] is [1]
+    2015-05-07 10:42:20,045 INFO Stacking [COASTAL_AEROSOL] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/148_-036/2013/mosaic_cache/LS8_OLI_TIRS_NBAR_148_-036_2013-10-11T23-51-59.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/148_-036/2013/mosaic_cache/LS8_OLI_TIRS_PQA_148_-036_2013-10-11T23-51-59.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_NBAR_WITH_PQA_VECTOR_STACK_COASTAL_AEROSOL_148_-036_2013-10-11T23-51-59.tif]
+
+    2015-05-07 10:42:37,146 INFO Creating stack for band [BLUE]
+    2015-05-07 10:42:37,147 INFO Total tiles for band [BLUE] is [1]
+    2015-05-07 10:42:37,296 INFO Stacking [BLUE] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/148_-036/2013/mosaic_cache/LS8_OLI_TIRS_NBAR_148_-036_2013-10-11T23-51-59.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/148_-036/2013/mosaic_cache/LS8_OLI_TIRS_PQA_148_-036_2013-10-11T23-51-59.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_NBAR_WITH_PQA_VECTOR_STACK_BLUE_148_-036_2013-10-11T23-51-59.tif]
+
+    2015-05-07 10:42:53,655 INFO Creating stack for band [GREEN]
+    2015-05-07 10:42:53,656 INFO Total tiles for band [GREEN] is [1]
+    2015-05-07 10:42:53,787 INFO Stacking [GREEN] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/148_-036/2013/mosaic_cache/LS8_OLI_TIRS_NBAR_148_-036_2013-10-11T23-51-59.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/148_-036/2013/mosaic_cache/LS8_OLI_TIRS_PQA_148_-036_2013-10-11T23-51-59.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_NBAR_WITH_PQA_VECTOR_STACK_GREEN_148_-036_2013-10-11T23-51-59.tif]
+
+    2015-05-07 10:43:09,909 INFO Creating stack for band [RED]
+    2015-05-07 10:43:09,910 INFO Total tiles for band [RED] is [1]
+    2015-05-07 10:43:10,048 INFO Stacking [RED] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/148_-036/2013/mosaic_cache/LS8_OLI_TIRS_NBAR_148_-036_2013-10-11T23-51-59.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/148_-036/2013/mosaic_cache/LS8_OLI_TIRS_PQA_148_-036_2013-10-11T23-51-59.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_NBAR_WITH_PQA_VECTOR_STACK_RED_148_-036_2013-10-11T23-51-59.tif]
+
+    2015-05-07 10:43:26,618 INFO Creating stack for band [NEAR_INFRARED]
+    2015-05-07 10:43:26,619 INFO Total tiles for band [NEAR_INFRARED] is [1]
+    2015-05-07 10:43:26,750 INFO Stacking [NEAR_INFRARED] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/148_-036/2013/mosaic_cache/LS8_OLI_TIRS_NBAR_148_-036_2013-10-11T23-51-59.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/148_-036/2013/mosaic_cache/LS8_OLI_TIRS_PQA_148_-036_2013-10-11T23-51-59.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_NBAR_WITH_PQA_VECTOR_STACK_NEAR_INFRARED_148_-036_2013-10-11T23-51-59.tif]
+
+    2015-05-07 10:43:42,793 INFO Creating stack for band [SHORT_WAVE_INFRARED_1]
+    2015-05-07 10:43:42,794 INFO Total tiles for band [SHORT_WAVE_INFRARED_1] is [1]
+    2015-05-07 10:43:42,933 INFO Stacking [SHORT_WAVE_INFRARED_1] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/148_-036/2013/mosaic_cache/LS8_OLI_TIRS_NBAR_148_-036_2013-10-11T23-51-59.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/148_-036/2013/mosaic_cache/LS8_OLI_TIRS_PQA_148_-036_2013-10-11T23-51-59.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_NBAR_WITH_PQA_VECTOR_STACK_SHORT_WAVE_INFRARED_1_148_-036_2013-10-11T23-51-59.tif]
+
+    2015-05-07 10:43:58,455 INFO Creating stack for band [SHORT_WAVE_INFRARED_2]
+    2015-05-07 10:43:58,456 INFO Total tiles for band [SHORT_WAVE_INFRARED_2] is [1]
+    2015-05-07 10:43:58,585 INFO Stacking [SHORT_WAVE_INFRARED_2] band data from [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/148_-036/2013/mosaic_cache/LS8_OLI_TIRS_NBAR_148_-036_2013-10-11T23-51-59.vrt] with PQA [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS8_OLI_TIRS/148_-036/2013/mosaic_cache/LS8_OLI_TIRS_PQA_148_-036_2013-10-11T23-51-59.tif] and PQA mask [[<PqaMask.PQ_MASK_CLEAR: 16383>]] and WOFS [] and WOFS mask [] to [/g/data/u46/sjo/testing/0.1.0/LS8_OLI_TIRS_NBAR_WITH_PQA_VECTOR_STACK_SHORT_WAVE_INFRARED_2_148_-036_2013-10-11T23-51-59.tif]
+
+.. code-block:: text
+    :caption: ARG25 stack with vector mask outputs
+
+    $ ls -lh
+
+    -rw-r----- 1 sjo547 u46 31M May  7 10:42 LS8_OLI_TIRS_NBAR_WITH_PQA_VECTOR_STACK_BLUE_148_-036_2013-10-11T23-51-59.tif
+    -rw-r----- 1 sjo547 u46 31M May  7 10:42 LS8_OLI_TIRS_NBAR_WITH_PQA_VECTOR_STACK_COASTAL_AEROSOL_148_-036_2013-10-11T23-51-59.tif
+    -rw-r----- 1 sjo547 u46 31M May  7 10:43 LS8_OLI_TIRS_NBAR_WITH_PQA_VECTOR_STACK_GREEN_148_-036_2013-10-11T23-51-59.tif
+    -rw-r----- 1 sjo547 u46 31M May  7 10:43 LS8_OLI_TIRS_NBAR_WITH_PQA_VECTOR_STACK_NEAR_INFRARED_148_-036_2013-10-11T23-51-59.tif
+    -rw-r----- 1 sjo547 u46 31M May  7 10:43 LS8_OLI_TIRS_NBAR_WITH_PQA_VECTOR_STACK_RED_148_-036_2013-10-11T23-51-59.tif
+    -rw-r----- 1 sjo547 u46 31M May  7 10:43 LS8_OLI_TIRS_NBAR_WITH_PQA_VECTOR_STACK_SHORT_WAVE_INFRARED_1_148_-036_2013-10-11T23-51-59.tif
+    -rw-r----- 1 sjo547 u46 31M May  7 10:44 LS8_OLI_TIRS_NBAR_WITH_PQA_VECTOR_STACK_SHORT_WAVE_INFRARED_2_148_-036_2013-10-11T23-51-59.tif
+
+.. figure:: LS8_OLI_TIRS_NBAR_WITH_PQA_VECTOR_STACK_COASTAL_AEROSOL_148_-036_2013-10-11T23-51-59.png
+
+    ``LS8_OLI_TIRS_NBAR_WITH_PQA_VECTOR_STACK_COASTAL_AEROSOL_148_-036_2013-10-11T23-51-59.tif``
 
 Indices and tables
 ==================

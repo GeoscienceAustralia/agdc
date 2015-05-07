@@ -30,6 +30,7 @@ __author__ = "Simon Oldfield"
 
 
 import argparse
+from datetime import datetime
 import logging
 import os
 from datacube.api.model import Satellite, DatasetType
@@ -102,6 +103,30 @@ def readable_file(prospective_file):
     return prospective_file
 
 
+def date_arg(s):
+    try:
+        return parse_date(s)
+
+    except ValueError:
+        raise argparse.ArgumentTypeError("{0} is not a valid date".format(s))
+
+
+def date_min_arg(s):
+    try:
+        return parse_date_min(s)
+
+    except ValueError:
+        raise argparse.ArgumentTypeError("{0} is not a valid date".format(s))
+
+
+def date_max_arg(s):
+    try:
+        return parse_date_max(s)
+
+    except ValueError:
+        raise argparse.ArgumentTypeError("{0} is not a valid date".format(s))
+
+
 def dummy(path):
     _log.debug("Creating dummy output %s" % path)
     import os
@@ -110,6 +135,10 @@ def dummy(path):
         with open(path, "w") as f:
             pass
 
+
+def parse_date(s):
+    from datetime import datetime
+    return datetime.strptime(s, "%Y-%m-%d").date()
 
 def parse_date_min(s):
     from datetime import datetime

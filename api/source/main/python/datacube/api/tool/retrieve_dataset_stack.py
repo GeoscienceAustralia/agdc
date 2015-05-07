@@ -36,7 +36,8 @@ import os
 from datacube.api import dataset_type_arg, writeable_dir, output_format_arg
 from datacube.api.model import DatasetType
 from datacube.api.tool import CellTool
-from datacube.api.utils import get_mask_pqa, get_mask_wofs, get_dataset_data_masked, format_date, OutputFormat
+from datacube.api.utils import get_mask_pqa, get_mask_wofs, get_dataset_data_masked, format_date, OutputFormat, \
+    get_mask_vector_for_cell
 from datacube.api.utils import get_dataset_band_stack_filename
 from datacube.api.utils import get_band_name_union, get_band_name_intersection
 from datacube.api.utils import get_dataset_ndv, get_dataset_datatype, get_dataset_metadata
@@ -180,6 +181,13 @@ class RetrieveDatasetStackTool(CellTool):
 
     def go(self):
 
+        # If we are applying a vector mask then calculate it not (once as it is the same for all tiles)
+
+        mask = None
+
+        if self.mask_vector_apply:
+            mask = get_mask_vector_for_cell(self.x, self.y, self.mask_vector_file, self.mask_vector_layer, self.mask_vector_feature)
+
         # TODO move the dicking around with bands stuff into utils?
 
         import gdal
@@ -232,7 +240,8 @@ class RetrieveDatasetStackTool(CellTool):
                                         get_dataset_band_stack_filename(dataset, band,
                                                                         output_format=self.output_format,
                                                                         mask_pqa_apply=self.mask_pqa_apply,
-                                                                        mask_wofs_apply=self.mask_wofs_apply))
+                                                                        mask_wofs_apply=self.mask_wofs_apply,
+                                                                        mask_vector_apply=self.mask_vector_apply))
 
                 if not metadata:
                     metadata = get_dataset_metadata(dataset)
@@ -270,7 +279,7 @@ class RetrieveDatasetStackTool(CellTool):
 
                 raster.SetMetadata(self.generate_raster_metadata())
 
-                mask = None
+                # mask = None
 
                 if pqa:
                     mask = get_mask_pqa(pqa, self.mask_pqa_mask, mask=mask)

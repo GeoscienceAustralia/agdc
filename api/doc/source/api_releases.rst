@@ -19,6 +19,7 @@ both ``u46`` and ``el8``::
 **Changes in this release...**
 
 * Enhancement - `Issue 43 Enhance the Retrieve Dataset tool with the ability to apply a vector mask <https://github.com/GeoscienceAustralia/agdc/issues/43>`_
+* Enhancement - `Issue 44 Enhance the Retrieve Dataset Stack tool with the ability to apply a vector mask <https://github.com/GeoscienceAustralia/agdc/issues/44>`_
 
 AGDC API v0.1.0 (2015-05-05 snapshot)
 -------------------------------------
