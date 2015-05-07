@@ -33,9 +33,6 @@ version = '1.1.1'
 
 setup(name='agdc',
       version = version,
-      package_dir = {
-                     'agdc' : 'src'
-                     },
       packages = [
                   'agdc',
                   'agdc.abstract_ingester',
