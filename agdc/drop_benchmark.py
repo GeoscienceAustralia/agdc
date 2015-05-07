@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 #!/usr/bin/env python
 
 #===============================================================================
@@ -27,40 +28,14 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #===============================================================================
 
-from distutils.core import setup
+import os
+from . import dbutil
+import subprocess
 
-version = '1.1.1'
-
-setup(name='agdc',
-      version = version,
-      packages = [
-                  'agdc',
-                  'agdc.abstract_ingester',
-                  'agdc.landsat_ingester'
-                  ],
-      package_data = {
-                      'agdc': ['agdc_default.conf']
-                      },
-      scripts = ['bin/stacker.sh',
-                 'bin/landsat_ingester.sh',
-                 'bin/modis_ingester.sh',
-                 'bin/bulk_submit_interactive.sh',
-                 'bin/bulk_submit_pbs.sh'
-                 ],
-      requires = [
-                  'EOtools',
-                  'psycopg2',
-                  'gdal',
-                  'numexpr',
-                  'scipy',
-                  'dateutil',
-                  'pytz'
-                  ],
-      url = 'https://github.com/GeoscienceAustralia/ga-datacube',
-      author = 'Alex Ip, Matthew Hoyles, Matthew Hardy',
-      maintainer = 'Alex Ip, Geoscience Australia',
-      maintainer_email = 'alex.ip@ga.gov.au',
-      description = 'Australian Geoscience Data Cube (AGDC)',
-      long_description = 'Australian Geoscience Data Cube (AGDC). Original Python code developed during the Unlocking the Landsat Archive. (ULA) Project, 2013',
-      license = 'BSD 3'
-     )
+def main():
+    #dbutil.TESTSERVER.drop("expected")
+    #dbutil.TESTSERVER.drop("output")
+    dbutil.TESTSERVER.drop("test_tiler_505477438")
+    dbutil.TESTSERVER.drop("test_tiler_612406082")
+if __name__ == '__main__':
+    main()

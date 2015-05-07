@@ -36,8 +36,8 @@ import os
 import subprocess
 import logging
 
-import dbutil
-from landsat_ingester import LandsatDataset
+from agdc import dbutil
+from agdc.landsat_ingester import LandsatDataset
 
 # pylint: disable=too-many-public-methods
 #

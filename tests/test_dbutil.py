@@ -33,8 +33,8 @@ import os
 import unittest
 import subprocess
 import psycopg2
-import dbutil
-import dbcompare
+from agdc import dbutil
+from agdc import dbcompare
 
 #
 # Test cases

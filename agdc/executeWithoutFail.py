@@ -27,40 +27,34 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #===============================================================================
 
-from distutils.core import setup
+#===============================================================================
+# Execute a command ignoring errors
+#
+# @Author: Steven Ring
+#===============================================================================
 
-version = '1.1.1'
+from __future__ import absolute_import
+import os, argparse, time
 
-setup(name='agdc',
-      version = version,
-      packages = [
-                  'agdc',
-                  'agdc.abstract_ingester',
-                  'agdc.landsat_ingester'
-                  ],
-      package_data = {
-                      'agdc': ['agdc_default.conf']
-                      },
-      scripts = ['bin/stacker.sh',
-                 'bin/landsat_ingester.sh',
-                 'bin/modis_ingester.sh',
-                 'bin/bulk_submit_interactive.sh',
-                 'bin/bulk_submit_pbs.sh'
-                 ],
-      requires = [
-                  'EOtools',
-                  'psycopg2',
-                  'gdal',
-                  'numexpr',
-                  'scipy',
-                  'dateutil',
-                  'pytz'
-                  ],
-      url = 'https://github.com/GeoscienceAustralia/ga-datacube',
-      author = 'Alex Ip, Matthew Hoyles, Matthew Hardy',
-      maintainer = 'Alex Ip, Geoscience Australia',
-      maintainer_email = 'alex.ip@ga.gov.au',
-      description = 'Australian Geoscience Data Cube (AGDC)',
-      long_description = 'Australian Geoscience Data Cube (AGDC). Original Python code developed during the Unlocking the Landsat Archive. (ULA) Project, 2013',
-      license = 'BSD 3'
-     )
+
+def executeWithoutFail(cmd, sleepTimeSeconds):
+    ''' Execute the supplied command until it succeeds, sleeping after each failure
+    '''
+    while True:
+        print "Launching process: %s" % cmd
+        rc = os.system(cmd)
+        if rc == 0:
+            break
+        print "Failed to launch (exitCode=%d), waiting %d seconds" % (rc, sleepTimeSeconds)
+        time.sleep(sleepTimeSeconds)
+
+
+
+description=""
+parser = argparse.ArgumentParser(description)
+parser.add_argument('-c', dest="command", help="command", required=True)
+parser.add_argument('-s', dest="sleepTimeSeconds", help="time to wait between execution attempts", default=60)
+
+args = parser.parse_args()
+
+executeWithoutFail(args.command, int(args.sleepTimeSeconds))
