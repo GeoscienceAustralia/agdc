@@ -33,15 +33,12 @@
 
 import os
 import sys
-import datetime
-import re
 import logging
-import argparse
 
 from os.path import basename
 from osgeo import gdal
 from EOtools.execute import execute
-from agdc.abstract_ingester import AbstractIngester
+from ..abstract_ingester import SourceFileIngester
 from modis_dataset import ModisDataset
 
 #
@@ -63,82 +60,34 @@ logging.basicConfig(stream=sys.stdout,
 #
 
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.INFO)
 
 
-class ModisIngester(AbstractIngester):
+def _is_modis_file(filename):
+    """
+    Does the given file match a Modis NetCDF file?
+
+    (we could make this more extensive in the future, but it's directly derived from the old find_files() logic.
+
+    :type filename: str
+    :rtype: bool
+    >>> d = '/g/data/u39/public/data/modis/datacube/mod09-swath/terra/2010/12/31'
+    >>> f = 'MOD09_L2.2010365.2300.20130130162407.remapped_swath_500mbands_0.005deg.nc'
+    >>> _is_modis_file(f)
+    True
+    >>> _is_modis_file(os.path.join(d, f))
+    True
+    >>> _is_modis_file(d)
+    False
+    """
+    basename = os.path.basename(filename).lower()
+    return basename.startswith('mod') and filename.endswith(".nc")
+
+
+class ModisIngester(SourceFileIngester):
     """Ingester class for Modis datasets."""
 
-    @staticmethod
-    def parse_args():
-        """Parse the command line arguments for the ingester.
-
-        Returns an argparse namespace object.
-        """
-        LOGGER.debug('  Calling parse_args()')
-
-        _arg_parser = argparse.ArgumentParser()
-
-        _arg_parser.add_argument('-C', '--config', dest='config_file',
-            # N.B: The following line assumes that this module is under the agdc directory
-            default=os.path.join(os.path.dirname(__file__), 'datacube.conf'),
-            help='ModisIngester configuration file')
-
-        _arg_parser.add_argument('-d', '--debug', dest='debug',
-            default=False, action='store_const', const=True,
-            help='Debug mode flag')
-
-        _arg_parser.add_argument('--source', dest='source_dir',
-            required=True,
-            help='Source root directory containing datasets')
-
-        follow_symlinks_help = \
-            'Follow symbolic links when finding datasets to ingest'
-        _arg_parser.add_argument('--followsymlinks',
-                                 dest='follow_symbolic_links',
-                                 default=False, action='store_const',
-                                 const=True, help=follow_symlinks_help)
-
-        fast_filter_help = 'Filter datasets using filename patterns.'
-        _arg_parser.add_argument('--fastfilter', dest='fast_filter',
-                                 default=False, action='store_const',
-                                 const=True, help=fast_filter_help)
-
-        sync_time_help = 'Synchronize parallel ingestions at the given time'\
-            ' in seconds after 01/01/1970'
-        _arg_parser.add_argument('--synctime', dest='sync_time',
-                                 default=None, help=sync_time_help)
-
-        sync_type_help = 'Type of transaction to syncronize with synctime,'\
-            + ' one of "cataloging", "tiling", or "mosaicking".'
-        _arg_parser.add_argument('--synctype', dest='sync_type',
-                                 default=None, help=sync_type_help)
-
-        return _arg_parser.parse_args()
-
-    def find_datasets(self, source_dir):
-        """Return a list of path to the netCDF datasets under 'source_dir' or a single-item list
-        if source_dir is a netCDF file path
-        """
-        
-        # Allow an individual netCDF file to be nominated as the source
-        if os.path.isfile(source_dir) and source_dir.endswith(".nc"):
-            LOGGER.debug('%s is a netCDF file')
-            return [source_dir]
-
-        assert os.path.isdir(source_dir), '%s is not a directory' % source_dir
-        LOGGER.info('Searching for datasets in %s', source_dir)
-
-        # Get all .nc files under source_dir (all levels)
-        dataset_list = []
-        for root, _dirs, files in os.walk(source_dir):
-            dataset_list += [os.path.join(root, nc) for nc in files if nc.endswith('.nc')]
-            
-        dataset_list = sorted(dataset_list)
-        
-        LOGGER.debug('dataset_list = %s', dataset_list)
-        return dataset_list
-
+    def __init__(self, datacube=None, collection=None):
+        super(ModisIngester, self).__init__(_is_modis_file, datacube, collection)
 
     def open_dataset(self, dataset_path):
         """Create and return a dataset object.
@@ -218,3 +167,6 @@ class ModisIngester(AbstractIngester):
 
         return vrt_list
 
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()

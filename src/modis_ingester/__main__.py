@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#===============================================================================
+# ===============================================================================
 # Copyright (c)  2014 Geoscience Australia
 # All rights reserved.
 #
@@ -25,28 +25,14 @@
 # ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#===============================================================================
+# ===============================================================================
 
 """
     modis_ingester.py - Ingester script for modis datasets.
 """
 
-import logging
 from agdc.modis_ingester import ModisIngester
+from agdc.abstract_ingester import run_ingest
 
-# Start ingest process
 if __name__ == "__main__":
-
-    #pylint:disable=invalid-name
-    #
-    # Top level variables are OK if this is the top level script.
-    #
-
-    ingester = ModisIngester()
-
-    if ingester.args.debug:
-        logging.getLogger().setLevel(logging.DEBUG)
-
-    ingester.ingest(ingester.args.source_dir)
-
-    ingester.collection.cleanup()
+    run_ingest(ModisIngester)

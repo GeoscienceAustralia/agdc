@@ -49,11 +49,11 @@ class ModisBandstack(AbstractBandstack):
     def __init__(self, dataset, band_dict):
         """The bandstack allows for the construction of a list, or stack, of
         bands from the given dataset."""
+        super(ModisBandstack, self).__init__(dataset.metadata_dict)
         #Order the band_dict by the file number key
         self.dataset = dataset
         self.band_dict = \
             OrderedDict(sorted(band_dict.items(), key=lambda t: t[0]))
-        self.dataset_mdd = dataset.metadata_dict
         self.source_file_list = None
         self.nodata_list = None
         self.vrt_name = None

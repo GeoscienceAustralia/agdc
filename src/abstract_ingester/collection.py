@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#===============================================================================
+# ===============================================================================
 # Copyright (c)  2014 Geoscience Australia
 # All rights reserved.
 # 
@@ -25,7 +25,7 @@
 # ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-#===============================================================================
+# ===============================================================================
 
 """
 Collection: database interface class.
@@ -42,10 +42,14 @@ import logging
 import os
 import time
 import shutil
-from agdc.cube_util import DatasetError, create_directory
+import re
+
+from ..cube_util import DatasetError, create_directory
 from tile_contents import TileContents
 from acquisition_record import AcquisitionRecord
 from ingest_db_wrapper import IngestDBWrapper
+
+
 
 # Set up logger.
 LOGGER = logging.getLogger(__name__)
@@ -93,7 +97,7 @@ class Collection(object):
         ('DERIVED', processing_level, processing_level).
         """
 
-        derived_levels = {'PQA', 'FC'}
+        derived_levels = {'PQA', 'FC', 'WATER'}
 
         satellite = dataset.get_satellite_tag()
         sensor = dataset.get_sensor_name()
@@ -155,17 +159,56 @@ class Collection(object):
 
         return AcquisitionRecord(self, dataset)
 
+    def _make_tile_path(self, band_stack, tile_footprint, tile_type_info):
+        x_index, y_index = tile_footprint
+        tile_output_root = os.path.join(
+            self.datacube.tile_root,
+            tile_type_info['tile_directory'],
+            '%s_%s' % (band_stack.dataset_mdd['satellite_tag'],
+                       re.sub(r'\W', '', band_stack.dataset_mdd['sensor_name']))
+        )
+        tile_output_dir = os.path.join(
+            tile_output_root,
+            re.sub(r'\+', '', ('%+04d_%+04d' % (tile_footprint[0],
+                                                tile_footprint[1]))),
+            '%04d' % band_stack.dataset_mdd['start_datetime'].year
+        )
+        tile_output_path = os.path.join(
+            tile_output_dir,
+            '_'.join(
+                [
+                    band_stack.dataset_mdd['satellite_tag'],
+                    re.sub(r'\W', '', band_stack.dataset_mdd['sensor_name']),
+                    band_stack.dataset_mdd['processing_level'],
+                    re.sub(r'\+', '', '%+04d_%+04d' % (x_index, y_index)),
+                    re.sub(':', '-', band_stack.dataset_mdd['start_datetime'].isoformat())
+                ]
+            ) + tile_type_info['file_extension']
+        )
+        return tile_output_path
+
     def create_tile_contents(self, tile_type_id, tile_footprint,
-                             band_stack):
+                             band_stack, tile_output_path=None):
         """Factory method to create an instance of the TileContents class.
 
         The tile_type_dict contains the information required for
         resampling extents and resolution.
+
+        :rtype TileContents
         """
 
         tile_type_info = self.datacube.tile_type_dict[tile_type_id]
-        tile_contents = TileContents(self.datacube.tile_root, tile_type_info,
-                                     tile_footprint, band_stack)
+
+        if not tile_output_path:
+            tile_output_path = self._make_tile_path(band_stack, tile_footprint, tile_type_info)
+
+        tile_contents = TileContents(
+            tile_output_path,
+            tile_type_info,
+            tile_footprint,
+            self.get_temp_tile_directory(),
+            band_stack
+        )
         return tile_contents
 
     def current_transaction(self):
@@ -211,7 +254,6 @@ class Collection(object):
         for (tile_type, band_dict) in bands.items():
             for ((satellite, sensor), sensor_dict) in band_dict.items():
                 for (file_number, band_info) in sensor_dict.items():
-
                     dataset_key = (satellite, sensor, band_info['level_name'])
 
                     new_bands.setdefault(dataset_key, {})
@@ -257,13 +299,15 @@ class Collection(object):
         """
 
         try:
-            dataset_bands = self.new_bands[self.get_dataset_key(dataset)]
+            dataset_key = self.get_dataset_key(dataset)
+            dataset_bands = self.new_bands[dataset_key]
         except KeyError:
             raise DatasetError('No tile types for this dataset.')
 
         for tile_type_bands in dataset_bands.values():
             for band_info in tile_type_bands.values():
                 dataset.find_band_file(band_info['file_pattern'])
+
 
 #
 # Context manager classes
@@ -520,6 +564,7 @@ class Lock(object):
                 # release their locks and re-raise the exception, in reverse
                 # order).
                 raise LockError()
+
 
 #
 # Exceptions
