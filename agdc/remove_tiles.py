@@ -3,6 +3,8 @@ Created on 16/12/2014
 
 @author: u76345
 '''
+from __future__ import absolute_import
+
 import os
 import sys
 import argparse

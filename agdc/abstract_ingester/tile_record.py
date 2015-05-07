@@ -37,12 +37,13 @@ process. They are expected to be independent of the structure of any
 particular dataset, but will change if the database schema or tile store
 format changes.
 """
+from __future__ import absolute_import
 
 import logging
 
 import psycopg2
 
-from ingest_db_wrapper import IngestDBWrapper, TC_PENDING
+from .ingest_db_wrapper import IngestDBWrapper, TC_PENDING
 from agdc.cube_util import get_file_size_mb
 
 _LOG = logging.getLogger(__name__)

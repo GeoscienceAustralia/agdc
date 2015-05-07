@@ -30,6 +30,7 @@
 """
     modis_ingester.py - Ingester script for Modis datasets.
 """
+from __future__ import absolute_import
 
 import os
 import sys
@@ -39,7 +40,7 @@ from os.path import basename
 from osgeo import gdal
 from EOtools.execute import execute
 from ..abstract_ingester import SourceFileIngester
-from modis_dataset import ModisDataset
+from .modis_dataset import ModisDataset
 
 #
 # Set up root logger

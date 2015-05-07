@@ -39,9 +39,9 @@ pooled by pgbouncer.
 Note that running this script may cause tests currently running to fail
 (by dropping their databases out from under them).
 """
-
+from __future__ import absolute_import
 import re
-import dbutil
+from . import dbutil
 
 #
 # Temporary test database pattern

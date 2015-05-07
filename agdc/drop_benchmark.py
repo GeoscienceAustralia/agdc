@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 #!/usr/bin/env python
 
 #===============================================================================
@@ -28,7 +29,7 @@
 #===============================================================================
 
 import os
-import dbutil
+from . import dbutil
 import subprocess
 
 def main():

@@ -34,6 +34,7 @@
     datasets. At present it only works for level 1 (L1T, ORTHO) and NBAR
     data, as it relys on EOtools.DatasetDrivers.SceneDataset.
 """
+from __future__ import absolute_import
 
 import os
 import logging
@@ -45,7 +46,7 @@ from EOtools.execute import execute
 
 from agdc.cube_util import DatasetError
 from agdc.abstract_ingester import AbstractDataset
-from landsat_bandstack import LandsatBandstack
+from .landsat_bandstack import LandsatBandstack
 
 #
 # Set up logger.

@@ -35,6 +35,7 @@ Created on 05/10/2012
 
 @author: Alex Ip
 '''
+from __future__ import absolute_import
 import os
 import sys
 import argparse
@@ -69,7 +70,7 @@ class DataCube(object):
         try:
             os.makedirs(dirname)
             logger.info('Created directory %s', dirname)
-        except OSError, e:
+        except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
             
@@ -77,7 +78,7 @@ class DataCube(object):
         """ Function to remove a file but do not error if it doesn't exist"""
         try:
             os.remove(filename)
-        except OSError, e:
+        except OSError as e:
             if e.errno != errno.ENOENT:
                 raise
     

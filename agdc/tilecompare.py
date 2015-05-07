@@ -30,14 +30,15 @@
 """
 tilecompare.py - compare two sets of tiles.
 """
+from __future__ import absolute_import
 
 import sys
 import os
 import re
-import dbutil
+from . import dbutil
 from osgeo import gdal
 import numpy as np
-from dbcompare import ComparisonWrapper
+from .dbcompare import ComparisonWrapper
 from EOtools.execute import execute
 # #
 # # TileComparisonPair class

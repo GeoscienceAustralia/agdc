@@ -42,6 +42,7 @@ please do it in the calling class, not here. This is intended as a very clean
 and simple interface to the database, to replace big chunks of SQL with
 meaningfully named method calls.
 """
+from __future__ import absolute_import
 
 import logging
 import datetime

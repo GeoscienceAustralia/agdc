@@ -34,6 +34,7 @@ the underlying python API
 
 @author: Josh Vote
 '''
+from __future__ import absolute_import
 import os
 import sys
 import argparse
@@ -44,7 +45,7 @@ from datetime import datetime, time
 ERR_NO_ERROR = 0
 ERR_BAD_PARAMS = 2
 
-from stacker import Stacker
+from .stacker import Stacker
             
 # Set top level standard output 
 console_handler = logging.StreamHandler(sys.stdout)

@@ -36,6 +36,7 @@
     It is the responsibility of the stack_bands method of the dataset
     object to instantiate the correct subclass.
 """
+from __future__ import absolute_import
 
 from abc import ABCMeta, abstractmethod
 

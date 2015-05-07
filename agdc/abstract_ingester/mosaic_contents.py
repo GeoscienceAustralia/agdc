@@ -37,6 +37,7 @@ process. They are expected to be independent of the structure of any
 particular dataset, but will change if the database schema or tile store
 format changes.
 """
+from __future__ import absolute_import
 
 import logging
 import os
@@ -45,7 +46,7 @@ import shutil
 from EOtools.execute import execute
 from EOtools.utils import log_multiline
 from agdc.cube_util import DatasetError, get_file_size_mb, create_directory
-from ingest_db_wrapper import TC_MOSAIC
+from .ingest_db_wrapper import TC_MOSAIC
 from osgeo import gdal
 import numpy
 

@@ -36,6 +36,7 @@ Created on 05/10/2012
 
 @author: Alex Ip
 '''
+from __future__ import absolute_import
 import os
 import sys
 import argparse

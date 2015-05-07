@@ -37,6 +37,7 @@ process. They are expected to be independent of the structure of any
 particular dataset, but will change if the database schema or tile store
 format changes.
 """
+from __future__ import absolute_import
 
 import shutil
 import logging

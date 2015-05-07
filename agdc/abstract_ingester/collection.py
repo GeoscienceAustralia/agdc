@@ -37,6 +37,7 @@ process. They are expected to be independent of the structure of any
 particular dataset, but will change if the database schema or tile store
 format changes.
 """
+from __future__ import absolute_import
 
 import logging
 import os
@@ -45,9 +46,9 @@ import shutil
 import re
 
 from ..cube_util import DatasetError, create_directory
-from tile_contents import TileContents
-from acquisition_record import AcquisitionRecord
-from ingest_db_wrapper import IngestDBWrapper
+from .tile_contents import TileContents
+from .acquisition_record import AcquisitionRecord
+from .ingest_db_wrapper import IngestDBWrapper
 
 
 

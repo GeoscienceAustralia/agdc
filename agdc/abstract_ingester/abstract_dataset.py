@@ -39,6 +39,7 @@
     to choose and instantiate the right dataset class for the dataset
     being opened.
 """
+from __future__ import absolute_import
 
 import re
 from abc import ABCMeta, abstractmethod

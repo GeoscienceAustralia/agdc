@@ -30,10 +30,11 @@
 """
 dbcompare.py - compare two databases.
 """
+from __future__ import absolute_import
 
 import sys
 import re
-import dbutil
+from . import dbutil
 
 #
 # Reporter Class

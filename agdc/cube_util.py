@@ -30,6 +30,7 @@
 """
     cube_util.py - utility functions for the datacube.
 """
+from __future__ import absolute_import
 
 import os
 import time
@@ -113,7 +114,7 @@ def create_directory(dirname):
     old_umask = os.umask(0o007)
     try:
         os.makedirs(dirname)
-    except OSError, e:
+    except OSError as e:
         if e.errno != errno.EEXIST or not os.path.isdir(dirname):
             raise DatasetError('Directory %s could not be created' % dirname)
     finally:

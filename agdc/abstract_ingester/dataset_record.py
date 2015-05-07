@@ -37,6 +37,7 @@ process. They are expected to be independent of the structure of any
 particular dataset, but will change if the database schema or tile store
 format changes.
 """
+from __future__ import absolute_import
 
 import logging
 import os
@@ -46,11 +47,11 @@ from math import floor
 from osgeo import osr
 
 from agdc.cube_util import DatasetError, DatasetSkipError
-from ingest_db_wrapper import IngestDBWrapper
-from ingest_db_wrapper import TC_PENDING, TC_SINGLE_SCENE, TC_SUPERSEDED
-from ingest_db_wrapper import TC_MOSAIC
-from mosaic_contents import MosaicContents
-from tile_record import TileRecord, TileRepository
+from .ingest_db_wrapper import IngestDBWrapper
+from .ingest_db_wrapper import TC_PENDING, TC_SINGLE_SCENE, TC_SUPERSEDED
+from .ingest_db_wrapper import TC_MOSAIC
+from .mosaic_contents import MosaicContents
+from .tile_record import TileRecord, TileRepository
 
 
 # Set up logger.

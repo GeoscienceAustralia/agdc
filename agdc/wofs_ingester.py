@@ -1,4 +1,3 @@
-
 # ===============================================================================
 # Copyright (c)  2014 Geoscience Australia
 # All rights reserved.
@@ -40,10 +39,11 @@ Or a specific dataset:
     python -m agdc.wofs_ingester -C datacube.conf --source LS7_ETM_WATER_140_-027_2013-08-18T00-26-16.880864.tif
 
 """
+from __future__ import absolute_import
 
 import logging
-from abstract_ingester.pretiled import GdalMdDataset, PreTiledIngester
-import abstract_ingester
+from .abstract_ingester.pretiled import GdalMdDataset, PreTiledIngester
+from . import abstract_ingester
 
 
 _LOG = logging.getLogger(__name__)

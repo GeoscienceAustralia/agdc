@@ -35,6 +35,7 @@ provides a way to create, load, save and drop databases from this server.
 It also provides wrapper classes for psycopg2 database connections that
 implement utility queries as methods.
 """
+from __future__ import absolute_import
 import os
 import sys
 import logging

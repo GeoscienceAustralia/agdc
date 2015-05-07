@@ -37,6 +37,7 @@ TODO: Note, queuename is currently ignored, all queues are counted
 @Author: Steven Ring
 Modified by Matthew Hardy 27/02/2014 to set a limit on jobs running under a project
 '''
+from __future__ import absolute_import
 
 import os, sys, re, argparse, subprocess, time
 

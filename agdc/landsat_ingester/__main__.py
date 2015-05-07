@@ -30,6 +30,7 @@
 """
     landsat_ingester.py - Ingester script for landsat datasets.
 """
+from __future__ import absolute_import
 
 from agdc.landsat_ingester import LandsatIngester
 from agdc.abstract_ingester import run_ingest

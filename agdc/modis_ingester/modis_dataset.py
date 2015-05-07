@@ -33,6 +33,7 @@
     This is the implementation of the AbstractDataset class for modis
     datasets.
 """
+from __future__ import absolute_import
 
 import os
 import logging
@@ -46,7 +47,7 @@ from EOtools.execute import execute
 
 from agdc.cube_util import DatasetError
 from agdc.abstract_ingester import AbstractDataset
-from modis_bandstack import ModisBandstack
+from .modis_bandstack import ModisBandstack
 
 #
 # Set up logger.

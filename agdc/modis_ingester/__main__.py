@@ -30,6 +30,7 @@
 """
     modis_ingester.py - Ingester script for modis datasets.
 """
+from __future__ import absolute_import
 
 from agdc.modis_ingester import ModisIngester
 from agdc.abstract_ingester import run_ingest

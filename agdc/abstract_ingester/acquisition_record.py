@@ -37,11 +37,12 @@ process. They are expected to be independent of the structure of any
 particular dataset, but will change if the database schema or tile store
 format changes.
 """
+from __future__ import absolute_import
 
 import logging
 
-from ingest_db_wrapper import IngestDBWrapper
-from dataset_record import DatasetRecord
+from .ingest_db_wrapper import IngestDBWrapper
+from .dataset_record import DatasetRecord
 
 # Set up logger.
 LOGGER = logging.getLogger(__name__)

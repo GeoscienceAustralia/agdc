@@ -30,6 +30,7 @@
 """
     landsat_ingester.py - Ingester script for landsat datasets.
 """
+from __future__ import absolute_import
 
 import os
 import sys
@@ -40,7 +41,7 @@ import argparse
 
 from EOtools.execute import execute
 from agdc.abstract_ingester import AbstractIngester
-from landsat_dataset import LandsatDataset
+from .landsat_dataset import LandsatDataset
 
 #
 # Set up root logger
