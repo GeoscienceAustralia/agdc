@@ -36,7 +36,7 @@ import os
 import random
 import shutil
 
-import dbutil
+from agdc import dbutil
 import agdc.cube_util as cube_util
 
 #

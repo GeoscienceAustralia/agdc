@@ -32,8 +32,8 @@
 import os
 import unittest
 import StringIO
-import dbutil
-import dbcompare
+from agdc import dbutil
+from agdc import dbcompare
 
 #
 # Constants

@@ -37,11 +37,11 @@ import numpy as np
 import logging
 import sys
 import unittest
-import dbutil
+from agdc import dbutil
 #import landsat_bandstack
 from EOtools.execute import execute
-from abstract_ingester import AbstractIngester
-from abstract_ingester import IngesterDataCube
+from agdc.abstract_ingester import AbstractIngester
+from agdc.abstract_ingester import IngesterDataCube
 from landsat_dataset import LandsatDataset
 from test_landsat_tiler import TestLandsatTiler
 import ingest_test_data as TestIngest

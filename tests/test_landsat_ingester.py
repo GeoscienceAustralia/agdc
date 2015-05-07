@@ -36,9 +36,9 @@ import os
 import sys
 import subprocess
 
-import dbutil
-from cube_util import DatasetError, Stopwatch
-from landsat_ingester import LandsatIngester
+from agdc import dbutil
+from agdc.cube_util import DatasetError, Stopwatch
+from agdc.landsat_ingester import LandsatIngester
 
 # pylint: disable=too-many-public-methods
 #

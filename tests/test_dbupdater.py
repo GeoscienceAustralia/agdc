@@ -32,8 +32,8 @@
 import os
 import subprocess
 import unittest
-import dbutil
-import dbcompare
+from agdc import dbutil
+from agdc import dbcompare
 
 #
 # Test cases

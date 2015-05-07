@@ -37,9 +37,9 @@ import logging
 import unittest
 import subprocess
 
-import dbutil
-from cube_util import DatasetError
-from abstract_ingester import AbstractIngester
+from agdc import dbutil
+from agdc.cube_util import DatasetError
+from agdc.abstract_ingester import AbstractIngester
 
 #
 # Set up logger.
