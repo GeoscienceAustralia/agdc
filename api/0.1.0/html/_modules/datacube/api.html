@@ -102,6 +102,7 @@
 
 
 <span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">from</span> <span class="nn">datacube.api.model</span> <span class="kn">import</span> <span class="n">Satellite</span><span class="p">,</span> <span class="n">DatasetType</span>
@@ -174,6 +175,30 @@
     <span class="k">return</span> <span class="n">prospective_file</span>
 
 </div>
+<div class="viewcode-block" id="date_arg"><a class="viewcode-back" href="../../api/datacube.api.html#datacube.api.date_arg">[docs]</a><span class="k">def</span> <span class="nf">date_arg</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">parse_date</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentTypeError</span><span class="p">(</span><span class="s">&quot;{0} is not a valid date&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+
+</div>
+<div class="viewcode-block" id="date_min_arg"><a class="viewcode-back" href="../../api/datacube.api.html#datacube.api.date_min_arg">[docs]</a><span class="k">def</span> <span class="nf">date_min_arg</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">parse_date_min</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentTypeError</span><span class="p">(</span><span class="s">&quot;{0} is not a valid date&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+
+</div>
+<div class="viewcode-block" id="date_max_arg"><a class="viewcode-back" href="../../api/datacube.api.html#datacube.api.date_max_arg">[docs]</a><span class="k">def</span> <span class="nf">date_max_arg</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">parse_date_max</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentTypeError</span><span class="p">(</span><span class="s">&quot;{0} is not a valid date&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+
+</div>
 <div class="viewcode-block" id="dummy"><a class="viewcode-back" href="../../api/datacube.api.html#datacube.api.dummy">[docs]</a><span class="k">def</span> <span class="nf">dummy</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
     <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Creating dummy output </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">path</span><span class="p">)</span>
     <span class="kn">import</span> <span class="nn">os</span>
@@ -182,6 +207,10 @@
         <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
             <span class="k">pass</span>
 
+</div>
+<div class="viewcode-block" id="parse_date"><a class="viewcode-back" href="../../api/datacube.api.html#datacube.api.parse_date">[docs]</a><span class="k">def</span> <span class="nf">parse_date</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+    <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s">&quot;%Y-%m-</span><span class="si">%d</span><span class="s">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
 </div>
 <div class="viewcode-block" id="parse_date_min"><a class="viewcode-back" href="../../api/datacube.api.html#datacube.api.parse_date_min">[docs]</a><span class="k">def</span> <span class="nf">parse_date_min</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
     <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>

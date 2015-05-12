@@ -557,6 +557,8 @@
 
     <span class="n">raster</span><span class="o">.</span><span class="n">SetProjection</span><span class="p">(</span><span class="n">srs</span><span class="o">.</span><span class="n">ExportToWkt</span><span class="p">())</span>
 
+    <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Reading feature [</span><span class="si">%d</span><span class="s">] from layer [</span><span class="si">%d</span><span class="s">] of file [</span><span class="si">%s</span><span class="s">]&quot;</span><span class="p">,</span> <span class="n">vector_feature</span><span class="p">,</span> <span class="n">vector_layer</span><span class="p">,</span> <span class="n">vector_file</span><span class="p">)</span>
+
     <span class="kn">import</span> <span class="nn">ogr</span>
     <span class="kn">from</span> <span class="nn">gdalconst</span> <span class="kn">import</span> <span class="n">GA_ReadOnly</span>
 
@@ -566,11 +568,11 @@
     <span class="c"># layer = vector.GetLayer()</span>
     <span class="c"># assert layer</span>
 
-    <span class="n">layer</span> <span class="o">=</span> <span class="n">vector</span><span class="o">.</span><span class="n">GetLayerByName</span><span class="p">(</span><span class="n">vector_layer</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="n">layer</span>
-
-    <span class="c"># layer = vector.GetLayerByIndex(vector_layer)</span>
+    <span class="c"># layer = vector.GetLayerByName(vector_layer)</span>
     <span class="c"># assert layer</span>
+
+    <span class="n">layer</span> <span class="o">=</span> <span class="n">vector</span><span class="o">.</span><span class="n">GetLayerByIndex</span><span class="p">(</span><span class="n">vector_layer</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">layer</span>
 
     <span class="n">layer</span><span class="o">.</span><span class="n">SetAttributeFilter</span><span class="p">(</span><span class="s">&quot;FID={fid}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fid</span><span class="o">=</span><span class="n">vector_feature</span><span class="p">))</span>
 
@@ -1136,7 +1138,8 @@
     <span class="k">return</span> <span class="n">d</span><span class="o">.</span><span class="n">year</span> <span class="o">*</span> <span class="mi">10000</span> <span class="o">+</span> <span class="n">d</span><span class="o">.</span><span class="n">month</span> <span class="o">*</span> <span class="mi">100</span> <span class="o">+</span> <span class="n">d</span><span class="o">.</span><span class="n">day</span>
 
 </div>
-<div class="viewcode-block" id="get_dataset_filename"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.get_dataset_filename">[docs]</a><span class="k">def</span> <span class="nf">get_dataset_filename</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">output_format</span><span class="o">=</span><span class="n">OutputFormat</span><span class="o">.</span><span class="n">GEOTIFF</span><span class="p">,</span> <span class="n">mask_pqa_apply</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">mask_wofs_apply</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">mask_vector_apply</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+<div class="viewcode-block" id="get_dataset_filename"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.get_dataset_filename">[docs]</a><span class="k">def</span> <span class="nf">get_dataset_filename</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">output_format</span><span class="o">=</span><span class="n">OutputFormat</span><span class="o">.</span><span class="n">GEOTIFF</span><span class="p">,</span>
+                         <span class="n">mask_pqa_apply</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">mask_wofs_apply</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">mask_vector_apply</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
 
     <span class="n">filename</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">path</span>
 
@@ -1182,7 +1185,8 @@
     <span class="k">return</span> <span class="n">filename</span>
 
 </div>
-<div class="viewcode-block" id="get_dataset_band_stack_filename"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.get_dataset_band_stack_filename">[docs]</a><span class="k">def</span> <span class="nf">get_dataset_band_stack_filename</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">band</span><span class="p">,</span> <span class="n">output_format</span><span class="o">=</span><span class="n">OutputFormat</span><span class="o">.</span><span class="n">GEOTIFF</span><span class="p">,</span> <span class="n">mask_pqa_apply</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">mask_wofs_apply</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+<div class="viewcode-block" id="get_dataset_band_stack_filename"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.get_dataset_band_stack_filename">[docs]</a><span class="k">def</span> <span class="nf">get_dataset_band_stack_filename</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">band</span><span class="p">,</span> <span class="n">output_format</span><span class="o">=</span><span class="n">OutputFormat</span><span class="o">.</span><span class="n">GEOTIFF</span><span class="p">,</span>
+                                    <span class="n">mask_pqa_apply</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">mask_wofs_apply</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">mask_vector_apply</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
 
     <span class="n">filename</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">path</span>
 
@@ -1212,14 +1216,10 @@
         <span class="n">DatasetType</span><span class="o">.</span><span class="n">DSM</span><span class="p">:</span> <span class="s">&quot;DSM_&quot;</span>
     <span class="p">}[</span><span class="n">dataset</span><span class="o">.</span><span class="n">dataset_type</span><span class="p">]</span>
 
-    <span class="k">if</span> <span class="n">mask_pqa_apply</span> <span class="ow">and</span> <span class="n">mask_wofs_apply</span><span class="p">:</span>
-        <span class="n">dataset_type_to_string</span> <span class="o">+=</span> <span class="s">&quot;WITH_PQA_WATER_&quot;</span>
-
-    <span class="k">elif</span> <span class="n">mask_pqa_apply</span><span class="p">:</span>
-        <span class="n">dataset_type_to_string</span> <span class="o">+=</span> <span class="s">&quot;WITH_PQA_&quot;</span>
-
-    <span class="k">elif</span> <span class="n">mask_wofs_apply</span><span class="p">:</span>
-        <span class="n">dataset_type_to_string</span> <span class="o">+=</span> <span class="o">+</span> <span class="s">&quot;WITH_WATER_&quot;</span>
+    <span class="n">dataset_type_to_string</span> <span class="o">+=</span> <span class="p">((</span><span class="n">mask_pqa_apply</span> <span class="ow">or</span> <span class="n">mask_wofs_apply</span> <span class="ow">or</span> <span class="n">mask_vector_apply</span><span class="p">)</span> <span class="ow">and</span> <span class="s">&quot;WITH_&quot;</span> <span class="ow">or</span> <span class="s">&quot;&quot;</span><span class="p">)</span> <span class="o">+</span> \
+                              <span class="p">(</span><span class="n">mask_pqa_apply</span> <span class="ow">and</span> <span class="s">&quot;PQA_&quot;</span> <span class="ow">or</span> <span class="s">&quot;&quot;</span><span class="p">)</span> <span class="o">+</span> \
+                              <span class="p">(</span><span class="n">mask_wofs_apply</span> <span class="ow">and</span> <span class="s">&quot;WATER_&quot;</span> <span class="ow">or</span> <span class="s">&quot;&quot;</span><span class="p">)</span> <span class="o">+</span> \
+                              <span class="p">(</span><span class="n">mask_vector_apply</span> <span class="ow">and</span> <span class="s">&quot;VECTOR_&quot;</span> <span class="ow">or</span> <span class="s">&quot;&quot;</span><span class="p">)</span>
 
     <span class="n">dataset_type_to_string</span> <span class="o">+=</span> <span class="s">&quot;STACK_&quot;</span> <span class="o">+</span> <span class="n">band</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s">&quot;_&quot;</span>
 
@@ -1301,7 +1301,35 @@
     <span class="k">if</span> <span class="n">d</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="s">&quot;%Y_%m_</span><span class="si">%d</span><span class="s">_%H_%M_%S&quot;</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="bp">None</span></div>
+    <span class="k">return</span> <span class="bp">None</span>
+
+</div>
+<div class="viewcode-block" id="extract_feature_geometry_wkb"><a class="viewcode-back" href="../../../api/datacube.api.utils.html#datacube.api.utils.extract_feature_geometry_wkb">[docs]</a><span class="k">def</span> <span class="nf">extract_feature_geometry_wkb</span><span class="p">(</span><span class="n">vector_file</span><span class="p">,</span> <span class="n">vector_layer</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">vector_feature</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">epsg</span><span class="o">=</span><span class="mi">4326</span><span class="p">):</span>
+
+    <span class="kn">import</span> <span class="nn">ogr</span>
+    <span class="kn">import</span> <span class="nn">osr</span>
+    <span class="kn">from</span> <span class="nn">gdalconst</span> <span class="kn">import</span> <span class="n">GA_ReadOnly</span>
+
+    <span class="n">vector</span> <span class="o">=</span> <span class="n">ogr</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">vector_file</span><span class="p">,</span> <span class="n">GA_ReadOnly</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">vector</span>
+
+    <span class="n">layer</span> <span class="o">=</span> <span class="n">vector</span><span class="o">.</span><span class="n">GetLayer</span><span class="p">(</span><span class="n">vector_layer</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">layer</span>
+
+    <span class="n">feature</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">GetFeature</span><span class="p">(</span><span class="n">vector_feature</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">feature</span>
+
+    <span class="n">projection</span> <span class="o">=</span> <span class="n">osr</span><span class="o">.</span><span class="n">SpatialReference</span><span class="p">()</span>
+    <span class="n">projection</span><span class="o">.</span><span class="n">ImportFromEPSG</span><span class="p">(</span><span class="n">epsg</span><span class="p">)</span>
+
+    <span class="n">geom</span> <span class="o">=</span> <span class="n">feature</span><span class="o">.</span><span class="n">GetGeometryRef</span><span class="p">()</span>
+
+    <span class="c"># Transform if required</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">projection</span><span class="o">.</span><span class="n">IsSame</span><span class="p">(</span><span class="n">geom</span><span class="o">.</span><span class="n">GetSpatialReference</span><span class="p">()):</span>
+        <span class="n">geom</span><span class="o">.</span><span class="n">TransformTo</span><span class="p">(</span><span class="n">projection</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">geom</span><span class="o">.</span><span class="n">ExportToWkb</span><span class="p">()</span></div>
 </pre></div>
 
           </div>
