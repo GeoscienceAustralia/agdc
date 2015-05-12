@@ -1098,6 +1098,187 @@ Creating a stack applying a mask from a vector file::
 
     ``LS8_OLI_TIRS_NBAR_WITH_PQA_VECTOR_STACK_COASTAL_AEROSOL_148_-036_2013-10-11T23-51-59.tif``
 
+Retrieve Area of Interest
+-------------------------
+
+.. NOTE:: TODO
+
+The *Retrieve Area of Interest* tool ... .
+
+It can retrieve both "physical" - NBAR, FC, PQA - and virtual/derived/calculated - NDVI, EVI, NBR, TCI - datasets::
+
+    $ retrieve_aoi.py -h
+
+    usage: retrieve_aoi_stack.py
+
+           [-h]
+           [--quiet | --verbose] [
+           --acq-min ACQ_MIN] [--acq-max ACQ_MAX]
+           [--satellite LS5 LS7 LS8 [LS5 LS7 LS8 ...]]
+
+.. NOTE::
+
+    The ACQ DATE parameters support dates being specified as ``YYYY`` or ``YYYY-MM`` or ``YYYY-MM-DD``.
+
+    The MIN parameter maps the value down - i.e. `2000` -> `2000-01-01` and `2000-12` -> `2012-12-01`
+
+    The MAX parameter maps the value up - i.e. `2000` -> `2000-12-31` and `2000-01` -> `2012-01-31`
+
+Example Uses
+++++++++++++
+
+.. NOTE:: TODO
+
+Retrieve Area of Interest Time Series
+-------------------------------------
+
+The *Retrieve Area of Interest Time Series* tool retrieves the given area of interest, summarises it to *a value* - for
+example the minimum/maximum/mean of a variable - and presents the results as time-series of those values.
+
+It can retrieve both "physical" - NBAR, FC, PQA - and virtual/derived/calculated - NDVI, EVI, NBR, TCI - datasets::
+
+    $ retrieve_aoi_time_series.py -h
+
+    usage: retrieve_aoi_time_series.py
+
+           [-h]
+           [--quiet | --verbose]
+           --acq-min ACQ_MIN] [--acq-max ACQ_MAX]
+           [--satellite LS5 LS7 LS8 [LS5 LS7 LS8 ...]]
+           [--mask-pqa-apply]
+           [--mask-pqa-mask PQ_MASK_SATURATION_THERMAL PQ_MASK_SATURATION_OPTICAL PQ_MASK_SATURATION PQ_MASK_CONTIGUITY PQ_MASK_LAND PQ_MASK_CLOUD_ACCA PQ_MASK_CLOUD_FMASK PQ_MASK_CLOUD_SHADOW_ACCA PQ_MASK_CLOUD_SHADOW_FMASK PQ_MASK_CLOUD PQ_MASK_CLEAR [PQ_MASK_SATURATION_THERMAL PQ_MASK_SATURATION_OPTICAL PQ_MASK_SATURATION PQ_MASK_CONTIGUITY PQ_MASK_LAND PQ_MASK_CLOUD_ACCA PQ_MASK_CLOUD_FMASK PQ_MASK_CLOUD_SHADOW_ACCA PQ_MASK_CLOUD_SHADOW_FMASK PQ_MASK_CLOUD PQ_MASK_CLEAR ...]]
+           [--mask-wofs-apply]
+           [--mask-wofs-mask DRY NO_DATA SATURATION_CONTIGUITY SEA_WATER TERRAIN_SHADOW HIGH_SLOPE CLOUD_SHADOW CLOUD WET [DRY NO_DATA SATURATION_CONTIGUITY SEA_WATER TERRAIN_SHADOW HIGH_SLOPE CLOUD_SHADOW CLOUD WET ...]]
+           --vector-file VECTOR_FILE
+           [--vector-layer VECTOR_LAYER]
+           [--vector-feature VECTOR_FEATURE]
+           [--dataset-type ARG25 PQ25 FC25 WATER DSM DEM DEM_HYDROLOGICALLY_ENFORCED DEM_SMOOTHED NDVI EVI NBR TCI]
+           [--band BANDS [BANDS ...]]
+           [--output-directory OUTPUT_DIRECTORY]
+           [--overwrite]
+           [--list-only]
+           [--hide-no-data]
+
+    Retrieve AOI Time Series
+
+    optional arguments:
+      -h, --help            show this help message and exit
+      --quiet               Less output
+      --verbose             More output
+      --acq-min ACQ_MIN     Acquisition Date
+      --acq-max ACQ_MAX     Acquisition Date
+      --satellite LS5 LS7 LS8 [LS5 LS7 LS8 ...]
+                            The satellite(s) to include
+      --mask-pqa-apply      Apply PQA mask
+      --mask-pqa-mask PQ_MASK_SATURATION_THERMAL PQ_MASK_SATURATION_OPTICAL PQ_MASK_SATURATION PQ_MASK_CONTIGUITY PQ_MASK_LAND PQ_MASK_CLOUD_ACCA PQ_MASK_CLOUD_FMASK PQ_MASK_CLOUD_SHADOW_ACCA PQ_MASK_CLOUD_SHADOW_FMASK PQ_MASK_CLOUD PQ_MASK_CLEAR [PQ_MASK_SATURATION_THERMAL PQ_MASK_SATURATION_OPTICAL PQ_MASK_SATURATION PQ_MASK_CONTIGUITY PQ_MASK_LAND PQ_MASK_CLOUD_ACCA PQ_MASK_CLOUD_FMASK PQ_MASK_CLOUD_SHADOW_ACCA PQ_MASK_CLOUD_SHADOW_FMASK PQ_MASK_CLOUD PQ_MASK_CLEAR ...]
+                            The PQA mask to apply
+      --mask-wofs-apply     Apply WOFS mask
+      --mask-wofs-mask DRY NO_DATA SATURATION_CONTIGUITY SEA_WATER TERRAIN_SHADOW HIGH_SLOPE CLOUD_SHADOW CLOUD WET [DRY NO_DATA SATURATION_CONTIGUITY SEA_WATER TERRAIN_SHADOW HIGH_SLOPE CLOUD_SHADOW CLOUD WET ...]
+                            The WOFS mask to apply
+      --vector-file VECTOR_FILE
+                            Vector file containing area of interest shape
+      --vector-layer VECTOR_LAYER
+                            Layer (0 based index) within vector file
+      --vector-feature VECTOR_FEATURE
+                            Feature (0 based index) within vector layer
+      --dataset-type ARG25 PQ25 FC25 WATER DSM DEM DEM_HYDROLOGICALLY_ENFORCED DEM_SMOOTHED NDVI EVI NBR TCI
+                            The types of dataset to retrieve
+      --band BANDS [BANDS ...]
+                            The band(s) to retrieve
+      --output-directory OUTPUT_DIRECTORY
+                            Output directory
+      --overwrite           Over write existing output file
+      --list-only           Just list datasets that would be processed
+      --hide-no-data        Don't output records that are completely no data value(s)
+
+
+.. NOTE::
+
+    The ACQ DATE parameters support dates being specified as ``YYYY`` or ``YYYY-MM`` or ``YYYY-MM-DD``.
+
+    The MIN parameter maps the value down - i.e. `2000` -> `2000-01-01` and `2000-12` -> `2012-12-01`
+
+    The MAX parameter maps the value up - i.e. `2000` -> `2000-12-31` and `2000-01` -> `2012-01-31`
+
+Example Uses
+++++++++++++
+
+To retrieve an *Area of Interest* time series of the *Fractional Cover* datasets from 2014 for the area specified in
+the ``adam.kml`` vector file (layer 0, feature 0)::
+
+    $ retrieve_aoi_time_series.py --vector-file adam.kml --acq-min 2014 --acq-max 2014 --mask-pqa-apply --mask-wofs-apply --dataset-type FC25 --band 1 --output-directory /tmp
+
+    INFO:root:
+            acq = 2014-01-01 to 2014-12-31
+            satellites = LS5 LS7
+            PQA mask = PQ_MASK_CLEAR
+            WOFS mask = WET
+
+    INFO:root:
+            vector file = adam.kml
+            layer ID = 0
+            feature = 0
+
+    INFO:root:
+            dataset type = FC25
+            bands = [1]
+            output directory = /tmp
+            over write existing = False
+            list only = False
+            output no data values = True
+
+    INFO:root:dataset bands [PHOTOSYNTHETIC_VEGETATION NON_PHOTOSYNTHETIC_VEGETATION BARE_SOIL UNMIXING_ERROR]
+
+    INFO:root:Using bands [PHOTOSYNTHETIC_VEGETATION]
+
+    INFO:root:Processing cell [145/ -20]
+
+    INFO:root:There are [33] tiles
+
+    INFO:root:Writing output to /tmp/output.csv
+
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/mosaic_cache/LS7_ETM_FC_145_-020_2014-01-02T00-19-14.vrt]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/LS7_ETM_FC_145_-020_2014-01-18T00-19-49.tif]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/mosaic_cache/LS7_ETM_FC_145_-020_2014-02-12T00-13-26.vrt]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/LS7_ETM_FC_145_-020_2014-02-28T00-13-43.tif]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/LS7_ETM_FC_145_-020_2014-03-07T00-19-59.tif]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/LS7_ETM_FC_145_-020_2014-03-23T00-20-06.tif]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/LS7_ETM_FC_145_-020_2014-04-01T00-13-59.tif]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/mosaic_cache/LS7_ETM_FC_145_-020_2014-04-08T00-19-46.vrt]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/LS7_ETM_FC_145_-020_2014-04-17T00-14-07.tif]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/mosaic_cache/LS7_ETM_FC_145_-020_2014-05-03T00-13-50.vrt]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/mosaic_cache/LS7_ETM_FC_145_-020_2014-05-19T00-13-57.vrt]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/mosaic_cache/LS7_ETM_FC_145_-020_2014-05-26T00-20-09.vrt]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/mosaic_cache/LS7_ETM_FC_145_-020_2014-06-04T00-14-01.vrt]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/mosaic_cache/LS7_ETM_FC_145_-020_2014-06-20T00-14-01.vrt]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/mosaic_cache/LS7_ETM_FC_145_-020_2014-06-27T00-20-16.vrt]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/mosaic_cache/LS7_ETM_FC_145_-020_2014-07-06T00-14-08.vrt]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/mosaic_cache/LS7_ETM_FC_145_-020_2014-07-13T00-20-19.vrt]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/mosaic_cache/LS7_ETM_FC_145_-020_2014-07-22T00-14-11.vrt]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/mosaic_cache/LS7_ETM_FC_145_-020_2014-07-29T00-20-25.vrt]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/LS7_ETM_FC_145_-020_2014-08-07T00-14-40.tif]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/LS7_ETM_FC_145_-020_2014-08-14T00-20-50.tif]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/mosaic_cache/LS7_ETM_FC_145_-020_2014-08-23T00-14-14.vrt]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/mosaic_cache/LS7_ETM_FC_145_-020_2014-08-30T00-20-25.vrt]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/mosaic_cache/LS7_ETM_FC_145_-020_2014-09-08T00-14-16.vrt]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/mosaic_cache/LS7_ETM_FC_145_-020_2014-10-10T00-14-34.vrt]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/mosaic_cache/LS7_ETM_FC_145_-020_2014-10-17T00-20-48.vrt]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/mosaic_cache/LS7_ETM_FC_145_-020_2014-10-26T00-14-43.vrt]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/mosaic_cache/LS7_ETM_FC_145_-020_2014-11-02T00-20-58.vrt]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/mosaic_cache/LS7_ETM_FC_145_-020_2014-11-11T00-14-52.vrt]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/mosaic_cache/LS7_ETM_FC_145_-020_2014-11-18T00-21-02.vrt]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/mosaic_cache/LS7_ETM_FC_145_-020_2014-12-04T00-21-10.vrt]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/mosaic_cache/LS7_ETM_FC_145_-020_2014-12-13T00-15-04.vrt]
+    INFO:root:Processing tile [/g/data/rs0/tiles/EPSG4326_1deg_0.00025pixel/LS7_ETM/145_-020/2014/mosaic_cache/LS7_ETM_FC_145_-020_2014-12-20T00-21-19.vrt]
+
+Which gives ``output.csv`` containing:
+
+.. figure:: retrieve_aoi_time_series_csv.png
+
+This could be graphed using the tool of your choice something like:
+
+.. figure:: retrieve_aoi_time_series_graph.png
+
 Indices and tables
 ==================
 

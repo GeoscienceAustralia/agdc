@@ -35,7 +35,7 @@ from setuptools import setup
 
 
 setup(name="agdc-api",
-      version="0.1.0-b20150505",
+      version="0.1.0-b20150512",
       package_dir={"": "source/main/python", "test": "source/test/python"},
       packages=["datacube", "datacube.api", "datacube.api.tool", "datacube.api.workflow"],
       scripts=[
@@ -43,6 +43,7 @@ setup(name="agdc-api",
           "source/main/python/datacube/api/tool/retrieve_pixel_time_series.py",
           "source/main/python/datacube/api/tool/retrieve_dataset.py",
           "source/main/python/datacube/api/tool/retrieve_dataset_stack.py",
+          "source/main/python/datacube/api/tool/retrieve_aoi_time_series.py",
 
           # Workflows
           "source/main/python/datacube/api/workflow/band_stack.py"],

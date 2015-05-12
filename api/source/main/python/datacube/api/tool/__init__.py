@@ -251,7 +251,7 @@ class AoiTool(Tool):
 
         self.vector_file = None
         self.vector_layer = None
-        self.vector_fid = None
+        self.vector_feature = None
 
     def setup_arguments(self):
 
@@ -259,14 +259,14 @@ class AoiTool(Tool):
         # super(self.__class__, self).setup_arguments()
         Tool.setup_arguments(self)
 
-        self.parser.add_argument("--vector-file", help="Vector file containing AOI definition(s)", action="store",
+        self.parser.add_argument("--vector-file", help="Vector file containing area of interest shape", action="store",
                                  dest="vector_file", type=readable_file, required=True)
 
-        self.parser.add_argument("--vector-layer", help="Layer Number in Vector File", action="store",
+        self.parser.add_argument("--vector-layer", help="Layer (0 based index) within vector file", action="store",
                                  dest="vector_layer", type=int, default=0)
 
-        self.parser.add_argument("--vector-fid", help="Feature ID in Vector File Layer", action="store",
-                                 dest="vector_fid", type=int, default=0)
+        self.parser.add_argument("--vector-feature", help="Feature (0 based index) within vector layer", action="store",
+                                 dest="vector_feature", type=int, default=0)
 
     def process_arguments(self, args):
 
@@ -276,7 +276,7 @@ class AoiTool(Tool):
 
         self.vector_file = args.vector_file
         self.vector_layer = args.vector_layer
-        self.vector_fid = args.vector_fid
+        self.vector_feature = args.vector_feature
 
     def log_arguments(self):
 
@@ -285,10 +285,10 @@ class AoiTool(Tool):
         Tool.log_arguments(self)
 
         _log.info("""
-        vector file = {filename}
-        layer ID = {lid}
-        feature = {fid}
-        """.format(filename=self.vector_file, lid=self.vector_layer, fid=self.vector_fid))
+        vector file = {file}
+        layer ID = {layer}
+        feature = {feature}
+        """.format(file=self.vector_file, layer=self.vector_layer, feature=self.vector_feature))
 
     @abc.abstractmethod
     def go(self):
@@ -307,9 +307,10 @@ class AoiTool(Tool):
     #
     #     return layer
 
-    def extract_feature(self):
+    def extract_feature(self, epsg=4326):
 
         import ogr
+        import osr
         from gdalconst import GA_ReadOnly
 
         vector = ogr.Open(self.vector_file, GA_ReadOnly)
@@ -318,17 +319,55 @@ class AoiTool(Tool):
         layer = vector.GetLayer(self.vector_layer)
         assert layer
 
-        feature = layer.GetFeature(self.vector_fid)
+        feature = layer.GetFeature(self.vector_feature)
         assert feature
+
+        projection = osr.SpatialReference()
+        projection.ImportFromEPSG(epsg)
+
+        geom = feature.GetGeometryRef()
+
+        # Transform if required
+
+        if not projection.IsSame(geom.GetSpatialReference()):
+            geom.TransformTo(projection)
 
         return feature
 
-    def extract_bounds_from_vector(self):
+    def extract_feature_geometry_wkb(self, epsg=4326):
+
+        import ogr
+        import osr
+        from gdalconst import GA_ReadOnly
+
+        vector = ogr.Open(self.vector_file, GA_ReadOnly)
+        assert vector
+
+        layer = vector.GetLayer(self.vector_layer)
+        assert layer
+
+        feature = layer.GetFeature(self.vector_feature)
+        assert feature
+
+        projection = osr.SpatialReference()
+        projection.ImportFromEPSG(epsg)
+
+        geom = feature.GetGeometryRef()
+
+        # Transform if required
+
+        if not projection.IsSame(geom.GetSpatialReference()):
+            geom.TransformTo(projection)
+
+        _log.info("Geometry is [%s]", geom.ExportToWkt())
+
+        return geom.ExportToWkb()
+
+    def extract_bounds_from_vector(self, epsg=4326):
 
         import math
 
-        feature = self.extract_feature()
-
+        feature = self.extract_feature(epsg=epsg)
         _log.debug("Feature is [%s]", feature)
 
         ulx, lrx, lry, uly = feature.GetGeometryRef().GetEnvelope()
@@ -338,11 +377,11 @@ class AoiTool(Tool):
 
         return ulx, lrx, uly, lry
 
-    def extract_cells_from_vector(self):
+    def extract_cells_from_vector(self, epsg=4326):
 
         import ogr
 
-        feature = self.extract_feature()
+        feature = self.extract_feature(epsg=epsg)
 
         geom = feature.GetGeometryRef()
 
@@ -376,7 +415,7 @@ class AoiTool(Tool):
 
         return cells
 
-    def get_mask_aoi_cell(self, x, y, width=4000, height=4000):
+    def get_mask_aoi_cell(self, x, y, width=4000, height=4000, epsg=4326):
 
         import gdal
         import osr
@@ -390,7 +429,7 @@ class AoiTool(Tool):
         raster.SetGeoTransform((x, 0.00025, 0.0, y+1, 0.0, -0.00025))
 
         srs = osr.SpatialReference()
-        srs.ImportFromEPSG(4326)
+        srs.ImportFromEPSG(epsg)
 
         raster.SetProjection(srs.ExportToWkt())
 
@@ -403,7 +442,20 @@ class AoiTool(Tool):
         layer = vector.GetLayer(self.vector_layer)
         assert layer
 
-        layer.SetAttributeFilter("FID={fid}".format(fid=self.vector_fid))
+        # Transform if required
+
+        feature = layer.GetFeature(self.vector_feature)
+        assert feature
+
+        projection = osr.SpatialReference()
+        projection.ImportFromEPSG(epsg)
+
+        geom = feature.GetGeometryRef()
+
+        if not projection.IsSame(geom.GetSpatialReference()):
+            geom.TransformTo(projection)
+
+        layer.SetAttributeFilter("FID={fid}".format(fid=self.vector_feature))
 
         gdal.RasterizeLayer(raster, [1], layer, burn_values=[1])
 

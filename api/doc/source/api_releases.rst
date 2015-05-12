@@ -6,6 +6,21 @@
 API Releases
 ============
 
+AGDC API v0.1.0 (2015-05-12 snapshot)
+-------------------------------------
+
+The source code is available on the ``api`` branch from the ``agdc-api-0.1.0-b20150512`` tag.
+
+The packaged version is available as a loadable module on ``raijin`` at the NCI as ``agdc-api/0.1.0-b20150512`` in
+both ``u46`` and ``el8``::
+
+    $ module load agdc-api/0.1.0-b20150512
+
+**Changes in this release...**
+
+* Enhancement - `Issue 36 Add the ability to query the AGDC by area of interest polygons <https://github.com/GeoscienceAustralia/agdc/issues/36>`_
+* Enhancement - `Issue 47 Implement Retrieve Area of Interest Time Series tool <https://github.com/GeoscienceAustralia/agdc/issues/47>`_
+
 AGDC API v0.1.0 (2015-05-07 snapshot)
 -------------------------------------
 

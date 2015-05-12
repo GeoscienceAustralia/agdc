@@ -1229,3 +1229,31 @@ def format_date_time(d):
         return datetime.strftime(d, "%Y_%m_%d_%H_%M_%S")
 
     return None
+
+
+def extract_feature_geometry_wkb(vector_file, vector_layer=0, vector_feature=0, epsg=4326):
+
+    import ogr
+    import osr
+    from gdalconst import GA_ReadOnly
+
+    vector = ogr.Open(vector_file, GA_ReadOnly)
+    assert vector
+
+    layer = vector.GetLayer(vector_layer)
+    assert layer
+
+    feature = layer.GetFeature(vector_feature)
+    assert feature
+
+    projection = osr.SpatialReference()
+    projection.ImportFromEPSG(epsg)
+
+    geom = feature.GetGeometryRef()
+
+    # Transform if required
+
+    if not projection.IsSame(geom.GetSpatialReference()):
+        geom.TransformTo(projection)
+
+    return geom.ExportToWkb()

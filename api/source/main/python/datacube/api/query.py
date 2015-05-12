@@ -36,9 +36,10 @@ import logging
 import psycopg2
 import psycopg2.extras
 import sys
-from model import Tile, Cell, DatasetType
 import os
+from datacube.api.utils import extract_feature_geometry_wkb
 from datacube.config import Config
+from model import Tile, Cell, DatasetType
 
 
 _log = logging.getLogger(__name__)
@@ -2023,5 +2024,927 @@ def result_generator(cursor, size=100):
 
         for result in results:
             yield result
+
+###
+# AREA OF INTEREST / POLYGON QUERIES
+###
+
+
+# CELL
+
+def list_cells_vector_file(vector_file, vector_layer, vector_feature, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
+
+    """
+    Return a list of cells matching the criteria as a SINGLE-USE generator
+
+    .. warning::
+        Deprecated: use either datacube.api.query.list_cells_wkb_as_list() or datacube.api.query.list_cells_wkb_as_generator()
+
+    :param vector_file: Vector (ESRI Shapefile, KML, ...) file containing the shape
+    :type vector_file: str
+    :param vector_layer: Layer (0 based index) within the vector file
+    :type vector_file: int
+    :param vector_feature: Feature (0 based index) within the layer
+    :type vector_file: int
+    :param satellites: Satellites
+    :type satellites: list[datacube.api.model.Satellite]
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
+    :type dataset_types: list[datacube.api.model.DatasetType]
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+    :param config: Config
+    :type config: datacube.config.Config
+
+    :return: List of cells
+    :rtype: list[datacube.api.model.Cell]
+    """
+    return list_cells_vector_file_as_generator(vector_file, vector_layer, vector_feature, satellites, acq_min, acq_max, dataset_types, sort, config)
+
+
+def list_cells_vector_file_as_list(vector_file, vector_layer, vector_feature, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
+
+    """
+    Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
+
+    :param vector_file: Vector (ESRI Shapefile, KML, ...) file containing the shape
+    :type vector_file: str
+    :param vector_layer: Layer (0 based index) within the vector file
+    :type vector_file: int
+    :param vector_feature: Feature (0 based index) within the layer
+    :type vector_file: int
+    :param satellites: Satellites
+    :type satellites: list[datacube.api.model.Satellite]
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
+    :type dataset_types: list[datacube.api.model.DatasetType]
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+    :param config: Config
+    :type config: datacube.config.Config
+
+    :return: List of cells
+    :rtype: list[datacube.api.model.Cell]
+    """
+    return list(list_cells_vector_file_as_generator(vector_file, vector_layer, vector_feature, satellites, acq_min, acq_max, dataset_types, sort, config))
+
+
+def list_cells_vector_file_as_generator(vector_file, vector_layer, vector_feature, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
+
+    """
+    Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
+
+    :param vector_file: Vector (ESRI Shapefile, KML, ...) file containing the shape
+    :type vector_file: str
+    :param vector_layer: Layer (0 based index) within the vector file
+    :type vector_file: int
+    :param vector_feature: Feature (0 based index) within the layer
+    :type vector_file: int
+    :param satellites: Satellites
+    :type satellites: list[datacube.api.model.Satellite]
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
+    :type dataset_types: list[datacube.api.model.DatasetType]
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+    :param config: Config
+    :type config: datacube.config.Config
+
+    :return: List of cells
+    :rtype: list[datacube.api.model.Cell]
+    """
+
+    return list_cells_wkb_as_generator(extract_feature_geometry_wkb(vector_file, vector_layer, vector_feature),
+                                       satellites, acq_min, acq_max, dataset_types, sort, config)
+
+
+def list_cells_wkb(wkb, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
+
+    """
+    Return a list of cells matching the criteria as a SINGLE-USE generator
+
+    .. warning::
+        Deprecated: use either datacube.api.query.list_cells_wkb_as_list() or datacube.api.query.list_cells_wkb_as_generator()
+
+    :param wkb: Shape as WKB format
+    :type wkb: WKB
+    :param satellites: Satellites
+    :type satellites: list[datacube.api.model.Satellite]
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
+    :type dataset_types: list[datacube.api.model.DatasetType]
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+    :param config: Config
+    :type config: datacube.config.Config
+
+    :return: List of cells
+    :rtype: list[datacube.api.model.Cell]
+    """
+    return list_cells_wkb_as_generator(wkb, satellites, acq_min, acq_max, dataset_types, sort, config)
+
+
+def list_cells_wkb_as_list(wkb, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
+
+    """
+    Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
+
+    :param wkb: Shape as WKB format
+    :type wkb: WKB
+    :param satellites: Satellites
+    :type satellites: list[datacube.api.model.Satellite]
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
+    :type dataset_types: list[datacube.api.model.DatasetType]
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+    :param config: Config
+    :type config: datacube.config.Config
+
+    :return: List of cells
+    :rtype: list[datacube.api.model.Cell]
+    """
+    return list(list_cells_wkb_as_generator(wkb, satellites, acq_min, acq_max, dataset_types, sort, config))
+
+
+def list_cells_wkb_as_generator(wkb, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
+
+    """
+    Return a list of cells matching the criteria as a SINGLE-USE generator
+
+    :param wkb: Shape as WKB format
+    :type wkb: WKB
+    :param satellites: Satellites
+    :type satellites: list[datacube.api.model.Satellite]
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
+    :type dataset_types: list[datacube.api.model.DatasetType]
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+    :param config: Config
+    :type config: datacube.config.Config
+
+    :return: List of cells
+    :rtype: list[datacube.api.model.Cell]
+    """
+
+    conn, cursor = None, None
+
+    try:
+        # connect to database
+
+        conn, cursor = connect_to_db(config=config)
+
+        sql, params = build_list_cells_wkb_sql_and_params(wkb, satellites, acq_min, acq_max, dataset_types, sort)
+
+        _log.debug(cursor.mogrify(sql, params))
+
+        cursor.execute(sql, params)
+
+        for record in result_generator(cursor):
+            _log.debug(record)
+            yield Cell.from_db_record(record)
+
+    except Exception as e:
+
+        _log.error("Caught exception %s", e)
+        conn.rollback()
+        raise
+
+    finally:
+
+        conn = cursor = None
+
+
+def list_cells_wkb_to_file(wkb, satellites, acq_min, acq_max, dataset_types, filename, sort=SortType.ASC, config=None):
+
+    """
+    Write the list of cells matching the criteria to the specified file
+
+    :param wkb: Shape as WKB format
+    :type wkb: WKB
+    :param satellites: Satellites
+    :type satellites: list[datacube.api.model.Satellite]
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
+    :type dataset_types: list[datacube.api.model.DatasetType]
+    :param filename: The output file
+    :type filename: str
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+    :param config: Config
+    :type config: datacube.config.Config
+    """
+
+    conn = cursor = None
+
+    try:
+        # connect to database
+
+        conn, cursor = connect_to_db(config=config)
+
+        sql, params = build_list_cells_wkb_sql_and_params(wkb, satellites, acq_min, acq_max, dataset_types, sort)
+
+        sql = to_file_ify_sql(sql)
+
+        if filename:
+            with open(filename, "w") as f:
+                cursor.copy_expert(cursor.mogrify(sql, params), f)
+        else:
+            cursor.copy_expert(cursor.mogrify(sql, params), sys.stdout)
+
+    except Exception as e:
+
+        _log.error("Caught exception %s", e)
+        conn.rollback()
+        raise
+
+    finally:
+
+        conn = cursor = None
+
+
+def build_list_cells_wkb_sql_and_params(wkb, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC):
+
+    """
+    Build the SQL query string and parameters required to return the cells matching the criteria
+
+    :param wkb: Shape as WKB format
+    :type wkb: WKB
+    :param satellites: Satellites
+    :type satellites: list[datacube.api.model.Satellite]
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
+    :type dataset_types: list[datacube.api.model.DatasetType]
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+
+    :return: The SQL query and params
+    :rtype: (str, dict)
+    """
+
+    sql = """
+        SELECT DISTINCT nbar.x_index, nbar.y_index
+        FROM acquisition
+        JOIN satellite ON satellite.satellite_id=acquisition.satellite_id
+        """
+
+    sql += """
+        join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_nbar)s
+            ) as nbar on nbar.acquisition_id=acquisition.acquisition_id
+            """
+
+    sql += """
+        join tile_footprint on tile_footprint.x_index=nbar.x_index and tile_footprint.y_index=nbar.y_index
+    """
+
+    if DatasetType.PQ25 in dataset_types:
+        sql += """
+        join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_pqa)s
+            ) as pq on
+                pq.acquisition_id=acquisition.acquisition_id
+                and pq.x_index=nbar.x_index and pq.y_index=nbar.y_index
+                and pq.tile_type_id=nbar.tile_type_id and pq.tile_class_id=nbar.tile_class_id
+
+        """
+
+    if DatasetType.FC25 in dataset_types:
+        sql += """
+        join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_fc)s
+            ) as fc on
+                fc.acquisition_id=acquisition.acquisition_id
+                and fc.x_index=nbar.x_index and fc.y_index=nbar.y_index
+                and fc.tile_type_id=nbar.tile_type_id and fc.tile_class_id=nbar.tile_class_id
+        """
+
+    if DatasetType.DSM in dataset_types:
+        sql += """
+        join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_dsm)s
+            ) as dsm on
+                    dsm.x_index=nbar.x_index and dsm.y_index=nbar.y_index
+                and dsm.tile_type_id=nbar.tile_type_id and dsm.tile_class_id=nbar.tile_class_id
+        """
+
+    if DatasetType.DEM in dataset_types:
+        sql += """
+        join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_dem)s
+            ) as dem on
+                    dem.x_index=nbar.x_index and dem.y_index=nbar.y_index
+                and dem.tile_type_id=nbar.tile_type_id and dem.tile_class_id=nbar.tile_class_id
+        """
+
+    if DatasetType.DEM_HYDROLOGICALLY_ENFORCED in dataset_types:
+        sql += """
+        join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_dem_h)s
+            ) as dem_h on
+                    dem_h.x_index=nbar.x_index and dem_h.y_index=nbar.y_index
+                and dem_h.tile_type_id=nbar.tile_type_id and dem_h.tile_class_id=nbar.tile_class_id
+        """
+
+    if DatasetType.DEM_SMOOTHED in dataset_types:
+        sql += """
+        join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_dem_s)s
+            ) as dem_s on
+                    dem_s.x_index=nbar.x_index and dem_s.y_index=nbar.y_index
+                and dem_s.tile_type_id=nbar.tile_type_id and dem_s.tile_class_id=nbar.tile_class_id
+        """
+
+    sql += """
+        where
+            nbar.tile_type_id = ANY(%(tile_type)s) and nbar.tile_class_id = ANY(%(tile_class)s) -- mandatory
+            and satellite.satellite_tag = ANY(%(satellite)s)
+            and st_intersects(tile_footprint.bbox, st_setsrid(st_geomfromwkb(%(geom)s), 4326))
+            and end_datetime::date between %(acq_min)s and %(acq_max)s
+        """
+
+    sql += """
+        order by nbar.x_index {sort}, nbar.y_index {sort}
+    """.format(sort=sort.value)
+
+    params = {"tile_type": [TILE_TYPE.value],
+              "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
+              "satellite": [satellite.value for satellite in satellites],
+              "geom": bytearray(wkb),
+              "acq_min": acq_min, "acq_max": acq_max,
+              "level_nbar": ProcessingLevel.NBAR.value}
+
+    if DatasetType.PQ25 in dataset_types:
+        params["level_pqa"] = ProcessingLevel.PQA.value
+
+    if DatasetType.FC25 in dataset_types:
+        params["level_fc"] = ProcessingLevel.FC.value
+
+    if DatasetType.DSM in dataset_types:
+        params["level_dsm"] = ProcessingLevel.DSM.value
+
+    if DatasetType.DEM in dataset_types:
+        params["level_dem"] = ProcessingLevel.DEM.value
+
+    if DatasetType.DEM_HYDROLOGICALLY_ENFORCED in dataset_types:
+        params["level_dem_h"] = ProcessingLevel.DEM_H.value
+
+    if DatasetType.DEM_SMOOTHED in dataset_types:
+        params["level_dem_s"] = ProcessingLevel.DEM_S.value
+
+    return sql, params
+
+
+# TILE
+
+def list_tiles_vector_file(vector_file, vector_layer, vector_feature, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
+
+    """
+    Return a list of tiles matching the criteria as a SINGLE-USE generator
+
+    .. warning::
+        Deprecated: use either datacube.api.query.list_tiles_wkb_as_list() or datacube.api.query.list_tiles_wkb_as_generator()
+
+    :param vector_file: Vector (ESRI Shapefile, KML, ...) file containing the shape
+    :type vector_file: str
+    :param vector_layer: Layer (0 based index) within the vector file
+    :type vector_file: int
+    :param vector_feature: Feature (0 based index) within the layer
+    :type vector_file: int
+    :param satellites: Satellites
+    :type satellites: list[datacube.api.model.Satellite]
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
+    :type dataset_types: list[datacube.api.model.DatasetType]
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+    :param config: Config
+    :type config: datacube.config.Config
+
+    :return: List of tiles
+    :rtype: list[datacube.api.model.Tile]
+    """
+    return list_tiles_vector_file_as_generator(vector_file, vector_layer, vector_feature, satellites, acq_min, acq_max, dataset_types, sort, config)
+
+
+def list_tiles_vector_file_as_list(vector_file, vector_layer, vector_feature, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
+
+    """
+    Return a list of tiles matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
+
+    :param vector_file: Vector (ESRI Shapefile, KML, ...) file containing the shape
+    :type vector_file: str
+    :param vector_layer: Layer (0 based index) within the vector file
+    :type vector_file: int
+    :param vector_feature: Feature (0 based index) within the layer
+    :type vector_file: int
+    :param satellites: Satellites
+    :type satellites: list[datacube.api.model.Satellite]
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
+    :type dataset_types: list[datacube.api.model.DatasetType]
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+    :param config: Config
+    :type config: datacube.config.Config
+
+    :return: List of tiles
+    :rtype: list[datacube.api.model.Tile]
+    """
+    return list(list_tiles_vector_file_as_generator(vector_file, vector_layer, vector_feature, satellites, acq_min, acq_max, dataset_types, sort, config))
+
+
+def list_tiles_vector_file_as_generator(vector_file, vector_layer, vector_feature, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
+
+    """
+    Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
+
+    :param vector_file: Vector (ESRI Shapefile, KML, ...) file containing the shape
+    :type vector_file: str
+    :param vector_layer: Layer (0 based index) within the vector file
+    :type vector_file: int
+    :param vector_feature: Feature (0 based index) within the layer
+    :type vector_file: int
+    :param satellites: Satellites
+    :type satellites: list[datacube.api.model.Satellite]
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
+    :type dataset_types: list[datacube.api.model.DatasetType]
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+    :param config: Config
+    :type config: datacube.config.Config
+
+    :return: List of tiles
+    :rtype: list[datacube.api.model.Tile]
+    """
+
+    return list_tiles_wkb_as_generator(extract_feature_geometry_wkb(vector_file, vector_layer, vector_feature),
+                                       satellites, acq_min, acq_max, dataset_types, sort, config)
+
+
+def list_tiles_wkb(wkb, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
+
+    """
+    Return a list of tiles matching the criteria as a SINGLE-USE generator
+
+    .. warning::
+        Deprecated: use either datacube.api.query.list_tiles_as_list() or datacube.api.query.list_tiles_as_generator()
+
+    :param wkb: Shape as WKB format
+    :type wkb: WKB
+    :param satellites: Satellites
+    :type satellites: list[datacube.api.model.Satellite]
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
+    :type dataset_types: list[datacube.api.model.DatasetType]
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+    :param config: Config
+    :type config: datacube.config.Config
+
+    :return: List of tiles
+    :rtype: list[datacube.api.model.Tile]
+    """
+    return list_tiles_wkb_as_generator(wkb, satellites, acq_min, acq_max, dataset_types, sort, config)
+
+
+def list_tiles_wkb_as_list(wkb, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
+
+    """
+    Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
+
+    :param wkb: Shape as WKB format
+    :type wkb: WKB
+    :param satellites: Satellites
+    :type satellites: list[datacube.api.model.Satellite]
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
+    :type dataset_types: list[datacube.api.model.DatasetType]
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+    :param config: Config
+    :type config: datacube.config.Config
+
+    :return: List of tiles
+    :rtype: list[datacube.api.model.Tile]
+    """
+    return list(list_tiles_wkb_as_generator(wkb, satellites, acq_min, acq_max, dataset_types, sort))
+
+
+def list_tiles_wkb_as_generator(wkb, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
+
+    """
+    Return a list of tiles matching the criteria as a SINGLE-USE generator
+
+    :param wkb: Shape as WKB format
+    :type wkb: WKB
+    :param satellites: Satellites
+    :type satellites: list[datacube.api.model.Satellite]
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
+    :type dataset_types: list[datacube.api.model.DatasetType]
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+    :param config: Config
+    :type config: datacube.config.Config
+
+    :return: List of tiles
+    :rtype: list[datacube.api.model.Tile]
+    """
+
+    conn, cursor = None, None
+
+    try:
+        # connect to database
+
+        conn, cursor = connect_to_db(config=config)
+
+        sql, params = build_list_tiles_wkb_sql_and_params(wkb, satellites, acq_min, acq_max, dataset_types, sort)
+
+        _log.debug(cursor.mogrify(sql, params))
+
+        cursor.execute(sql, params)
+
+        for record in result_generator(cursor):
+            _log.debug(record)
+            yield Tile.from_db_record(record)
+
+    except Exception as e:
+
+        _log.error("Caught exception %s", e)
+        conn.rollback()
+        raise
+
+    finally:
+
+        conn = cursor = None
+
+
+def list_tiles_wkb_to_file(wkb, satellites, acq_min, acq_max, dataset_types, filename, sort=SortType.ASC, config=None):
+
+    """
+    Write the list of tiles matching the criteria to the specified file
+
+    :param wkb: Shape as WKB format
+    :type wkb: WKB
+    :param satellites: Satellites
+    :type satellites: list[datacube.api.model.Satellite]
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
+    :type dataset_types: list[datacube.api.model.DatasetType]
+    :param filename: The output file
+    :type filename: str
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+    :param config: Config
+    :type config: datacube.config.Config
+    """
+
+    conn = cursor = None
+
+    try:
+        # connect to database
+
+        conn, cursor = connect_to_db(config=config)
+
+        sql, params = build_list_tiles_wkb_sql_and_params(wkb, satellites, acq_min, acq_max, dataset_types, sort)
+
+        sql = to_file_ify_sql(sql)
+
+        if filename:
+            with open(filename, "w") as f:
+                cursor.copy_expert(cursor.mogrify(sql, params), f)
+        else:
+            cursor.copy_expert(cursor.mogrify(sql, params), sys.stdout)
+
+    except Exception as e:
+
+        _log.error("Caught exception %s", e)
+        conn.rollback()
+        raise
+
+    finally:
+
+        conn = cursor = None
+
+
+def build_list_tiles_wkb_sql_and_params(wkb, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC):
+
+    """
+    Build the SQL query string and parameters required to return the tiles matching the criteria
+
+    :param wkb: Shape as WKB format
+    :type wkb: WKB
+    :param satellites: Satellites
+    :type satellites: list[datacube.api.model.Satellite]
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
+    :type dataset_types: list[datacube.api.model.DatasetType]
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+
+    :return: The SQL query and params
+    :rtype: (str, dict)
+    """
+
+    sql = """
+        select
+            acquisition.acquisition_id, satellite_tag as satellite, start_datetime, end_datetime,
+            extract(year from end_datetime) as end_datetime_year, extract(month from end_datetime) as end_datetime_month,
+            nbar.x_index, nbar.y_index, point(nbar.x_index, nbar.y_index) as xy,
+        """
+
+    sql += """
+            ARRAY[
+    """
+
+    sql += """
+            ['ARG25', nbar.tile_pathname]
+    """
+
+    if DatasetType.PQ25 in dataset_types:
+        sql += """
+            ,['PQ25', pqa.tile_pathname]
+        """
+
+    if DatasetType.FC25 in dataset_types:
+        sql += """
+            ,['FC25', fc.tile_pathname]
+        """
+
+    if DatasetType.NDVI in dataset_types:
+        sql += """
+            ,['NDVI', nbar.tile_pathname]
+        """
+
+    if DatasetType.EVI in dataset_types:
+        sql += """
+            ,['EVI', nbar.tile_pathname]
+        """
+
+    if DatasetType.NBR in dataset_types:
+        sql += """
+            ,['NBR', nbar.tile_pathname]
+        """
+
+    if DatasetType.TCI in dataset_types:
+        sql += """
+            ,['TCI', nbar.tile_pathname]
+        """
+
+    if DatasetType.DSM in dataset_types:
+        sql += """
+            ,['DSM', dsm.tile_pathname]
+        """
+
+    if DatasetType.DEM in dataset_types:
+        sql += """
+            ,['DEM', dem.tile_pathname]
+        """
+
+    if DatasetType.DEM_HYDROLOGICALLY_ENFORCED in dataset_types:
+        sql += """
+            ,['DEM_HYDROLOGICALLY_ENFORCED', dem_h.tile_pathname]
+        """
+
+    if DatasetType.DEM_SMOOTHED in dataset_types:
+        sql += """
+            ,['DEM_SMOOTHED', dem_s.tile_pathname]
+        """
+
+    sql += """
+            ] as datasets
+    """
+
+    sql += """
+        from acquisition
+        join satellite on satellite.satellite_id=acquisition.satellite_id
+        """
+
+    sql += """
+        join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_nbar)s
+            ) as nbar on nbar.acquisition_id=acquisition.acquisition_id
+            """
+
+    sql += """
+        join tile_footprint on tile_footprint.x_index=nbar.x_index and tile_footprint.y_index=nbar.y_index
+    """
+
+    if DatasetType.PQ25 in dataset_types:
+        sql += """
+        join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_pqa)s
+            ) as pqa on
+                pqa.acquisition_id=acquisition.acquisition_id
+                and pqa.x_index=nbar.x_index and pqa.y_index=nbar.y_index
+                and pqa.tile_type_id=nbar.tile_type_id and pqa.tile_class_id=nbar.tile_class_id
+
+        """
+
+    if DatasetType.FC25 in dataset_types:
+        sql += """
+        join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_fc)s
+            ) as fc on
+                fc.acquisition_id=acquisition.acquisition_id
+                and fc.x_index=nbar.x_index and fc.y_index=nbar.y_index
+                and fc.tile_type_id=nbar.tile_type_id and fc.tile_class_id=nbar.tile_class_id
+        """
+
+    if DatasetType.DSM in dataset_types:
+        sql += """
+        join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_dsm)s
+            ) as dsm on
+                    dsm.x_index=nbar.x_index and dsm.y_index=nbar.y_index
+                and dsm.tile_type_id=nbar.tile_type_id and dsm.tile_class_id=nbar.tile_class_id
+        """
+
+    if DatasetType.DEM in dataset_types:
+        sql += """
+        join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_dem)s
+            ) as dem on
+                    dem.x_index=nbar.x_index and dem.y_index=nbar.y_index
+                and dem.tile_type_id=nbar.tile_type_id and dem.tile_class_id=nbar.tile_class_id
+        """
+
+    if DatasetType.DEM_HYDROLOGICALLY_ENFORCED in dataset_types:
+        sql += """
+        join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_dem_h)s
+            ) as dem_h on
+                    dem_h.x_index=nbar.x_index and dem_h.y_index=nbar.y_index
+                and dem_h.tile_type_id=nbar.tile_type_id and dem_h.tile_class_id=nbar.tile_class_id
+        """
+
+    if DatasetType.DEM_SMOOTHED in dataset_types:
+        sql += """
+        join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_dem_s)s
+            ) as dem_s on
+                    dem_s.x_index=nbar.x_index and dem_s.y_index=nbar.y_index
+                and dem_s.tile_type_id=nbar.tile_type_id and dem_s.tile_class_id=nbar.tile_class_id
+        """
+
+    sql += """
+        where
+            nbar.tile_type_id = ANY(%(tile_type)s) and nbar.tile_class_id = ANY(%(tile_class)s) -- mandatory
+            and satellite.satellite_tag = ANY(%(satellite)s)
+            and st_intersects(tile_footprint.bbox, st_setsrid(st_geomfromwkb(%(geom)s), 4326))
+            and end_datetime::date between %(acq_min)s and %(acq_max)s
+        """
+
+    sql += """
+        order by nbar.x_index, nbar.y_index, end_datetime {sort}, satellite asc
+    """.format(sort=sort.value)
+
+    params = {"tile_type": [TILE_TYPE.value],
+              "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
+              "satellite": [satellite.value for satellite in satellites],
+              "geom": bytearray(wkb),
+              "acq_min": acq_min, "acq_max": acq_max,
+              "level_nbar": ProcessingLevel.NBAR.value}
+
+    if DatasetType.PQ25 in dataset_types:
+        params["level_pqa"] = ProcessingLevel.PQA.value
+
+    if DatasetType.FC25 in dataset_types:
+        params["level_fc"] = ProcessingLevel.FC.value
+
+    if DatasetType.DSM in dataset_types:
+        params["level_dsm"] = ProcessingLevel.DSM.value
+
+    if DatasetType.DEM in dataset_types:
+        params["level_dem"] = ProcessingLevel.DEM.value
+
+    if DatasetType.DEM_HYDROLOGICALLY_ENFORCED in dataset_types:
+        params["level_dem_h"] = ProcessingLevel.DEM_H.value
+
+    if DatasetType.DEM_SMOOTHED in dataset_types:
+        params["level_dem_s"] = ProcessingLevel.DEM_S.value
+
+    return sql, params
 
 
