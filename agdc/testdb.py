@@ -37,7 +37,7 @@ import os
 import sys
 import logging
 import re
-import dbutil
+from . import dbutil
 from EOtools.execute import execute
 
 #
