@@ -6,6 +6,20 @@
 API Releases
 ============
 
+AGDC API v0.1.0 (2015-05-13 snapshot)
+-------------------------------------
+
+The source code is available on the ``api`` branch from the ``agdc-api-0.1.0-b20150513`` tag.
+
+The packaged version is available as a loadable module on ``raijin`` at the NCI as ``agdc-api/0.1.0-b20150513`` in
+both ``u46`` and ``el8``::
+
+    $ module load agdc-api/0.1.0-b20150513
+
+**Changes in this release...**
+
+* Bug - `Issue 51 Time series retrieval error <https://github.com/GeoscienceAustralia/agdc/issues/51>`_
+
 AGDC API v0.1.0 (2015-05-12 snapshot)
 -------------------------------------
 
