@@ -71,25 +71,27 @@ def countJobsForUserAndProject(userId, projectCode) :
              break
     return [userCount, projectCount]
 
-description=""
-parser = argparse.ArgumentParser(description)
-parser.add_argument('-q', dest="queue", help="Name of the queue for the water_stacker jobs (default: normal)", default="normal")
-parser.add_argument('-m', dest="maxUserJobsInQueue", help="Maximum jobs queued under user ID at any instant (default: 10)", default=10)
-parser.add_argument('-p', dest="maxProjectJobsInQueue", help="Maximum jobs queued under project ID at any instant (default: 10)", default=10)
-parser.add_argument('-c', dest="projectCode", help="string defining project code (default: v10)", default="v10")
-parser.add_argument('-s', dest="sleepTimeSeconds", help="Sleep time in seconds between slot availablity test (default: 60)", default=60)
+if __name__ == '__main__':
 
-args = parser.parse_args()
-queue = args.queue
-projectCode = args.projectCode
+    description=""
+    parser = argparse.ArgumentParser(description)
+    parser.add_argument('-q', dest="queue", help="Name of the queue for the water_stacker jobs (default: normal)", default="normal")
+    parser.add_argument('-m', dest="maxUserJobsInQueue", help="Maximum jobs queued under user ID at any instant (default: 10)", default=10)
+    parser.add_argument('-p', dest="maxProjectJobsInQueue", help="Maximum jobs queued under project ID at any instant (default: 10)", default=10)
+    parser.add_argument('-c', dest="projectCode", help="string defining project code (default: v10)", default="v10")
+    parser.add_argument('-s', dest="sleepTimeSeconds", help="Sleep time in seconds between slot availablity test (default: 60)", default=60)
 
-# parse and check maxJobsInQueue
-maxUserJobsInQueue = int(args.maxUserJobsInQueue)
-maxProjectJobsInQueue = int(args.maxProjectJobsInQueue)
-if (not maxUserJobsInQueue) or (not maxProjectJobsInQueue):
-    print "maxUserJobsInQueue and maxProjectJobsInQueue must be a positive integer"
-    parser.print_usage()
-    sys.exit(1)
+    args = parser.parse_args()
+    queue = args.queue
+    projectCode = args.projectCode
 
-waitForQueueSlot(args.queue, projectCode, maxUserJobsInQueue, maxProjectJobsInQueue, int(args.sleepTimeSeconds))
+    # parse and check maxJobsInQueue
+    maxUserJobsInQueue = int(args.maxUserJobsInQueue)
+    maxProjectJobsInQueue = int(args.maxProjectJobsInQueue)
+    if (not maxUserJobsInQueue) or (not maxProjectJobsInQueue):
+        print "maxUserJobsInQueue and maxProjectJobsInQueue must be a positive integer"
+        parser.print_usage()
+        sys.exit(1)
+
+    waitForQueueSlot(args.queue, projectCode, maxUserJobsInQueue, maxProjectJobsInQueue, int(args.sleepTimeSeconds))
 

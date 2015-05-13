@@ -49,12 +49,13 @@ def executeWithoutFail(cmd, sleepTimeSeconds):
         time.sleep(sleepTimeSeconds)
 
 
+if __name__ == '__main__':
 
-description=""
-parser = argparse.ArgumentParser(description)
-parser.add_argument('-c', dest="command", help="command", required=True)
-parser.add_argument('-s', dest="sleepTimeSeconds", help="time to wait between execution attempts", default=60)
+    description=""
+    parser = argparse.ArgumentParser(description)
+    parser.add_argument('-c', dest="command", help="command", required=True)
+    parser.add_argument('-s', dest="sleepTimeSeconds", help="time to wait between execution attempts", default=60)
 
-args = parser.parse_args()
+    args = parser.parse_args()
 
-executeWithoutFail(args.command, int(args.sleepTimeSeconds))
+    executeWithoutFail(args.command, int(args.sleepTimeSeconds))
