@@ -28,28 +28,46 @@
 # ===============================================================================
 
 
-__author__ = "Simon Oldfield"
+from datetime import datetime
+from datacube.api import Satellite
 
 
-from setuptools import setup
+def run():
+
+    launch_date = {
+        Satellite.LS5: datetime(1984, 3, 1),
+        Satellite.LS7: datetime(1999, 4, 15),
+        Satellite.LS8: datetime(2013, 2, 11)
+    }
+
+    repeat_interval = {
+        Satellite.LS5: 16,
+        Satellite.LS7: 16,
+        Satellite.LS8: 16
+    }
+
+    # This is relative to path 120 row 65 which is 110/-7
+
+    australian_overpass_date = {
+        Satellite.LS5: datetime(1984, 3, 1),
+        Satellite.LS7: datetime(1999, 4, 15),
+        Satellite.LS8: datetime(2013, 5, 23)
+    }
+
+    calculate_first_overpass_date(australian_overpass_date[Satellite.LS8],
+                                  launch_date[Satellite.LS8],
+                                  repeat_interval[Satellite.LS8])
+
+    # first_australian_overpass_dates = {
+    #     Satellite.LS5: datetime(1984, 3, 1),
+    #     Satellite.LS7: datetime(1999, 4, 15),
+    #     Satellite.LS8: datetime(2013, 2, 11)
+    # }
 
 
-setup(name="agdc-api",
-      version="0.1.0-b20150513",
-      package_dir={"": "source/main/python", "test": "source/test/python"},
-      packages=["datacube", "datacube.api", "datacube.api.tool", "datacube.api.workflow"],
-      scripts=[
-          # Tools
-          "source/main/python/datacube/api/tool/retrieve_pixel_time_series.py",
-          "source/main/python/datacube/api/tool/retrieve_dataset.py",
-          "source/main/python/datacube/api/tool/retrieve_dataset_stack.py",
-          "source/main/python/datacube/api/tool/retrieve_aoi_time_series.py",
+def calculate_first_overpass_date(overpass_dt, launch_dt, repeat_interval):
+    pass
 
-          # Workflows
-          "source/main/python/datacube/api/workflow/band_stack.py"],
-      author="Geoscience Australia",
-      maintainer="Geoscience Australia",
-      description="AGDC API",
-      license="BSD 3",
-      requires=["gdal", "numpy", "scipy", "psycopg2", "enum34", "psutil"]
-)
+
+if __name__ == "__main__":
+    run()

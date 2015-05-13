@@ -443,13 +443,26 @@ def make_wofs_dataset(satellite_id, nbar):
     satellite = fields[0]
 
     if satellite_id == Satellite.LS8.value:
+
         # LS8_OLI_TIRS_NBAR_123_-025_2013-04-24T01-46-06.vrt
-        sensor = fields[1] + "_" + fields[2]
 
-        x = int(fields[4])
-        y = int(fields[5])
+        if len(fields) == 7:
+            sensor = fields[1] + "_" + fields[2]
 
-        dt = fields[5].replace(".vrt", "").replace(".tif", "")
+            x = int(fields[4])
+            y = int(fields[5])
+
+            dt = fields[6].replace(".vrt", "").replace(".tif", "")
+
+        # LS8_OLI_NBAR_123_-025_2013-04-24T01-46-06.vrt
+
+        elif len(fields) == 6:
+            sensor = fields[1]
+
+            x = int(fields[3])
+            y = int(fields[4])
+
+            dt = fields[5].replace(".vrt", "").replace(".tif", "")
 
     else:
         # LS5_TM_NBAR_123_-025_2005-11-21T01-27-04.570000.tif
