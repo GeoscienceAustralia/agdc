@@ -66,7 +66,7 @@ PQA_CONTIGUITY = 256  # contiguity = bit 8
 
 GDAL_CACHEMAX_MB = 500
 # Working buffers (in MB)
-GDAL_WM_MB = 500
+# GDAL_WM_MB = 500
 
 
 class TileContents(object):
@@ -213,7 +213,8 @@ def _create_reproject_command(band_stack, first_file_number, nodata_value, temp_
     reproject_cmd = [
         "gdalwarp",
         '--config', 'GDAL_CACHEMAX', str(GDAL_CACHEMAX_MB),
-        '-wm', str(GDAL_WM_MB),
+        # Changing the warp memory size altered pixel values. Disable until further tests are performed.
+        # '-wm', str(GDAL_WM_MB),
         "-q",
         "-of",
         "%s" % tile_type_info['file_format'],
@@ -239,7 +240,6 @@ def _create_reproject_command(band_stack, first_file_number, nodata_value, temp_
         "%s" % band_stack.vrt_name,
         "%s" % temp_tile_output_path  # Use locally-defined output path, not class instance value
     ])
-    return reproject_cmd
 
 
 def _reproject(tile_type_info, tile_footprint, band_stack, output_path):
