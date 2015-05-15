@@ -34,8 +34,8 @@ import sys
 import logging
 import re
 import unittest
-import dbutil
-import tilecompare
+from agdc import dbutil
+from agdc import tilecompare
 
 #
 # Test cases

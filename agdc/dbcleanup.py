@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env python
 
 #===============================================================================
 # Copyright (c)  2014 Geoscience Australia
@@ -27,18 +27,48 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #===============================================================================
 
-#@PBS -P v10
-#PBS -q normal
-#PBS -l walltime=08:00:00,mem=4096MB,ncpus=1
-#PBS -l wd
-#@#PBS -m e
-#@PBS -M alex.ip@ga.gov.au
+"""dbcleanup.py - Script to clean up the test database server.
 
-# Script assumes MODULEPATH has previously been set (e.g. in .profile script) as follows:
-# export MODULEPATH=/projects/u46/opt/modules/modulefiles:$MODULEPATH # GA in-house testing only
-# export MODULEPATH=/projects/el8/opt/modules/modulefiles:$MODULEPATH # Collaborative AGDC users
+This script attempts to drop all the temporary test databases on
+the test database server. These may be left behind if the test that
+creates them is unable to remove them after running for some reason.
 
-# Script assumes that agdc module has already been loaded as follows:
-# module load agdc # Should load all dependencies
+It uses the dbutil TESTSERVER object, which can drop databases being
+pooled by pgbouncer.
 
-python -m agdc.landsat_ingester $@
+Note that running this script may cause tests currently running to fail
+(by dropping their databases out from under them).
+"""
+from __future__ import absolute_import
+import re
+from . import dbutil
+
+#
+# Temporary test database pattern
+#
+# This is the regular expression used to identify a test database.
+#
+# The current pattern looks for a name containing 'test' and ending
+# in an underscore followed by a 9 digit number.
+#
+
+TESTDB_PATTERN = r".*test.*_\d{9}$"
+
+#
+# Main program
+#
+
+db_list = dbutil.TESTSERVER.dblist()
+
+test_db_list = [db for db in db_list if re.match(TESTDB_PATTERN, db)]
+
+print "Dropping temporary test databases:"
+
+if test_db_list:
+    for db_name in db_list:
+        if re.match(TESTDB_PATTERN, db_name):
+            print "    %s" % db_name
+            dbutil.TESTSERVER.drop(db_name)
+
+else:
+    print "    nothing to do."

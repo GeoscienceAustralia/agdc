@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env python
 
 #===============================================================================
 # Copyright (c)  2014 Geoscience Australia
@@ -27,18 +27,35 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #===============================================================================
 
-#@PBS -P v10
-#PBS -q normal
-#PBS -l walltime=08:00:00,mem=4096MB,ncpus=1
-#PBS -l wd
-#@#PBS -m e
-#@PBS -M alex.ip@ga.gov.au
+#===============================================================================
+# Execute a command ignoring errors
+#
+# @Author: Steven Ring
+#===============================================================================
 
-# Script assumes MODULEPATH has previously been set (e.g. in .profile script) as follows:
-# export MODULEPATH=/projects/u46/opt/modules/modulefiles:$MODULEPATH # GA in-house testing only
-# export MODULEPATH=/projects/el8/opt/modules/modulefiles:$MODULEPATH # Collaborative AGDC users
+from __future__ import absolute_import
+import os, argparse, time
 
-# Script assumes that agdc module has already been loaded as follows:
-# module load agdc # Should load all dependencies
 
-python -m agdc.landsat_ingester $@
+def executeWithoutFail(cmd, sleepTimeSeconds):
+    ''' Execute the supplied command until it succeeds, sleeping after each failure
+    '''
+    while True:
+        print "Launching process: %s" % cmd
+        rc = os.system(cmd)
+        if rc == 0:
+            break
+        print "Failed to launch (exitCode=%d), waiting %d seconds" % (rc, sleepTimeSeconds)
+        time.sleep(sleepTimeSeconds)
+
+
+if __name__ == '__main__':
+
+    description=""
+    parser = argparse.ArgumentParser(description)
+    parser.add_argument('-c', dest="command", help="command", required=True)
+    parser.add_argument('-s', dest="sleepTimeSeconds", help="time to wait between execution attempts", default=60)
+
+    args = parser.parse_args()
+
+    executeWithoutFail(args.command, int(args.sleepTimeSeconds))

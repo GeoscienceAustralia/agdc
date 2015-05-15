@@ -34,10 +34,10 @@ import re
 import os
 import logging
 import unittest
-import dbutil
+from agdc import dbutil
 from landsat_dataset import LandsatDataset
-from abstract_ingester import AbstractIngester
-from abstract_ingester import IngesterDataCube
+from agdc.abstract_ingester import AbstractIngester
+from agdc.abstract_ingester import IngesterDataCube
 from math import floor
 #
 # Set up logger.

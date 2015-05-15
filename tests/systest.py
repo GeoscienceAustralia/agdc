@@ -41,7 +41,7 @@ import json
 
 import psycopg2
 
-import dbutil
+from agdc import dbutil
 from EOtools.execute import execute
 
 #

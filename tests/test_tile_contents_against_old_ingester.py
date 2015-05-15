@@ -36,11 +36,11 @@ import os
 import logging
 import sys
 import unittest
-import dbutil
+from agdc import dbutil
 #import landsat_bandstack
-from abstract_ingester import AbstractIngester
-from abstract_ingester import IngesterDataCube
-from landsat_ingester import LandsatDataset
+from agdc.abstract_ingester import AbstractIngester
+from agdc.abstract_ingester import IngesterDataCube
+from agdc.landsat_ingester import LandsatDataset
 from test_landsat_tiler import TestLandsatTiler
 import ingest_test_data as TestIngest
 

@@ -1,4 +1,5 @@
-#!/bin/bash
+from __future__ import absolute_import
+#!/usr/bin/env python
 
 #===============================================================================
 # Copyright (c)  2014 Geoscience Australia
@@ -27,18 +28,12 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #===============================================================================
 
-#@PBS -P v10
-#PBS -q normal
-#PBS -l walltime=08:00:00,mem=4096MB,ncpus=1
-#PBS -l wd
-#@#PBS -m e
-#@PBS -M alex.ip@ga.gov.au
+import os
+from . import dbutil
+import subprocess
 
-# Script assumes MODULEPATH has previously been set (e.g. in .profile script) as follows:
-# export MODULEPATH=/projects/u46/opt/modules/modulefiles:$MODULEPATH # GA in-house testing only
-# export MODULEPATH=/projects/el8/opt/modules/modulefiles:$MODULEPATH # Collaborative AGDC users
-
-# Script assumes that agdc module has already been loaded as follows:
-# module load agdc # Should load all dependencies
-
-python -m agdc.landsat_ingester $@
+def main():
+    dbutil.TESTSERVER.create("expected", "/g/data1/v10/test_resources/mph547/expected/landsat_tiler/Test_landsat_tiler", "tiler_testing.sql")
+    dbutil.TESTSERVER.create("output", "/g/data1/v10/test_resources/mph547/output/landsat_tiler/Test_landsat_tiler", "tiler_testing.sql")
+if __name__ == '__main__':
+    main()
