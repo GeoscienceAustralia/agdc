@@ -24,13 +24,12 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ===============================================================================
-
+from datacube.api.query import Month
 
 __author__ = "Simon Oldfield"
 
 
 import argparse
-from datetime import datetime
 import logging
 import os
 from datacube.api.model import Satellite, DatasetType
@@ -44,6 +43,12 @@ def satellite_arg(s):
     if s in [sat.name for sat in Satellite]:
         return Satellite[s]
     raise argparse.ArgumentTypeError("{0} is not a supported satellite".format(s))
+
+
+def month_arg(s):
+    if s in [month.name for month in Month]:
+        return Month[s]
+    raise argparse.ArgumentTypeError("{0} is not a supported month".format(s))
 
 
 def pqa_mask_arg(s):
@@ -140,6 +145,7 @@ def parse_date(s):
     from datetime import datetime
     return datetime.strptime(s, "%Y-%m-%d").date()
 
+
 def parse_date_min(s):
     from datetime import datetime
 
@@ -157,7 +163,7 @@ def parse_date_min(s):
 
 
 def parse_date_max(s):
-    from datetime import date, datetime
+    from datetime import datetime
     import calendar
 
     if s:
