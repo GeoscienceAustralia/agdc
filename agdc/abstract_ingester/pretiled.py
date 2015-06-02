@@ -7,8 +7,9 @@ import os
 import dateutil.parser
 import dateutil.tz
 from osgeo import gdal
-from . import AbstractBandstack, AbstractDataset, SourceFileIngester
-
+from ._core import SourceFileIngester
+from .abstract_bandstack import AbstractBandstack
+from .abstract_dataset import AbstractDataset
 
 _LOG = logging.getLogger(__name__)
 
