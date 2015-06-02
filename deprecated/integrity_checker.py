@@ -37,8 +37,8 @@ Created on 07/03/2013
 import os
 import logging
 from osgeo import gdal
-from EOtools.utils import log_multiline
-from EOtools.execute import execute
+from eotools.utils import log_multiline
+from eotools.execute import execute
 import sys
 from time import sleep
 from agdc import DataCube

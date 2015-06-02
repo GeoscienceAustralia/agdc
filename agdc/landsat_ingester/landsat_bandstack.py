@@ -43,7 +43,7 @@ from osgeo import gdal
 from agdc.abstract_ingester import AbstractBandstack
 from agdc.cube_util import DatasetError, create_directory
 from collections import OrderedDict
-from EOtools.execute import execute
+from eotools.execute import execute
 
 class LandsatBandstack(AbstractBandstack):
     """Landsat subclass of AbstractBandstack class"""

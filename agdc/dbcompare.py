@@ -3,7 +3,7 @@
 #===============================================================================
 # Copyright (c)  2014 Geoscience Australia
 # All rights reserved.
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
 #     * Redistributions of source code must retain the above copyright
@@ -14,7 +14,7 @@
 #     * Neither Geoscience Australia nor the names of its contributors may be
 #       used to endorse or promote products derived from this software
 #       without specific prior written permission.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 # ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -30,8 +30,9 @@
 """
 dbcompare.py - compare two databases.
 """
-from __future__ import absolute_import
 
+from __future__ import absolute_import
+from __future__ import print_function
 import sys
 import re
 from . import dbutil
@@ -65,7 +66,7 @@ class Reporter(object):
 
         if self.verbosity > 0:
             msg = "Only in %s: table '%s'" % (self.db[db_no], table)
-            print >> self.output, msg
+            print(msg, file=self.output)
 
     def column_only_in(self, db_no, table, column):
         """Report a column only present in one database."""
@@ -73,14 +74,14 @@ class Reporter(object):
         if self.verbosity > 0:
             msg = ("Only in %s: column '%s.%s'" %
                    (self.db[db_no], table, column))
-            print >> self.output, msg
+            print(msg, file=self.output)
 
     def primary_keys_differ(self, table):
         """Report a mismatch in the primary keys between the two databases."""
 
         if self.verbosity > 0:
             msg = "Primary keys differ: table '%s'" % table
-            print >> self.output, msg
+            print(msg, file=self.output)
 
     def new_table(self, table, columns):
         """Start comparing contents for a new table."""
@@ -140,7 +141,7 @@ class Reporter(object):
         if self.diff_list:
             if self.verbosity > 0:
                 msg = "Contents differ: table '%s'" % self.curr_table
-                print >> self.output, msg
+                print(msg, file=self.output)
 
             if self.verbosity > 1:
                 db_width = max(len(self.db[1]), len(self.db[2]))
@@ -152,13 +153,13 @@ class Reporter(object):
                 header_format = " "*db_width + " " + field_format
                 row_format = "%-" + str(db_width) + "s:" + field_format
 
-                print >> self.output, header_format % tuple(self.column_list)
+                print(header_format % tuple(self.column_list), file=self.output)
                 for (db_no, row) in self.diff_list:
                     row_values = self._truncate_row_values(row)
                     print_values = tuple([self.db[db_no]] + row_values)
-                    print >> self.output, row_format % print_values
+                    print(row_format % print_values, file=self.output)
 
-                print >> self.output, ""
+                print("", file=self.output)
 
 #
 # ComparisonWrapper connection wrapper class.

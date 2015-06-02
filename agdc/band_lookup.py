@@ -5,7 +5,7 @@ Created on 09/09/2014
 '''
 from __future__ import absolute_import
 import sys, logging
-from EOtools.utils import log_multiline
+from eotools.utils import log_multiline
 from agdc import DataCube
 
 # Set top level standard output 

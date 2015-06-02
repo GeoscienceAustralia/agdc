@@ -12,7 +12,7 @@ from datetime import datetime, time
 from osgeo import gdal
 
 from agdc.stacker import Stacker
-from EOtools.utils import log_multiline
+from eotools.utils import log_multiline
 
 # Set top level standard output 
 console_handler = logging.StreamHandler(sys.stdout)

@@ -14,7 +14,7 @@ import numpy
 from osgeo import gdal, gdalconst
 
 from agdc.stacker import Stacker
-from EOtools.utils import log_multiline
+from eotools.utils import log_multiline
 
 console_handler = logging.StreamHandler(sys.stdout)
 console_handler.setLevel(logging.INFO)

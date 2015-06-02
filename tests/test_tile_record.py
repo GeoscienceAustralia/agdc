@@ -35,7 +35,7 @@ import re
 import random
 import os
 import numpy as np
-from EOtools.execute import execute
+from eotools.execute import execute
 import logging
 import sys
 import unittest

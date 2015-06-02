@@ -37,9 +37,8 @@ import sys
 import datetime
 import re
 import logging
-import argparse
 
-from EOtools.execute import execute
+from eotools.execute import execute
 from agdc.abstract_ingester import AbstractIngester
 from .landsat_dataset import LandsatDataset
 

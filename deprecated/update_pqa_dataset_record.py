@@ -46,8 +46,8 @@ from datetime import datetime
 from pytz import timezone
 from glob import glob
 
-from EOtools.execute import execute
-from EOtools.utils import log_multiline
+from eotools.execute import execute
+from eotools.utils import log_multiline
 
 
 # Set top level standard output 

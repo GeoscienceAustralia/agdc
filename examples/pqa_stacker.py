@@ -38,7 +38,7 @@ import logging
 from datetime import datetime, time
 
 from agdc import Stacker
-from EOtools.utils import log_multiline
+from eotools.utils import log_multiline
 
 # Set top level standard output 
 console_handler = logging.StreamHandler(sys.stdout)

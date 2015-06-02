@@ -43,8 +43,8 @@ from time import sleep
 import numexpr
 import gc
 
-from EOtools.stats import temporal_stats
-from EOtools.utils import log_multiline
+from eotools.stats import temporal_stats
+from eotools.utils import log_multiline
 from agdc import Stacker
 from agdc import BandLookup
 

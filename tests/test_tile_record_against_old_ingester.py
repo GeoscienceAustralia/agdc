@@ -39,7 +39,7 @@ import sys
 import unittest
 from agdc import dbutil
 #import landsat_bandstack
-from EOtools.execute import execute
+from eotools.execute import execute
 from agdc.abstract_ingester import AbstractIngester
 from agdc.abstract_ingester import IngesterDataCube
 from landsat_dataset import LandsatDataset

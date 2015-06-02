@@ -28,9 +28,7 @@ from __future__ import absolute_import
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #===============================================================================
 
-import os
 from . import dbutil
-import subprocess
 
 def main():
     #dbutil.TESTSERVER.drop("expected")

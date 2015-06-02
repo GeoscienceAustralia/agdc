@@ -44,10 +44,8 @@ import logging
 import errno
 import psycopg2
 import socket
-import inspect
 
-from EOtools.execute import execute
-from EOtools.utils import log_multiline
+from eotools.utils import log_multiline
 
 # Set top level standard output 
 console_handler = logging.StreamHandler(sys.stdout)

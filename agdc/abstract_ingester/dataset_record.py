@@ -3,7 +3,7 @@
 # ===============================================================================
 # Copyright (c)  2014 Geoscience Australia
 # All rights reserved.
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
 #     * Redistributions of source code must retain the above copyright
@@ -14,7 +14,7 @@
 #     * Neither Geoscience Australia nor the names of its contributors may be
 #       used to endorse or promote products derived from this software
 #       without specific prior written permission.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 # ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -375,8 +375,8 @@ class DatasetRecord(object):
 
     def __check_update_ok(self):
         """Checks if an update is possible, raises a DatasetError otherwise.
-        
-        Note that dataset_older_than_database returns a tuple 
+
+        Note that dataset_older_than_database returns a tuple
         (disk_datetime_processed, database_datetime_processed, tile_ingested_datetime)
         if no ingestion required"""
 

@@ -12,8 +12,8 @@ from datetime import datetime, time
 from osgeo import gdal
 
 from agdc.stacker import Stacker
-from EOtools.utils import log_multiline
-import EOtools.stats.temporal_stats
+from eotools.utils import log_multiline
+import eotools.stats.temporal_stats
 
 SCALE_FACTOR = 10000
 

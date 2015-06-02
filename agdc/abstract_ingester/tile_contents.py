@@ -48,8 +48,8 @@ from datetime import datetime
 from osgeo import gdal
 import numpy as np
 
-from EOtools.execute import execute
-from EOtools.utils import log_multiline
+from eotools.execute import execute
+from eotools.utils import log_multiline
 from ..cube_util import DatasetError, create_directory, get_file_size_mb
 
 

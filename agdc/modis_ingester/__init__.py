@@ -3,7 +3,7 @@
 #===============================================================================
 # Copyright (c)  2014 Geoscience Australia
 # All rights reserved.
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
 #     * Redistributions of source code must retain the above copyright
@@ -14,7 +14,7 @@
 #     * Neither Geoscience Australia nor the names of its contributors may be
 #       used to endorse or promote products derived from this software
 #       without specific prior written permission.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 # ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -38,8 +38,9 @@ import logging
 
 from os.path import basename
 from osgeo import gdal
-from EOtools.execute import execute
+from eotools.execute import execute
 from ..abstract_ingester import SourceFileIngester
+from agdc.cube_util import DatasetError
 from .modis_dataset import ModisDataset
 
 #
@@ -98,11 +99,11 @@ class ModisIngester(SourceFileIngester):
         """
 
         return ModisDataset(dataset_path)
-    
+
     def filter_dataset(self, path, row, date):
         """Return True if the dataset should be included, False otherwise.
 
-        Overridden to allow NULLS for row 
+        Overridden to allow NULLS for row
         """
         (start_date, end_date) = self.get_date_range()
         (min_path, max_path) = self.get_path_range()
@@ -127,7 +128,6 @@ class ModisIngester(SourceFileIngester):
 
         for dataset_path in dataset_list:
             fname = os.path.splitext(basename(dataset_path))[0]
-            dataset_dir = os.path.split(dataset_path)[0]
 
             mod09_fname = temp_dir + '/' + fname + '.vrt'
             rbq500_fname = temp_dir + '/' + fname + '_RBQ500.vrt'
@@ -148,8 +148,7 @@ class ModisIngester(SourceFileIngester):
             result = execute(command_string=command_string)
             if result['returncode'] != 0:
                 raise DatasetError('Unable to perform gdalbuildvrt on bands: ' +
-                                   '"%s" failed: %s'\
-                                       % (buildvrt_cmd, result['stderr']))
+                                   '%r failed: %r' % (command_string, result['stderr']))
 
             vrt_list.append(mod09_fname)
 
@@ -161,8 +160,7 @@ class ModisIngester(SourceFileIngester):
             result = execute(command_string=command_string)
             if result['returncode'] != 0:
                 raise DatasetError('Unable to perform gdalbuildvrt on rbq: ' +
-                                   '"%s" failed: %s'\
-                                       % (buildvrt_cmd, result['stderr']))
+                                   '%r failed: %r' % (command_string, result['stderr']))
 
             vrt_list.append(rbq500_fname)
 

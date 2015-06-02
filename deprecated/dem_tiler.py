@@ -48,11 +48,11 @@ import time
 import numexpr
 from scipy import ndimage
 
-from EOtools.bodies.vincenty import vinc_dist
-from EOtools.blrb import interpolate_grid
+from eotools.bodies.vincenty import vinc_dist
+from eotools.blrb import interpolate_grid
     
-from EOtools.utils import log_multiline
-from EOtools.execute import execute
+from eotools.utils import log_multiline
+from eotools.execute import execute
 
 from agdc import DataCube
 

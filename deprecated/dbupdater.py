@@ -42,8 +42,8 @@ import psycopg2
 import time
 from copy import copy
 
-from EOtools.execute import execute
-from EOtools.utils import log_multiline
+from eotools.execute import execute
+from eotools.utils import log_multiline
 
 import update_dataset_record
 import update_pqa_dataset_record

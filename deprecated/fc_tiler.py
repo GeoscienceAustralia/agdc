@@ -47,8 +47,8 @@ from copy import copy
 import time
 import string
     
-from EOtools.utils import log_multiline
-from EOtools.execute import execute
+from eotools.utils import log_multiline
+from eotools.execute import execute
 
 from agdc import DataCube
 

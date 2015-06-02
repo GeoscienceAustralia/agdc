@@ -3,7 +3,7 @@
 #===============================================================================
 # Copyright (c)  2014 Geoscience Australia
 # All rights reserved.
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
 #     * Redistributions of source code must retain the above copyright
@@ -14,7 +14,7 @@
 #     * Neither Geoscience Australia nor the names of its contributors may be
 #       used to endorse or promote products derived from this software
 #       without specific prior written permission.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 # ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -37,13 +37,9 @@
     object to instantiate the correct subclass.
 """
 from __future__ import absolute_import
-import os
-import re
 from osgeo import gdal
 from agdc.abstract_ingester import AbstractBandstack
-from agdc.cube_util import DatasetError, create_directory
 from collections import OrderedDict
-from EOtools.execute import execute
 
 class ModisBandstack(AbstractBandstack):
     """Modis subclass of AbstractBandstack class"""
@@ -73,7 +69,6 @@ class ModisBandstack(AbstractBandstack):
         """Given the dictionary of band source information, form a list
         of scene file names from which a vrt can be constructed. Also return a
         list of nodata values for use by add_metadata"""
-
         pass
 
     def get_vrt_name(self, vrt_dir):
@@ -101,22 +96,3 @@ class ModisBandstack(AbstractBandstack):
             if band.GetNoDataValue() is not None:
                 band.SetNoDataValue(band.GetNoDataValue())
             band_stack_dataset.FlushCache()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

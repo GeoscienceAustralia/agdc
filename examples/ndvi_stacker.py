@@ -41,7 +41,7 @@ from datetime import datetime, time
 from osgeo import gdal
 
 from agdc import Stacker
-from EOtools.utils import log_multiline
+from eotools.utils import log_multiline
 from agdc import BandLookup
 
 SCALE_FACTOR = 10000

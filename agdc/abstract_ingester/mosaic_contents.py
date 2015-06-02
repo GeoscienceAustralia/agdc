@@ -43,8 +43,8 @@ import logging
 import os
 import re
 import shutil
-from EOtools.execute import execute
-from EOtools.utils import log_multiline
+from eotools.execute import execute
+from eotools.utils import log_multiline
 from agdc.cube_util import DatasetError, get_file_size_mb, create_directory
 from .ingest_db_wrapper import TC_MOSAIC
 from osgeo import gdal

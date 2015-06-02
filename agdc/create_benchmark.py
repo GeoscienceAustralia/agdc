@@ -28,9 +28,7 @@ from __future__ import absolute_import
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #===============================================================================
 
-import os
 from . import dbutil
-import subprocess
 
 def main():
     dbutil.TESTSERVER.create("expected", "/g/data1/v10/test_resources/mph547/expected/landsat_tiler/Test_landsat_tiler", "tiler_testing.sql")

@@ -36,7 +36,7 @@ import os
 import logging
 import unittest
 import agdc.dbutil as dbutil
-from EOtools.execute import execute
+from eotools.execute import execute
 from agdc.landsat_ingester import LandsatDataset
 from agdc.abstract_ingester import AbstractIngester
 from agdc.abstract_ingester import IngesterDataCube
