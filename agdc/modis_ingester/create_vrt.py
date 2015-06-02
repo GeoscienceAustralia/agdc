@@ -10,7 +10,7 @@ import os
 from osgeo import gdal
 from os.path import basename
 
-from EOtools.execute import execute
+from eotools.execute import execute
 
 class VRTCreater:
 

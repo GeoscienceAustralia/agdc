@@ -50,8 +50,8 @@ from scipy import ndimage
 import numpy
 from time import sleep
 
-from EOtools.execute import execute
-from EOtools.utils import log_multiline
+from eotools.execute import execute
+from eotools.utils import log_multiline
 from agdc import DataCube
 from agdc.band_lookup import BandLookup
 

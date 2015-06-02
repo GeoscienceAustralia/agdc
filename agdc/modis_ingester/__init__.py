@@ -38,7 +38,7 @@ import logging
 
 from os.path import basename
 from osgeo import gdal
-from EOtools.execute import execute
+from eotools.execute import execute
 from ..abstract_ingester import SourceFileIngester
 from agdc.cube_util import DatasetError
 from .modis_dataset import ModisDataset

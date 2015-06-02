@@ -48,7 +48,7 @@ setup(name='agdc',
                  'bin/bulk_submit_pbs.sh'
                  ],
       requires = [
-                  'EOtools',
+                  'eotools',
                   'psycopg2',
                   'gdal',
                   'numexpr',

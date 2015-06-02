@@ -42,7 +42,7 @@ from datetime import datetime
 import logging, os, re, copy
 
 from agdc import DataCube
-from EOtools.utils import log_multiline
+from eotools.utils import log_multiline
 
 #===============================================================================
 # # Set top level standard output 

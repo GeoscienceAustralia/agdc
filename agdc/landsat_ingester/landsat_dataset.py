@@ -32,7 +32,7 @@
 
     This is the implementation of the AbstractDataset class for landsat
     datasets. At present it only works for level 1 (L1T, ORTHO) and NBAR
-    data, as it relys on EOtools.DatasetDrivers.SceneDataset.
+    data, as it relys on eotools.drivers.SceneDataset.
 """
 from __future__ import absolute_import
 
@@ -41,8 +41,8 @@ import logging
 import glob
 import re
 
-from EOtools.DatasetDrivers import SceneDataset
-from EOtools.execute import execute
+from eotools.drivers import SceneDataset
+from eotools.execute import execute
 
 from agdc.cube_util import DatasetError
 from agdc.abstract_ingester import AbstractDataset
@@ -79,7 +79,7 @@ class LandsatDataset(AbstractDataset):
         """Opens the dataset and extracts metadata.
 
         Most of the metadata is kept in self._ds which is
-        a EOtools.DatasetDrivers.SceneDataset object. Some extra metadata is
+        a eotools.drivers.SceneDataset object. Some extra metadata is
         extracted and kept the instance attributes.
         """
 

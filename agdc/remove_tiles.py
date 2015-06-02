@@ -12,7 +12,7 @@ import logging
 import re
 from copy import copy
 
-from EOtools.utils import log_multiline
+from eotools.utils import log_multiline
 
 from agdc import DataCube
 

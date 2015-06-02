@@ -41,7 +41,7 @@ import re
 import datetime
 from osgeo import gdal
 
-from EOtools.execute import execute
+from eotools.execute import execute
 
 from agdc.cube_util import DatasetError
 from agdc.abstract_ingester import AbstractDataset

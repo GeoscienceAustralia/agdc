@@ -51,9 +51,9 @@ import argparse
 from copy import copy
 
 from agdc import Stacker
-from EOtools.stats.temporal_stats import create_envi_hdr
-from EOtools.utils import log_multiline
-from EOtools.stats import temporal_stats
+from eotools.stats.temporal_stats import create_envi_hdr
+from eotools.utils import log_multiline
+from eotools.stats import temporal_stats
 
 SCALE_FACTOR = 10000
 NaN = numpy.float32(numpy.NaN)
