@@ -40,6 +40,7 @@ from os.path import basename
 from osgeo import gdal
 from EOtools.execute import execute
 from ..abstract_ingester import SourceFileIngester
+from agdc.cube_util import DatasetError
 from .modis_dataset import ModisDataset
 
 #
@@ -147,8 +148,7 @@ class ModisIngester(SourceFileIngester):
             result = execute(command_string=command_string)
             if result['returncode'] != 0:
                 raise DatasetError('Unable to perform gdalbuildvrt on bands: ' +
-                                   '"%s" failed: %s'\
-                                       % (buildvrt_cmd, result['stderr']))
+                                   '%r failed: %r' % (command_string, result['stderr']))
 
             vrt_list.append(mod09_fname)
 
@@ -160,8 +160,7 @@ class ModisIngester(SourceFileIngester):
             result = execute(command_string=command_string)
             if result['returncode'] != 0:
                 raise DatasetError('Unable to perform gdalbuildvrt on rbq: ' +
-                                   '"%s" failed: %s'\
-                                       % (buildvrt_cmd, result['stderr']))
+                                   '%r failed: %r' % (command_string, result['stderr']))
 
             vrt_list.append(rbq500_fname)
 
