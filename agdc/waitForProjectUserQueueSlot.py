@@ -3,7 +3,7 @@
 #===============================================================================
 # Copyright (c)  2014 Geoscience Australia
 # All rights reserved.
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
 #     * Redistributions of source code must retain the above copyright
@@ -14,7 +14,7 @@
 #     * Neither Geoscience Australia nor the names of its contributors may be
 #       used to endorse or promote products derived from this software
 #       without specific prior written permission.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 # ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -37,17 +37,18 @@ TODO: Note, queuename is currently ignored, all queues are counted
 @Author: Steven Ring
 Modified by Matthew Hardy 27/02/2014 to set a limit on jobs running under a project
 '''
-from __future__ import absolute_import
 
+from __future__ import absolute_import
+from __future__ import print_function
 import os, sys, re, argparse, subprocess, time
 
 def waitForQueueSlot(queue, projectCode, maxJobsForUser, maxJobsForProject, sleepTimeSeconds) :
     while True:
         [userJobCount,projectJobCount] = countJobsForUserAndProject(os.getenv('LOGNAME'),projectCode)
-        print "User has %d jobs in queue, max is %d\\nProject has %d jobs in queue, max is %d\n" % (userJobCount, maxJobsForUser, projectJobCount, maxJobsForProject)
-        if userJobCount >= maxJobsForUser or projectJobCount >= maxJobsForProject: 
-            print "sleeping %d seconds, waiting for queue slot" % sleepTimeSeconds
-            time.sleep(sleepTimeSeconds) 
+        print("User has %d jobs in queue, max is %d\\nProject has %d jobs in queue, max is %d\n" % (userJobCount, maxJobsForUser, projectJobCount, maxJobsForProject))
+        if userJobCount >= maxJobsForUser or projectJobCount >= maxJobsForProject:
+            print("sleeping %d seconds, waiting for queue slot" % sleepTimeSeconds)
+            time.sleep(sleepTimeSeconds)
         else:
             return
 
@@ -89,7 +90,7 @@ if __name__ == '__main__':
     maxUserJobsInQueue = int(args.maxUserJobsInQueue)
     maxProjectJobsInQueue = int(args.maxProjectJobsInQueue)
     if (not maxUserJobsInQueue) or (not maxProjectJobsInQueue):
-        print "maxUserJobsInQueue and maxProjectJobsInQueue must be a positive integer"
+        print("maxUserJobsInQueue and maxProjectJobsInQueue must be a positive integer")
         parser.print_usage()
         sys.exit(1)
 

@@ -3,7 +3,7 @@
 #===============================================================================
 # Copyright (c)  2014 Geoscience Australia
 # All rights reserved.
-# 
+#
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
 #     * Redistributions of source code must retain the above copyright
@@ -14,7 +14,7 @@
 #     * Neither Geoscience Australia nor the names of its contributors may be
 #       used to endorse or promote products derived from this software
 #       without specific prior written permission.
-# 
+#
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 # ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -30,8 +30,9 @@
 """
     Command line interface to test db server utilities.
 """
-from __future__ import absolute_import
 
+from __future__ import absolute_import
+from __future__ import print_function
 import argparse
 import os
 import sys
@@ -227,7 +228,7 @@ def run_list_subcommand(dummy_args):
 
     dblist = dbutil.TESTSERVER.dblist()
     for dbname in sorted(dblist):
-        print dbname
+        print(dbname)
 
 
 def run_cleanup_subcommand(dummy_args):
@@ -238,13 +239,13 @@ def run_cleanup_subcommand(dummy_args):
     dblist = dbutil.TESTSERVER.dblist()
     test_dblist = [db for db in dblist if re.match(TESTDB_PATTERN, db)]
 
-    print "Dropping temporary test databases:"
+    print("Dropping temporary test databases:")
     if test_dblist:
         for dbname in test_dblist:
-            print "    %s" % dbname
+            print("    %s" % dbname)
             dbutil.TESTSERVER.drop(dbname)
     else:
-        print "    nothing to do."
+        print("    nothing to do.")
 
 def run_dbupdate_subcommand(args):
     """Run the dbupdate subcommand."""

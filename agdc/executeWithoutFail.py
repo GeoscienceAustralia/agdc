@@ -34,6 +34,7 @@
 #===============================================================================
 
 from __future__ import absolute_import
+from __future__ import print_function
 import os, argparse, time
 
 
@@ -41,11 +42,11 @@ def executeWithoutFail(cmd, sleepTimeSeconds):
     ''' Execute the supplied command until it succeeds, sleeping after each failure
     '''
     while True:
-        print "Launching process: %s" % cmd
+        print("Launching process: %s" % cmd)
         rc = os.system(cmd)
         if rc == 0:
             break
-        print "Failed to launch (exitCode=%d), waiting %d seconds" % (rc, sleepTimeSeconds)
+        print("Failed to launch (exitCode=%d), waiting %d seconds" % (rc, sleepTimeSeconds))
         time.sleep(sleepTimeSeconds)
 
 

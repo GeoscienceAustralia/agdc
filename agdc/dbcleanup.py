@@ -40,6 +40,7 @@ Note that running this script may cause tests currently running to fail
 (by dropping their databases out from under them).
 """
 from __future__ import absolute_import
+from __future__ import print_function
 import re
 from . import dbutil
 
@@ -62,13 +63,13 @@ db_list = dbutil.TESTSERVER.dblist()
 
 test_db_list = [db for db in db_list if re.match(TESTDB_PATTERN, db)]
 
-print "Dropping temporary test databases:"
+print("Dropping temporary test databases:")
 
 if test_db_list:
     for db_name in db_list:
         if re.match(TESTDB_PATTERN, db_name):
-            print "    %s" % db_name
+            print("    %s" % db_name)
             dbutil.TESTSERVER.drop(db_name)
 
 else:
-    print "    nothing to do."
+    print("    nothing to do.")

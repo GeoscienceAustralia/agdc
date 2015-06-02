@@ -3,8 +3,9 @@ Created on 16/12/2014
 
 @author: u76345
 '''
-from __future__ import absolute_import
 
+from __future__ import absolute_import
+from __future__ import print_function
 import os
 import sys
 import argparse
@@ -286,23 +287,23 @@ WHERE
                                  ])
         
     def print_records(self):
-        print 'Acquisitions:'
+        print('Acquisitions:')
         for satellite, path, row, date in sorted([(self.satellite_dict[acquisition_record['satellite_id']], acquisition_record['x_ref'], acquisition_record['y_ref'], acquisition_record['end_datetime'].strftime('%Y%m%d')) for acquisition_record in self.acquisition_records.values()]):
-            print '\tsatellite=%s, path=%d, row=%d, date=%s' % (satellite, path, row, date)
+            print('\tsatellite=%s, path=%d, row=%d, date=%s' % (satellite, path, row, date))
         
-        print 'Datasets:'
+        print('Datasets:')
         for dataset_path in sorted([dataset_record['dataset_path'] for dataset_record in self.dataset_records.values()]):
-            print '\t%s' % dataset_path
+            print('\t%s' % dataset_path)
         
-        print 'Tiles to be deleted:'
+        print('Tiles to be deleted:')
         # Show non-overlapped and mosaic tiles as well as overlapped source tiles from nominated datasets
         for tile_path in sorted([tile_record['tile_pathname'] for tile_record in self.tile_records_to_delete.values()]):
-            print '\t%s' % tile_path
+            print('\t%s' % tile_path)
         
-        print 'Tiles to be updated:'
+        print('Tiles to be updated:')
         # Show overlapped source tiles NOT from nominated datasets
         for tile_path in sorted([tile_record['tile_pathname'] for tile_record in self.tile_records_to_update.values()]):
-            print '\t%s' % tile_path
+            print('\t%s' % tile_path)
    
         
     def flag_records(self):
@@ -331,15 +332,15 @@ and tile_id in %(tiles_to_be_updated_tuple)s;
             log_multiline(logger.debug, self.db_cursor.mogrify(sql, params), 'SQL', '\t')
             
             if self.dryrun:
-                print '\nDRY RUN ONLY!'
-                print 'Tile-flagging SQL:'
-                print self.db_cursor.mogrify(sql, params)
-                print
+                print('\nDRY RUN ONLY!')
+                print('Tile-flagging SQL:')
+                print(self.db_cursor.mogrify(sql, params))
+                print()
             else:
                 self.db_cursor.execute(sql, params)
-                print 'Records updated successfully'
+                print('Records updated successfully')
         else:
-            print 'No tiles to delete or modify'
+            print('No tiles to delete or modify')
     
     def delete_records(self):
         params = {'tiles_to_be_deleted_tuple': tuple(sorted(self.tile_records_to_delete.keys())),
@@ -393,21 +394,21 @@ and not exists (
             log_multiline(logger.debug, self.db_cursor.mogrify(sql, params), 'SQL', '\t')
             
             if self.dryrun:
-                print '\nDRY RUN ONLY!'
-                print 'Record-deleting SQL:'
-                print self.db_cursor.mogrify(sql, params)
-                print
-                print 'Tile files which would be deleted:'
+                print('\nDRY RUN ONLY!')
+                print('Record-deleting SQL:')
+                print(self.db_cursor.mogrify(sql, params))
+                print()
+                print('Tile files which would be deleted:')
                 for tile_pathname in sorted([tile_record['tile_pathname'] for tile_record in self.tile_records_to_delete.values()]):
-                    print '\t%s' % tile_pathname
-                print
+                    print('\t%s' % tile_pathname)
+                print()
             else:
                 self.db_cursor.execute(sql, params)
-                print 'Records deleted/updated successfully'
+                print('Records deleted/updated successfully')
                 self.remove_files(sorted([tile_record['tile_pathname'] for tile_record in self.tile_records_to_delete.values()]))
-                print 'Tile files removed successfully'
+                print('Tile files removed successfully')
         else:
-            print 'No tiles, datasets or acquisitions to delete or modify'
+            print('No tiles, datasets or acquisitions to delete or modify')
     
     
 def main():
