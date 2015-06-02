@@ -6,11 +6,7 @@ Created on
 '''
 from __future__ import absolute_import
 
-import sys
 import os
-import logging
-import glob
-import re
 from osgeo import gdal
 from os.path import basename
 

@@ -37,12 +37,10 @@ from __future__ import absolute_import
 
 import os
 import logging
-import glob
 import re
 import datetime
 from osgeo import gdal
 
-from EOtools.DatasetDrivers import SceneDataset
 from EOtools.execute import execute
 
 from agdc.cube_util import DatasetError

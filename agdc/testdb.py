@@ -38,7 +38,6 @@ import sys
 import logging
 import re
 from . import dbutil
-from EOtools.execute import execute
 
 #
 # Temporary test database pattern

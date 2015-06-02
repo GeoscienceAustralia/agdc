@@ -44,8 +44,6 @@ import psycopg2
 from ..datacube import DataCube
 from ..cube_util import DatasetError, DatasetSkipError, parse_date_from_string
 from .collection import Collection
-from .abstract_dataset import AbstractDataset
-from .abstract_bandstack import AbstractBandstack
 
 #
 # Set up logger.

@@ -10,16 +10,8 @@ import sys
 import argparse
 import logging
 import re
-import psycopg2
-from osgeo import gdal, osr, gdalconst
 from copy import copy
-from datetime import datetime, time, timedelta
-from scipy import ndimage
-import numpy
-import shutil
-from time import sleep
 
-from EOtools.execute import execute
 from EOtools.utils import log_multiline
 
 from agdc import DataCube

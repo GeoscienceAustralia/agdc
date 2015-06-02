@@ -37,7 +37,6 @@ import sys
 import datetime
 import re
 import logging
-import argparse
 
 from EOtools.execute import execute
 from agdc.abstract_ingester import AbstractIngester

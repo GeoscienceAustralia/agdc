@@ -42,14 +42,12 @@ import sys
 import argparse
 import logging
 import re
-import psycopg2
-from osgeo import gdal, osr, gdalconst
+from osgeo import gdal
 from copy import copy
-from datetime import datetime, time, timedelta
+from datetime import datetime
+from datetime import time
 from scipy import ndimage
 import numpy
-import numpy.ma as ma
-import shutil
 from time import sleep
 
 from EOtools.execute import execute
