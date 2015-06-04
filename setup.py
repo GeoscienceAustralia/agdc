@@ -36,6 +36,7 @@ setup(name='agdc',
       packages = [
                   'agdc',
                   'agdc.abstract_ingester',
+                  'agdc.modis_ingester',
                   'agdc.landsat_ingester'
                   ],
       package_data = {
