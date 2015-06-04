@@ -240,6 +240,7 @@ def _create_reproject_command(band_stack, first_file_number, nodata_value, temp_
         "%s" % band_stack.vrt_name,
         "%s" % temp_tile_output_path  # Use locally-defined output path, not class instance value
     ])
+    return reproject_cmd
 
 
 def _reproject(tile_type_info, tile_footprint, band_stack, output_path):
