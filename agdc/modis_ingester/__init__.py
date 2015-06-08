@@ -106,11 +106,12 @@ class ModisIngester(SourceFileIngester):
         Overridden to allow NULLS for row
         """
         (start_date, end_date) = self.get_date_range()
-        (min_path, max_path) = self.get_path_range()
-        (min_row, max_row) = self.get_row_range()
 
-        include = ((int(max_path) is None or path is None or int(path) <= int(max_path)) and
-                   (int(min_path) is None or path is None or int(path) >= int(min_path)) and
+        # Modis 'path' is actually the Orbit number.
+        (min_path, max_path) = self.get_path_range()
+
+        include = ((max_path is None or path is None or int(path) <= int(max_path)) and
+                   (min_path is None or path is None or int(path) >= int(min_path)) and
                    (end_date is None or date is None or date <= end_date) and
                    (start_date is None or date is None or date >= start_date))
 
