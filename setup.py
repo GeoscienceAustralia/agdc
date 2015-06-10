@@ -18,7 +18,7 @@
 
 from setuptools import setup
 
-version = '1.1.1'
+version = '1.2.0rc'
 
 setup(name='agdc',
       version = version,
@@ -45,7 +45,7 @@ setup(name='agdc',
           ]
       },
       install_requires=[
-                  'eotools',
+                  'eotools == 0.4',
                   'psycopg2 >= 2.5',
                   'gdal',
                   'numexpr',
