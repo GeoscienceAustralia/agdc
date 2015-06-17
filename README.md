@@ -4,7 +4,8 @@
 
 This repository contains the code for the AGDC - see [LICENSE](LICENSE) for the license details.
 
-## Branches
+
+## Branches [![Build Status](https://travis-ci.org/GeoscienceAustralia/agdc.svg?branch=develop)](https://travis-ci.org/GeoscienceAustralia/agdc)
 
 * [master] (https://github.com/GeoscienceAustralia/agdc/tree/master) represents the current **stable** version of the AGDC codebase.
 
