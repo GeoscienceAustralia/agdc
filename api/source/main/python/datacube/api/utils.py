@@ -34,7 +34,7 @@ import logging
 import numpy
 import gdal
 import os
-from gdalconst import *
+import gdalconst
 from enum import Enum
 from datacube.api.model import Pq25Bands, Ls57Arg25Bands, Satellite, DatasetType, Ls8Arg25Bands, Wofs25Bands, NdviBands
 from datacube.api.model import get_bands, EviBands, NbrBands, TciBands
@@ -171,7 +171,7 @@ class DatasetMetaData:
 
 def get_dataset_metadata(dataset):
 
-    raster = gdal.Open(dataset.path, GA_ReadOnly)
+    raster = gdal.Open(dataset.path, gdalconst.GA_ReadOnly)
     assert raster
 
     band_metadata = dict()
@@ -286,7 +286,7 @@ def read_dataset_data(dataset, bands=None, x=0, y=0, x_size=None, y_size=None):
 
     out = dict()
 
-    raster = gdal.Open(dataset.path, GA_ReadOnly)
+    raster = gdal.Open(dataset.path, gdalconst.GA_ReadOnly)
     assert raster
 
     if not x_size:
@@ -1163,15 +1163,15 @@ def get_dataset_band_stack_filename(dataset, band, output_format=OutputFormat.GE
 
 def get_dataset_datatype(dataset):
     return {
-        DatasetType.ARG25: GDT_Int16,
-        DatasetType.PQ25: GDT_Int16,
-        DatasetType.FC25: GDT_Int16,
-        DatasetType.WATER: GDT_Byte,
-        DatasetType.NDVI: GDT_Float32,
-        DatasetType.EVI: GDT_Float32,
-        DatasetType.NBR: GDT_Float32,
-        DatasetType.TCI: GDT_Float32,
-        DatasetType.DSM: GDT_Int16
+        DatasetType.ARG25: gdalconst.GDT_Int16,
+        DatasetType.PQ25: gdalconst.GDT_Int16,
+        DatasetType.FC25: gdalconst.GDT_Int16,
+        DatasetType.WATER: gdalconst.GDT_Byte,
+        DatasetType.NDVI: gdalconst.GDT_Float32,
+        DatasetType.EVI: gdalconst.GDT_Float32,
+        DatasetType.NBR: gdalconst.GDT_Float32,
+        DatasetType.TCI: gdalconst.GDT_Float32,
+        DatasetType.DSM: gdalconst.GDT_Int16
     }[dataset.dataset_type]
 
 

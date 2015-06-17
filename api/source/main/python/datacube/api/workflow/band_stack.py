@@ -282,8 +282,8 @@ class BandStackCellDatasetBandTask(CellDatasetBandTask):
 
         if raster:
             raster.FlushCache()
-            del raster
             raster = None
+            del raster
 
     def generate_raster_metadata(self):
         return {
