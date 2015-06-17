@@ -20,6 +20,6 @@ install:
     # No need to install requirements until we run tests.
     #- travis_retry pip install -r requirements.txt
 script: 
-    - pyflakes agdc 
+    - pyflakes agdc api/source/main/python/datacube
     # No tests are run yet.
 cache: apt
