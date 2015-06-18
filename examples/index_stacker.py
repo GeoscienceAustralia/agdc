@@ -240,7 +240,7 @@ stack_output_info = {'x_index': 144,
         # List of outputs to generate from each file
             # TODO: Make the stack file name reflect the date range
             output_stack_path = os.path.join(self.output_dir,
-                                             re.sub('\+', '', '%s_%+04d_%+04d' % (output_tag,
+                                             re.sub(r'\+', '', '%s_%+04d_%+04d' % (output_tag,
                                                                                    stack_output_info['x_index'],
                                                                                     stack_output_info['y_index'])))
 
@@ -251,7 +251,7 @@ stack_output_info = {'x_index': 144,
 
             output_stack_path += '_pqa_stack.vrt'
 
-            output_tile_path = os.path.join(self.output_dir, re.sub('\.\w+$', tile_type_info['file_extension'],
+            output_tile_path = os.path.join(self.output_dir, re.sub(r'\.\w+$', tile_type_info['file_extension'],
                                                                     re.sub('NBAR',
                                                                            output_tag,
                                                                            os.path.basename(nbar_dataset_path)
@@ -472,7 +472,7 @@ if __name__ == '__main__':
                                                  stack_list[tile_index]['start_datetime'].isoformat()
                                                  ) for tile_index in range(len(stack_list))]
 
-        ndvi_envi_stack_path = re.sub('\.vrt$', '_envi', ndvi_vrt_stack_path)
+        ndvi_envi_stack_path = re.sub(r'\.vrt$', '_envi', ndvi_vrt_stack_path)
 
         if os.path.exists(ndvi_envi_stack_path) and not index_stacker.refresh:
             logger.info('Skipping existing NDVI Envi file %s', ndvi_envi_stack_path)

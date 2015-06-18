@@ -241,9 +241,9 @@ class Stacker(DataCube):
             intermediate_path = band1_vrt_path
             build_vrt = False
         else: # No band1_vrt_path provided
-            intermediate_path = re.sub('\.vrt$', '.tmp', stack_dataset_path)
+            intermediate_path = re.sub(r'\.vrt$', '.tmp', stack_dataset_path)
         
-        file_list_path = re.sub('\.vrt$', '.txt', stack_dataset_path)
+        file_list_path = re.sub(r'\.vrt$', '.txt', stack_dataset_path)
         if build_vrt:
             logger.info('Creating %d layer stack VRT file %s', len(timeslice_info_list), stack_dataset_path)
             list_file = open(file_list_path, 'w')
@@ -773,7 +773,7 @@ order by
                        
                 stack_filename = os.path.join(stack_output_dir,
                                               '_'.join((level_name,
-                                                        re.sub('\+', '', '%+04d_%+04d' % (x_index, y_index)),
+                                                        re.sub(r'\+', '', '%+04d_%+04d' % (x_index, y_index)),
                                                         band_tag)) + '.vrt')
                 
                 logger.debug('stack_filename = %s', stack_filename)
@@ -1197,7 +1197,7 @@ stack_output_info = {'x_index': 144,
                                                                                             )
                                                      )
                     
-                output_tile_path = os.path.join(self.output_dir, re.sub('\.\w+$', 
+                output_tile_path = os.path.join(self.output_dir, re.sub(r'\.\w+$',
                                                                    '_%s%s' % (band_info_list[band_index]['band_tag'],
                                                                               tile_type_info['file_extension']),
                                                                    os.path.basename(input_path)

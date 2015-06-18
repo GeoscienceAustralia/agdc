@@ -288,7 +288,7 @@ stack_output_info = {'x_index': 144,
         # List of outputs to generate from each file
             # TODO: Make the stack file name reflect the date range                    
             output_stack_path = os.path.join(self.output_dir, 
-                                             re.sub('\+', '', '%s_%+04d_%+04d' % (output_tag,
+                                             re.sub(r'\+', '', '%s_%+04d_%+04d' % (output_tag,
                                                                                    stack_output_info['x_index'],
                                                                                     stack_output_info['y_index'])))
                                                                                     
@@ -299,7 +299,7 @@ stack_output_info = {'x_index': 144,
                 
             output_stack_path += '_pqa_stack.vrt'
             
-            output_tile_path = os.path.join(self.output_dir, re.sub('\.\w+$', tile_type_info['file_extension'],
+            output_tile_path = os.path.join(self.output_dir, re.sub(r'\.\w+$', tile_type_info['file_extension'],
                                                                     re.sub('FC', 
                                                                            output_tag,
                                                                            os.path.basename(fc_dataset_path)
@@ -394,8 +394,8 @@ stack_output_info = {'x_index': 144,
 #                    log_multiline(logger.debug, output_dataset_info, 'output_dataset_info', '\t') 
             # End of loop  
  
-        fc_rgb_path = os.path.join(self.output_dir, re.sub('\.\w+$', '.tif', # Write to .tif file
-                                                                re.sub('^LS\d_[^_]+_', '', # Remove satellite & sensor reference to allow proper sorting by filename
+        fc_rgb_path = os.path.join(self.output_dir, re.sub(r'\.\w+$', '.tif', # Write to .tif file
+                                                                re.sub(r'^LS\d_[^_]+_', '', # Remove satellite & sensor reference to allow proper sorting by filename
                                                                        re.sub('FC', # Write to FC_RGB file
                                                                               'FC_RGB',
                                                                               os.path.basename(fc_dataset_path)

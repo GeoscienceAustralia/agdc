@@ -214,7 +214,7 @@ class NDVIStacker(Stacker):
                                 
             output_stack_path = os.path.join(self.output_dir, '%s_pqa_masked.vrt' % output_tag)
                     
-            output_tile_path = os.path.join(self.output_dir, re.sub('\.\w+$', 
+            output_tile_path = os.path.join(self.output_dir, re.sub(r'\.\w+$',
                                                                    '_%s%s' % (output_tag,
                                                                                 tile_type_info['file_extension']),
                                                                    os.path.basename(nbar_dataset_path)

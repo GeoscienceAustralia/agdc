@@ -55,7 +55,7 @@ class PQAStacker(Stacker):
         # Let's create many files with a single band
         for index in range(1, total_bands + 1):
         
-            output_tile_path = os.path.join(self.output_dir, re.sub('\.\w+$', 
+            output_tile_path = os.path.join(self.output_dir, re.sub(r'\.\w+$',
                                                                 '_pqa_masked_band_%s%s' % (index, tile_type_info['file_extension']),
                                                                 os.path.basename(nbar_dataset_path)))
             output_stack_path = os.path.join(self.output_dir, 'pqa_masked_band_%s.vrt' % (index))

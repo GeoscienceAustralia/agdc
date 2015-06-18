@@ -210,7 +210,7 @@ stack_output_info = {'x_index': 144,
                             )
 
         nbar_dataset_path = nbar_dataset_info['tile_pathname']
-        output_tile_path = os.path.join(self.output_dir, re.sub('\.\w+$', 
+        output_tile_path = os.path.join(self.output_dir, re.sub(r'\.\w+$',
                                                            '_RGB.tif',
                                                            os.path.basename(nbar_dataset_path)
                                                            )

@@ -93,8 +93,8 @@ class TileContents(object):
         # N.B: file_extension must be set to ".vrt" when used with netCDF
         #TODO: Change all code to use netCDF libraries instead of GDAL for netCDF file handling
         if self.tile_type_info['file_format'] == 'netCDF' and tile_type_info['file_extension'] == '.vrt':
-            self.nc_temp_tile_output_path = re.sub('\.vrt$', '.nc', self._temp_tile_output_path)
-            self.nc_tile_output_path = re.sub('\.vrt$', '.nc', self.tile_output_path)
+            self.nc_temp_tile_output_path = re.sub(r'\.vrt$', '.nc', self._temp_tile_output_path)
+            self.nc_tile_output_path = re.sub(r'\.vrt$', '.nc', self.tile_output_path)
         else:
             self.nc_temp_tile_output_path = None
             self.nc_tile_output_path = None

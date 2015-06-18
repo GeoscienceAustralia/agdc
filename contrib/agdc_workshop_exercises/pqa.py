@@ -38,7 +38,7 @@ class PQAStacker(Stacker):
        
         # Figure out our input/output files
         nbar_dataset_path = input_dataset_dict['NBAR']['tile_pathname']
-        output_tile_path = os.path.join(self.output_dir, re.sub('\.\w+$', 
+        output_tile_path = os.path.join(self.output_dir, re.sub(r'\.\w+$',
                                                                 '_pqa_masked%s' % (tile_type_info['file_extension']),
                                                                 os.path.basename(nbar_dataset_path)))
         output_stack_path = os.path.join(self.output_dir, 'pqa_masked.vrt')
