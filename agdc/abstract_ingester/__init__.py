@@ -32,9 +32,9 @@ from .abstract_bandstack import AbstractBandstack
 from .abstract_dataset import AbstractDataset
 
 __all__ = [
-    AbstractIngester,
-    AbstractBandstack,
-    AbstractDataset,
-    SourceFileIngester,
-    run_ingest
+    'AbstractIngester',
+    'AbstractBandstack',
+    'AbstractDataset',
+    'SourceFileIngester',
+    'run_ingest'
 ]
