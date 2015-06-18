@@ -77,7 +77,7 @@ class TileRemover(DataCube):
         args, _unknown_args = _arg_parser.parse_known_args()
         return args
         
-    def get_field_names(self, table_name, excluded_field_list=[]):
+    def get_field_names(self, table_name, excluded_field_list=()):
         ''' Return a list containing all field names for the specified table'''
         sql = """select column_name from information_schema.columns where table_name='""" + table_name + """';"""
         log_multiline(logger.debug, sql, 'SQL', '\t')

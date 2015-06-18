@@ -323,7 +323,7 @@ class Stacker(DataCube):
                    row=None, 
                    create_band_stacks=True,
                    disregard_incomplete_data=False,
-                   levels=[]
+                   levels=()
                    ):
         """
         Function which returns a data structure and optionally creates band-wise VRT dataset stacks
@@ -826,7 +826,7 @@ order by
             
         return stack_info_dict
     
-    def get_pqa_mask(self, pqa_dataset_path, good_pixel_masks=[32767,16383,2457], dilation=3):
+    def get_pqa_mask(self, pqa_dataset_path, good_pixel_masks=(32767, 16383, 2457), dilation=3):
         pqa_gdal_dataset = gdal.Open(pqa_dataset_path)
         assert pqa_gdal_dataset, 'Unable to open PQA GeoTIFF file %s' % pqa_dataset_path
         pqa_array = pqa_gdal_dataset.GetRasterBand(1).ReadAsArray()
