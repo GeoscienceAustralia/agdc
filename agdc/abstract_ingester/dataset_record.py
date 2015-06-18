@@ -38,6 +38,7 @@ particular dataset, but will change if the database schema or tile store
 format changes.
 """
 from __future__ import absolute_import
+from __future__ import division
 
 import logging
 import os
@@ -647,8 +648,8 @@ class DatasetRecord(object):
             (qvec[0] - pvec[0]) * svec[1] - (qvec[1] - pvec[1]) * svec[0]
         qminusp_cross_rvec = \
             (qvec[0] - pvec[0]) * rvec[1] - (qvec[1] - pvec[1]) * rvec[0]
+
         tparameter = qminusp_cross_svec / rvec_cross_svec
         uparameter = qminusp_cross_rvec / rvec_cross_svec
-        if tparameter > 0 and tparameter < 1 and \
-                uparameter > 0 and uparameter < 1:
-            return True
+
+        return (0 < tparameter < 1) and (0 < uparameter < 1)

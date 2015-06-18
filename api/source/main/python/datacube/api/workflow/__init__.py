@@ -28,8 +28,9 @@
 # ===============================================================================
 
 
-__author__ = "Simon Oldfield"
+from __future__ import print_function
 
+__author__ = "Simon Oldfield"
 
 import abc
 import argparse
@@ -441,8 +442,7 @@ class CellListCsvTask(Task):
         return luigi.LocalTarget(self.path)
 
     def run(self):
-
-        print "****", self.output().path
+        print("**** ", self.output().path)
 
         x_list = range(self.x_min, self.x_max + 1)
         y_list = range(self.y_min, self.y_max + 1)
@@ -478,8 +478,7 @@ class TileListCsvTask(Task):
         return luigi.LocalTarget(self.path)
 
     def run(self):
-
-        print "****", self.output().path
+        print("****", self.output().path)
 
         x_list = range(self.x_min, self.x_max + 1)
         y_list = range(self.y_min, self.y_max + 1)

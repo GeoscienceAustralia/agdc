@@ -38,10 +38,10 @@
 """
 from __future__ import absolute_import
 
-from abc import ABCMeta, abstractmethod
+from abc import abstractmethod
+from agdc.compat import ABC
 
-
-class AbstractBandstack(object):
+class AbstractBandstack(ABC):
     """
     Abstract base class for band stack classes.
 
@@ -57,7 +57,6 @@ class AbstractBandstack(object):
         """
         self.dataset_mdd = dataset_mdd
 
-    __metaclass__ = ABCMeta
 
     #
     # Interface for the band stack goes here. This is going to be used

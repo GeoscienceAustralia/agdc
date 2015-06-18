@@ -27,6 +27,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ===============================================================================
 
+from __future__ import absolute_import
 from ._core import AbstractIngester, SourceFileIngester, run_ingest
 from .abstract_bandstack import AbstractBandstack
 from .abstract_dataset import AbstractDataset

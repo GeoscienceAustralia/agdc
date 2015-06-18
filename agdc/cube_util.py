@@ -31,6 +31,7 @@
     cube_util.py - utility functions for the datacube.
 """
 from __future__ import absolute_import
+from __future__ import division
 
 import os
 import time
@@ -104,7 +105,8 @@ def get_file_size_mb(path):
     Raises:
     OSError [Errno=2] if file does not exist
     """
-    return os.path.getsize(path) / (1024*1024)
+    # Using floor division to match previous behaviour.
+    return os.path.getsize(path) // (1024 * 1024)
 
 
 def create_directory(dirname):

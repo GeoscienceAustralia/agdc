@@ -39,7 +39,7 @@ import os
 from datacube.api.utils import log_mem, intersection, get_mask_pqa, get_mask_wofs, get_dataset_data, NDV
 from datacube.api.utils import get_dataset_metadata
 from datacube.api.model import DatasetType, Satellite, get_bands
-
+from functools import reduce
 
 _log = logging.getLogger()
 

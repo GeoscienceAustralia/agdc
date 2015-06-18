@@ -96,7 +96,7 @@ class Reporter(object):
         PRE: new_table must have been called."""
 
         if self.verbosity > 2 or len(self.diff_list) < self.MAX_DIFFERENCES:
-            self.diff_list.append((db_no, map(str, row)))
+            self.diff_list.append((db_no, [str(c) for c in row]))
 
     def stop_adding_differences(self):
         """True if there is no need to keep checking for differences.
@@ -115,10 +115,10 @@ class Reporter(object):
     def _get_field_width(self):
         "Calculate the width of the fields for self.content_differences."
 
-        field_width = map(len, self.column_list)
+        field_width = [len(c) for c in self.column_list]
         for (dummy_db_no, row) in self.diff_list:
-            row_width = map(len, row)
-            field_width = map(max, field_width, row_width)
+            row_width = [len(f) for f in row]
+            field_width = list(map(max, field_width, row_width))
         field_width = [min(fw, self.MAX_FIELD_WIDTH) for fw in field_width]
         return field_width
 
@@ -375,17 +375,16 @@ class Comparison(object):
             key_cmp = {}
             for (val1, val2, col) in zip(row1, row2, column_list):
                 if col in key_list:
-                    key_cmp[col] = cmp(val1, val2)
+                    key_cmp[col] = None if val1 == val2 else val1 < val2
 
             # Note that the order of columns in the key is not necessarily
             # the same as the order of columns in the table.
 
             for col in key_list:
-                if key_cmp[col] < 0:
-                    return True
-                elif key_cmp[col] > 0:
-                    return False
-            return False # Keys are equal
+                if key_cmp[col] is not None:
+                    return key_cmp[col]
+
+            return False  # Keys are equal
 
     @staticmethod
     def __filter_list(the_list, filter_set):

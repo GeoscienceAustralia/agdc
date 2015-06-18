@@ -1,4 +1,6 @@
 from __future__ import absolute_import
+from __future__ import division
+
 from abc import abstractmethod
 from collections import OrderedDict
 from datetime import datetime
@@ -62,7 +64,7 @@ def _get_file_size(path):
     if os.path.isdir(path):
         raise NotImplementedError('Directory size not yet supported: {!r}'.format(path))
 
-    return os.path.getsize(path) / 1024
+    return os.path.getsize(path) // 1024
 
 
 class PreTiledBandstack(AbstractBandstack):

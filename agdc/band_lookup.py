@@ -7,6 +7,7 @@ from __future__ import absolute_import
 import sys, logging
 from eotools.utils import log_multiline
 from agdc import DataCube
+from agdc import compat
 
 # Set top level standard output 
 console_handler = logging.StreamHandler(sys.stdout)
@@ -47,7 +48,7 @@ class BandLookup(object):
         '''
         assert isinstance(data_cube, DataCube), 'data_cube parameter must be of type DataCube'
         assert not lookup_scheme_name or type(lookup_scheme_name) == str, 'lookup_scheme_name parameter must be of type str'
-        assert not tile_type_id or type(tile_type_id) in (long, int), 'tile_type_id parameter must be of type long or int'
+        assert not tile_type_id or type(tile_type_id) in compat.integer_types, 'tile_type_id parameter must be of type long or int'
         assert not satellite_tag or type(satellite_tag) == str, 'satellite_tag parameter must be of type str'
         assert not sensor_name or type(sensor_name) == str, 'sensor_name parameter must be of type str'
         assert not level_name or type(level_name) == str, 'level_name parameter must be of type str'

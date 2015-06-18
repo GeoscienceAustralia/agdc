@@ -43,16 +43,18 @@ and simple interface to the database, to replace big chunks of SQL with
 meaningfully named method calls.
 """
 from __future__ import absolute_import
+from __future__ import division
 
 import logging
 import datetime
+
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 from psycopg2.extensions import ISOLATION_LEVEL_READ_COMMITTED
-
-import agdc.dbutil as dbutil
 import pytz
 
+import agdc.dbutil as dbutil
 from eotools.utils import log_multiline
+
 
 # Set up logger.
 LOGGER = logging.getLogger(__name__)
@@ -256,7 +258,7 @@ class IngestDBWrapper(dbutil.ConnectionWrapper):
 
         aq_length = (acquisition_dict['end_datetime'] -
                      acquisition_dict['start_datetime'])
-        delta = (aq_length*self.FUZZY_MATCH_PERCENTAGE)/100
+        delta = (aq_length * self.FUZZY_MATCH_PERCENTAGE) // 100
         params = dict(acquisition_dict)
         params['delta'] = delta
 
