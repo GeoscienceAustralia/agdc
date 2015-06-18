@@ -40,8 +40,8 @@ import logging
 import argparse
 from datetime import datetime
 import json
-from abc import abstractmethod
-from agdc.compat import ABC
+from abc import abstractmethod, ABCMeta
+from agdc.compat import with_metaclass
 import psycopg2
 
 from ..datacube import DataCube
@@ -71,7 +71,7 @@ class IngesterDataCube(DataCube):
         return self.my_args
 
 
-class AbstractIngester(ABC):
+class AbstractIngester(with_metaclass(ABCMeta)):
     """
     Partially abstract base class for ingester objects. Needs to
     be subclassed and have dataset type and format specific functions

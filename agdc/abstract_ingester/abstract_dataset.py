@@ -42,11 +42,11 @@
 from __future__ import absolute_import
 
 import re
-from abc import abstractmethod
-from agdc.compat import ABC
+from abc import abstractmethod, ABCMeta
+from agdc.compat import with_metaclass
 
 
-class AbstractDataset(ABC):
+class AbstractDataset(with_metaclass(ABCMeta)):
     """
     Abstract base class for dataset classes.
     """

@@ -38,10 +38,10 @@
 """
 from __future__ import absolute_import
 
-from abc import abstractmethod
-from agdc.compat import ABC
+from abc import abstractmethod, ABCMeta
+from agdc.compat import with_metaclass
 
-class AbstractBandstack(ABC):
+class AbstractBandstack(with_metaclass(ABCMeta)):
     """
     Abstract base class for band stack classes.
 
