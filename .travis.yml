@@ -1,6 +1,7 @@
 language: python
 python:
   - "2.7"
+sudo: true
 addons:
   apt:
     packages:
@@ -29,5 +30,5 @@ script:
     # Check for basic Python 3 incompatiblities.
     - pylint --py3k ${py_files}
 
-    # No tests are run yet.
+    - py.test agdc
 cache: apt
