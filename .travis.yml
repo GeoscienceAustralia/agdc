@@ -16,9 +16,8 @@ install:
     - export CPLUS_INCLUDE_PATH="/usr/include/gdal"
     - export C_INCLUDE_PATH="/usr/include/gdal"
     # GDAL python version must match system libgdal version.
-    - travis_retry pip install pyflakes pep8 GDAL==1.10.0 pylint
-    # No need to install requirements until we run tests.
-    #- travis_retry pip install -r requirements.txt
+    - travis_retry pip install pyflakes pytest pep8 GDAL==1.10.0 pylint
+    - travis_retry pip install -r requirements.txt
 script: 
     - pyflakes api/source/main/python/datacube
 

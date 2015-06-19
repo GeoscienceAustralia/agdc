@@ -27,7 +27,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #===============================================================================
 
-from distutils.core import setup
+from setuptools import setup, find_packages
 
 version = '1.1.1'
 
@@ -48,7 +48,7 @@ setup(name='agdc',
                  'bin/bulk_submit_interactive.sh',
                  'bin/bulk_submit_pbs.sh'
                  ],
-      requires = [
+      install_requires=[
                   'eotools',
                   'psycopg2',
                   'gdal',

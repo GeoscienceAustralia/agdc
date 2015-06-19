@@ -1,0 +1,11 @@
+--index-url https://pypi.python.org/simple/
+
+# Install eo-tools 0.4 from Github.
+-e git+https://github.com/GeoscienceAustralia/eo-tools.git@eotools-0.4#egg=eotools
+
+# Test dependencies
+pytest
+mock
+
+# Install the remaining from setup.py:
+-e .
