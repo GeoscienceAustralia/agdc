@@ -53,6 +53,7 @@ setup(name='agdc',
                   'psycopg2',
                   'gdal',
                   'numexpr',
+                  'pyephem',
                   'scipy',
                   'python-dateutil',
                   'pytz'
