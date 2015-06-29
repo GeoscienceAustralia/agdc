@@ -305,7 +305,6 @@ class Cell:
     def from_csv_record(record):
         return Cell(x_index=int(record["x_index"]), y_index=int(record["y_index"]))
 
-
     @staticmethod
     def from_db_record(record):
         return Cell(x_index=record["x_index"], y_index=record["y_index"])
@@ -433,7 +432,8 @@ def warp_file_paths(path):
 # TODO
 def parse_datetime(s):
     from datetime import datetime
-    return datetime.strptime(s[:len("YYYY-MM-DD HH:MM:SS")], "%Y-%m-%d %H:%M:%S")
+    # return datetime.strptime(s[:len("YYYY-MM-DD HH:MM:SS")], "%Y-%m-%d %H:%M:%S")
+    return datetime.strptime(s, "%Y-%m-%d %H:%M:%S.%f")
 
 
 # TODO TEMPORARY UNTIL WOFS IS AVAILABLE AS INGESTED DATA

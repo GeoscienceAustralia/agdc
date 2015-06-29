@@ -41,6 +41,7 @@ from datacube.api.utils import extract_feature_geometry_wkb
 from datacube.config import Config
 from datacube.api.model import Tile, Cell, DatasetType, Satellite
 from datetime import date
+from dateutil.relativedelta import relativedelta
 from enum import Enum
 
 
@@ -73,7 +74,7 @@ class Season(Enum):
     WINTER = "WINTER"
 
 
-# NOTE: This is specific to Australia (well potentially) and is as per the Bureau of Meteorology Climate Glossary
+# NOTE: This is specific to Australia (well potentially) and is per the Bureau of Meteorology Climate Glossary
 # http://www.bom.gov.au/climate/glossary/seasons.shtml
 
 MONTHS_BY_SEASON = {
@@ -82,6 +83,68 @@ MONTHS_BY_SEASON = {
     Season.AUTUMN: [Month.MARCH, Month.APRIL, Month.MAY],
     Season.WINTER: [Month.JUNE, Month.JULY, Month.AUGUST]
 }
+
+
+# SEASON_DATES = {
+#     Season.SUMMER: ((Month.DECEMBER, 1), (Month.FEBRUARY, 28)),
+#     Season.AUTUMN: ((Month.MARCH, 1), (Month.MAY, 31)),
+#     Season.WINTER: ((Month.JUNE, 1), (Month.AUGUST, 31)),
+#     Season.SPRING: ((Month.SEPTEMBER, 1), (Month.NOVEMBER, 30))
+# }
+
+class Quarter(Enum):
+    __order__ = "Q1 Q2 Q3 Q4"
+
+    Q1 = "Q1"
+    Q2 = "Q2"
+    Q3 = "Q3"
+    Q4 = "Q4"
+
+
+MONTHS_BY_QUARTER = {
+    Quarter.Q1: [Month.JANUARY, Month.FEBRUARY, Month.MARCH],
+    Quarter.Q2: [Month.APRIL, Month.MAY, Month.JUNE],
+    Quarter.Q3: [Month.JULY, Month.AUGUST, Month.SEPTEMBER],
+    Quarter.Q4: [Month.OCTOBER, Month.NOVEMBER, Month.DECEMBER]
+}
+
+
+# QUARTER_DATES = {
+#     Quarter.Q1: ((Month.JANUARY, 1), (Month.MARCH, 31)),
+#     Quarter.Q2: ((Month.APRIL, 1), (Month.JUNE, 30)),
+#     Quarter.Q3: ((Month.JULY, 1), (Month.SEPTEMBER, 30)),
+#     Quarter.Q4: ((Month.OCTOBER, 1), (Month.DECEMBER, 31))
+# }
+
+
+SEASONS = {
+    Season.SUMMER: ((Month.DECEMBER, 1), (Month.FEBRUARY, 31)),
+    Season.AUTUMN: ((Month.MARCH, 1), (Month.MAY, 31)),
+    Season.WINTER: ((Month.JUNE, 1), (Month.AUGUST, 31)),
+    Season.SPRING: ((Month.SEPTEMBER, 1), (Month.NOVEMBER, 31))
+}
+
+
+def build_season_date_criteria(acq_min, acq_max, season, seasons=SEASONS, extend=True):
+
+    date_criteria = []
+
+    (month_start, day_start), (month_end, day_end) = seasons[season]
+
+    for year in range(acq_min.year, acq_max.year+1):
+
+        min_dt = date(year, month_start.value, 1) + relativedelta(day=day_start)
+        max_dt = date(year, month_end.value, 1) + relativedelta(day=day_end)
+
+        if min_dt > max_dt:
+            max_dt = date(year+1, month_end.value, 1) + relativedelta(day=day_end)
+
+        date_criteria.append(DateCriteria(min_dt, max_dt))
+
+        if extend and acq_max < max_dt:
+            acq_max = max_dt
+
+    return acq_min, acq_max, date_criteria
 
 
 class TileClass(Enum):
@@ -187,19 +250,21 @@ def to_file_ify_sql(sql):
     """.format(sql=sql)
 
 
-SatelliteDateExclusion = namedtuple("SatelliteDateExclusion", "satellite acq_min acq_max")
+SatelliteDateCriteria = namedtuple("SatelliteDateCriteria", "satellite acq_min acq_max")
 
 LS7_SLC_OFF_ACQ_MIN = date(2005, 5, 31)
 LS7_SLC_OFF_ACQ_MAX = None
 
-LS7_SLC_OFF_EXCLUSION = SatelliteDateExclusion(satellite=Satellite.LS7,
-                                               acq_min=LS7_SLC_OFF_ACQ_MIN, acq_max=LS7_SLC_OFF_ACQ_MAX)
+LS7_SLC_OFF_EXCLUSION = SatelliteDateCriteria(satellite=Satellite.LS7,
+                                              acq_min=LS7_SLC_OFF_ACQ_MIN, acq_max=LS7_SLC_OFF_ACQ_MAX)
 
 LS8_PRE_WRS_2_ACQ_MIN = None
 LS8_PRE_WRS_2_ACQ_MAX = date(2013, 4, 10)
 
-LS8_PRE_WRS_2_EXCLUSION = SatelliteDateExclusion(satellite=Satellite.LS8,
-                                                 acq_min=LS8_PRE_WRS_2_ACQ_MIN, acq_max=LS8_PRE_WRS_2_ACQ_MAX)
+LS8_PRE_WRS_2_EXCLUSION = SatelliteDateCriteria(satellite=Satellite.LS8,
+                                                acq_min=LS8_PRE_WRS_2_ACQ_MIN, acq_max=LS8_PRE_WRS_2_ACQ_MAX)
+
+DateCriteria = namedtuple("DateCriteria", "acq_min acq_max")
 
 ###
 # CELLS...
@@ -207,8 +272,7 @@ LS8_PRE_WRS_2_EXCLUSION = SatelliteDateExclusion(satellite=Satellite.LS8,
 
 # Cells that we DO have
 
-def list_cells(x, y, satellites, acq_min, acq_max, dataset_types, months=None, exclude=None, sort=SortType.ASC,
-               config=None):
+def list_cells(x, y, satellites, acq_min, acq_max, dataset_types, include=None, exclude=None, sort=SortType.ASC, config=None):
 
     """
     Return a list of cells matching the criteria as a SINGLE-USE generator
@@ -228,10 +292,10 @@ def list_cells(x, y, satellites, acq_min, acq_max, dataset_types, months=None, e
     :type acq_max: datetime.datetime
     :param dataset_types: Dataset types
     :type dataset_types: list[datacube.api.model.DatasetType]
-    :param months: Month(s) of acquisition to include
-    :type months: list[datacube.api.query.Month]
-    :param exclude: Exclusions - currently supports satellite/date combinations for LS7 SLC OFF and LS8 PRE WRS 2
-    :type exclude: list[datacube.api.query.SatelliteDateExclusion]
+    :param include: Inclusions - currently supports date range and satellite/date range
+    :type include: list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]
+    :param exclude: Exclusions - currently supports date range and satellite/date range
+    :type exclude: list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]
     :param sort: Sort order
     :type sort: datacube.api.query.SortType
     :param config: Config
@@ -241,11 +305,11 @@ def list_cells(x, y, satellites, acq_min, acq_max, dataset_types, months=None, e
     :rtype: list[datacube.api.model.Cell]
     """
     return list_cells_as_generator(x=x, y=y, satellites=satellites, acq_min=acq_min, acq_max=acq_max,
-                                   dataset_types=dataset_types, months=months, exclude=exclude, sort=sort,
+                                   dataset_types=dataset_types, include=include, exclude=exclude, sort=sort,
                                    config=config)
 
 
-def list_cells_as_list(x, y, satellites, acq_min, acq_max, dataset_types, months=None, exclude=None, sort=SortType.ASC,
+def list_cells_as_list(x, y, satellites, acq_min, acq_max, dataset_types, include=None, exclude=None, sort=SortType.ASC,
                        config=None):
 
     """
@@ -263,10 +327,10 @@ def list_cells_as_list(x, y, satellites, acq_min, acq_max, dataset_types, months
     :type acq_max: datetime.datetime
     :param dataset_types: Dataset types
     :type dataset_types: list[datacube.api.model.DatasetType]
-    :param months: Month(s) of acquisition to include
-    :type months: list[datacube.api.query.Month]
-    :param exclude: Exclusions - currently supports satellite/date combinations for LS7 SLC OFF and LS8 PRE WRS 2
-    :type exclude: list[datacube.api.query.SatelliteDateExclusion]
+    :param include: Inclusions - currently supports date range and satellite/date range
+    :type include: list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]
+    :param exclude: Exclusions - currently supports date range and satellite/date range
+    :type exclude: list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]
     :param sort: Sort order
     :type sort: datacube.api.query.SortType
     :param config: Config
@@ -276,11 +340,11 @@ def list_cells_as_list(x, y, satellites, acq_min, acq_max, dataset_types, months
     :rtype: list[datacube.api.model.Cell]
     """
     return list(list_cells_as_generator(x=x, y=y, satellites=satellites, acq_min=acq_min, acq_max=acq_max,
-                                   dataset_types=dataset_types, months=months, exclude=exclude, sort=sort,
-                                   config=config))
+                                        dataset_types=dataset_types, include=include, exclude=exclude, sort=sort,
+                                        config=config))
 
 
-def list_cells_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, months=None, exclude=None,
+def list_cells_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, include=None, exclude=None,
                             sort=SortType.ASC, config=None):
 
     """
@@ -298,10 +362,10 @@ def list_cells_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, m
     :type acq_max: datetime.datetime
     :param dataset_types: Dataset types
     :type dataset_types: list[datacube.api.model.DatasetType]
-    :param months: Month(s) of acquisition to include
-    :type months: list[datacube.api.query.Month]
-    :param exclude: Exclusions - currently supports satellite/date combinations for LS7 SLC OFF and LS8 PRE WRS 2
-    :type exclude: list[datacube.api.query.SatelliteDateExclusion]
+    :param include: Inclusions - currently supports date range and satellite/date range
+    :type include: list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]
+    :param exclude: Exclusions - currently supports date range and satellite/date range
+    :type exclude: list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]
     :param sort: Sort order
     :type sort: datacube.api.query.SortType
     :param config: Config
@@ -319,7 +383,7 @@ def list_cells_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, m
         conn, cursor = connect_to_db(config=config)
 
         sql, params = build_list_cells_sql_and_params(x=x, y=y, satellites=satellites, acq_min=acq_min, acq_max=acq_max,
-                                                      dataset_types=dataset_types, months=months, exclude=exclude,
+                                                      dataset_types=dataset_types, include=include, exclude=exclude,
                                                       sort=sort)
 
         _log.debug(cursor.mogrify(sql, params))
@@ -341,7 +405,7 @@ def list_cells_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, m
         conn = cursor = None
 
 
-def list_cells_to_file(x, y, satellites, acq_min, acq_max, dataset_types, filename, months=None, exclude=None,
+def list_cells_to_file(x, y, satellites, acq_min, acq_max, dataset_types, filename, include=None, exclude=None,
                        sort=SortType.ASC, config=None):
 
     """
@@ -361,10 +425,10 @@ def list_cells_to_file(x, y, satellites, acq_min, acq_max, dataset_types, filena
     :type dataset_types: list[datacube.api.model.DatasetType]
     :param filename: The output file
     :type filename: str
-    :param months: Month(s) of acquisition to include
-    :type months: list[datacube.api.query.Month]
-    :param exclude: Exclusions - currently supports satellite/date combinations for LS7 SLC OFF and LS8 PRE WRS 2
-    :type exclude: list[datacube.api.query.SatelliteDateExclusion]
+    :param include: Inclusions - currently supports date range and satellite/date range
+    :type include: list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]
+    :param exclude: Exclusions - currently supports date range and satellite/date range
+    :type exclude: list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]
     :param sort: Sort order
     :type sort: datacube.api.query.SortType
     :param config: Config
@@ -379,10 +443,12 @@ def list_cells_to_file(x, y, satellites, acq_min, acq_max, dataset_types, filena
         conn, cursor = connect_to_db(config=config)
 
         sql, params = build_list_cells_sql_and_params(x=x, y=y, satellites=satellites, acq_min=acq_min, acq_max=acq_max,
-                                                      dataset_types=dataset_types, months=months, exclude=exclude,
+                                                      dataset_types=dataset_types, include=include, exclude=exclude,
                                                       sort=sort)
 
         sql = to_file_ify_sql(sql)
+
+        _log.debug(cursor.mogrify(sql, params))
 
         if filename:
             with open(filename, "w") as f:
@@ -401,7 +467,7 @@ def list_cells_to_file(x, y, satellites, acq_min, acq_max, dataset_types, filena
         conn = cursor = None
 
 
-def build_list_cells_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_types, months=None, exclude=None,
+def build_list_cells_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_types, include=None, exclude=None,
                                     sort=SortType.ASC):
 
     """
@@ -419,10 +485,10 @@ def build_list_cells_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_
     :type acq_max: datetime.datetime
     :param dataset_types: Dataset types
     :type dataset_types: list[datacube.api.model.DatasetType]
-    :param months: Month(s) of acquisition to include
-    :type months: list[datacube.api.query.Month]
-    :param exclude: Exclusions - currently supports satellite/date combinations for LS7 SLC OFF and LS8 PRE WRS 2
-    :type exclude: list[datacube.api.query.SatelliteDateExclusion]
+    :param include: Inclusions - currently supports date range and satellite/date range
+    :type include: list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]
+    :param exclude: Exclusions - currently supports date range and satellite/date range
+    :type exclude: list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]
     :param sort: Sort order
     :type sort: datacube.api.query.SortType
 
@@ -547,24 +613,78 @@ def build_list_cells_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_
 
             esql = ""
 
-            if type(exclusion) is SatelliteDateExclusion:
-                esql += " and (satellite.satellite_tag <> %(exclude_satellite_{0})s".format(index)
+            if type(exclusion) is DateCriteria:
+                esql += " and ("
 
                 if exclusion.acq_min and exclusion.acq_max:
-                    esql += " or end_datetime not between %(exclude_acq_min_{0})s and %(exclude_acq_min_{0})s".format(index)
+                    esql += "end_datetime::date not between %(exclude_acq_min_{0})s and %(exclude_acq_max_{0})s".format(index)
 
                 elif exclusion.acq_min:
-                    esql += " or end_datetime < %(exclude_acq_min_{0})s".format(index)
+                    esql += "end_datetime::date < %(exclude_acq_min_{0})s".format(index)
 
                 elif exclusion.acq_max:
-                    esql += " or end_datetime > %(exclude_acq_max_{0})s".format(index)
+                    esql += "end_datetime::date > %(exclude_acq_max_{0})s".format(index)
 
                 esql += ")"
 
                 sql += esql
 
-    if months:
-        sql += " and extract(month from end_datetime) = ANY(%(month)s)"
+            elif type(exclusion) is SatelliteDateCriteria:
+                esql += " and (satellite.satellite_tag <> %(exclude_satellite_{0})s".format(index)
+
+                if exclusion.acq_min and exclusion.acq_max:
+                    esql += " or end_datetime::date not between %(exclude_acq_min_{0})s and %(exclude_acq_max_{0})s".format(index)
+
+                elif exclusion.acq_min:
+                    esql += " or end_datetime::date < %(exclude_acq_min_{0})s".format(index)
+
+                elif exclusion.acq_max:
+                    esql += " or end_datetime::date > %(exclude_acq_max_{0})s".format(index)
+
+                esql += ")"
+
+                sql += esql
+
+    if include:
+        esql = ""
+
+        for index, inclusion in enumerate(include):
+
+            if type(inclusion) is DateCriteria:
+                esql += len(esql) > 0 and " or " or " "
+
+                if inclusion.acq_min and inclusion.acq_max:
+                    esql += "end_datetime::date between %(include_acq_min_{0})s and %(include_acq_max_{0})s".format(index)
+
+                elif inclusion.acq_min:
+                    esql += "end_datetime::date >= %(include_acq_min_{0})s".format(index)
+
+                elif inclusion.acq_max:
+                    esql += "end_datetime::date <= %(include_acq_max_{0})s".format(index)
+
+                # esql += ")"
+
+            # elif type(inclusion) is SatelliteDateCriteria:
+                # esql += " and (satellite.satellite_tag <> %(exclude_satellite_{0})s".format(index)
+                #
+                # if inclusion.acq_min and exclusion.acq_max:
+                #     esql += " or end_datetime not between %(exclude_acq_min_{0})s and %(exclude_acq_min_{0})s".format(index)
+                #
+                # elif inclusion.acq_min:
+                #     esql += " or end_datetime < %(exclude_acq_min_{0})s".format(index)
+                #
+                # elif inclusion.acq_max:
+                #     esql += " or end_datetime > %(exclude_acq_max_{0})s".format(index)
+                #
+                # esql += ")"
+                #
+                # sql += esql
+
+            else:
+                raise Exception("Not yet implemented")
+
+        if len(esql) > 0:
+            sql += " and (" + esql + ")"
 
     sql += """
         order by nbar.x_index {sort}, nbar.y_index {sort}
@@ -597,7 +717,15 @@ def build_list_cells_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_
 
     if exclude:
         for index, exclusion in enumerate(exclude):
-            if type(exclusion) is SatelliteDateExclusion:
+            if type(exclusion) is DateCriteria:
+
+                if exclusion.acq_min:
+                    params["exclude_acq_min_{0}".format(index)] = exclusion.acq_min
+
+                if exclusion.acq_max:
+                    params["exclude_acq_max_{0}".format(index)] = exclusion.acq_max
+
+            if type(exclusion) is SatelliteDateCriteria:
 
                 params["exclude_satellite_{0}".format(index)] = exclusion.satellite.value
 
@@ -607,8 +735,25 @@ def build_list_cells_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_
                 if exclusion.acq_max:
                     params["exclude_acq_max_{0}".format(index)] = exclusion.acq_max
 
-    if months:
-        params["month"] = [month.value for month in months]
+    if include:
+        for index, inclusion in enumerate(include):
+            if type(inclusion) is DateCriteria:
+
+                if inclusion.acq_min:
+                    params["include_acq_min_{0}".format(index)] = inclusion.acq_min
+
+                if inclusion.acq_max:
+                    params["include_acq_max_{0}".format(index)] = inclusion.acq_max
+
+            if type(inclusion) is SatelliteDateCriteria:
+
+                params["include_satellite_{0}".format(index)] = inclusion.satellite.value
+
+                if inclusion.acq_min:
+                    params["include_acq_min_{0}".format(index)] = inclusion.acq_min
+
+                if inclusion.acq_max:
+                    params["include_acq_max_{0}".format(index)] = inclusion.acq_max
 
     return sql, params
 
@@ -998,7 +1143,7 @@ def build_list_cells_missing_sql_and_params(x, y, satellites, acq_min, acq_max, 
 
 # Tiles that we DO have
 
-def list_tiles(x, y, satellites, acq_min, acq_max, dataset_types, months=None, exclude=None, sort=SortType.ASC,
+def list_tiles(x, y, satellites, acq_min, acq_max, dataset_types, include=None, exclude=None, sort=SortType.ASC,
                config=None):
 
     """
@@ -1019,10 +1164,10 @@ def list_tiles(x, y, satellites, acq_min, acq_max, dataset_types, months=None, e
     :type acq_max: datetime.datetime
     :param dataset_types: Dataset types
     :type dataset_types: list[datacube.api.model.DatasetType]
-    :param months: Month(s) of acquisition to include
-    :type months: list[datacube.api.query.Month]
-    :param exclude: Exclusions - currently supports satellite/date combinations for LS7 SLC OFF and LS8 PRE WRS 2
-    :type exclude: list[datacube.api.query.SatelliteDateExclusion]
+    :param include: Inclusions - currently supports date range and satellite/date range
+    :type include: list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]
+    :param exclude: Exclusions - currently supports date range and satellite/date range
+    :type exclude: list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]
     :param sort: Sort order
     :type sort: datacube.api.query.SortType
     :param config: Config
@@ -1033,11 +1178,11 @@ def list_tiles(x, y, satellites, acq_min, acq_max, dataset_types, months=None, e
     """
 
     return list_tiles_as_generator(x=x, y=y, satellites=satellites, acq_min=acq_min, acq_max=acq_max,
-                                   dataset_types=dataset_types, months=months, exclude=exclude, sort=sort,
+                                   dataset_types=dataset_types, include=include, exclude=exclude, sort=sort,
                                    config=config)
 
 
-def list_tiles_as_list(x, y, satellites, acq_min, acq_max, dataset_types, months=None, exclude=None, sort=SortType.ASC,
+def list_tiles_as_list(x, y, satellites, acq_min, acq_max, dataset_types, include=None, exclude=None, sort=SortType.ASC,
                        config=None):
 
     """
@@ -1055,10 +1200,10 @@ def list_tiles_as_list(x, y, satellites, acq_min, acq_max, dataset_types, months
     :type acq_max: datetime.datetime
     :param dataset_types: Dataset types
     :type dataset_types: list[datacube.api.model.DatasetType]
-    :param months: Month(s) of acquisition to include
-    :type months: list[datacube.api.query.Month]
-    :param exclude: Exclusions - currently supports satellite/date combinations for LS7 SLC OFF and LS8 PRE WRS 2
-    :type exclude: list[datacube.api.query.SatelliteDateExclusion]
+    :param include: Inclusions - currently supports date range and satellite/date range
+    :type include: list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]
+    :param exclude: Exclusions - currently supports date range and satellite/date range
+    :type exclude: list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]
     :param sort: Sort order
     :type sort: datacube.api.query.SortType
     :param config: Config
@@ -1069,11 +1214,11 @@ def list_tiles_as_list(x, y, satellites, acq_min, acq_max, dataset_types, months
     """
 
     return list(list_tiles_as_generator(x=x, y=y, satellites=satellites, acq_min=acq_min, acq_max=acq_max,
-                                        dataset_types=dataset_types, months=months, exclude=exclude, sort=sort,
+                                        dataset_types=dataset_types, include=include, exclude=exclude, sort=sort,
                                         config=config))
 
 
-def list_tiles_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, months=None, exclude=None,
+def list_tiles_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, include=None, exclude=None,
                             sort=SortType.ASC, config=None):
 
     """
@@ -1091,10 +1236,10 @@ def list_tiles_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, m
     :type acq_max: datetime.datetime
     :param dataset_types: Dataset types
     :type dataset_types: list[datacube.api.model.DatasetType]
-    :param months: Month(s) of acquisition to include
-    :type months: list[datacube.api.query.Month]
-    :param exclude: Exclusions - currently supports satellite/date combinations for LS7 SLC OFF and LS8 PRE WRS 2
-    :type exclude: list[datacube.api.query.SatelliteDateExclusion]
+    :param include: Inclusions - currently supports date range and satellite/date range
+    :type include: list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]
+    :param exclude: Exclusions - currently supports date range and satellite/date range
+    :type exclude: list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]
     :param sort: Sort order
     :type sort: datacube.api.query.SortType
     :param config: Config
@@ -1112,7 +1257,7 @@ def list_tiles_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, m
         conn, cursor = connect_to_db(config=config)
 
         sql, params = build_list_tiles_sql_and_params(x=x, y=y, satellites=satellites, acq_min=acq_min, acq_max=acq_max,
-                                                      dataset_types=dataset_types, months=months, exclude=exclude,
+                                                      dataset_types=dataset_types, include=include, exclude=exclude,
                                                       sort=sort)
 
         _log.debug(cursor.mogrify(sql, params))
@@ -1134,7 +1279,7 @@ def list_tiles_as_generator(x, y, satellites, acq_min, acq_max, dataset_types, m
         conn = cursor = None
 
 
-def list_tiles_to_file(x, y, satellites, acq_min, acq_max, dataset_types, filename, months=None, exclude=None,
+def list_tiles_to_file(x, y, satellites, acq_min, acq_max, dataset_types, filename, include=None, exclude=None,
                        sort=SortType.ASC, config=None):
 
     """
@@ -1154,10 +1299,10 @@ def list_tiles_to_file(x, y, satellites, acq_min, acq_max, dataset_types, filena
     :type dataset_types: list[datacube.api.model.DatasetType]
     :param filename: The output file
     :type filename: str
-    :param months: Month(s) of acquisition to include
-    :type months: list[datacube.api.query.Month]
-    :param exclude: Exclusions - currently supports satellite/date combinations for LS7 SLC OFF and LS8 PRE WRS 2
-    :type exclude: list[datacube.api.query.SatelliteDateExclusion]
+    :param include: Inclusions - currently supports date range and satellite/date range
+    :type include: list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]
+    :param exclude: Exclusions - currently supports date range and satellite/date range
+    :type exclude: list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]
     :param sort: Sort order
     :type sort: datacube.api.query.SortType
     :param config: Config
@@ -1172,10 +1317,12 @@ def list_tiles_to_file(x, y, satellites, acq_min, acq_max, dataset_types, filena
         conn, cursor = connect_to_db(config=config)
 
         sql, params = build_list_tiles_sql_and_params(x=x, y=y, satellites=satellites, acq_min=acq_min, acq_max=acq_max,
-                                                      dataset_types=dataset_types, months=months, exclude=exclude,
+                                                      dataset_types=dataset_types, include=include, exclude=exclude,
                                                       sort=sort)
 
         sql = to_file_ify_sql(sql)
+
+        _log.debug(cursor.mogrify(sql, params))
 
         if filename:
             with open(filename, "w") as f:
@@ -1194,7 +1341,7 @@ def list_tiles_to_file(x, y, satellites, acq_min, acq_max, dataset_types, filena
         conn = cursor = None
 
 
-def build_list_tiles_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_types, months=None, exclude=None, sort=SortType.ASC):
+def build_list_tiles_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_types, include=None, exclude=None, sort=SortType.ASC):
 
     """
     Build the SQL query string and parameters required to return the tiles matching the criteria
@@ -1211,10 +1358,10 @@ def build_list_tiles_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_
     :type acq_max: datetime.datetime
     :param dataset_types: Dataset types
     :type dataset_types: list[datacube.api.model.DatasetType]
-    :param months: Month(s) of acquisition to include
-    :type months: list[datacube.api.query.Month]
-    :param exclude: Exclusions - currently supports satellite/date combinations for LS7 SLC OFF and LS8 PRE WRS 2
-    :type exclude: list[datacube.api.query.SatelliteDateExclusion]
+    :param include: Inclusions - currently supports date range and satellite/date range
+    :type include: list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]
+    :param exclude: Exclusions - currently supports date range and satellite/date range
+    :type exclude: list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]
     :param sort: Sort order
     :type sort: datacube.api.query.SortType
 
@@ -1407,24 +1554,78 @@ def build_list_tiles_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_
 
             esql = ""
 
-            if type(exclusion) is SatelliteDateExclusion:
-                esql += " and (satellite.satellite_tag <> %(exclude_satellite_{0})s".format(index)
+            if type(exclusion) is DateCriteria:
+                esql += " and ("
 
                 if exclusion.acq_min and exclusion.acq_max:
-                    esql += " or end_datetime not between %(exclude_acq_min_{0})s and %(exclude_acq_min_{0})s".format(index)
+                    esql += "end_datetime::date not between %(exclude_acq_min_{0})s and %(exclude_acq_max_{0})s".format(index)
 
                 elif exclusion.acq_min:
-                    esql += " or end_datetime < %(exclude_acq_min_{0})s".format(index)
+                    esql += "end_datetime::date < %(exclude_acq_min_{0})s".format(index)
 
                 elif exclusion.acq_max:
-                    esql += " or end_datetime > %(exclude_acq_max_{0})s".format(index)
+                    esql += "end_datetime::date > %(exclude_acq_max_{0})s".format(index)
 
                 esql += ")"
 
                 sql += esql
 
-    if months:
-        sql += " and extract(month from end_datetime) = ANY(%(month)s)"
+            elif type(exclusion) is SatelliteDateCriteria:
+                esql += " and (satellite.satellite_tag <> %(exclude_satellite_{0})s".format(index)
+
+                if exclusion.acq_min and exclusion.acq_max:
+                    esql += " or end_datetime::date not between %(exclude_acq_min_{0})s and %(exclude_acq_max_{0})s".format(index)
+
+                elif exclusion.acq_min:
+                    esql += " or end_datetime::date < %(exclude_acq_min_{0})s".format(index)
+
+                elif exclusion.acq_max:
+                    esql += " or end_datetime::date > %(exclude_acq_max_{0})s".format(index)
+
+                esql += ")"
+
+                sql += esql
+
+    if include:
+        esql = ""
+
+        for index, inclusion in enumerate(include):
+
+            if type(inclusion) is DateCriteria:
+                esql += len(esql) > 0 and " or " or " "
+
+                if inclusion.acq_min and inclusion.acq_max:
+                    esql += "end_datetime::date between %(include_acq_min_{0})s and %(include_acq_max_{0})s".format(index)
+
+                elif inclusion.acq_min:
+                    esql += "end_datetime::date >= %(include_acq_min_{0})s".format(index)
+
+                elif inclusion.acq_max:
+                    esql += "end_datetime::date <= %(include_acq_max_{0})s".format(index)
+
+                # esql += ")"
+
+            # elif type(inclusion) is SatelliteDateCriteria:
+                # esql += " and (satellite.satellite_tag <> %(exclude_satellite_{0})s".format(index)
+                #
+                # if inclusion.acq_min and exclusion.acq_max:
+                #     esql += " or end_datetime not between %(exclude_acq_min_{0})s and %(exclude_acq_min_{0})s".format(index)
+                #
+                # elif inclusion.acq_min:
+                #     esql += " or end_datetime < %(exclude_acq_min_{0})s".format(index)
+                #
+                # elif inclusion.acq_max:
+                #     esql += " or end_datetime > %(exclude_acq_max_{0})s".format(index)
+                #
+                # esql += ")"
+                #
+                # sql += esql
+
+            else:
+                raise Exception("Not yet implemented")
+
+        if len(esql) > 0:
+            sql += " and (" + esql + ")"
 
     sql += """
         order by nbar.x_index, nbar.y_index, end_datetime {sort}, satellite asc
@@ -1457,7 +1658,15 @@ def build_list_tiles_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_
 
     if exclude:
         for index, exclusion in enumerate(exclude):
-            if type(exclusion) is SatelliteDateExclusion:
+            if type(exclusion) is DateCriteria:
+
+                if exclusion.acq_min:
+                    params["exclude_acq_min_{0}".format(index)] = exclusion.acq_min
+
+                if exclusion.acq_max:
+                    params["exclude_acq_max_{0}".format(index)] = exclusion.acq_max
+
+            elif type(exclusion) is SatelliteDateCriteria:
 
                 params["exclude_satellite_{0}".format(index)] = exclusion.satellite.value
 
@@ -1467,8 +1676,25 @@ def build_list_tiles_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_
                 if exclusion.acq_max:
                     params["exclude_acq_max_{0}".format(index)] = exclusion.acq_max
 
-    if months:
-        params["month"] = [month.value for month in months]
+    if include:
+        for index, inclusion in enumerate(include):
+            if type(inclusion) is DateCriteria:
+
+                if inclusion.acq_min:
+                    params["include_acq_min_{0}".format(index)] = inclusion.acq_min
+
+                if inclusion.acq_max:
+                    params["include_acq_max_{0}".format(index)] = inclusion.acq_max
+
+            elif type(inclusion) is SatelliteDateCriteria:
+
+                params["include_satellite_{0}".format(index)] = inclusion.satellite.value
+
+                if exclusion.acq_min:
+                    params["include_acq_min_{0}".format(index)] = inclusion.acq_min
+
+                if exclusion.acq_max:
+                    params["include_acq_max_{0}".format(index)] = inclusion.acq_max
 
     return sql, params
 
@@ -2222,7 +2448,8 @@ def result_generator(cursor, size=100):
 
 # CELL
 
-def list_cells_vector_file(vector_file, vector_layer, vector_feature, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
+def list_cells_vector_file(vector_file, vector_layer, vector_feature, satellites, acq_min, acq_max, dataset_types,
+                           months=None, exclude=None, sort=SortType.ASC, config=None):
 
     """
     Return a list of cells matching the criteria as a SINGLE-USE generator
@@ -2244,6 +2471,10 @@ def list_cells_vector_file(vector_file, vector_layer, vector_feature, satellites
     :type acq_max: datetime.datetime
     :param dataset_types: Dataset types
     :type dataset_types: list[datacube.api.model.DatasetType]
+    :param months: Month(s) of acquisition to include
+    :type months: list[datacube.api.query.Month]
+    :param exclude: Exclusions - currently supports satellite/date combinations for LS7 SLC OFF and LS8 PRE WRS 2
+    :type exclude: list[datacube.api.query.SatelliteDateExclusion]
     :param sort: Sort order
     :type sort: datacube.api.query.SortType
     :param config: Config
@@ -2252,10 +2483,14 @@ def list_cells_vector_file(vector_file, vector_layer, vector_feature, satellites
     :return: List of cells
     :rtype: list[datacube.api.model.Cell]
     """
-    return list_cells_vector_file_as_generator(vector_file, vector_layer, vector_feature, satellites, acq_min, acq_max, dataset_types, sort, config)
+    return list_cells_vector_file_as_generator(vector_file=vector_file, vector_layer=vector_layer,
+                                               vector_feature=vector_feature, satellites=satellites,
+                                               acq_min=acq_min, acq_max=acq_max, dataset_types=dataset_types,
+                                               months=months, exclude=exclude, sort=sort, config=config)
 
 
-def list_cells_vector_file_as_list(vector_file, vector_layer, vector_feature, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
+def list_cells_vector_file_as_list(vector_file, vector_layer, vector_feature, satellites, acq_min, acq_max,
+                                   dataset_types, months=None, exclude=None, sort=SortType.ASC, config=None):
 
     """
     Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
@@ -2274,6 +2509,10 @@ def list_cells_vector_file_as_list(vector_file, vector_layer, vector_feature, sa
     :type acq_max: datetime.datetime
     :param dataset_types: Dataset types
     :type dataset_types: list[datacube.api.model.DatasetType]
+    :param months: Month(s) of acquisition to include
+    :type months: list[datacube.api.query.Month]
+    :param exclude: Exclusions - currently supports satellite/date combinations for LS7 SLC OFF and LS8 PRE WRS 2
+    :type exclude: list[datacube.api.query.SatelliteDateExclusion]
     :param sort: Sort order
     :type sort: datacube.api.query.SortType
     :param config: Config
@@ -2282,10 +2521,14 @@ def list_cells_vector_file_as_list(vector_file, vector_layer, vector_feature, sa
     :return: List of cells
     :rtype: list[datacube.api.model.Cell]
     """
-    return list(list_cells_vector_file_as_generator(vector_file, vector_layer, vector_feature, satellites, acq_min, acq_max, dataset_types, sort, config))
+    return list(list_cells_vector_file_as_generator(vector_file=vector_file, vector_layer=vector_layer,
+                                                    vector_feature=vector_feature, satellites=satellites,
+                                                    acq_min=acq_min, acq_max=acq_max, dataset_types=dataset_types,
+                                                    months=months, exclude=exclude, sort=sort, config=config))
 
 
-def list_cells_vector_file_as_generator(vector_file, vector_layer, vector_feature, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
+def list_cells_vector_file_as_generator(vector_file, vector_layer, vector_feature, satellites, acq_min, acq_max,
+                                        dataset_types, months=None, exclude=None, sort=SortType.ASC, config=None):
 
     """
     Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
@@ -2304,6 +2547,10 @@ def list_cells_vector_file_as_generator(vector_file, vector_layer, vector_featur
     :type acq_max: datetime.datetime
     :param dataset_types: Dataset types
     :type dataset_types: list[datacube.api.model.DatasetType]
+    :param months: Month(s) of acquisition to include
+    :type months: list[datacube.api.query.Month]
+    :param exclude: Exclusions - currently supports satellite/date combinations for LS7 SLC OFF and LS8 PRE WRS 2
+    :type exclude: list[datacube.api.query.SatelliteDateExclusion]
     :param sort: Sort order
     :type sort: datacube.api.query.SortType
     :param config: Config
@@ -2313,11 +2560,58 @@ def list_cells_vector_file_as_generator(vector_file, vector_layer, vector_featur
     :rtype: list[datacube.api.model.Cell]
     """
 
-    return list_cells_wkb_as_generator(extract_feature_geometry_wkb(vector_file, vector_layer, vector_feature),
-                                       satellites, acq_min, acq_max, dataset_types, sort, config)
+    return list_cells_wkb_as_generator(extract_feature_geometry_wkb(vector_file=vector_file, vector_layer=vector_layer, vector_feature=vector_feature),
+                                       satellites=satellites, acq_min=acq_min, acq_max=acq_max,
+                                       dataset_types=dataset_types,
+                                       months=months, exclude=exclude, sort=sort, config=config)
 
 
-def list_cells_wkb(wkb, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
+def list_cells_vector_file_to_file(vector_file, vector_layer, vector_feature, satellites, acq_min, acq_max,
+                                   dataset_types, filename, months=None, exclude=None, sort=SortType.ASC, config=None):
+
+    """
+    Return a list of cells matching the criteria as a SINGLE-USE generator
+
+    .. warning::
+        Deprecated: use either datacube.api.query.list_cells_wkb_as_list() or datacube.api.query.list_cells_wkb_as_generator()
+
+    :param vector_file: Vector (ESRI Shapefile, KML, ...) file containing the shape
+    :type vector_file: str
+    :param vector_layer: Layer (0 based index) within the vector file
+    :type vector_layer: int
+    :param vector_feature: Feature (0 based index) within the layer
+    :type vector_feature: int
+    :param satellites: Satellites
+    :type satellites: list[datacube.api.model.Satellite]
+    :param acq_min: Acquisition date range
+    :type acq_min: datetime.datetime
+    :param acq_max: Acquisition date range
+    :type acq_max: datetime.datetime
+    :param dataset_types: Dataset types
+    :type dataset_types: list[datacube.api.model.DatasetType]
+    :param filename: The output file
+    :type filename: str
+    :param months: Month(s) of acquisition to include
+    :type months: list[datacube.api.query.Month]
+    :param exclude: Exclusions - currently supports satellite/date combinations for LS7 SLC OFF and LS8 PRE WRS 2
+    :type exclude: list[datacube.api.query.SatelliteDateExclusion]
+    :param sort: Sort order
+    :type sort: datacube.api.query.SortType
+    :param config: Config
+    :type config: datacube.config.Config
+
+    :return: List of cells
+    :rtype: list[datacube.api.model.Cell]
+    """
+
+    list_cells_wkb_to_file(
+        extract_feature_geometry_wkb(vector_file=vector_file, vector_layer=vector_layer, vector_feature=vector_feature),
+        satellites=satellites, acq_min=acq_min, acq_max=acq_max,
+        dataset_types=dataset_types, filename=filename,
+        months=months, exclude=exclude, sort=sort, config=config)
+
+
+def list_cells_wkb(wkb, satellites, acq_min, acq_max, dataset_types, months=None, sort=SortType.ASC, config=None):
 
     """
     Return a list of cells matching the criteria as a SINGLE-USE generator
@@ -2346,7 +2640,8 @@ def list_cells_wkb(wkb, satellites, acq_min, acq_max, dataset_types, sort=SortTy
     return list_cells_wkb_as_generator(wkb, satellites, acq_min, acq_max, dataset_types, sort, config)
 
 
-def list_cells_wkb_as_list(wkb, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
+def list_cells_wkb_as_list(wkb, satellites, acq_min, acq_max, dataset_types, months=None, exclude=None,
+                           sort=SortType.ASC, config=None):
 
     """
     Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator
@@ -2361,6 +2656,10 @@ def list_cells_wkb_as_list(wkb, satellites, acq_min, acq_max, dataset_types, sor
     :type acq_max: datetime.datetime
     :param dataset_types: Dataset types
     :type dataset_types: list[datacube.api.model.DatasetType]
+    :param months: Month(s) of acquisition to include
+    :type months: list[datacube.api.query.Month]
+    :param exclude: Exclusions - currently supports satellite/date combinations for LS7 SLC OFF and LS8 PRE WRS 2
+    :type exclude: list[datacube.api.query.SatelliteDateExclusion]
     :param sort: Sort order
     :type sort: datacube.api.query.SortType
     :param config: Config
@@ -2369,10 +2668,13 @@ def list_cells_wkb_as_list(wkb, satellites, acq_min, acq_max, dataset_types, sor
     :return: List of cells
     :rtype: list[datacube.api.model.Cell]
     """
-    return list(list_cells_wkb_as_generator(wkb, satellites, acq_min, acq_max, dataset_types, sort, config))
+    return list(list_cells_wkb_as_generator(wkb=wkb, satellites=satellites, acq_min=acq_min, acq_max=acq_max,
+                                            dataset_types=dataset_types, months=months, exclude=exclude,
+                                            sort=sort, config=config))
 
 
-def list_cells_wkb_as_generator(wkb, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC, config=None):
+def list_cells_wkb_as_generator(wkb, satellites, acq_min, acq_max, dataset_types, months=None, exclude=None,
+                                sort=SortType.ASC, config=None):
 
     """
     Return a list of cells matching the criteria as a SINGLE-USE generator
@@ -2387,6 +2689,10 @@ def list_cells_wkb_as_generator(wkb, satellites, acq_min, acq_max, dataset_types
     :type acq_max: datetime.datetime
     :param dataset_types: Dataset types
     :type dataset_types: list[datacube.api.model.DatasetType]
+    :param months: Month(s) of acquisition to include
+    :type months: list[datacube.api.query.Month]
+    :param exclude: Exclusions - currently supports satellite/date combinations for LS7 SLC OFF and LS8 PRE WRS 2
+    :type exclude: list[datacube.api.query.SatelliteDateExclusion]
     :param sort: Sort order
     :type sort: datacube.api.query.SortType
     :param config: Config
@@ -2403,7 +2709,9 @@ def list_cells_wkb_as_generator(wkb, satellites, acq_min, acq_max, dataset_types
 
         conn, cursor = connect_to_db(config=config)
 
-        sql, params = build_list_cells_wkb_sql_and_params(wkb, satellites, acq_min, acq_max, dataset_types, sort)
+        sql, params = build_list_cells_wkb_sql_and_params(wkb=wkb, satellites=satellites, acq_min=acq_min,
+                                                          acq_max=acq_max, dataset_types=dataset_types,
+                                                          months=months, exclude=exclude, sort=sort)
 
         _log.debug(cursor.mogrify(sql, params))
 
@@ -2424,7 +2732,8 @@ def list_cells_wkb_as_generator(wkb, satellites, acq_min, acq_max, dataset_types
         conn = cursor = None
 
 
-def list_cells_wkb_to_file(wkb, satellites, acq_min, acq_max, dataset_types, filename, sort=SortType.ASC, config=None):
+def list_cells_wkb_to_file(wkb, satellites, acq_min, acq_max, dataset_types, filename, months=None, exclude=None,
+                           sort=SortType.ASC, config=None):
 
     """
     Write the list of cells matching the criteria to the specified file
@@ -2441,6 +2750,10 @@ def list_cells_wkb_to_file(wkb, satellites, acq_min, acq_max, dataset_types, fil
     :type dataset_types: list[datacube.api.model.DatasetType]
     :param filename: The output file
     :type filename: str
+    :param months: Month(s) of acquisition to include
+    :type months: list[datacube.api.query.Month]
+    :param exclude: Exclusions - currently supports satellite/date combinations for LS7 SLC OFF and LS8 PRE WRS 2
+    :type exclude: list[datacube.api.query.SatelliteDateExclusion]
     :param sort: Sort order
     :type sort: datacube.api.query.SortType
     :param config: Config
@@ -2454,7 +2767,10 @@ def list_cells_wkb_to_file(wkb, satellites, acq_min, acq_max, dataset_types, fil
 
         conn, cursor = connect_to_db(config=config)
 
-        sql, params = build_list_cells_wkb_sql_and_params(wkb, satellites, acq_min, acq_max, dataset_types, sort)
+        sql, params = build_list_cells_wkb_sql_and_params(wkb=wkb, satellites=satellites,
+                                                          acq_min=acq_min, acq_max=acq_max,
+                                                          dataset_types=dataset_types,
+                                                          months=months, exclude=exclude, sort=sort)
 
         sql = to_file_ify_sql(sql)
 
@@ -2475,7 +2791,8 @@ def list_cells_wkb_to_file(wkb, satellites, acq_min, acq_max, dataset_types, fil
         conn = cursor = None
 
 
-def build_list_cells_wkb_sql_and_params(wkb, satellites, acq_min, acq_max, dataset_types, sort=SortType.ASC):
+def build_list_cells_wkb_sql_and_params(wkb, satellites, acq_min, acq_max, dataset_types, months=None, exclude=None,
+                                        sort=SortType.ASC):
 
     """
     Build the SQL query string and parameters required to return the cells matching the criteria
@@ -2490,6 +2807,10 @@ def build_list_cells_wkb_sql_and_params(wkb, satellites, acq_min, acq_max, datas
     :type acq_max: datetime.datetime
     :param dataset_types: Dataset types
     :type dataset_types: list[datacube.api.model.DatasetType]
+    :param months: Month(s) of acquisition to include
+    :type months: list[datacube.api.query.Month]
+    :param exclude: Exclusions - currently supports satellite/date combinations for LS7 SLC OFF and LS8 PRE WRS 2
+    :type exclude: list[datacube.api.query.SatelliteDateExclusion]
     :param sort: Sort order
     :type sort: datacube.api.query.SortType
 
@@ -2605,6 +2926,30 @@ def build_list_cells_wkb_sql_and_params(wkb, satellites, acq_min, acq_max, datas
                 and dem_s.tile_type_id=nbar.tile_type_id and dem_s.tile_class_id=nbar.tile_class_id
         """
 
+    if exclude:
+        for index, exclusion in enumerate(exclude):
+
+            esql = ""
+
+            if type(exclusion) is SatelliteDateCriteria:
+                esql += " and (satellite.satellite_tag <> %(exclude_satellite_{0})s".format(index)
+
+                if exclusion.acq_min and exclusion.acq_max:
+                    esql += " or end_datetime not between %(exclude_acq_min_{0})s and %(exclude_acq_min_{0})s".format(index)
+
+                elif exclusion.acq_min:
+                    esql += " or end_datetime < %(exclude_acq_min_{0})s".format(index)
+
+                elif exclusion.acq_max:
+                    esql += " or end_datetime > %(exclude_acq_max_{0})s".format(index)
+
+                esql += ")"
+
+                sql += esql
+
+    if months:
+        sql += " and extract(month from end_datetime) = ANY(%(month)s)"
+
     sql += """
         where
             nbar.tile_type_id = ANY(%(tile_type)s) and nbar.tile_class_id = ANY(%(tile_class)s) -- mandatory
@@ -2641,6 +2986,21 @@ def build_list_cells_wkb_sql_and_params(wkb, satellites, acq_min, acq_max, datas
 
     if DatasetType.DEM_SMOOTHED in dataset_types:
         params["level_dem_s"] = ProcessingLevel.DEM_S.value
+
+    if exclude:
+        for index, exclusion in enumerate(exclude):
+            if type(exclusion) is SatelliteDateCriteria:
+
+                params["exclude_satellite_{0}".format(index)] = exclusion.satellite.value
+
+                if exclusion.acq_min:
+                    params["exclude_acq_min_{0}".format(index)] = exclusion.acq_min
+
+                if exclusion.acq_max:
+                    params["exclude_acq_max_{0}".format(index)] = exclusion.acq_max
+
+    if months:
+        params["month"] = [month.value for month in months]
 
     return sql, params
 

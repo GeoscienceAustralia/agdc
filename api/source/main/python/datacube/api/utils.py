@@ -115,25 +115,35 @@ BYTE_MAX = numpy.iinfo(numpy.ubyte).max
 NAN = numpy.nan
 
 
-def empty_array(shape, dtype=numpy.int16, ndv=-999):
+class PercentileInterpolation(Enum):
+    __order__ = "LINEAR LOWER HIGHER NEAREST MIDPOINT"
+
+    LINEAR = "linear"
+    LOWER = "lower"
+    HIGHER = "higher"
+    NEAREST = "nearest"
+    MIDPOINT = "midpoint"
+
+
+def empty_array(shape, dtype=numpy.int16, fill=-999):
 
     """
     Return an empty (i.e. filled with the no data value) array of the given shape and data type
 
     :param shape: shape of the array
     :param dtype: data type of the array (defaults to int32)
-    :param ndv: no data value (defaults to -999)
+    :param fill: no data value (defaults to -999)
     :return: array
     """
 
     a = None
 
-    if ndv == 0:
+    if fill == 0:
         a = numpy.zeros(shape=shape, dtype=dtype)
 
     else:
         a = numpy.empty(shape=shape, dtype=dtype)
-        a.fill(ndv)
+        a.fill(fill)
 
     return a
 
@@ -515,6 +525,48 @@ def get_mask_vector_for_cell(x, y, vector_file, vector_layer, vector_feature, wi
 
     _log.debug("Read [%s] from memory AOI mask dataset", numpy.shape(data))
     return numpy.ma.masked_not_equal(data, 1, copy=False).mask
+
+
+def get_dataset_data_stack(tiles, dataset_type, band_name, x=0, y=0, x_size=None, y_size=None, ndv=None,
+                           mask_pqa_apply=False, mask_pqa_mask=None):
+
+        stack = list()
+
+        for tile in tiles:
+
+            dataset = tile.datasets[dataset_type]
+            assert dataset
+
+            band = dataset.bands[band_name]
+            assert band
+
+            if not ndv:
+                ndv = get_dataset_ndv(dataset)
+
+            pqa = (mask_pqa_apply and DatasetType.PQ25 in tile.datasets) and tile.datasets[DatasetType.PQ25] or None
+
+            if dataset_type not in tile.datasets:
+                _log.debug("No [%s] dataset present for [%s] - skipping", dataset_type.name, tile.end_datetime)
+                continue
+
+            log_mem("Before get data")
+
+            mask = None
+
+            if pqa:
+                mask = get_mask_pqa(pqa, mask_pqa_mask, mask=mask, x=x, y=y, x_size=x_size, y_size=y_size)
+
+            data = get_dataset_data_masked(dataset, bands=[band], mask=mask, ndv=ndv, x=x, y=y, x_size=x_size, y_size=y_size)
+
+            log_mem("After get data")
+
+            stack.append(data[band])
+
+            del data, pqa
+
+            log_mem("After adding data to stack and deleting it")
+
+        return stack
 
 
 # TODO generalise/refactor this!!!
@@ -1162,6 +1214,10 @@ def get_dataset_band_stack_filename(dataset, band, output_format=OutputFormat.GE
 
 
 def get_dataset_datatype(dataset):
+    return get_dataset_type_datatype(dataset.dataset_type)
+
+
+def get_dataset_type_datatype(dataset_type):
     return {
         DatasetType.ARG25: gdalconst.GDT_Int16,
         DatasetType.PQ25: gdalconst.GDT_Int16,
@@ -1172,10 +1228,14 @@ def get_dataset_datatype(dataset):
         DatasetType.NBR: gdalconst.GDT_Float32,
         DatasetType.TCI: gdalconst.GDT_Float32,
         DatasetType.DSM: gdalconst.GDT_Int16
-    }[dataset.dataset_type]
+    }[dataset_type]
 
 
 def get_dataset_ndv(dataset):
+    return get_dataset_type_ndv(dataset.dataset_type)
+
+
+def get_dataset_type_ndv(dataset_type):
     return {
         DatasetType.ARG25: NDV,
         DatasetType.PQ25: UINT16_MAX,
@@ -1186,7 +1246,7 @@ def get_dataset_ndv(dataset):
         DatasetType.NBR: NAN,
         DatasetType.TCI: NAN,
         DatasetType.DSM: NDV
-    }[dataset.dataset_type]
+    }[dataset_type]
 
 
 def get_band_name_union(dataset_type, satellites):
@@ -1214,19 +1274,15 @@ def get_band_name_intersection(dataset_type, satellites):
 
 
 def format_date(d):
-    from datetime import datetime
-
     if d:
-        return datetime.strftime(d, "%Y_%m_%d")
+        return d.strftime("%Y_%m_%d")
 
     return None
 
 
 def format_date_time(d):
-    from datetime import datetime
-
     if d:
-        return datetime.strftime(d, "%Y_%m_%d_%H_%M_%S")
+        return d.strftime("%Y_%m_%d_%H_%M_%S")
 
     return None
 
@@ -1236,6 +1292,8 @@ def extract_feature_geometry_wkb(vector_file, vector_layer=0, vector_feature=0, 
     import ogr
     import osr
     from gdalconst import GA_ReadOnly
+
+    print "extracting feature geometry ", vector_file, vector_layer, vector_feature
 
     vector = ogr.Open(vector_file, GA_ReadOnly)
     assert vector
@@ -1257,3 +1315,159 @@ def extract_feature_geometry_wkb(vector_file, vector_layer=0, vector_feature=0, 
         geom.TransformTo(projection)
 
     return geom.ExportToWkb()
+
+
+def maskify_stack(stack, ndv=NDV):
+
+    return numpy.ma.masked_equal(stack, ndv, copy=False)
+
+
+def calculate_stack_statistic_count(stack, ndv=NDV, dtype=numpy.int16):
+
+    stack = maskify_stack(stack=stack, ndv=ndv)
+
+    stack_depth, stack_size_y, stack_size_x = numpy.shape(stack)
+
+    stat = empty_array((stack_size_y, stack_size_x), dtype=dtype, fill=stack_depth)
+    stat = numpy.ndarray.astype(stat, dtype=dtype, copy=False)
+
+    _log.debug("count is [%s]\n%s", numpy.shape(stat), stat)
+
+    return stat
+
+
+def calculate_stack_statistic_count_observed(stack, ndv=NDV, dtype=numpy.int16):
+
+    stack = maskify_stack(stack=stack, ndv=ndv)
+
+    stat = stack.count(axis=0)
+    stat = numpy.ndarray.astype(stat, dtype=dtype, copy=False)
+
+    _log.debug("count observed is [%s]\n%s", numpy.shape(stat), stat)
+
+    return stat
+
+
+def calculate_stack_statistic_min(stack, ndv=NDV, dtype=numpy.int16):
+
+    stack = maskify_stack(stack=stack, ndv=ndv)
+
+    stat = numpy.min(stack, axis=0).filled(ndv)
+    stat = numpy.ndarray.astype(stat, dtype=dtype, copy=False)
+
+    _log.debug("min is [%s]\n%s", numpy.shape(stat), stat)
+
+    return stat
+
+
+def calculate_stack_statistic_max(stack, ndv=NDV, dtype=numpy.int16):
+
+    stack = maskify_stack(stack=stack, ndv=ndv)
+
+    stat = numpy.max(stack, axis=0).filled(ndv)
+    stat = numpy.ndarray.astype(stat, dtype=dtype, copy=False)
+
+    _log.debug("max is [%s]\n%s", numpy.shape(stat), stat)
+
+    return stat
+
+
+
+def calculate_stack_statistic_mean(stack, ndv=NDV, dtype=numpy.int16):
+
+    stack = maskify_stack(stack=stack, ndv=ndv)
+
+    stat = numpy.mean(stack, axis=0).filled(ndv)
+    stat = numpy.ndarray.astype(stat, dtype=dtype, copy=False)
+
+    _log.debug("max is [%s]\n%s", numpy.shape(stat), stat)
+
+    return stat
+
+
+def calculate_stack_statistic_percentile(stack, percentile, interpolation=PercentileInterpolation.NEAREST, ndv=NDV, dtype=numpy.int16):
+
+    stack = maskify_stack(stack=stack, ndv=ndv)
+
+    # numpy (1.9.2) currently doesn't have masked version of percentile so convert to float and use nanpercentile
+
+    stack = numpy.ndarray.astype(stack, dtype=numpy.float16, copy=False).filled(numpy.nan)
+
+    stat = numpy.nanpercentile(stack, percentile, axis=0, interpolation=interpolation.value)
+    stat = numpy.ma.masked_invalid(stat, copy=False)
+    stat = numpy.ndarray.astype(stat, dtype=dtype, copy=False).filled(ndv)
+
+    _log.debug("max is [%s]\n%s", numpy.shape(stat), stat)
+
+    return stat
+
+def get_mask_aoi_cell(vector_file, vector_layer, vector_feature, x, y, width=4000, height=4000, epsg=4326):
+
+    import gdal
+    import osr
+
+    driver = gdal.GetDriverByName("MEM")
+    assert driver
+
+    raster = driver.Create("", width, height, 1, gdal.GDT_Byte)
+    assert raster
+
+    raster.SetGeoTransform((x, 0.00025, 0.0, y+1, 0.0, -0.00025))
+
+    srs = osr.SpatialReference()
+    srs.ImportFromEPSG(epsg)
+
+    raster.SetProjection(srs.ExportToWkt())
+
+    import ogr
+    from gdalconst import GA_ReadOnly
+
+    vector = ogr.Open(vector_file, GA_ReadOnly)
+    assert vector
+
+    layer = vector.GetLayer(vector_layer)
+    assert layer
+
+    # Transform if required
+
+    feature = layer.GetFeature(vector_feature)
+    assert feature
+
+    projection = osr.SpatialReference()
+    projection.ImportFromEPSG(epsg)
+
+    geom = feature.GetGeometryRef()
+
+    if not projection.IsSame(geom.GetSpatialReference()):
+        geom.TransformTo(projection)
+
+    layer.SetAttributeFilter("FID={fid}".format(fid=vector_feature))
+
+    gdal.RasterizeLayer(raster, [1], layer, burn_values=[1])
+
+    del layer
+
+    band = raster.GetRasterBand(1)
+    assert band
+
+    data = band.ReadAsArray()
+    import numpy
+
+    _log.debug("Read [%s] from memory AOI mask dataset", numpy.shape(data))
+    return numpy.ma.masked_not_equal(data, 1, copy=False).mask
+
+
+def grand_mean(means):
+
+    cumulative_mean = 0
+    cumulative_count = 0
+
+    for (mean, count) in means:
+        cumulative_mean = cumulative_mean * cumulative_count / (cumulative_count + count) + mean * count / (cumulative_count + count)
+        cumulative_count += count
+
+    return cumulative_mean
+
+
+def combine_means(mean1, count1, mean2, count2):
+    return mean1 * count1 / (count1 + count2) + mean2 * count2 / (count1 + count2)

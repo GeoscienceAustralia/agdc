@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/bin/bash
 
 # ===============================================================================
 # Copyright (c)  2014 Geoscience Australia
@@ -25,37 +25,51 @@
 # ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-# ===============================================================================
+#===============================================================================
 
+PBS_SCRIPT="$HOME/source/agdc/agdc-api/api/source/main/python/datacube/api/workflow/band_stack_arg25.pbs.sh"
 
-__author__ = "Simon Oldfield"
+OUTPUT_DIR="/g/data/u46/sjo/testing/arg25_stack_3"
 
+qsub -v outputdir=${OUTPUT_DIR},xmin=140,xmax=140,ymin=-36,ymax=-36 ${PBS_SCRIPT}
 
-from setuptools import setup
+# Lower Darling
 
+## 2006 - 2009
+#
+#for x in {140..145}
+#do
+#    for y in {-36..-30}
+#    do
+#        qsub -v outputdir=${OUTPUT_DIR}/2006-2009,xmin=$x,xmax=$x,ymin=$y,ymax=$y,acqmin=2006,acqmax=2009 ${PBS_SCRIPT}
+#    done
+#done
+#
+## 2010 - 2012
+#
+#for x in {140..145}
+#do
+#    for y in {-36..-30}
+#    do
+#        qsub -v outputdir=${OUTPUT_DIR}/2010-2012,xmin=$x,xmax=$x,ymin=$y,ymax=$y,acqmin=2010,acqmax=2012 ${PBS_SCRIPT}
+#    done
+#done
 
-setup(name="agdc-api",
-      version="0.1.0-b20150625-DEWNR",
-      package_dir={"": "source/main/python", "test": "source/test/python"},
-      packages=["datacube", "datacube.api", "datacube.api.tool", "datacube.api.workflow"],
-      scripts=[
-          # Tools
-          "source/main/python/datacube/api/tool/retrieve_aoi_time_series.py",
-          "source/main/python/datacube/api/tool/retrieve_dataset.py",
-          "source/main/python/datacube/api/tool/retrieve_dataset_stack.py",
-          "source/main/python/datacube/api/tool/retrieve_pixel_time_series.py",
-          "source/main/python/datacube/api/tool/band_statistics_arg25_validator.py",
+# 2006 - 2009
 
-          # Workflows
-          "source/main/python/datacube/api/workflow/band_stack.py",
-          "source/main/python/datacube/api/workflow/band_stack_arg25.py",
-          "source/main/python/datacube/api/workflow/band_statistics_arg25.py",
-          "source/main/python/datacube/api/workflow/band_statistics_arg25.pbs.sh",
-          "source/main/python/datacube/api/workflow/band_statistics_arg25.pbs.submit.sh",
-      ],
-      author="Geoscience Australia",
-      maintainer="Geoscience Australia",
-      description="AGDC API",
-      license="BSD 3",
-      requires=["gdal", "numpy", "scipy", "psycopg2", "enum34", "psutil", "pythondateutil"]
-)
+#for x in {140..145}
+#do
+#    for y in {-36..-30}
+#    do
+#        qsub -v outputdir=${OUTPUT_DIR}/2006-2012,xmin=$x,xmax=$x,ymin=$y,ymax=$y,acqmin=2006,acqmax=2012 ${PBS_SCRIPT}
+#    done
+#done
+
+#Ord
+#
+#qsub -v outputdir="${OUTPUT_DIR}/ord",xmin=127,xmax=130,ymin=-18,ymax=-14,acqmin=2006,acqmax=2013 "${PBS_SCRIPT}"
+#
+#TODO
+#qsub -v outputdir="${OUTPUT_DIR}/ord",xmin=127,xmax=130,ymin=-18,ymax=-14,acqmin=2006,acqmax=2013 "${PBS_SCRIPT}" # --month 11 12 1 2 3
+#qsub -v outputdir="${OUTPUT_DIR}/ord",xmin=127,xmax=130,ymin=-18,ymax=-14,acqmin=2006,acqmax=2013 "${PBS_SCRIPT}" # --month 4 5 6 7 8 9 10
+

@@ -218,6 +218,9 @@ class Task(luigi.Task):
 
     __metaclass__ = abc.ABCMeta
 
+    # TODO this checks both outputs and sub-tasks - don't necessarily want to do both all the time?
+    # That is, if all outputs are there do we care about the dependent tasks?
+
     def complete(self):
         from luigi.task import flatten
 

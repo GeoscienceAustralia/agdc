@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/bin/bash
 
 # ===============================================================================
 # Copyright (c)  2014 Geoscience Australia
@@ -25,37 +25,30 @@
 # ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-# ===============================================================================
+#===============================================================================
 
+PBS_SCRIPT="$HOME/source/agdc/agdc-api/api/source/main/python/datacube/api/workflow/band_statistics_arg25.pbs.sh"
 
-__author__ = "Simon Oldfield"
+if [ $# -lt 5 ]
+then
+    echo "Usage is $0 <x min> <x max> <y min> <y max> <output directory>"
+    exit -1
+fi
 
+xmin=$1
+xmax=$2
 
-from setuptools import setup
+ymin=$3
+ymax=$4
 
+outputdir="$5"
 
-setup(name="agdc-api",
-      version="0.1.0-b20150625-DEWNR",
-      package_dir={"": "source/main/python", "test": "source/test/python"},
-      packages=["datacube", "datacube.api", "datacube.api.tool", "datacube.api.workflow"],
-      scripts=[
-          # Tools
-          "source/main/python/datacube/api/tool/retrieve_aoi_time_series.py",
-          "source/main/python/datacube/api/tool/retrieve_dataset.py",
-          "source/main/python/datacube/api/tool/retrieve_dataset_stack.py",
-          "source/main/python/datacube/api/tool/retrieve_pixel_time_series.py",
-          "source/main/python/datacube/api/tool/band_statistics_arg25_validator.py",
+echo "Submitting jobs for x=[$xmin to $xmax] y=[$ymin to $ymax] to output directory $outputdir..."
 
-          # Workflows
-          "source/main/python/datacube/api/workflow/band_stack.py",
-          "source/main/python/datacube/api/workflow/band_stack_arg25.py",
-          "source/main/python/datacube/api/workflow/band_statistics_arg25.py",
-          "source/main/python/datacube/api/workflow/band_statistics_arg25.pbs.sh",
-          "source/main/python/datacube/api/workflow/band_statistics_arg25.pbs.submit.sh",
-      ],
-      author="Geoscience Australia",
-      maintainer="Geoscience Australia",
-      description="AGDC API",
-      license="BSD 3",
-      requires=["gdal", "numpy", "scipy", "psycopg2", "enum34", "psutil", "pythondateutil"]
-)
+for x in $(seq $xmin $xmax)
+do
+    for y in $(seq $ymin $ymax)
+    do
+        qsub -v outputdir=$outputdir,xmin=$x,xmax=$x,ymin=$y,ymax=$y ${PBS_SCRIPT}
+    done
+done

@@ -24,7 +24,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ===============================================================================
-from datacube.api.query import Month
+
 
 __author__ = "Simon Oldfield"
 
@@ -33,7 +33,9 @@ import argparse
 import logging
 import os
 from datacube.api.model import Satellite, DatasetType
+from datacube.api.query import Month, Season
 from datacube.api.utils import PqaMask, WofsMask, OutputFormat
+from enum import Enum
 
 
 _log = logging.getLogger()
@@ -67,6 +69,18 @@ def dataset_type_arg(s):
     if s in [t.name for t in DatasetType]:
         return DatasetType[s]
     raise argparse.ArgumentTypeError("{0} is not a supported dataset type".format(s))
+
+
+def statistic_arg(s):
+    if s in [t.name for t in Statistic]:
+        return Statistic[s]
+    raise argparse.ArgumentTypeError("{0} is not a supported statistic".format(s))
+
+
+def season_arg(s):
+    if s in [t.name for t in Season]:
+        return Season[s]
+    raise argparse.ArgumentTypeError("{0} is not a supported season".format(s))
 
 
 def writeable_dir(prospective_dir):
@@ -191,6 +205,31 @@ def output_format_arg(s):
     raise argparse.ArgumentTypeError("{0} is not a supported output format".format(s))
 
 
+class Statistic(Enum):
+    __order__ = "COUNT COUNT_OBSERVED MIN MAX MEAN SUM STANDARD_DEVIATION VARIANCE PERCENTILE_25 PERCENTILE_50 PERCENTILE_75 PERCENTILE_90 PERCENTILE_95"
+
+    COUNT = "COUNT"
+    COUNT_OBSERVED = "COUNT_OBSERVED"
+    MIN = "MIN"
+    MAX = "MAX"
+    MEAN = "MEAN"
+    SUM = "SUM"
+    STANDARD_DEVIATION = "STANDARD_DEVIATION"
+    VARIANCE = "VARIANCE"
+    PERCENTILE_25 = "PERCENTILE_25"
+    PERCENTILE_50 = "PERCENTILE_50"
+    PERCENTILE_75 = "PERCENTILE_75"
+    PERCENTILE_90 = "PERCENTILE_90"
+    PERCENTILE_95 = "PERCENTILE_95"
+
+
+PERCENTILE = {
+    Statistic.PERCENTILE_25: 25,
+    Statistic.PERCENTILE_50: 50,
+    Statistic.PERCENTILE_75: 75,
+    Statistic.PERCENTILE_90: 90,
+    Statistic.PERCENTILE_95: 95
+}
 
 
 

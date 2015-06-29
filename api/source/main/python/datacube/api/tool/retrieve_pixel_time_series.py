@@ -36,9 +36,10 @@ import logging
 import os
 import sys
 from enum import Enum
-from datacube.api import dataset_type_arg, writeable_dir
+from datacube.api import dataset_type_arg, writeable_dir, Season, Month, season_arg
 from datacube.api.model import DatasetType, Wofs25Bands, Satellite
 from datacube.api.tool import Tool
+from datacube.api.query import build_season_date_criteria
 from datacube.api.utils import latlon_to_cell, latlon_to_xy, UINT16_MAX, BYTE_MAX, get_mask_pqa, get_band_name_union
 from datacube.api.utils import NAN
 from datacube.api.utils import get_band_name_intersection
@@ -55,6 +56,14 @@ class BandListType(Enum):
     EXPLICIT = "EXPLICIT"
     ALL = "ALL"
     COMMON = "COMMON"
+
+
+SEASONS = {
+    Season.SUMMER: ((Month.NOVEMBER, 17), (Month.APRIL, 25)),
+    Season.AUTUMN: ((Month.FEBRUARY, 16), (Month.JULY, 25)),
+    Season.WINTER: ((Month.MAY, 17), (Month.OCTOBER, 25)),
+    Season.SPRING: ((Month.AUGUST, 17), (Month.JANUARY, 25))
+}
 
 
 class RetrievePixelTimeSeriesTool(Tool):
@@ -76,6 +85,8 @@ class RetrievePixelTimeSeriesTool(Tool):
         self.delimiter = None
         self.output_directory = None
         self.overwrite = None
+
+        self.season = None
 
     def setup_arguments(self):
 
@@ -120,6 +131,11 @@ class RetrievePixelTimeSeriesTool(Tool):
         self.parser.add_argument("--overwrite", help="Over write existing output file", action="store_true",
                                  dest="overwrite", default=False)
 
+        self.parser.add_argument("--season", help="The seasons for which to produce statistics", action="store",
+                                 # default=Season,  # required=True,
+                                 dest="season", type=season_arg,  # nargs="+",
+                                 metavar=" ".join([s.name for s in Season]))
+
     def process_arguments(self, args):
 
         # Call method on super class
@@ -142,6 +158,8 @@ class RetrievePixelTimeSeriesTool(Tool):
         self.output_directory = args.output_directory
         self.overwrite = args.overwrite
 
+        self.season = args.season
+
     def log_arguments(self):
 
         # Call method on super class
@@ -151,6 +169,7 @@ class RetrievePixelTimeSeriesTool(Tool):
         _log.info("""
         longitude = {longitude:f}
         latitude = {latitude:f}
+        season = {season}
         datasets to retrieve = {dataset_type}
         bands to retrieve = {bands}
         output no data values = {output_no_data}
@@ -158,6 +177,7 @@ class RetrievePixelTimeSeriesTool(Tool):
         over write = {overwrite}
         delimiter = {delimiter}
         """.format(longitude=self.longitude, latitude=self.latitude,
+                   season=self.season and self.season.name or "",
                    dataset_type=self.dataset_type.name,
                    bands=self.bands,
                    output_no_data=self.output_no_data,
@@ -184,15 +204,25 @@ class RetrievePixelTimeSeriesTool(Tool):
         if self.mask_wofs_apply:
             dataset_types.append(DatasetType.WATER)
 
+        acq_min, acq_max, criteria = self.acq_min, self.acq_max, None
+
+        if self.season:
+            acq_min, acq_max, criteria = build_season_date_criteria(self.acq_min, self.acq_max, self.season,
+                                                                    seasons=SEASONS, extend=True)
+
+        _log.info("\tacq %s to %s and criteria is %s", acq_min, acq_max, criteria)
+
         for tile in list_tiles(x=x_list, y=y_list,
-                               acq_min=self.acq_min, acq_max=self.acq_max,
+                               acq_min=acq_min, acq_max=acq_max,
                                satellites=[satellite for satellite in self.satellites],
-                               dataset_types=dataset_types):
+                               dataset_types=dataset_types, include=criteria):
             yield tile
 
     def go(self):
 
         cell_x, cell_y = latlon_to_cell(self.latitude, self.longitude)
+
+        _log.info("cell is %d %d", cell_x, cell_y)
 
         # TODO - PQ is UNIT16 and WOFS is BYTE (others are INT16) and so -999 NDV doesn't work
         ndv = NDV
@@ -335,7 +365,7 @@ def retrieve_pixel_value(dataset, pqa, pqa_masks, wofs, wofs_masks, latitude, lo
 
     x, y = latlon_to_xy(latitude, longitude, metadata.transform)
 
-    _log.debug("Retrieving value at x=[%d] y=[%d]", x, y)
+    _log.info("Retrieving value at x=[%d] y=[%d] from %s", x, y, dataset.path)
 
     x_size = y_size = 1
 

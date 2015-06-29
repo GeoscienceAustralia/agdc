@@ -41,6 +41,7 @@ CSV file.  Pixel quality masking can be applied.  Acquisitions that are complete
            [--delimiter DELIMITER]
            [--output-directory OUTPUT_DIRECTORY]
            [--overwrite]
+           [--season SPRING SUMMER AUTUMN WINTER]
 
     Retrieve Pixel Time Series
 
@@ -70,6 +71,8 @@ CSV file.  Pixel quality masking can be applied.  Acquisitions that are complete
       --output-directory OUTPUT_DIRECTORY
                             Output directory
       --overwrite           Over write existing output file
+      --season SPRING SUMMER AUTUMN WINTER
+                            The seasons for which to produce statistics
 
 .. NOTE::
 
@@ -78,6 +81,46 @@ CSV file.  Pixel quality masking can be applied.  Acquisitions that are complete
     The MIN parameter maps the value down - i.e. `2000` -> `2000-01-01` and `2000-12` -> `2012-12-01`
 
     The MAX parameter maps the value up - i.e. `2000` -> `2000-12-31` and `2000-01` -> `2012-01-31`
+
+.. NOTE::
+
+    The season are currently defined as:
+
+    * SUMMER November 17 to April 25
+    * AUTUMN February 16 to July 25
+    * WINTER May 17 to October 25
+    * SPRING August 17 to January 25
+
+    Seasons are identified by the year in which they begin.  So for example, SUMMER 1985 is November 17 1985 to April 25 1986.
+
+    *EXAMPLES...*
+
+    Specifying ``--acq-min 1990 --acq-max 1994 --season SUMMER`` will match datasets that were acquired during the SUMMER
+    of 1990, 1991, 1992, 1993 or 1994.
+
+    That is, between:
+
+    * 1985-11-17 and 1986-04-25; OR
+    * 1986-11-17 and 1987-04-25; OR
+    * 1987-11-17 and 1988-04-25; OR
+    * 1988-11-17 and 1989-04-25; OR
+    * 1989-11-17 and 1990-04-25
+
+    The ``--acq-max`` is automatically extended to the end of the season.
+
+    Specifying ``--acq-min 1990 --acq-max 1994 --season AUTUMN`` will match datasets that were acquired during the AUTUMN
+    of 1990, 1991, 1992, 1993 or 1994.
+
+    That is, between:
+
+    * 1985-02-16 and 1985-07-25; OR
+    * 1986-02-16 and 1986-07-25; OR
+    * 1987-02-16 and 1987-07-25; OR
+    * 1988-02-16 and 1988-07-25; OR
+    * 1989-02-16 and 1989-07-25
+
+    The season definitions and the ability to specify whether or not the ``--acq-max`` is extended will be able to be
+    specified (via command line parameters) `real soon now`.
 
 Example Uses
 ++++++++++++
@@ -138,6 +181,12 @@ To retrieve WOFS water extent values for a pixel::
     LS7,2013-12-10 01:53:02,Saturation/Contiguity,2
     LS7,2013-12-17 01:58:47,Dry,0
     LS7,2013-12-26 01:53:05,Saturation/Contiguity,2
+
+To retrieve NBAR values for a 5 year epoch (1990-1994) for datasets acquired in SUMMER (Nov 17 to Apr 25)::
+
+    $ retrieve_pixel_time_series.py --acq-min 1990 --acq-max 1994 --mask-pqa-apply --mask-pqs-mask PQ_MASK_SATURATION PQ_MASK_CONTIGUITY PA_MASK_CLOUD --lon 137.25 --lat -27.25 --dataset-type ARG25 --season SUMMER --quiet
+
+
 
 Retrieving a "batch" of pixel time series...
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
