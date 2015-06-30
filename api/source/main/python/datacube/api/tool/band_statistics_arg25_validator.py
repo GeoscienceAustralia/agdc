@@ -44,7 +44,7 @@ from datacube.api import Statistic, Season, Month, Satellite, DatasetType, pqa_m
 from datacube.api import writeable_dir, readable_dir, statistic_arg, season_arg, satellite_arg, dataset_type_arg
 from datacube.api import parse_date_min, parse_date_max
 from datacube.api.model import Ls57Arg25Bands
-from datacube.api.query import build_season_date_criteria, list_tiles_as_generator, list_tiles_as_list
+from datacube.api.query import build_season_date_criteria, list_tiles_as_list
 from datacube.api.utils import get_dataset_type_ndv, get_dataset_data_stack
 
 
