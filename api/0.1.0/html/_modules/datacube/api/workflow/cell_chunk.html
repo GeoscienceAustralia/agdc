@@ -80,10 +80,10 @@
 <span class="c">#</span>
 <span class="c"># Redistribution and use in source and binary forms, with or without</span>
 <span class="c"># modification, are permitted provided that the following conditions are met:</span>
-<span class="c"># * Redistributions of source code must retain the above copyright</span>
-<span class="c"># notice, this list of conditions and the following disclaimer.</span>
-<span class="c"># * Redistributions in binary form must reproduce the above copyright</span>
-<span class="c"># notice, this list of conditions and the following disclaimer in the</span>
+<span class="c">#     * Redistributions of source code must retain the above copyright</span>
+<span class="c">#       notice, this list of conditions and the following disclaimer.</span>
+<span class="c">#     * Redistributions in binary form must reproduce the above copyright</span>
+<span class="c">#       notice, this list of conditions and the following disclaimer in the</span>
 <span class="c">#       documentation and/or other materials provided with the distribution.</span>
 <span class="c">#     * Neither Geoscience Australia nor the names of its contributors may be</span>
 <span class="c">#       used to endorse or promote products derived from this software</span>
@@ -161,7 +161,8 @@
 <span class="s">        Y chunk size = {chunk_size_y}</span>
 <span class="s">        &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">chunk_size_x</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">chunk_size_x</span><span class="p">,</span> <span class="n">chunk_size_y</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">chunk_size_y</span><span class="p">))</span>
 </div>
-<div class="viewcode-block" id="Workflow.create_summary_tasks"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell_chunk.html#datacube.api.workflow.cell_chunk.Workflow.create_summary_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">create_summary_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nd">@abc.abstractmethod</span>
+<div class="viewcode-block" id="Workflow.create_summary_task"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell_chunk.html#datacube.api.workflow.cell_chunk.Workflow.create_summary_task">[docs]</a>    <span class="k">def</span> <span class="nf">create_summary_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">months</span><span class="p">):</span>
 
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;Abstract method should be overridden&quot;</span><span class="p">)</span>
 
@@ -215,6 +216,8 @@
 
     <span class="n">acq_min</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">DateParameter</span><span class="p">()</span>
     <span class="n">acq_max</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">DateParameter</span><span class="p">()</span>
+
+    <span class="n">months</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">is_list</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 
     <span class="n">satellites</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">is_list</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 

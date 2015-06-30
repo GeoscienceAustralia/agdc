@@ -77,6 +77,29 @@
   <div class="section" id="module-datacube.api.query">
 <span id="datacube-api-query-module"></span><h1>datacube.api.query module<a class="headerlink" href="#module-datacube.api.query" title="Permalink to this headline">¶</a></h1>
 <dl class="class">
+<dt id="datacube.api.query.Month">
+<em class="property">class </em><code class="descclassname">datacube.api.query.</code><code class="descname">Month</code><a class="reference internal" href="../_modules/datacube/api/query.html#Month"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.Month" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.Enum</span></code></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="datacube.api.query.Season">
+<em class="property">class </em><code class="descclassname">datacube.api.query.</code><code class="descname">Season</code><a class="reference internal" href="../_modules/datacube/api/query.html#Season"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.Season" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.Enum</span></code></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="datacube.api.query.Quarter">
+<em class="property">class </em><code class="descclassname">datacube.api.query.</code><code class="descname">Quarter</code><a class="reference internal" href="../_modules/datacube/api/query.html#Quarter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.Quarter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.Enum</span></code></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.build_season_date_criteria">
+<code class="descclassname">datacube.api.query.</code><code class="descname">build_season_date_criteria</code><span class="sig-paren">(</span><em>acq_min</em>, <em>acq_max</em>, <em>season</em>, <em>seasons={&lt;Season.AUTUMN: 'AUTUMN'&gt;: ((&lt;Month.MARCH: 3&gt;</em>, <em>1)</em>, <em>(&lt;Month.MAY: 5&gt;</em>, <em>31))</em>, <em>&lt;Season.SUMMER: 'SUMMER'&gt;: ((&lt;Month.DECEMBER: 12&gt;</em>, <em>1)</em>, <em>(&lt;Month.FEBRUARY: 2&gt;</em>, <em>31))</em>, <em>&lt;Season.WINTER: 'WINTER'&gt;: ((&lt;Month.JUNE: 6&gt;</em>, <em>1)</em>, <em>(&lt;Month.AUGUST: 8&gt;</em>, <em>31))</em>, <em>&lt;Season.SPRING: 'SPRING'&gt;: ((&lt;Month.SEPTEMBER: 9&gt;</em>, <em>1)</em>, <em>(&lt;Month.NOVEMBER: 11&gt;</em>, <em>31))}</em>, <em>extend=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#build_season_date_criteria"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.build_season_date_criteria" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
 <dt id="datacube.api.query.TileClass">
 <em class="property">class </em><code class="descclassname">datacube.api.query.</code><code class="descname">TileClass</code><a class="reference internal" href="../_modules/datacube/api/query.html#TileClass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.TileClass" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.Enum</span></code></p>
@@ -140,9 +163,51 @@
 </table>
 </dd></dl>
 
+<dl class="class">
+<dt id="datacube.api.query.SatelliteDateCriteria">
+<em class="property">class </em><code class="descclassname">datacube.api.query.</code><code class="descname">SatelliteDateCriteria</code><span class="sig-paren">(</span><em>satellite</em>, <em>acq_min</em>, <em>acq_max</em><span class="sig-paren">)</span><a class="headerlink" href="#datacube.api.query.SatelliteDateCriteria" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">tuple</span></code></p>
+<dl class="attribute">
+<dt id="datacube.api.query.SatelliteDateCriteria.acq_max">
+<code class="descname">acq_max</code><a class="headerlink" href="#datacube.api.query.SatelliteDateCriteria.acq_max" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="datacube.api.query.SatelliteDateCriteria.acq_min">
+<code class="descname">acq_min</code><a class="headerlink" href="#datacube.api.query.SatelliteDateCriteria.acq_min" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="datacube.api.query.SatelliteDateCriteria.satellite">
+<code class="descname">satellite</code><a class="headerlink" href="#datacube.api.query.SatelliteDateCriteria.satellite" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="datacube.api.query.DateCriteria">
+<em class="property">class </em><code class="descclassname">datacube.api.query.</code><code class="descname">DateCriteria</code><span class="sig-paren">(</span><em>acq_min</em>, <em>acq_max</em><span class="sig-paren">)</span><a class="headerlink" href="#datacube.api.query.DateCriteria" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">tuple</span></code></p>
+<dl class="attribute">
+<dt id="datacube.api.query.DateCriteria.acq_max">
+<code class="descname">acq_max</code><a class="headerlink" href="#datacube.api.query.DateCriteria.acq_max" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="datacube.api.query.DateCriteria.acq_min">
+<code class="descname">acq_min</code><a class="headerlink" href="#datacube.api.query.DateCriteria.acq_min" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="function">
 <dt id="datacube.api.query.list_cells">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>include=None</em>, <em>exclude=None</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a list of cells matching the criteria as a SINGLE-USE generator</p>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
@@ -159,6 +224,8 @@
 <li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
 <li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
 <li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>include</strong> (<em>list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]</em>) &#8211; Inclusions - currently supports date range and satellite/date range</li>
+<li><strong>exclude</strong> (<em>list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]</em>) &#8211; Exclusions - currently supports date range and satellite/date range</li>
 <li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
 <li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
 </ul>
@@ -176,7 +243,7 @@
 
 <dl class="function">
 <dt id="datacube.api.query.list_cells_as_list">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_as_list</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_as_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_as_list" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_as_list</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>include=None</em>, <em>exclude=None</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_as_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_as_list" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -189,6 +256,8 @@
 <li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
 <li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
 <li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>include</strong> (<em>list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]</em>) &#8211; Inclusions - currently supports date range and satellite/date range</li>
+<li><strong>exclude</strong> (<em>list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]</em>) &#8211; Exclusions - currently supports date range and satellite/date range</li>
 <li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
 <li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
 </ul>
@@ -206,7 +275,7 @@
 
 <dl class="function">
 <dt id="datacube.api.query.list_cells_as_generator">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_as_generator</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_as_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_as_generator" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_as_generator</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>include=None</em>, <em>exclude=None</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_as_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_as_generator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a list of cells matching the criteria as a SINGLE-USE generator</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -219,6 +288,8 @@
 <li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
 <li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
 <li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>include</strong> (<em>list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]</em>) &#8211; Inclusions - currently supports date range and satellite/date range</li>
+<li><strong>exclude</strong> (<em>list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]</em>) &#8211; Exclusions - currently supports date range and satellite/date range</li>
 <li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
 <li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
 </ul>
@@ -236,7 +307,7 @@
 
 <dl class="function">
 <dt id="datacube.api.query.list_cells_to_file">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_to_file</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>filename</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_to_file" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_to_file</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>filename</em>, <em>include=None</em>, <em>exclude=None</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_to_file" title="Permalink to this definition">¶</a></dt>
 <dd><p>Write the list of cells matching the criteria to the specified file</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -250,6 +321,8 @@
 <li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
 <li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
 <li><strong>filename</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The output file</li>
+<li><strong>include</strong> (<em>list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]</em>) &#8211; Inclusions - currently supports date range and satellite/date range</li>
+<li><strong>exclude</strong> (<em>list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]</em>) &#8211; Exclusions - currently supports date range and satellite/date range</li>
 <li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
 <li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
 </ul>
@@ -261,7 +334,7 @@
 
 <dl class="function">
 <dt id="datacube.api.query.build_list_cells_sql_and_params">
-<code class="descclassname">datacube.api.query.</code><code class="descname">build_list_cells_sql_and_params</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#build_list_cells_sql_and_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.build_list_cells_sql_and_params" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.query.</code><code class="descname">build_list_cells_sql_and_params</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>include=None</em>, <em>exclude=None</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#build_list_cells_sql_and_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.build_list_cells_sql_and_params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Build the SQL query string and parameters required to return the cells matching the criteria</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -274,6 +347,8 @@
 <li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
 <li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
 <li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>include</strong> (<em>list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]</em>) &#8211; Inclusions - currently supports date range and satellite/date range</li>
+<li><strong>exclude</strong> (<em>list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]</em>) &#8211; Exclusions - currently supports date range and satellite/date range</li>
 <li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
 </ul>
 </td>
@@ -458,7 +533,7 @@
 
 <dl class="function">
 <dt id="datacube.api.query.list_tiles">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>include=None</em>, <em>exclude=None</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a list of tiles matching the criteria as a SINGLE-USE generator</p>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
@@ -475,6 +550,8 @@
 <li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
 <li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
 <li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>include</strong> (<em>list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]</em>) &#8211; Inclusions - currently supports date range and satellite/date range</li>
+<li><strong>exclude</strong> (<em>list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]</em>) &#8211; Exclusions - currently supports date range and satellite/date range</li>
 <li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
 <li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
 </ul>
@@ -492,7 +569,7 @@
 
 <dl class="function">
 <dt id="datacube.api.query.list_tiles_as_list">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_as_list</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_as_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_as_list" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_as_list</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>include=None</em>, <em>exclude=None</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_as_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_as_list" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -505,6 +582,8 @@
 <li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
 <li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
 <li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>include</strong> (<em>list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]</em>) &#8211; Inclusions - currently supports date range and satellite/date range</li>
+<li><strong>exclude</strong> (<em>list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]</em>) &#8211; Exclusions - currently supports date range and satellite/date range</li>
 <li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
 <li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
 </ul>
@@ -522,7 +601,7 @@
 
 <dl class="function">
 <dt id="datacube.api.query.list_tiles_as_generator">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_as_generator</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_as_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_as_generator" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_as_generator</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>include=None</em>, <em>exclude=None</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_as_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_as_generator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a list of tiles matching the criteria as a SINGLE-USE generator</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -535,6 +614,8 @@
 <li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
 <li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
 <li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>include</strong> (<em>list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]</em>) &#8211; Inclusions - currently supports date range and satellite/date range</li>
+<li><strong>exclude</strong> (<em>list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]</em>) &#8211; Exclusions - currently supports date range and satellite/date range</li>
 <li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
 <li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
 </ul>
@@ -552,7 +633,7 @@
 
 <dl class="function">
 <dt id="datacube.api.query.list_tiles_to_file">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_to_file</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>filename</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_to_file" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_to_file</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>filename</em>, <em>include=None</em>, <em>exclude=None</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_to_file" title="Permalink to this definition">¶</a></dt>
 <dd><p>Write the list of tiles matching the criteria to the specified file</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -566,6 +647,8 @@
 <li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
 <li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
 <li><strong>filename</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The output file</li>
+<li><strong>include</strong> (<em>list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]</em>) &#8211; Inclusions - currently supports date range and satellite/date range</li>
+<li><strong>exclude</strong> (<em>list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]</em>) &#8211; Exclusions - currently supports date range and satellite/date range</li>
 <li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
 <li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
 </ul>
@@ -577,7 +660,7 @@
 
 <dl class="function">
 <dt id="datacube.api.query.build_list_tiles_sql_and_params">
-<code class="descclassname">datacube.api.query.</code><code class="descname">build_list_tiles_sql_and_params</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#build_list_tiles_sql_and_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.build_list_tiles_sql_and_params" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.query.</code><code class="descname">build_list_tiles_sql_and_params</code><span class="sig-paren">(</span><em>x</em>, <em>y</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>include=None</em>, <em>exclude=None</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#build_list_tiles_sql_and_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.build_list_tiles_sql_and_params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Build the SQL query string and parameters required to return the tiles matching the criteria</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -590,6 +673,8 @@
 <li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
 <li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
 <li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>include</strong> (<em>list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]</em>) &#8211; Inclusions - currently supports date range and satellite/date range</li>
+<li><strong>exclude</strong> (<em>list[criteria] e.g. list[datacube.api.query.SatelliteDateExclusion]</em>) &#8211; Exclusions - currently supports date range and satellite/date range</li>
 <li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
 </ul>
 </td>
@@ -858,7 +943,7 @@
 
 <dl class="function">
 <dt id="datacube.api.query.list_cells_vector_file">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_vector_file</code><span class="sig-paren">(</span><em>vector_file</em>, <em>vector_layer</em>, <em>vector_feature</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_vector_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_vector_file" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_vector_file</code><span class="sig-paren">(</span><em>vector_file</em>, <em>vector_layer</em>, <em>vector_feature</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>months=None</em>, <em>exclude=None</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_vector_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_vector_file" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a list of cells matching the criteria as a SINGLE-USE generator</p>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
@@ -869,13 +954,15 @@
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>vector_file</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Vector (ESRI Shapefile, KML, ...) file containing the shape</li>
-<li><strong>vector_layer</strong> &#8211; Layer (0 based index) within the vector file</li>
-<li><strong>vector_feature</strong> &#8211; Feature (0 based index) within the layer</li>
+<li><strong>vector_file</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Vector (ESRI Shapefile, KML, ...) file containing the shape</li>
+<li><strong>vector_layer</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Layer (0 based index) within the vector file</li>
+<li><strong>vector_feature</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Feature (0 based index) within the layer</li>
 <li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
 <li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
 <li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
 <li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>months</strong> (<em>list[datacube.api.query.Month]</em>) &#8211; Month(s) of acquisition to include</li>
+<li><strong>exclude</strong> (<em>list[datacube.api.query.SatelliteDateExclusion]</em>) &#8211; Exclusions - currently supports satellite/date combinations for LS7 SLC OFF and LS8 PRE WRS 2</li>
 <li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
 <li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
 </ul>
@@ -893,20 +980,22 @@
 
 <dl class="function">
 <dt id="datacube.api.query.list_cells_vector_file_as_list">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_vector_file_as_list</code><span class="sig-paren">(</span><em>vector_file</em>, <em>vector_layer</em>, <em>vector_feature</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_vector_file_as_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_vector_file_as_list" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_vector_file_as_list</code><span class="sig-paren">(</span><em>vector_file</em>, <em>vector_layer</em>, <em>vector_feature</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>months=None</em>, <em>exclude=None</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_vector_file_as_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_vector_file_as_list" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>vector_file</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Vector (ESRI Shapefile, KML, ...) file containing the shape</li>
-<li><strong>vector_layer</strong> &#8211; Layer (0 based index) within the vector file</li>
-<li><strong>vector_feature</strong> &#8211; Feature (0 based index) within the layer</li>
+<li><strong>vector_file</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Vector (ESRI Shapefile, KML, ...) file containing the shape</li>
+<li><strong>vector_layer</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Layer (0 based index) within the vector file</li>
+<li><strong>vector_feature</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Feature (0 based index) within the layer</li>
 <li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
 <li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
 <li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
 <li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>months</strong> (<em>list[datacube.api.query.Month]</em>) &#8211; Month(s) of acquisition to include</li>
+<li><strong>exclude</strong> (<em>list[datacube.api.query.SatelliteDateExclusion]</em>) &#8211; Exclusions - currently supports satellite/date combinations for LS7 SLC OFF and LS8 PRE WRS 2</li>
 <li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
 <li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
 </ul>
@@ -924,20 +1013,60 @@
 
 <dl class="function">
 <dt id="datacube.api.query.list_cells_vector_file_as_generator">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_vector_file_as_generator</code><span class="sig-paren">(</span><em>vector_file</em>, <em>vector_layer</em>, <em>vector_feature</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_vector_file_as_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_vector_file_as_generator" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_vector_file_as_generator</code><span class="sig-paren">(</span><em>vector_file</em>, <em>vector_layer</em>, <em>vector_feature</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>months=None</em>, <em>exclude=None</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_vector_file_as_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_vector_file_as_generator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>vector_file</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Vector (ESRI Shapefile, KML, ...) file containing the shape</li>
-<li><strong>vector_layer</strong> &#8211; Layer (0 based index) within the vector file</li>
-<li><strong>vector_feature</strong> &#8211; Feature (0 based index) within the layer</li>
+<li><strong>vector_file</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Vector (ESRI Shapefile, KML, ...) file containing the shape</li>
+<li><strong>vector_layer</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Layer (0 based index) within the vector file</li>
+<li><strong>vector_layer</strong> &#8211; Feature (0 based index) within the layer</li>
 <li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
 <li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
 <li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
 <li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>months</strong> (<em>list[datacube.api.query.Month]</em>) &#8211; Month(s) of acquisition to include</li>
+<li><strong>exclude</strong> (<em>list[datacube.api.query.SatelliteDateExclusion]</em>) &#8211; Exclusions - currently supports satellite/date combinations for LS7 SLC OFF and LS8 PRE WRS 2</li>
+<li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
+<li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">List of cells</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list[datacube.api.model.Cell]</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.query.list_cells_vector_file_to_file">
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_vector_file_to_file</code><span class="sig-paren">(</span><em>vector_file</em>, <em>vector_layer</em>, <em>vector_feature</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>filename</em>, <em>months=None</em>, <em>exclude=None</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_vector_file_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_vector_file_to_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a list of cells matching the criteria as a SINGLE-USE generator</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">Deprecated: use either datacube.api.query.list_cells_wkb_as_list() or datacube.api.query.list_cells_wkb_as_generator()</p>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>vector_file</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; Vector (ESRI Shapefile, KML, ...) file containing the shape</li>
+<li><strong>vector_layer</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Layer (0 based index) within the vector file</li>
+<li><strong>vector_feature</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Feature (0 based index) within the layer</li>
+<li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
+<li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
+<li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>filename</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The output file</li>
+<li><strong>months</strong> (<em>list[datacube.api.query.Month]</em>) &#8211; Month(s) of acquisition to include</li>
+<li><strong>exclude</strong> (<em>list[datacube.api.query.SatelliteDateExclusion]</em>) &#8211; Exclusions - currently supports satellite/date combinations for LS7 SLC OFF and LS8 PRE WRS 2</li>
 <li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
 <li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
 </ul>
@@ -955,7 +1084,7 @@
 
 <dl class="function">
 <dt id="datacube.api.query.list_cells_wkb">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_wkb</code><span class="sig-paren">(</span><em>wkb</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_wkb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_wkb" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_wkb</code><span class="sig-paren">(</span><em>wkb</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>months=None</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_wkb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_wkb" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a list of cells matching the criteria as a SINGLE-USE generator</p>
 <div class="admonition warning">
 <p class="first admonition-title">Warning</p>
@@ -988,7 +1117,7 @@
 
 <dl class="function">
 <dt id="datacube.api.query.list_cells_wkb_as_list">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_wkb_as_list</code><span class="sig-paren">(</span><em>wkb</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_wkb_as_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_wkb_as_list" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_wkb_as_list</code><span class="sig-paren">(</span><em>wkb</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>months=None</em>, <em>exclude=None</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_wkb_as_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_wkb_as_list" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1000,6 +1129,8 @@
 <li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
 <li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
 <li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>months</strong> (<em>list[datacube.api.query.Month]</em>) &#8211; Month(s) of acquisition to include</li>
+<li><strong>exclude</strong> (<em>list[datacube.api.query.SatelliteDateExclusion]</em>) &#8211; Exclusions - currently supports satellite/date combinations for LS7 SLC OFF and LS8 PRE WRS 2</li>
 <li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
 <li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
 </ul>
@@ -1017,7 +1148,7 @@
 
 <dl class="function">
 <dt id="datacube.api.query.list_cells_wkb_as_generator">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_wkb_as_generator</code><span class="sig-paren">(</span><em>wkb</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_wkb_as_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_wkb_as_generator" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_wkb_as_generator</code><span class="sig-paren">(</span><em>wkb</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>months=None</em>, <em>exclude=None</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_wkb_as_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_wkb_as_generator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a list of cells matching the criteria as a SINGLE-USE generator</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1029,6 +1160,8 @@
 <li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
 <li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
 <li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>months</strong> (<em>list[datacube.api.query.Month]</em>) &#8211; Month(s) of acquisition to include</li>
+<li><strong>exclude</strong> (<em>list[datacube.api.query.SatelliteDateExclusion]</em>) &#8211; Exclusions - currently supports satellite/date combinations for LS7 SLC OFF and LS8 PRE WRS 2</li>
 <li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
 <li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
 </ul>
@@ -1046,7 +1179,7 @@
 
 <dl class="function">
 <dt id="datacube.api.query.list_cells_wkb_to_file">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_wkb_to_file</code><span class="sig-paren">(</span><em>wkb</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>filename</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_wkb_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_wkb_to_file" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.query.</code><code class="descname">list_cells_wkb_to_file</code><span class="sig-paren">(</span><em>wkb</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>filename</em>, <em>months=None</em>, <em>exclude=None</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_cells_wkb_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_cells_wkb_to_file" title="Permalink to this definition">¶</a></dt>
 <dd><p>Write the list of cells matching the criteria to the specified file</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1059,6 +1192,8 @@
 <li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
 <li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
 <li><strong>filename</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The output file</li>
+<li><strong>months</strong> (<em>list[datacube.api.query.Month]</em>) &#8211; Month(s) of acquisition to include</li>
+<li><strong>exclude</strong> (<em>list[datacube.api.query.SatelliteDateExclusion]</em>) &#8211; Exclusions - currently supports satellite/date combinations for LS7 SLC OFF and LS8 PRE WRS 2</li>
 <li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
 <li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
 </ul>
@@ -1070,7 +1205,7 @@
 
 <dl class="function">
 <dt id="datacube.api.query.build_list_cells_wkb_sql_and_params">
-<code class="descclassname">datacube.api.query.</code><code class="descname">build_list_cells_wkb_sql_and_params</code><span class="sig-paren">(</span><em>wkb</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#build_list_cells_wkb_sql_and_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.build_list_cells_wkb_sql_and_params" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.query.</code><code class="descname">build_list_cells_wkb_sql_and_params</code><span class="sig-paren">(</span><em>wkb</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>months=None</em>, <em>exclude=None</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#build_list_cells_wkb_sql_and_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.build_list_cells_wkb_sql_and_params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Build the SQL query string and parameters required to return the cells matching the criteria</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1082,246 +1217,8 @@
 <li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
 <li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
 <li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
-<li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The SQL query and params</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">(str, dict)</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="datacube.api.query.list_tiles_vector_file">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_vector_file</code><span class="sig-paren">(</span><em>vector_file</em>, <em>vector_layer</em>, <em>vector_feature</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_vector_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_vector_file" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a list of tiles matching the criteria as a SINGLE-USE generator</p>
-<div class="admonition warning">
-<p class="first admonition-title">Warning</p>
-<p class="last">Deprecated: use either datacube.api.query.list_tiles_wkb_as_list() or datacube.api.query.list_tiles_wkb_as_generator()</p>
-</div>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>vector_file</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Vector (ESRI Shapefile, KML, ...) file containing the shape</li>
-<li><strong>vector_layer</strong> &#8211; Layer (0 based index) within the vector file</li>
-<li><strong>vector_feature</strong> &#8211; Feature (0 based index) within the layer</li>
-<li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
-<li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
-<li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
-<li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
-<li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
-<li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">List of tiles</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list[datacube.api.model.Tile]</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="datacube.api.query.list_tiles_vector_file_as_list">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_vector_file_as_list</code><span class="sig-paren">(</span><em>vector_file</em>, <em>vector_layer</em>, <em>vector_feature</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_vector_file_as_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_vector_file_as_list" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a list of tiles matching the criteria AS A REUSABLE LIST rather than as a one-use-generator</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>vector_file</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Vector (ESRI Shapefile, KML, ...) file containing the shape</li>
-<li><strong>vector_layer</strong> &#8211; Layer (0 based index) within the vector file</li>
-<li><strong>vector_feature</strong> &#8211; Feature (0 based index) within the layer</li>
-<li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
-<li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
-<li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
-<li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
-<li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
-<li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">List of tiles</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list[datacube.api.model.Tile]</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="datacube.api.query.list_tiles_vector_file_as_generator">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_vector_file_as_generator</code><span class="sig-paren">(</span><em>vector_file</em>, <em>vector_layer</em>, <em>vector_feature</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_vector_file_as_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_vector_file_as_generator" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>vector_file</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; Vector (ESRI Shapefile, KML, ...) file containing the shape</li>
-<li><strong>vector_layer</strong> &#8211; Layer (0 based index) within the vector file</li>
-<li><strong>vector_feature</strong> &#8211; Feature (0 based index) within the layer</li>
-<li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
-<li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
-<li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
-<li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
-<li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
-<li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">List of tiles</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list[datacube.api.model.Tile]</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="datacube.api.query.list_tiles_wkb">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_wkb</code><span class="sig-paren">(</span><em>wkb</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_wkb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_wkb" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a list of tiles matching the criteria as a SINGLE-USE generator</p>
-<div class="admonition warning">
-<p class="first admonition-title">Warning</p>
-<p class="last">Deprecated: use either datacube.api.query.list_tiles_as_list() or datacube.api.query.list_tiles_as_generator()</p>
-</div>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>wkb</strong> (<em>WKB</em>) &#8211; Shape as WKB format</li>
-<li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
-<li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
-<li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
-<li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
-<li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
-<li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">List of tiles</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list[datacube.api.model.Tile]</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="datacube.api.query.list_tiles_wkb_as_list">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_wkb_as_list</code><span class="sig-paren">(</span><em>wkb</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_wkb_as_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_wkb_as_list" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a list of cells matching the criteria AS A REUSABLE LIST rather than as a one-use-generator</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>wkb</strong> (<em>WKB</em>) &#8211; Shape as WKB format</li>
-<li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
-<li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
-<li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
-<li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
-<li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
-<li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">List of tiles</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list[datacube.api.model.Tile]</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="datacube.api.query.list_tiles_wkb_as_generator">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_wkb_as_generator</code><span class="sig-paren">(</span><em>wkb</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_wkb_as_generator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_wkb_as_generator" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return a list of tiles matching the criteria as a SINGLE-USE generator</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>wkb</strong> (<em>WKB</em>) &#8211; Shape as WKB format</li>
-<li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
-<li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
-<li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
-<li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
-<li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
-<li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">List of tiles</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">list[datacube.api.model.Tile]</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="datacube.api.query.list_tiles_wkb_to_file">
-<code class="descclassname">datacube.api.query.</code><code class="descname">list_tiles_wkb_to_file</code><span class="sig-paren">(</span><em>wkb</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>filename</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em>, <em>config=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#list_tiles_wkb_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.list_tiles_wkb_to_file" title="Permalink to this definition">¶</a></dt>
-<dd><p>Write the list of tiles matching the criteria to the specified file</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>wkb</strong> (<em>WKB</em>) &#8211; Shape as WKB format</li>
-<li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
-<li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
-<li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
-<li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
-<li><strong>filename</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#str" title="(in Python v2.7)"><em>str</em></a>) &#8211; The output file</li>
-<li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
-<li><strong>config</strong> (<a class="reference internal" href="datacube.config.html#datacube.config.Config" title="datacube.config.Config"><em>datacube.config.Config</em></a>) &#8211; Config</li>
-</ul>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="datacube.api.query.build_list_tiles_wkb_sql_and_params">
-<code class="descclassname">datacube.api.query.</code><code class="descname">build_list_tiles_wkb_sql_and_params</code><span class="sig-paren">(</span><em>wkb</em>, <em>satellites</em>, <em>acq_min</em>, <em>acq_max</em>, <em>dataset_types</em>, <em>sort=&lt;SortType.ASC: 'ASC'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/query.html#build_list_tiles_wkb_sql_and_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.query.build_list_tiles_wkb_sql_and_params" title="Permalink to this definition">¶</a></dt>
-<dd><p>Build the SQL query string and parameters required to return the tiles matching the criteria</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>wkb</strong> (<em>WKB</em>) &#8211; Shape as WKB format</li>
-<li><strong>satellites</strong> (<em>list[datacube.api.model.Satellite]</em>) &#8211; Satellites</li>
-<li><strong>acq_min</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
-<li><strong>acq_max</strong> (<a class="reference external" href="http://docs.python.org/library/datetime.html#datetime.datetime" title="(in Python v2.7)"><em>datetime.datetime</em></a>) &#8211; Acquisition date range</li>
-<li><strong>dataset_types</strong> (<em>list[datacube.api.model.DatasetType]</em>) &#8211; Dataset types</li>
+<li><strong>months</strong> (<em>list[datacube.api.query.Month]</em>) &#8211; Month(s) of acquisition to include</li>
+<li><strong>exclude</strong> (<em>list[datacube.api.query.SatelliteDateExclusion]</em>) &#8211; Exclusions - currently supports satellite/date combinations for LS7 SLC OFF and LS8 PRE WRS 2</li>
 <li><strong>sort</strong> (<a class="reference internal" href="#datacube.api.query.SortType" title="datacube.api.query.SortType"><em>datacube.api.query.SortType</em></a>) &#8211; Sort order</li>
 </ul>
 </td>

@@ -79,10 +79,10 @@
 <span class="c">#</span>
 <span class="c"># Redistribution and use in source and binary forms, with or without</span>
 <span class="c"># modification, are permitted provided that the following conditions are met:</span>
-<span class="c"># * Redistributions of source code must retain the above copyright</span>
-<span class="c"># notice, this list of conditions and the following disclaimer.</span>
-<span class="c"># * Redistributions in binary form must reproduce the above copyright</span>
-<span class="c"># notice, this list of conditions and the following disclaimer in the</span>
+<span class="c">#     * Redistributions of source code must retain the above copyright</span>
+<span class="c">#       notice, this list of conditions and the following disclaimer.</span>
+<span class="c">#     * Redistributions in binary form must reproduce the above copyright</span>
+<span class="c">#       notice, this list of conditions and the following disclaimer in the</span>
 <span class="c">#       documentation and/or other materials provided with the distribution.</span>
 <span class="c">#     * Neither Geoscience Australia nor the names of its contributors may be</span>
 <span class="c">#       used to endorse or promote products derived from this software</span>
@@ -111,13 +111,33 @@
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">from</span> <span class="nn">datacube.api</span> <span class="kn">import</span> <span class="n">writeable_dir</span><span class="p">,</span> <span class="n">satellite_arg</span><span class="p">,</span> <span class="n">pqa_mask_arg</span><span class="p">,</span> <span class="n">wofs_mask_arg</span><span class="p">,</span> <span class="n">parse_date_min</span><span class="p">,</span> <span class="n">parse_date_max</span>
+<span class="kn">from</span> <span class="nn">datacube.api</span> <span class="kn">import</span> <span class="n">month_arg</span>
+<span class="kn">from</span> <span class="nn">datacube.api.query</span> <span class="kn">import</span> <span class="n">Month</span><span class="p">,</span> <span class="n">Season</span><span class="p">,</span> <span class="n">MONTHS_BY_SEASON</span><span class="p">,</span> <span class="n">Quarter</span><span class="p">,</span> <span class="n">MONTHS_BY_QUARTER</span>
 <span class="kn">from</span> <span class="nn">datacube.api.model</span> <span class="kn">import</span> <span class="n">Satellite</span><span class="p">,</span> <span class="n">Cell</span><span class="p">,</span> <span class="n">DatasetType</span><span class="p">,</span> <span class="n">Tile</span>
 <span class="kn">from</span> <span class="nn">datacube.api.utils</span> <span class="kn">import</span> <span class="n">PqaMask</span><span class="p">,</span> <span class="n">get_satellite_string</span><span class="p">,</span> <span class="n">WofsMask</span><span class="p">,</span> <span class="n">format_date</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
 
 
 <span class="n">_log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">()</span>
 
 
+<div class="viewcode-block" id="TimeSlice"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.TimeSlice">[docs]</a><span class="k">class</span> <span class="nc">TimeSlice</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+
+    <span class="n">__order__</span> <span class="o">=</span> <span class="s">&quot;MONTH QUARTER SEASON YEAR FULL&quot;</span>
+
+    <span class="n">MONTH</span> <span class="o">=</span> <span class="s">&quot;MONTH&quot;</span>
+    <span class="n">QUARTER</span> <span class="o">=</span> <span class="s">&quot;QUARTER&quot;</span>
+    <span class="n">SEASON</span> <span class="o">=</span> <span class="s">&quot;SEASON&quot;</span>
+    <span class="n">YEAR</span> <span class="o">=</span> <span class="s">&quot;YEAR&quot;</span>
+    <span class="n">FULL</span> <span class="o">=</span> <span class="s">&quot;FULL&quot;</span>
+
+</div>
+<div class="viewcode-block" id="time_slice_arg"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.time_slice_arg">[docs]</a><span class="k">def</span> <span class="nf">time_slice_arg</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">s</span> <span class="ow">in</span> <span class="p">[</span><span class="n">ts</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">ts</span> <span class="ow">in</span> <span class="n">TimeSlice</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">TimeSlice</span><span class="p">[</span><span class="n">s</span><span class="p">]</span>
+    <span class="k">raise</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentTypeError</span><span class="p">(</span><span class="s">&quot;{0} is not a supported time slice&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+
+</div>
 <div class="viewcode-block" id="Workflow"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.Workflow">[docs]</a><span class="k">class</span> <span class="nc">Workflow</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
     <span class="n">__metaclass__</span> <span class="o">=</span> <span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span>
@@ -128,14 +148,14 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">prog</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">description</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">x_min</span> <span class="o">=</span> <span class="bp">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">x_max</span> <span class="o">=</span> <span class="bp">None</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">y_min</span> <span class="o">=</span> <span class="bp">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">y_max</span> <span class="o">=</span> <span class="bp">None</span>
-
         <span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span> <span class="o">=</span> <span class="bp">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">epoch</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_slices</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">months</span> <span class="o">=</span> <span class="bp">None</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">satellites</span> <span class="o">=</span> <span class="bp">None</span>
 
@@ -158,34 +178,38 @@
 
         <span class="c"># TODO get the combinations of mutually exclusive arguments right</span>
 
+        <span class="c"># TODO months and time slices are sort of mutually exclusive</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--output-directory&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;output directory&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;output_directory&quot;</span><span class="p">,</span>
                                  <span class="nb">type</span><span class="o">=</span><span class="n">writeable_dir</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--x-min&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;X index of tiles&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;x_min&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
-                                 <span class="n">choices</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">110</span><span class="p">,</span> <span class="mi">155</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">required</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&quot;110 ... 155&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--x-max&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;X index of tiles&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;x_max&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
-                                 <span class="n">choices</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">110</span><span class="p">,</span> <span class="mi">155</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">required</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&quot;110 ... 155&quot;</span><span class="p">)</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--y-min&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;Y index of tiles&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;y_min&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
-                                 <span class="n">choices</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="o">-</span><span class="mi">45</span><span class="p">,</span> <span class="o">-</span><span class="mi">10</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">required</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&quot;-45 ... -10&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--y-max&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;Y index of tiles&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;y_max&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
-                                 <span class="n">choices</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="o">-</span><span class="mi">45</span><span class="p">,</span> <span class="o">-</span><span class="mi">10</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">required</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&quot;-45 ... -10&quot;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--acq-min&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;Acquisition Date&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;acq_min&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
                                  <span class="n">default</span><span class="o">=</span><span class="s">&quot;1980&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--acq-max&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;Acquisition Date&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;acq_max&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
                                  <span class="n">default</span><span class="o">=</span><span class="s">&quot;2020&quot;</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--satellite&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;The satellite(s) to include&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;satellite&quot;</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--epoch&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;Size of year chunks (e.g. 5 means do in 5 chunks of 5 years)&quot;</span><span class="p">,</span>
+                                 <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;epoch&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--time-slice&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;The time slice(s) for which to produce outputs&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span>
+                                 <span class="n">dest</span><span class="o">=</span><span class="s">&quot;time_slices&quot;</span><span class="p">,</span>
+                                 <span class="nb">type</span><span class="o">=</span><span class="n">time_slice_arg</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s">&quot;+&quot;</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="n">TimeSlice</span><span class="p">,</span>
+                                 <span class="n">metavar</span><span class="o">=</span><span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">ts</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">ts</span> <span class="ow">in</span> <span class="n">TimeSlice</span><span class="p">]))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--satellite&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;The satellite(s) to include&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;satellites&quot;</span><span class="p">,</span>
                                  <span class="nb">type</span><span class="o">=</span><span class="n">satellite_arg</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s">&quot;+&quot;</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="n">Satellite</span><span class="p">,</span>
                                  <span class="n">default</span><span class="o">=</span><span class="p">[</span><span class="n">Satellite</span><span class="o">.</span><span class="n">LS5</span><span class="p">,</span> <span class="n">Satellite</span><span class="o">.</span><span class="n">LS7</span><span class="p">],</span>
-                                 <span class="n">metavar</span><span class="o">=</span><span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">s</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">Satellite</span><span class="p">]))</span>
+                                 <span class="n">metavar</span><span class="o">=</span><span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">ts</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">ts</span> <span class="ow">in</span> <span class="n">Satellite</span><span class="p">]))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--month&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;The month(s) (of acquisition) to include&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;months&quot;</span><span class="p">,</span>
+                                 <span class="nb">type</span><span class="o">=</span><span class="n">month_arg</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s">&quot;+&quot;</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="n">Month</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">Month</span><span class="p">,</span>
+                                 <span class="n">metavar</span><span class="o">=</span><span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">ts</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">ts</span> <span class="ow">in</span> <span class="n">Month</span><span class="p">]))</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--mask-pqa-apply&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;Apply PQA mask&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store_true&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;mask_pqa_apply&quot;</span><span class="p">,</span>
                                  <span class="n">default</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--mask-pqa-mask&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;The PQA mask to apply&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;mask_pqa_mask&quot;</span><span class="p">,</span>
                                  <span class="nb">type</span><span class="o">=</span><span class="n">pqa_mask_arg</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s">&quot;+&quot;</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="n">PqaMask</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="p">[</span><span class="n">PqaMask</span><span class="o">.</span><span class="n">PQ_MASK_CLEAR</span><span class="p">],</span>
-                                 <span class="n">metavar</span><span class="o">=</span><span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">s</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">PqaMask</span><span class="p">]))</span>
+                                 <span class="n">metavar</span><span class="o">=</span><span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">ts</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">ts</span> <span class="ow">in</span> <span class="n">PqaMask</span><span class="p">]))</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--mask-wofs-apply&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;Apply WOFS mask&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store_true&quot;</span><span class="p">,</span>
                                  <span class="n">dest</span><span class="o">=</span><span class="s">&quot;mask_wofs_apply&quot;</span><span class="p">,</span>
@@ -193,7 +217,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--mask-wofs-mask&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;The WOFS mask to apply&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span>
                                  <span class="n">dest</span><span class="o">=</span><span class="s">&quot;mask_wofs_mask&quot;</span><span class="p">,</span>
                                  <span class="nb">type</span><span class="o">=</span><span class="n">wofs_mask_arg</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s">&quot;+&quot;</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="n">WofsMask</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="p">[</span><span class="n">WofsMask</span><span class="o">.</span><span class="n">WET</span><span class="p">],</span>
-                                 <span class="n">metavar</span><span class="o">=</span><span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">s</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">WofsMask</span><span class="p">]))</span>
+                                 <span class="n">metavar</span><span class="o">=</span><span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">ts</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">ts</span> <span class="ow">in</span> <span class="n">WofsMask</span><span class="p">]))</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--csv&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;Get cell/dataset info from pre-created CSV rather than querying DB&quot;</span><span class="p">,</span>
                                  <span class="n">action</span><span class="o">=</span><span class="s">&quot;store_true&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;csv&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
@@ -218,16 +242,16 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">output_directory</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">output_directory</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">x_min</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">x_min</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">x_max</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">x_max</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">y_min</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">y_min</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">y_max</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">y_max</span>
-
         <span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span> <span class="o">=</span> <span class="n">parse_date_min</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">acq_min</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span> <span class="o">=</span> <span class="n">parse_date_max</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">acq_max</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">satellites</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">satellite</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">satellites</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">satellites</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">epoch</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">epoch</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_slices</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">time_slices</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">months</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">months</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">csv</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">csv</span>
 
@@ -247,10 +271,11 @@
 <div class="viewcode-block" id="Workflow.log_arguments"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.Workflow.log_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">log_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
         <span class="n">_log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;&quot;&quot;</span>
-<span class="s">        x = {x_min:03d} to {x_max:03d}</span>
-<span class="s">        y = {y_min:04d} to {y_max:04d}</span>
 <span class="s">        acq = {acq_min} to {acq_max}</span>
+<span class="s">        epoch = {epoch}</span>
+<span class="s">        time slices = {time_slices}</span>
 <span class="s">        satellites = {satellites}</span>
+<span class="s">        months = {months}</span>
 <span class="s">        output directory = {output_directory}</span>
 <span class="s">        csv = {csv}</span>
 <span class="s">        dummy = {dummy}</span>
@@ -258,17 +283,91 @@
 <span class="s">        WOFS mask = {wofs_mask}</span>
 <span class="s">        local scheduler = {local_scheduler}</span>
 <span class="s">        workers = {workers}</span>
-<span class="s">        &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y_max</span><span class="p">,</span>
-                   <span class="n">acq_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">,</span>
-                   <span class="n">satellites</span><span class="o">=</span><span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">s</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">]),</span> <span class="n">output_directory</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_directory</span><span class="p">,</span>
+<span class="s">        &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">acq_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">,</span>
+                   <span class="n">months</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">months</span> <span class="ow">and</span> <span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">ts</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">ts</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">months</span><span class="p">])</span> <span class="ow">or</span> <span class="s">&quot;&quot;</span><span class="p">,</span>
+                   <span class="n">epoch</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">epoch</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">epoch</span> <span class="ow">or</span> <span class="s">&quot;&quot;</span><span class="p">,</span>
+                   <span class="n">time_slices</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">time_slices</span> <span class="ow">and</span> <span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">ts</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">ts</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_slices</span><span class="p">])</span> <span class="ow">or</span> <span class="s">&quot;&quot;</span><span class="p">,</span>
+                   <span class="n">satellites</span><span class="o">=</span><span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">ts</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">ts</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">]),</span>
+                   <span class="n">output_directory</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_directory</span><span class="p">,</span>
                    <span class="n">csv</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">csv</span><span class="p">,</span>
                    <span class="n">dummy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dummy</span><span class="p">,</span>
                    <span class="n">pqa_mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_pqa_apply</span> <span class="ow">and</span> <span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">mask</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">mask</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_pqa_mask</span><span class="p">])</span> <span class="ow">or</span> <span class="s">&quot;&quot;</span><span class="p">,</span>
                    <span class="n">wofs_mask</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_wofs_apply</span> <span class="ow">and</span> <span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">mask</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">mask</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_wofs_mask</span><span class="p">])</span> <span class="ow">or</span> <span class="s">&quot;&quot;</span><span class="p">,</span>
                    <span class="n">local_scheduler</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">local_scheduler</span><span class="p">,</span> <span class="n">workers</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">workers</span><span class="p">))</span>
 </div>
-    <span class="nd">@abc.abstractmethod</span>
 <div class="viewcode-block" id="Workflow.create_summary_tasks"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.Workflow.create_summary_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">create_summary_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">for</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">months</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_summary_task_items</span><span class="p">():</span>
+            <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_summary_task</span><span class="p">(</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">months</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Workflow.get_epochs"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.Workflow.get_epochs">[docs]</a>    <span class="k">def</span> <span class="nf">get_epochs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="kn">from</span> <span class="nn">dateutil.rrule</span> <span class="kn">import</span> <span class="n">rrule</span><span class="p">,</span> <span class="n">YEARLY</span>
+        <span class="kn">from</span> <span class="nn">dateutil.relativedelta</span> <span class="kn">import</span> <span class="n">relativedelta</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">epoch</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span>
+
+        <span class="c"># TODO add option to map back to calendar years</span>
+
+        <span class="c"># else:</span>
+        <span class="c">#     for dt in rrule(YEARLY, interval=self.epoch, dtstart=self.acq_min, until=self.acq_max):</span>
+        <span class="c">#         acq_min = (dt + relativedelta(month=1, day=1)).date()</span>
+        <span class="c">#         acq_max = acq_min + relativedelta(years=self.epoch-1, month=12, day=31)</span>
+        <span class="c">#</span>
+        <span class="c">#         acq_min = max(self.acq_min, acq_min)</span>
+        <span class="c">#         acq_max = min(self.acq_max, acq_max)</span>
+        <span class="c">#</span>
+        <span class="c">#         yield acq_min, acq_max</span>
+
+        <span class="c"># No fixed calendar or season year mapping</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">dt</span> <span class="ow">in</span> <span class="n">rrule</span><span class="p">(</span><span class="n">YEARLY</span><span class="p">,</span> <span class="n">interval</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">epoch</span><span class="p">,</span> <span class="n">dtstart</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">until</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">):</span>
+                <span class="n">acq_min</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+                <span class="n">acq_max</span> <span class="o">=</span> <span class="n">acq_min</span> <span class="o">+</span> <span class="n">relativedelta</span><span class="p">(</span><span class="n">years</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">epoch</span><span class="p">,</span> <span class="n">days</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+                <span class="n">acq_min</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">)</span>
+                <span class="n">acq_max</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">)</span>
+
+                <span class="k">yield</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span>
+</div>
+<div class="viewcode-block" id="Workflow.get_time_slices"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.Workflow.get_time_slices">[docs]</a>    <span class="k">def</span> <span class="nf">get_time_slices</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="c"># If no time slices then we just use the month parameter</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_slices</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">months</span>
+
+        <span class="c"># If a time slice parameter was provided then we use this to set the month parameter</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">TimeSlice</span><span class="o">.</span><span class="n">FULL</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_slices</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+            <span class="k">elif</span> <span class="n">TimeSlice</span><span class="o">.</span><span class="n">YEAR</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_slices</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+            <span class="k">elif</span> <span class="n">TimeSlice</span><span class="o">.</span><span class="n">SEASON</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_slices</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">season</span> <span class="ow">in</span> <span class="n">Season</span><span class="p">:</span>
+                    <span class="k">yield</span> <span class="n">MONTHS_BY_SEASON</span><span class="p">[</span><span class="n">season</span><span class="p">]</span>
+
+            <span class="k">elif</span> <span class="n">TimeSlice</span><span class="o">.</span><span class="n">QUARTER</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_slices</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">quarter</span> <span class="ow">in</span> <span class="n">Quarter</span><span class="p">:</span>
+                    <span class="k">yield</span> <span class="n">MONTHS_BY_QUARTER</span><span class="p">[</span><span class="n">quarter</span><span class="p">]</span>
+
+            <span class="k">elif</span> <span class="n">TimeSlice</span><span class="o">.</span><span class="n">MONTH</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_slices</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">month</span> <span class="ow">in</span> <span class="n">Month</span><span class="p">:</span>
+                    <span class="k">yield</span> <span class="p">[</span><span class="n">month</span><span class="p">]</span>
+</div>
+<div class="viewcode-block" id="Workflow.get_summary_task_items"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.Workflow.get_summary_task_items">[docs]</a>    <span class="k">def</span> <span class="nf">get_summary_task_items</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">product</span>
+
+        <span class="k">for</span> <span class="p">(</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">),</span> <span class="n">months</span> <span class="ow">in</span> <span class="n">product</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_epochs</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_time_slices</span><span class="p">()):</span>
+            <span class="k">yield</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">months</span>
+</div>
+    <span class="nd">@abc.abstractmethod</span>
+<div class="viewcode-block" id="Workflow.create_summary_task"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.Workflow.create_summary_task">[docs]</a>    <span class="k">def</span> <span class="nf">create_summary_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">months</span><span class="p">):</span>
 
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;Abstract method should be overridden&quot;</span><span class="p">)</span>
 </div>
@@ -308,16 +407,12 @@
 
     <span class="n">__metaclass__</span> <span class="o">=</span> <span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span>
 
-    <span class="n">x_min</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">IntParameter</span><span class="p">()</span>
-    <span class="n">x_max</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">IntParameter</span><span class="p">()</span>
-
-    <span class="n">y_min</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">IntParameter</span><span class="p">()</span>
-    <span class="n">y_max</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">IntParameter</span><span class="p">()</span>
-
     <span class="n">acq_min</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">DateParameter</span><span class="p">()</span>
     <span class="n">acq_max</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">DateParameter</span><span class="p">()</span>
 
     <span class="n">satellites</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">is_list</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+    <span class="n">months</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">is_list</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 
     <span class="n">output_directory</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">()</span>
 
@@ -331,67 +426,6 @@
     <span class="n">mask_wofs_apply</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">BooleanParameter</span><span class="p">()</span>
     <span class="n">mask_wofs_mask</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">()</span>
 
-<div class="viewcode-block" id="SummaryTask.get_cells"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.SummaryTask.get_cells">[docs]</a>    <span class="k">def</span> <span class="nf">get_cells</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-
-        <span class="c"># get list of cells from CSV</span>
-
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">csv</span><span class="p">:</span>
-            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_cells_from_csv</span><span class="p">())</span>
-
-        <span class="c"># get list of cells from DB</span>
-
-        <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_cells_from_db</span><span class="p">())</span>
-</div>
-<div class="viewcode-block" id="SummaryTask.get_cells_from_csv"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.SummaryTask.get_cells_from_csv">[docs]</a>    <span class="k">def</span> <span class="nf">get_cells_from_csv</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-
-        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_cell_csv_filename</span><span class="p">()):</span>
-            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_cell_csv_filename</span><span class="p">(),</span> <span class="s">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-                <span class="kn">import</span> <span class="nn">csv</span>
-
-                <span class="n">reader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">DictReader</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
-                <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">:</span>
-                    <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Found CSV record [</span><span class="si">%s</span><span class="s">]&quot;</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span>
-                    <span class="k">yield</span> <span class="n">Cell</span><span class="o">.</span><span class="n">from_csv_record</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
-</div>
-<div class="viewcode-block" id="SummaryTask.get_cell_csv_filename"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.SummaryTask.get_cell_csv_filename">[docs]</a>    <span class="k">def</span> <span class="nf">get_cell_csv_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-
-        <span class="n">acq_min</span> <span class="o">=</span> <span class="n">format_date</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">)</span>
-        <span class="n">acq_max</span> <span class="o">=</span> <span class="n">format_date</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">)</span>
-
-        <span class="c"># TODO other distinguishing characteristics (e.g. dataset type(s))</span>
-
-        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">output_directory</span><span class="p">,</span>
-            <span class="s">&quot;cells_{satellites}_{x_min:03d}_{x_max:03d}_{y_min:04d}_{y_max:04d}_{acq_min}_{acq_max}.csv&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-                <span class="n">satellites</span><span class="o">=</span><span class="n">get_satellite_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">),</span> <span class="n">x_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_min</span><span class="p">,</span>
-                <span class="n">x_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y_max</span><span class="p">,</span>
-                <span class="n">acq_min</span><span class="o">=</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="o">=</span><span class="n">acq_max</span>
-            <span class="p">))</span>
-</div>
-<div class="viewcode-block" id="SummaryTask.get_cells_from_db"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.SummaryTask.get_cells_from_db">[docs]</a>    <span class="k">def</span> <span class="nf">get_cells_from_db</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-
-        <span class="kn">from</span> <span class="nn">datacube.api.query</span> <span class="kn">import</span> <span class="n">list_cells</span>
-
-        <span class="n">x_list</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_min</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="n">y_list</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_min</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-
-        <span class="k">for</span> <span class="n">cell</span> <span class="ow">in</span> <span class="n">list_cells</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x_list</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y_list</span><span class="p">,</span> <span class="n">acq_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">,</span>
-                               <span class="n">satellites</span><span class="o">=</span><span class="p">[</span><span class="n">satellite</span> <span class="k">for</span> <span class="n">satellite</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">],</span>
-                               <span class="n">dataset_types</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_dataset_types</span><span class="p">()):</span>
-            <span class="k">yield</span> <span class="n">cell</span>
-</div>
-<div class="viewcode-block" id="SummaryTask.requires"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.SummaryTask.requires">[docs]</a>    <span class="k">def</span> <span class="nf">requires</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">csv</span><span class="p">:</span>
-            <span class="k">yield</span> <span class="n">CellListCsvTask</span><span class="p">(</span><span class="n">x_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y_max</span><span class="p">,</span>
-                                  <span class="n">acq_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">,</span> <span class="n">satellites</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">,</span>
-                                  <span class="n">dataset_types</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_dataset_types</span><span class="p">(),</span> <span class="n">path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_cell_csv_filename</span><span class="p">())</span>
-
-        <span class="c"># yield [self.create_cell_tasks(x=cell.x, y=cell.y) for cell in self.get_cells()]</span>
-        <span class="k">for</span> <span class="n">cell</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cells</span><span class="p">():</span>
-            <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_cell_tasks</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">cell</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">cell</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
-</div>
     <span class="nd">@abc.abstractmethod</span>
 <div class="viewcode-block" id="SummaryTask.create_cell_tasks"><a class="viewcode-back" href="../../../api/datacube.api.workflow.html#datacube.api.workflow.SummaryTask.create_cell_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">create_cell_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
 
@@ -414,6 +448,8 @@
     <span class="n">acq_max</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">DateParameter</span><span class="p">()</span>
 
     <span class="n">satellites</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">is_list</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+    <span class="n">months</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">is_list</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 
     <span class="n">output_directory</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">()</span>
 
@@ -474,6 +510,7 @@
 
         <span class="k">for</span> <span class="n">tile</span> <span class="ow">in</span> <span class="n">list_tiles</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x_list</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y_list</span><span class="p">,</span> <span class="n">acq_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">,</span>
                                <span class="n">satellites</span><span class="o">=</span><span class="p">[</span><span class="n">satellite</span> <span class="k">for</span> <span class="n">satellite</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">],</span>
+                               <span class="n">include</span><span class="o">=</span><span class="p">[</span><span class="n">month</span> <span class="k">for</span> <span class="n">month</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">months</span><span class="p">],</span>
                                <span class="n">dataset_types</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_dataset_types</span><span class="p">()):</span>
             <span class="k">yield</span> <span class="n">tile</span>
 </div>
@@ -505,6 +542,8 @@
 
     <span class="n">satellites</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">is_list</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 
+    <span class="n">months</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">is_list</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
     <span class="n">dataset_types</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">is_list</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 
     <span class="n">path</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">()</span>
@@ -524,7 +563,7 @@
 
         <span class="kn">from</span> <span class="nn">datacube.api.query</span> <span class="kn">import</span> <span class="n">SortType</span>
 
-        <span class="n">list_cells_to_file</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x_list</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y_list</span><span class="p">,</span> <span class="n">satellites</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">),</span>
+        <span class="n">list_cells_to_file</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x_list</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y_list</span><span class="p">,</span> <span class="n">satellites</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">),</span> <span class="n">include</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">months</span><span class="p">),</span>
                            <span class="n">acq_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_types</span><span class="p">,</span>
                            <span class="n">filename</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">()</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">)</span>
 
@@ -541,6 +580,8 @@
     <span class="n">acq_max</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">DateParameter</span><span class="p">()</span>
 
     <span class="n">satellites</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">is_list</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+    <span class="n">months</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">is_list</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 
     <span class="n">dataset_types</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">is_list</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
 
@@ -559,7 +600,7 @@
 
         <span class="kn">from</span> <span class="nn">datacube.api.query</span> <span class="kn">import</span> <span class="n">list_tiles_to_file</span><span class="p">,</span> <span class="n">SortType</span>
 
-        <span class="n">list_tiles_to_file</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x_list</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y_list</span><span class="p">,</span> <span class="n">satellites</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">),</span>
+        <span class="n">list_tiles_to_file</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x_list</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y_list</span><span class="p">,</span> <span class="n">satellites</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">),</span> <span class="n">include</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">months</span><span class="p">),</span>
                            <span class="n">acq_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">,</span> <span class="n">dataset_types</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset_types</span><span class="p">,</span>
                            <span class="n">filename</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">()</span><span class="o">.</span><span class="n">path</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="n">SortType</span><span class="o">.</span><span class="n">ASC</span><span class="p">)</span></div></div>
 </pre></div>

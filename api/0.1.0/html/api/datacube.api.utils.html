@@ -94,9 +94,15 @@
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.Enum</span></code></p>
 </dd></dl>
 
+<dl class="class">
+<dt id="datacube.api.utils.PercentileInterpolation">
+<em class="property">class </em><code class="descclassname">datacube.api.utils.</code><code class="descname">PercentileInterpolation</code><a class="reference internal" href="../_modules/datacube/api/utils.html#PercentileInterpolation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.PercentileInterpolation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.Enum</span></code></p>
+</dd></dl>
+
 <dl class="function">
 <dt id="datacube.api.utils.empty_array">
-<code class="descclassname">datacube.api.utils.</code><code class="descname">empty_array</code><span class="sig-paren">(</span><em>shape</em>, <em>dtype=&lt;type 'numpy.int16'&gt;</em>, <em>ndv=-999</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#empty_array"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.empty_array" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">datacube.api.utils.</code><code class="descname">empty_array</code><span class="sig-paren">(</span><em>shape</em>, <em>dtype=&lt;type 'numpy.int16'&gt;</em>, <em>fill=-999</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#empty_array"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.empty_array" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return an empty (i.e. filled with the no data value) array of the given shape and data type</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -105,7 +111,7 @@
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>shape</strong> &#8211; shape of the array</li>
 <li><strong>dtype</strong> &#8211; data type of the array (defaults to int32)</li>
-<li><strong>ndv</strong> &#8211; no data value (defaults to -999)</li>
+<li><strong>fill</strong> &#8211; no data value (defaults to -999)</li>
 </ul>
 </td>
 </tr>
@@ -323,6 +329,11 @@
 </tbody>
 </table>
 </dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.get_dataset_data_stack">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">get_dataset_data_stack</code><span class="sig-paren">(</span><em>tiles</em>, <em>dataset_type</em>, <em>band_name</em>, <em>x=0</em>, <em>y=0</em>, <em>x_size=None</em>, <em>y_size=None</em>, <em>ndv=None</em>, <em>mask_pqa_apply=False</em>, <em>mask_pqa_mask=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#get_dataset_data_stack"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.get_dataset_data_stack" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="function">
 <dt id="datacube.api.utils.raster_create">
@@ -550,8 +561,18 @@ that is, that is, 120/-20 does NOT contain lat value of -20</dd>
 <dd></dd></dl>
 
 <dl class="function">
+<dt id="datacube.api.utils.get_dataset_type_datatype">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">get_dataset_type_datatype</code><span class="sig-paren">(</span><em>dataset_type</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#get_dataset_type_datatype"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.get_dataset_type_datatype" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
 <dt id="datacube.api.utils.get_dataset_ndv">
 <code class="descclassname">datacube.api.utils.</code><code class="descname">get_dataset_ndv</code><span class="sig-paren">(</span><em>dataset</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#get_dataset_ndv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.get_dataset_ndv" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.get_dataset_type_ndv">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">get_dataset_type_ndv</code><span class="sig-paren">(</span><em>dataset_type</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#get_dataset_type_ndv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.get_dataset_type_ndv" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
@@ -577,6 +598,56 @@ that is, that is, 120/-20 does NOT contain lat value of -20</dd>
 <dl class="function">
 <dt id="datacube.api.utils.extract_feature_geometry_wkb">
 <code class="descclassname">datacube.api.utils.</code><code class="descname">extract_feature_geometry_wkb</code><span class="sig-paren">(</span><em>vector_file</em>, <em>vector_layer=0</em>, <em>vector_feature=0</em>, <em>epsg=4326</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#extract_feature_geometry_wkb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.extract_feature_geometry_wkb" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.maskify_stack">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">maskify_stack</code><span class="sig-paren">(</span><em>stack</em>, <em>ndv=-999</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#maskify_stack"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.maskify_stack" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.calculate_stack_statistic_count">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">calculate_stack_statistic_count</code><span class="sig-paren">(</span><em>stack</em>, <em>ndv=-999</em>, <em>dtype=&lt;type 'numpy.int16'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#calculate_stack_statistic_count"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.calculate_stack_statistic_count" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.calculate_stack_statistic_count_observed">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">calculate_stack_statistic_count_observed</code><span class="sig-paren">(</span><em>stack</em>, <em>ndv=-999</em>, <em>dtype=&lt;type 'numpy.int16'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#calculate_stack_statistic_count_observed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.calculate_stack_statistic_count_observed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.calculate_stack_statistic_min">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">calculate_stack_statistic_min</code><span class="sig-paren">(</span><em>stack</em>, <em>ndv=-999</em>, <em>dtype=&lt;type 'numpy.int16'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#calculate_stack_statistic_min"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.calculate_stack_statistic_min" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.calculate_stack_statistic_max">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">calculate_stack_statistic_max</code><span class="sig-paren">(</span><em>stack</em>, <em>ndv=-999</em>, <em>dtype=&lt;type 'numpy.int16'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#calculate_stack_statistic_max"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.calculate_stack_statistic_max" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.calculate_stack_statistic_mean">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">calculate_stack_statistic_mean</code><span class="sig-paren">(</span><em>stack</em>, <em>ndv=-999</em>, <em>dtype=&lt;type 'numpy.int16'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#calculate_stack_statistic_mean"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.calculate_stack_statistic_mean" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.calculate_stack_statistic_percentile">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">calculate_stack_statistic_percentile</code><span class="sig-paren">(</span><em>stack</em>, <em>percentile</em>, <em>interpolation=&lt;PercentileInterpolation.NEAREST: 'nearest'&gt;</em>, <em>ndv=-999</em>, <em>dtype=&lt;type 'numpy.int16'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#calculate_stack_statistic_percentile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.calculate_stack_statistic_percentile" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.get_mask_aoi_cell">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">get_mask_aoi_cell</code><span class="sig-paren">(</span><em>vector_file</em>, <em>vector_layer</em>, <em>vector_feature</em>, <em>x</em>, <em>y</em>, <em>width=4000</em>, <em>height=4000</em>, <em>epsg=4326</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#get_mask_aoi_cell"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.get_mask_aoi_cell" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.grand_mean">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">grand_mean</code><span class="sig-paren">(</span><em>means</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#grand_mean"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.grand_mean" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="datacube.api.utils.combine_means">
+<code class="descclassname">datacube.api.utils.</code><code class="descname">combine_means</code><span class="sig-paren">(</span><em>mean1</em>, <em>count1</em>, <em>mean2</em>, <em>count2</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/datacube/api/utils.html#combine_means"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#datacube.api.utils.combine_means" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>

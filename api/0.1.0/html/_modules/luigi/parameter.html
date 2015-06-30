@@ -175,7 +175,7 @@
 
     <span class="nd">@deprecate_kwarg</span><span class="p">(</span><span class="s">&#39;is_boolean&#39;</span><span class="p">,</span> <span class="s">&#39;is_bool&#39;</span><span class="p">,</span> <span class="bp">False</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="n">_no_value</span><span class="p">,</span> <span class="n">is_list</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">is_boolean</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">is_global</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">significant</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
-                 <span class="n">config_path</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+                 <span class="n">config_path</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">positional</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        :param default: the default value for this parameter. This should match the type of the</span>
 <span class="sd">                        Parameter, i.e. ``datetime.date`` for ``DateParameter`` or ``int`` for</span>
@@ -200,6 +200,10 @@
 <span class="sd">                                 specifying a config file entry from which to read the</span>
 <span class="sd">                                 default value for this parameter. DEPRECATED.</span>
 <span class="sd">                                 Default: ``None``.</span>
+<span class="sd">        :param bool positional: If true, you can set the argument as a</span>
+<span class="sd">                                positional argument. Generally we recommend ``positional=False``</span>
+<span class="sd">                                as positional arguments become very tricky when</span>
+<span class="sd">                                you have inheritance and whatnot.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c"># The default default is no default</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">__default</span> <span class="o">=</span> <span class="n">default</span>
@@ -209,6 +213,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">is_bool</span> <span class="o">=</span> <span class="n">is_boolean</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_list</span>  <span class="c"># Only BoolParameter should ever use this. TODO(erikbern): should we raise some kind of exception?</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">is_global</span> <span class="o">=</span> <span class="n">is_global</span>  <span class="c"># It just means that the default value is exposed and you can override it</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">significant</span> <span class="o">=</span> <span class="n">significant</span>  <span class="c"># Whether different values for this parameter will differentiate otherwise equal tasks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">positional</span> <span class="o">=</span> <span class="n">positional</span>
 
         <span class="k">if</span> <span class="n">is_global</span><span class="p">:</span>
             <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
@@ -252,11 +257,17 @@
             <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_value_from_config</span><span class="p">(</span><span class="n">task_name</span><span class="p">,</span> <span class="n">param_name</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">v</span> <span class="o">!=</span> <span class="n">_no_value</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">v</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_value_from_config</span><span class="p">(</span><span class="n">task_name</span><span class="p">,</span> <span class="n">param_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&#39;_&#39;</span><span class="p">,</span> <span class="s">&#39;-&#39;</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">v</span> <span class="o">!=</span> <span class="n">_no_value</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s">&#39;The use of the configuration [</span><span class="si">%s</span><span class="s">] </span><span class="si">%s</span><span class="s"> (with dashes) should be avoided. Please use underscores.&#39;</span> <span class="o">%</span>
+                    <span class="p">(</span><span class="n">task_name</span><span class="p">,</span> <span class="n">param_name</span><span class="p">),</span> <span class="ne">DeprecationWarning</span><span class="p">,</span> <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">v</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">__config</span><span class="p">:</span>
             <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_value_from_config</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__config</span><span class="p">[</span><span class="s">&#39;section&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">__config</span><span class="p">[</span><span class="s">&#39;name&#39;</span><span class="p">])</span>
             <span class="k">if</span> <span class="n">v</span> <span class="o">!=</span> <span class="n">_no_value</span> <span class="ow">and</span> <span class="n">task_name</span> <span class="ow">and</span> <span class="n">param_name</span><span class="p">:</span>
                 <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-                    <span class="s">&#39;The use of the configuration </span><span class="si">%s</span><span class="s">&gt;</span><span class="si">%s</span><span class="s"> is deprecated. Please use </span><span class="si">%s</span><span class="s">&gt;</span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span>
+                    <span class="s">&#39;The use of the configuration [</span><span class="si">%s</span><span class="s">] </span><span class="si">%s</span><span class="s"> is deprecated. Please use [</span><span class="si">%s</span><span class="s">] </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span>
                     <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__config</span><span class="p">[</span><span class="s">&#39;section&#39;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">__config</span><span class="p">[</span><span class="s">&#39;name&#39;</span><span class="p">],</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">param_name</span><span class="p">),</span>
                     <span class="ne">DeprecationWarning</span><span class="p">,</span> <span class="n">stacklevel</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">v</span> <span class="o">!=</span> <span class="n">_no_value</span><span class="p">:</span>
@@ -345,7 +356,7 @@
             <span class="k">return</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">x</span><span class="p">]</span>
         <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">parse_from_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_name</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">parse_from_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_name</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">task_name</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Parses the parameter value from input ``x``, handling defaults and is_list.</span>
 
@@ -355,8 +366,8 @@
 <span class="sd">        :raises MissingParameterException: if x is false-y and no default is specified.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">x</span><span class="p">:</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_value</span><span class="p">:</span>
-                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_task_value</span><span class="p">(</span><span class="n">param_name</span><span class="o">=</span><span class="n">param_name</span><span class="p">,</span> <span class="n">task_name</span><span class="o">=</span><span class="n">task_name</span><span class="p">):</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_value</span><span class="p">(</span><span class="n">param_name</span><span class="o">=</span><span class="n">param_name</span><span class="p">,</span> <span class="n">task_name</span><span class="o">=</span><span class="n">task_name</span><span class="p">)</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_bool</span><span class="p">:</span>
                 <span class="k">return</span> <span class="bp">False</span>
             <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_list</span><span class="p">:</span>
@@ -399,8 +410,9 @@
             <span class="n">description</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&#39;for all instances of class </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">task_name</span><span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">description</span><span class="p">:</span>
             <span class="n">description</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">description</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_value</span><span class="p">:</span>
-            <span class="n">description</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&quot; [default: </span><span class="si">%s</span><span class="s">]&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">,))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_task_value</span><span class="p">(</span><span class="n">param_name</span><span class="o">=</span><span class="n">param_name</span><span class="p">,</span> <span class="n">task_name</span><span class="o">=</span><span class="n">task_name</span><span class="p">):</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_value</span><span class="p">(</span><span class="n">param_name</span><span class="o">=</span><span class="n">param_name</span><span class="p">,</span> <span class="n">task_name</span><span class="o">=</span><span class="n">task_name</span><span class="p">)</span>
+            <span class="n">description</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&quot; [default: </span><span class="si">%s</span><span class="s">]&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">value</span><span class="p">,))</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_list</span><span class="p">:</span>
             <span class="n">action</span> <span class="o">=</span> <span class="s">&quot;append&quot;</span>
@@ -422,7 +434,7 @@
         <span class="n">dest</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parser_dest</span><span class="p">(</span><span class="n">param_name</span><span class="p">,</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">glob</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">dest</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
-            <span class="n">params</span><span class="p">[</span><span class="n">param_name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_from_input</span><span class="p">(</span><span class="n">param_name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+            <span class="n">params</span><span class="p">[</span><span class="n">param_name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">parse_from_input</span><span class="p">(</span><span class="n">param_name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">task_name</span><span class="o">=</span><span class="n">task_name</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">set_global_from_args</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param_name</span><span class="p">,</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">is_without_section</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
         <span class="c"># Note: side effects</span>
@@ -430,7 +442,7 @@
         <span class="k">if</span> <span class="n">dest</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
             <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">dest</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">value</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">set_global</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parse_from_input</span><span class="p">(</span><span class="n">param_name</span><span class="p">,</span> <span class="n">value</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">set_global</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parse_from_input</span><span class="p">(</span><span class="n">param_name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">task_name</span><span class="o">=</span><span class="n">task_name</span><span class="p">))</span>
             <span class="k">else</span><span class="p">:</span>  <span class="c"># either False (bools) or None (everything else)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">reset_global</span><span class="p">()</span>
 

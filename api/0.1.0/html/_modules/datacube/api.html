@@ -102,11 +102,12 @@
 
 
 <span class="kn">import</span> <span class="nn">argparse</span>
-<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">from</span> <span class="nn">datacube.api.model</span> <span class="kn">import</span> <span class="n">Satellite</span><span class="p">,</span> <span class="n">DatasetType</span>
+<span class="kn">from</span> <span class="nn">datacube.api.query</span> <span class="kn">import</span> <span class="n">Month</span>
 <span class="kn">from</span> <span class="nn">datacube.api.utils</span> <span class="kn">import</span> <span class="n">PqaMask</span><span class="p">,</span> <span class="n">WofsMask</span><span class="p">,</span> <span class="n">OutputFormat</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
 
 
 <span class="n">_log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">()</span>
@@ -116,6 +117,12 @@
     <span class="k">if</span> <span class="n">s</span> <span class="ow">in</span> <span class="p">[</span><span class="n">sat</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">sat</span> <span class="ow">in</span> <span class="n">Satellite</span><span class="p">]:</span>
         <span class="k">return</span> <span class="n">Satellite</span><span class="p">[</span><span class="n">s</span><span class="p">]</span>
     <span class="k">raise</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentTypeError</span><span class="p">(</span><span class="s">&quot;{0} is not a supported satellite&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+
+</div>
+<div class="viewcode-block" id="month_arg"><a class="viewcode-back" href="../../api/datacube.api.html#datacube.api.month_arg">[docs]</a><span class="k">def</span> <span class="nf">month_arg</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">s</span> <span class="ow">in</span> <span class="p">[</span><span class="n">month</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">month</span> <span class="ow">in</span> <span class="n">Month</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="n">Month</span><span class="p">[</span><span class="n">s</span><span class="p">]</span>
+    <span class="k">raise</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentTypeError</span><span class="p">(</span><span class="s">&quot;{0} is not a supported month&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
 
 </div>
 <div class="viewcode-block" id="pqa_mask_arg"><a class="viewcode-back" href="../../api/datacube.api.html#datacube.api.pqa_mask_arg">[docs]</a><span class="k">def</span> <span class="nf">pqa_mask_arg</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
@@ -211,6 +218,7 @@
 <div class="viewcode-block" id="parse_date"><a class="viewcode-back" href="../../api/datacube.api.html#datacube.api.parse_date">[docs]</a><span class="k">def</span> <span class="nf">parse_date</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
     <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
     <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s">&quot;%Y-%m-</span><span class="si">%d</span><span class="s">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+
 </div>
 <div class="viewcode-block" id="parse_date_min"><a class="viewcode-back" href="../../api/datacube.api.html#datacube.api.parse_date_min">[docs]</a><span class="k">def</span> <span class="nf">parse_date_min</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
     <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
@@ -229,7 +237,7 @@
 
 </div>
 <div class="viewcode-block" id="parse_date_max"><a class="viewcode-back" href="../../api/datacube.api.html#datacube.api.parse_date_max">[docs]</a><span class="k">def</span> <span class="nf">parse_date_max</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
-    <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">date</span><span class="p">,</span> <span class="n">datetime</span>
+    <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
     <span class="kn">import</span> <span class="nn">calendar</span>
 
     <span class="k">if</span> <span class="n">s</span><span class="p">:</span>
@@ -256,6 +264,24 @@
     <span class="k">if</span> <span class="n">s</span> <span class="ow">in</span> <span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">OutputFormat</span><span class="p">]:</span>
         <span class="k">return</span> <span class="n">OutputFormat</span><span class="p">[</span><span class="n">s</span><span class="p">]</span>
     <span class="k">raise</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentTypeError</span><span class="p">(</span><span class="s">&quot;{0} is not a supported output format&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+
+</div>
+<div class="viewcode-block" id="Statistic"><a class="viewcode-back" href="../../api/datacube.api.html#datacube.api.Statistic">[docs]</a><span class="k">class</span> <span class="nc">Statistic</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">__order__</span> <span class="o">=</span> <span class="s">&quot;COUNT COUNT_OBSERVED MIN MAX MEAN SUM STANDARD_DEVIATION VARIANCE PERCENTILE_25 PERCENTILE_50 PERCENTILE_75 PERCENTILE_90 PERCENTILE_95&quot;</span>
+
+    <span class="n">COUNT</span> <span class="o">=</span> <span class="s">&quot;COUNT&quot;</span>
+    <span class="n">COUNT_OBSERVED</span> <span class="o">=</span> <span class="s">&quot;COUNT_OBSERVED&quot;</span>
+    <span class="n">MIN</span> <span class="o">=</span> <span class="s">&quot;MIN&quot;</span>
+    <span class="n">MAX</span> <span class="o">=</span> <span class="s">&quot;MAX&quot;</span>
+    <span class="n">MEAN</span> <span class="o">=</span> <span class="s">&quot;MEAN&quot;</span>
+    <span class="n">SUM</span> <span class="o">=</span> <span class="s">&quot;SUM&quot;</span>
+    <span class="n">STANDARD_DEVIATION</span> <span class="o">=</span> <span class="s">&quot;STANDARD_DEVIATION&quot;</span>
+    <span class="n">VARIANCE</span> <span class="o">=</span> <span class="s">&quot;VARIANCE&quot;</span>
+    <span class="n">PERCENTILE_25</span> <span class="o">=</span> <span class="s">&quot;PERCENTILE_25&quot;</span>
+    <span class="n">PERCENTILE_50</span> <span class="o">=</span> <span class="s">&quot;PERCENTILE_50&quot;</span>
+    <span class="n">PERCENTILE_75</span> <span class="o">=</span> <span class="s">&quot;PERCENTILE_75&quot;</span>
+    <span class="n">PERCENTILE_90</span> <span class="o">=</span> <span class="s">&quot;PERCENTILE_90&quot;</span>
+    <span class="n">PERCENTILE_95</span> <span class="o">=</span> <span class="s">&quot;PERCENTILE_95&quot;</span>
 </pre></div></div>
 
           </div>

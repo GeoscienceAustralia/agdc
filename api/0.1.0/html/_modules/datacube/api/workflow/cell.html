@@ -80,10 +80,10 @@
 <span class="c">#</span>
 <span class="c"># Redistribution and use in source and binary forms, with or without</span>
 <span class="c"># modification, are permitted provided that the following conditions are met:</span>
-<span class="c"># * Redistributions of source code must retain the above copyright</span>
-<span class="c"># notice, this list of conditions and the following disclaimer.</span>
-<span class="c"># * Redistributions in binary form must reproduce the above copyright</span>
-<span class="c"># notice, this list of conditions and the following disclaimer in the</span>
+<span class="c">#     * Redistributions of source code must retain the above copyright</span>
+<span class="c">#       notice, this list of conditions and the following disclaimer.</span>
+<span class="c">#     * Redistributions in binary form must reproduce the above copyright</span>
+<span class="c">#       notice, this list of conditions and the following disclaimer in the</span>
 <span class="c">#       documentation and/or other materials provided with the distribution.</span>
 <span class="c">#     * Neither Geoscience Australia nor the names of its contributors may be</span>
 <span class="c">#       used to endorse or promote products derived from this software</span>
@@ -108,6 +108,7 @@
 <span class="kn">import</span> <span class="nn">abc</span>
 <span class="kn">import</span> <span class="nn">datacube.api.workflow</span> <span class="kn">as</span> <span class="nn">workflow</span>
 <span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">luigi</span>
 
 
 <span class="n">_log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">()</span>
@@ -123,25 +124,52 @@
         <span class="c"># super(self.__class__, self).__init__(name)</span>
         <span class="n">workflow</span><span class="o">.</span><span class="n">Workflow</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_min</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_max</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_min</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_max</span> <span class="o">=</span> <span class="bp">None</span>
+
 <div class="viewcode-block" id="Workflow.setup_arguments"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell.html#datacube.api.workflow.cell.Workflow.setup_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">setup_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
         <span class="c"># Call method on super class</span>
         <span class="c"># super(self.__class__, self).setup_arguments()</span>
         <span class="n">workflow</span><span class="o">.</span><span class="n">Workflow</span><span class="o">.</span><span class="n">setup_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--x-min&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;X index of tiles&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;x_min&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+                                 <span class="n">choices</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">110</span><span class="p">,</span> <span class="mi">155</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">required</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&quot;110 ... 155&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--x-max&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;X index of tiles&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;x_max&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+                                 <span class="n">choices</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="mi">110</span><span class="p">,</span> <span class="mi">155</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">required</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&quot;110 ... 155&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--y-min&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;Y index of tiles&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;y_min&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+                                 <span class="n">choices</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="o">-</span><span class="mi">45</span><span class="p">,</span> <span class="o">-</span><span class="mi">10</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">required</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&quot;-45 ... -10&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s">&quot;--y-max&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s">&quot;Y index of tiles&quot;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s">&quot;store&quot;</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s">&quot;y_max&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+                                 <span class="n">choices</span><span class="o">=</span><span class="nb">range</span><span class="p">(</span><span class="o">-</span><span class="mi">45</span><span class="p">,</span> <span class="o">-</span><span class="mi">10</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">required</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">metavar</span><span class="o">=</span><span class="s">&quot;-45 ... -10&quot;</span><span class="p">)</span>
 </div>
 <div class="viewcode-block" id="Workflow.process_arguments"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell.html#datacube.api.workflow.cell.Workflow.process_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">process_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
 
         <span class="c"># Call method on super class</span>
         <span class="c"># super(self.__class__, self).process_arguments(args)</span>
         <span class="n">workflow</span><span class="o">.</span><span class="n">Workflow</span><span class="o">.</span><span class="n">process_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_min</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">x_min</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_max</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">x_max</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_min</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">y_min</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_max</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">y_max</span>
 </div>
 <div class="viewcode-block" id="Workflow.log_arguments"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell.html#datacube.api.workflow.cell.Workflow.log_arguments">[docs]</a>    <span class="k">def</span> <span class="nf">log_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
         <span class="c"># Call method on super class</span>
         <span class="c"># super(self.__class__, self).log_arguments()</span>
         <span class="n">workflow</span><span class="o">.</span><span class="n">Workflow</span><span class="o">.</span><span class="n">log_arguments</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="n">_log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s">&quot;&quot;&quot;</span>
+<span class="s">        x = {x_min:03d} to {x_max:03d}</span>
+<span class="s">        y = {y_min:04d} to {y_max:04d}</span>
+<span class="s">        &quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y_max</span><span class="p">))</span>
 </div>
-<div class="viewcode-block" id="Workflow.create_summary_tasks"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell.html#datacube.api.workflow.cell.Workflow.create_summary_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">create_summary_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Workflow.create_summary_task"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell.html#datacube.api.workflow.cell.Workflow.create_summary_task">[docs]</a>    <span class="k">def</span> <span class="nf">create_summary_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="p">,</span> <span class="n">months</span><span class="p">):</span>
 
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;Abstract method should be overridden&quot;</span><span class="p">)</span>
 
@@ -150,6 +178,75 @@
 
     <span class="n">__metaclass__</span> <span class="o">=</span> <span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span>
 
+    <span class="n">x_min</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">IntParameter</span><span class="p">()</span>
+    <span class="n">x_max</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">IntParameter</span><span class="p">()</span>
+
+    <span class="n">y_min</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">IntParameter</span><span class="p">()</span>
+    <span class="n">y_max</span> <span class="o">=</span> <span class="n">luigi</span><span class="o">.</span><span class="n">IntParameter</span><span class="p">()</span>
+
+<div class="viewcode-block" id="SummaryTask.get_cells"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell.html#datacube.api.workflow.cell.SummaryTask.get_cells">[docs]</a>    <span class="k">def</span> <span class="nf">get_cells</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="c"># get list of cells from CSV</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">csv</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_cells_from_csv</span><span class="p">())</span>
+
+        <span class="c"># get list of cells from DB</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_cells_from_db</span><span class="p">())</span>
+</div>
+<div class="viewcode-block" id="SummaryTask.get_cells_from_csv"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell.html#datacube.api.workflow.cell.SummaryTask.get_cells_from_csv">[docs]</a>    <span class="k">def</span> <span class="nf">get_cells_from_csv</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_cell_csv_filename</span><span class="p">()):</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_cell_csv_filename</span><span class="p">(),</span> <span class="s">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="kn">import</span> <span class="nn">csv</span>
+
+                <span class="n">reader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">DictReader</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="n">reader</span><span class="p">:</span>
+                    <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s">&quot;Found CSV record [</span><span class="si">%s</span><span class="s">]&quot;</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span>
+                    <span class="k">yield</span> <span class="n">Cell</span><span class="o">.</span><span class="n">from_csv_record</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="SummaryTask.get_cell_csv_filename"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell.html#datacube.api.workflow.cell.SummaryTask.get_cell_csv_filename">[docs]</a>    <span class="k">def</span> <span class="nf">get_cell_csv_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="n">acq_min</span> <span class="o">=</span> <span class="n">format_date</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">)</span>
+        <span class="n">acq_max</span> <span class="o">=</span> <span class="n">format_date</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">)</span>
+
+        <span class="c"># TODO other distinguishing characteristics (e.g. dataset type(s))</span>
+
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">output_directory</span><span class="p">,</span>
+            <span class="s">&quot;cells_{satellites}_{x_min:03d}_{x_max:03d}_{y_min:04d}_{y_max:04d}_{acq_min}_{acq_max}.csv&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">satellites</span><span class="o">=</span><span class="n">get_satellite_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">),</span> <span class="n">x_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_min</span><span class="p">,</span>
+                <span class="n">x_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y_max</span><span class="p">,</span>
+                <span class="n">acq_min</span><span class="o">=</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="o">=</span><span class="n">acq_max</span>
+            <span class="p">))</span>
+</div>
+<div class="viewcode-block" id="SummaryTask.get_cells_from_db"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell.html#datacube.api.workflow.cell.SummaryTask.get_cells_from_db">[docs]</a>    <span class="k">def</span> <span class="nf">get_cells_from_db</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="kn">from</span> <span class="nn">datacube.api.query</span> <span class="kn">import</span> <span class="n">list_cells</span>
+
+        <span class="n">x_list</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_min</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">y_list</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_min</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">cell</span> <span class="ow">in</span> <span class="n">list_cells</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x_list</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">y_list</span><span class="p">,</span> <span class="n">acq_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">,</span>
+                               <span class="n">satellites</span><span class="o">=</span><span class="p">[</span><span class="n">satellite</span> <span class="k">for</span> <span class="n">satellite</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">],</span>
+                               <span class="n">include</span><span class="o">=</span><span class="p">[</span><span class="n">month</span> <span class="k">for</span> <span class="n">month</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">months</span><span class="p">],</span>
+                               <span class="n">dataset_types</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_dataset_types</span><span class="p">()):</span>
+            <span class="k">yield</span> <span class="n">cell</span>
+</div>
+<div class="viewcode-block" id="SummaryTask.requires"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell.html#datacube.api.workflow.cell.SummaryTask.requires">[docs]</a>    <span class="k">def</span> <span class="nf">requires</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">csv</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">workflow</span><span class="o">.</span><span class="n">CellListCsvTask</span><span class="p">(</span><span class="n">x_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">y_max</span><span class="p">,</span>
+                                  <span class="n">acq_min</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_min</span><span class="p">,</span> <span class="n">acq_max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">acq_max</span><span class="p">,</span> <span class="n">satellites</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">satellites</span><span class="p">,</span>
+                                  <span class="n">months</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">months</span><span class="p">,</span>
+                                  <span class="n">dataset_types</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_dataset_types</span><span class="p">(),</span> <span class="n">path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">get_cell_csv_filename</span><span class="p">())</span>
+
+        <span class="c"># yield [self.create_cell_tasks(x=cell.x, y=cell.y) for cell in self.get_cells()]</span>
+        <span class="k">for</span> <span class="n">cell</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cells</span><span class="p">():</span>
+            <span class="k">yield</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_cell_tasks</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">cell</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="o">=</span><span class="n">cell</span><span class="o">.</span><span class="n">y</span><span class="p">)</span>
+</div>
     <span class="nd">@abc.abstractmethod</span>
 <div class="viewcode-block" id="SummaryTask.create_cell_tasks"><a class="viewcode-back" href="../../../../api/datacube.api.workflow.cell.html#datacube.api.workflow.cell.SummaryTask.create_cell_tasks">[docs]</a>    <span class="k">def</span> <span class="nf">create_cell_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
 

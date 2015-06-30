@@ -145,6 +145,7 @@ usage: retrieve_pixel_time_series.py
        [--delimiter DELIMITER]
        [--output-directory OUTPUT_DIRECTORY]
        [--overwrite]
+       [--season SPRING SUMMER AUTUMN WINTER]
 
 Retrieve Pixel Time Series
 
@@ -174,6 +175,8 @@ optional arguments:
   --output-directory OUTPUT_DIRECTORY
                         Output directory
   --overwrite           Over write existing output file
+  --season SPRING SUMMER AUTUMN WINTER
+                        The seasons for which to produce statistics
 </pre></div>
 </div>
 <div class="admonition note">
@@ -181,6 +184,31 @@ optional arguments:
 <p>The ACQ DATE parameters support dates being specified as <code class="docutils literal"><span class="pre">YYYY</span></code> or <code class="docutils literal"><span class="pre">YYYY-MM</span></code> or <code class="docutils literal"><span class="pre">YYYY-MM-DD</span></code>.</p>
 <p>The MIN parameter maps the value down - i.e. <cite>2000</cite> -&gt; <cite>2000-01-01</cite> and <cite>2000-12</cite> -&gt; <cite>2012-12-01</cite></p>
 <p class="last">The MAX parameter maps the value up - i.e. <cite>2000</cite> -&gt; <cite>2000-12-31</cite> and <cite>2000-01</cite> -&gt; <cite>2012-01-31</cite></p>
+</div>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>The season are currently defined as:</p>
+<ul class="simple">
+<li>SUMMER November 17 to April 25</li>
+<li>AUTUMN February 16 to July 25</li>
+<li>WINTER May 17 to October 25</li>
+<li>SPRING August 17 to January 25</li>
+</ul>
+<p>Seasons are identified by the year in which they begin.  So for example, SUMMER 1985 is November 17 1985 to April 25 1986.</p>
+<p><em>EXAMPLE</em></p>
+<p>Specifying <code class="docutils literal"><span class="pre">--acq-min</span> <span class="pre">1990</span> <span class="pre">--acq-max</span> <span class="pre">1994</span> <span class="pre">--season</span> <span class="pre">SUMMER</span></code> will match datasets that were acquired during the SUMMER
+of 1990, 1991, 1992, 1993 or 1994.</p>
+<p>That is, between:</p>
+<ul class="simple">
+<li>1985-11-17 and 1986-04-25; OR</li>
+<li>1986-11-17 and 1987-04-25; OR</li>
+<li>1987-11-17 and 1988-04-25; OR</li>
+<li>1988-11-17 and 1989-04-25; OR</li>
+<li>1989-11-17 and 1990-04-25; OR</li>
+</ul>
+<p>The <code class="docutils literal"><span class="pre">--acq-max</span></code> is automatically extended to the end of the season.</p>
+<p class="last">The season definitions and the ability to specify whether or not the <code class="docutils literal"><span class="pre">--acq-max</span></code> is extended
+will be able to be specified <cite>real soon now</cite>.</p>
 </div>
 <div class="section" id="example-uses">
 <h3>Example Uses<a class="headerlink" href="#example-uses" title="Permalink to this headline">¶</a></h3>
