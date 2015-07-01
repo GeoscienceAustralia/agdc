@@ -40,7 +40,7 @@ from __future__ import absolute_import
 import os
 import re
 from osgeo import gdal
-from agdc.abstract_ingester import AbstractBandstack
+from agdc.ingest import AbstractBandstack
 from agdc.cube_util import DatasetError, create_directory
 from collections import OrderedDict
 from eotools.execute import execute

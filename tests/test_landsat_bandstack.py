@@ -35,11 +35,12 @@ import re
 import os
 import logging
 import unittest
+
 import agdc.dbutil as dbutil
+from agdc.ingest._core import IngesterDataCube
 from eotools.execute import execute
-from agdc.landsat_ingester import LandsatDataset
-from agdc.abstract_ingester import AbstractIngester
-from agdc.abstract_ingester import IngesterDataCube
+from agdc.ingest.landsat import LandsatDataset
+from agdc.ingest import AbstractIngester
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.INFO)

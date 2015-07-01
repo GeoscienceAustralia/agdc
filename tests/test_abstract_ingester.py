@@ -39,7 +39,7 @@ import subprocess
 
 from agdc import dbutil
 from agdc.cube_util import DatasetError
-from agdc.abstract_ingester import AbstractIngester
+from agdc.ingest import AbstractIngester
 
 #
 # Set up logger.

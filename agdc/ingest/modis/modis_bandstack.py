@@ -38,7 +38,7 @@
 """
 from __future__ import absolute_import
 from osgeo import gdal
-from agdc.abstract_ingester import AbstractBandstack
+from agdc.ingest import AbstractBandstack
 from collections import OrderedDict
 
 class ModisBandstack(AbstractBandstack):

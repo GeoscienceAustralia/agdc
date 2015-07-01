@@ -44,7 +44,7 @@ from osgeo import gdal
 from eotools.execute import execute
 
 from agdc.cube_util import DatasetError
-from agdc.abstract_ingester import AbstractDataset
+from agdc.ingest import AbstractDataset
 from .modis_bandstack import ModisBandstack
 
 #

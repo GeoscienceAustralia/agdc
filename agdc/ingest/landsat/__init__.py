@@ -39,7 +39,7 @@ import re
 import logging
 
 from eotools.execute import execute
-from agdc.abstract_ingester import AbstractIngester
+from agdc.ingest import AbstractIngester
 from .landsat_dataset import LandsatDataset
 
 #

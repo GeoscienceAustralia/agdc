@@ -28,13 +28,18 @@
 # ===============================================================================
 
 """
-    landsat_ingester.py - Ingester script for landsat datasets.
+Run a Modis ingest.
+
+Deprecated. Run "ingest.modis" instead:
+
+    python -m agdc.ingest.modis
+
 """
 from __future__ import absolute_import
 
-from agdc.landsat_ingester import LandsatIngester
-from agdc.abstract_ingester import run_ingest
+from agdc.ingest.modis import ModisIngester
+from agdc.ingest import run_ingest
+
 
 if __name__ == "__main__":
-    run_ingest(LandsatIngester)
-
+    run_ingest(ModisIngester)

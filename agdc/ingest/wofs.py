@@ -42,8 +42,8 @@ Or a specific dataset:
 from __future__ import absolute_import
 
 import logging
-from .abstract_ingester.pretiled import GdalMdDataset, PreTiledIngester
-from . import abstract_ingester
+from .pretiled import GdalMdDataset, PreTiledIngester
+import agdc.ingest
 
 
 _LOG = logging.getLogger(__name__)
@@ -94,4 +94,4 @@ class WofsDataset(GdalMdDataset):
 
 
 if __name__ == '__main__':
-    abstract_ingester.run_ingest(WofsIngester)
+    agdc.ingest.run_ingest(WofsIngester)

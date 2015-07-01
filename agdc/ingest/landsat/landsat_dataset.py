@@ -45,7 +45,7 @@ from eotools.drivers import SceneDataset
 from eotools.execute import execute
 
 from agdc.cube_util import DatasetError
-from agdc.abstract_ingester import AbstractDataset
+from agdc.ingest import AbstractDataset
 from .landsat_bandstack import LandsatBandstack
 
 #

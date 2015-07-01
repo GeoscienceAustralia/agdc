@@ -34,16 +34,15 @@
 import re
 import random
 import os
-import numpy as np
-from eotools.execute import execute
 import logging
 import sys
 import unittest
+
+from eotools.execute import execute
 from agdc import dbutil
-#import landsat_bandstack
-from agdc.abstract_ingester import AbstractIngester
-from agdc.abstract_ingester import IngesterDataCube
-from landsat_dataset import LandsatDataset
+from agdc.ingest import AbstractIngester
+from agdc.ingest._core import IngesterDataCube
+from agdc.ingest.landsat import LandsatDataset
 from test_landsat_tiler import TestLandsatTiler
 import ingest_test_data as TestIngest
 from test_tile_contents import TestTileContents

@@ -35,9 +35,9 @@ setup(name='agdc',
       version = version,
       packages = [
                   'agdc',
-                  'agdc.abstract_ingester',
-                  'agdc.modis_ingester',
-                  'agdc.landsat_ingester'
+                  'agdc.ingest',
+                  'agdc.ingest.modis',
+                  'agdc.ingest.landsat'
                   ],
       package_data = {
                       'agdc': ['agdc_default.conf']
