@@ -41,5 +41,5 @@
 # Script assumes that agdc module has already been loaded as follows:
 # module load agdc # Should load all dependencies
 
-python -m agdc.modis_ingester $@
+python -m agdc.ingest.modis $@
 
