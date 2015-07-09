@@ -39,6 +39,8 @@ from enum import Enum
 from datacube.api.model import Pq25Bands, Ls57Arg25Bands, Satellite, DatasetType, Ls8Arg25Bands, Wofs25Bands, NdviBands
 from datacube.api.model import get_bands, EviBands, NbrBands, TciBands
 from datetime import datetime
+from scipy.ndimage import map_coordinates
+from eotools.coordinates import convert_coordinates
 
 
 _log = logging.getLogger(__name__)
@@ -1471,3 +1473,95 @@ def grand_mean(means):
 
 def combine_means(mean1, count1, mean2, count2):
     return mean1 * count1 / (count1 + count2) + mean2 * count2 / (count1 + count2)
+
+
+def arbitrary_profile(dataset, xy_points, band=None, cubic=False,
+                      from_map=False):
+    """
+    Get the data associated with an arbitrary set of points that
+    define an arbitrary profile/transect, and the pixel locations
+    associated with the transect.
+
+    :param dataset:
+        An instance of a `DatasetType`.
+
+    :param xy_points:
+        A list of (x, y) co-ordinate paris eg [(x, y), (x, y), (x, y)].
+
+    :param band:
+        The raster band to read from. Default is to read the first band
+        in the list returned by `dataset.bands`.
+
+    :param from_map:
+        A boolean indicating whether or not the input co-ordinates
+        are real world map coordinates. If set to True, then the input
+        xy co-ordinate will be converted to image co-ordinates.
+
+    :return:
+        A 1D NumPy array of lenght determined by the distance between
+        the xy_points; A tuple (y_index, x_index) containing the
+        pixel locations of the transect; and a tuple containing a list
+        of start and end co-ordinates for both x and y fields.
+        The form of the start and end locations is:
+            ([(xstart_1, xend_1),...,(xstart_n-1, xend_n-1)],
+             [(ystart_1, yend_1),...,(ystart_n-1, yend_n-1)]).
+        This form can be directly used in a call to plot() as follows:
+            prf, idx, xy_start_end = arbitrary_profile()
+            plot(xy_start_end[0], xy_start_end[1], 'r-')
+
+    :history:
+        * 2015-07-07 - Base functionality taken from:
+        https://github.com/GeoscienceAustralia/eo-tools/blob/stable/eotools/profiles.py
+        and converted to work directly with the agdc-api.
+    """
+    n_points = len(xy_points)
+    if n_points < 2:
+        msg = "Minimum number of points is 2, received {}".format(n_points)
+        raise ValueError(msg)
+
+    metadata = get_dataset_metadata(dataset)
+    geotransform = metadata.transform
+
+    # Convert to image co-ordinates if needed
+    if from_map:
+        img_xy = convert_coordinates(geotransform, xy_points, to_map=False)
+    else:
+        img_xy = xy_points
+
+    # Read the image band
+    if band is None:
+        band = [bnd for bnd in dataset.bands][0]
+    img = read_dataset_data(dataset, [band])[band]
+
+    # Initialise the arrays to hold the profile
+    profile = numpy.array([], dtype=img.dtype)
+    x_idx = numpy.array([], dtype='int')
+    y_idx = numpy.array([], dtype='int')
+    x_start_end = []
+    y_start_end = []
+
+    # Build up the profile by creating a line segment between each point
+    for i in range(1, n_points):
+        x0, y0 = img_xy[i - 1]
+        x1, y1 = img_xy[i]
+        x_start_end.append((x0, x1))
+        y_start_end.append((y0, y1))
+
+        n_pixels = max(abs(x1 - x0 + 1), abs(y1 - y0 + 1))
+        x = numpy.linspace(x0, x1, n_pixels)
+        y = numpy.linspace(y0, y1, n_pixels)
+        x_idx = numpy.append(x_idx, x)
+        y_idx = numpy.append(y_idx, y)
+
+        # How to interpolate, cubic or nearest neighbour
+        if cubic:
+            transect = map_coordinates(img, (y, x))
+            profile = numpy.append(profile, transect)
+        else:
+            transect = img[y.astype('int'), x.astype('int')]
+            profile = numpy.append(profile, transect)
+
+    x_idx = x_idx.astype('int')
+    y_idx = y_idx.astype('int')
+
+    return (profile, (y_idx, x_idx), (x_start_end, y_start_end))
