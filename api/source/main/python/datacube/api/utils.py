@@ -1530,7 +1530,7 @@ def arbitrary_profile(dataset, xy_points, band=None, cubic=False,
 
     # Read the image band
     if band is None:
-        band = [band for band in dataset.bands][0]
+        band = [bnd for bnd in dataset.bands][0]
     img = read_dataset_data(dataset, [band])[band]
 
     # Initialise the arrays to hold the profile
