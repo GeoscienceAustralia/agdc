@@ -9,8 +9,6 @@ set standard_conforming_strings = on;
 set check_function_bodies = false;
 set client_min_messages = warning;
 
-set search_path = public, pg_catalog;
-
 --
 -- Data for Name: satellite; Type: TABLE DATA; Schema: public; Owner: cube_admin
 --

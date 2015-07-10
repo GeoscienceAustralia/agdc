@@ -45,6 +45,7 @@ class Config:
         DATABASE = "database"
         USERNAME = "username"
         PASSWORD = "password"
+        SCHEMAS = "schemas"
 
     _config = None
 
@@ -87,6 +88,9 @@ class Config:
     def get_db_password(self):
         return self._get_string(Config.Section.DATABASE, Config.DatabaseKey.PASSWORD)
 
+    def get_db_schemas(self):
+        return self._get_string(Config.Section.DATABASE, Config.DatabaseKey.SCHEMAS)
+
     def to_str(self):
         return [(k.value, self._get_string(Config.Section.DATABASE, k)) for k in Config.DatabaseKey]
 
@@ -100,5 +104,6 @@ port: 6432
 database: hypercube_v0
 username: cube_user
 password: GAcube0
+schemas: agdc, public, gis, topology
 """
 

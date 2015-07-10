@@ -229,8 +229,7 @@ def connect_to_db(config=None):
     connection = psycopg2.connect(connection_string)
 
     cursor = connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
-    cursor.execute("set search_path to public, {schema}".format(schema="gis, topology"))
-
+    cursor.execute("set search_path to {schemas}".format(schemas=config.get_db_schemas()))
     return connection, cursor
 
 

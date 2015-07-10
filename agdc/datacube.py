@@ -114,6 +114,11 @@ class DataCube(object):
             db_connection.autocommit = True
             db_connection.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
 
+        if self.schemas:
+            db_connection.cursor().execute(
+                "set search_path = {schemas}".format(schemas=self.schemas)
+            )
+
         return db_connection
     
     def get_intersecting_tiles(self, geometry_wkt, geometry_srid=4326):
@@ -213,8 +218,17 @@ where tile_type_id = %(tile_type_id)s
         self.agdc_root = os.path.dirname(__file__)
 
         self.db_connection = None
+
+        self.host = None
+        self.dbname = None
+        self.user = None
+        self.password = None
+
+        # Default schemas: can be overridden in config file.
+        self.schemas = 'agdc, public, gis, topology'
         
         self.process_id = os.getenv('PBS_O_HOST', socket.gethostname()) + ':' + os.getenv('PBS_JOBID', str(os.getpid()))
+
         def open_config(config_file):
             assert os.path.exists(config_file), config_file + " does not exist"
 

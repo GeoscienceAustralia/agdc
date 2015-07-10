@@ -1,6 +1,6 @@
 insert into band_type (band_type_name) values ('WATER');
 
-insert into public.band (sensor_id, band_name, band_type_id,
+insert into band (sensor_id, band_name, band_type_id,
                          file_number,
                          resolution, min_wavelength, max_wavelength, file_pattern, satellite_id, band_tag, band_number)
 values (null, 'WATER',

@@ -10,74 +10,6 @@ set check_function_bodies = false;
 set client_min_messages = warning;
 
 --
--- Name: topology; Type: SCHEMA; Schema: -; Owner: cube_admin
---
-
-create schema topology;
-
-
-alter schema topology
-owner to cube_admin;
-
---
--- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: 
---
-
-create extension if not exists plpgsql with schema pg_catalog;
-
-
---
--- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: 
---
-
-comment on extension plpgsql is 'PL/pgSQL procedural language';
-
-
---
--- Name: adminpack; Type: EXTENSION; Schema: -; Owner: 
---
-
-create extension if not exists adminpack with schema pg_catalog;
-
-
---
--- Name: EXTENSION adminpack; Type: COMMENT; Schema: -; Owner: 
---
-
-comment on extension adminpack is 'administrative functions for PostgreSQL';
-
-
---
--- Name: postgis; Type: EXTENSION; Schema: -; Owner: 
---
-
-create extension if not exists postgis with schema public;
-
-
---
--- Name: EXTENSION postgis; Type: COMMENT; Schema: -; Owner: 
---
-
-comment on extension postgis is 'PostGIS geometry, geography, and raster spatial types and functions';
-
-
---
--- Name: postgis_topology; Type: EXTENSION; Schema: -; Owner: 
---
-
-create extension if not exists postgis_topology with schema topology;
-
-
---
--- Name: EXTENSION postgis_topology; Type: COMMENT; Schema: -; Owner: 
---
-
-comment on extension postgis_topology is 'PostGIS topology spatial types and functions';
-
-
-set search_path = public, pg_catalog;
-
---
 -- Name: _final_median(anyarray); Type: FUNCTION; Schema: public; Owner: cube_admin
 --
 
@@ -107,7 +39,7 @@ $_$;
 
 
 
-alter function public._final_median( anyarray )
+alter function _final_median( anyarray )
 owner to cube_admin;
 
 --
@@ -124,7 +56,7 @@ CREATE AGGREGATE median(anyelement) (
 
 
 
-alter aggregate public.median( anyelement )
+alter aggregate median( anyelement )
 owner to cube_admin;
 
 set default_tablespace = '';

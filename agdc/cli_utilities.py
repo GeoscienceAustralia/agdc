@@ -135,7 +135,6 @@ if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser(add_help=False, description='Command Line Interface utilities for the GA-DC')
     arg_parser.add_argument('command', help='What command to use?', choices=command_names)
 
-
     args, options = arg_parser.parse_known_args()
     command = args.command
     if (command == 'help'):
