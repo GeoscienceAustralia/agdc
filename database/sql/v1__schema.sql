@@ -20,16 +20,6 @@ alter schema topology
 owner to cube_admin;
 
 --
--- Name: ztmp; Type: SCHEMA; Schema: -; Owner: cube_admin
---
-
-create schema ztmp;
-
-
-alter schema ztmp
-owner to cube_admin;
-
---
 -- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: 
 --
 
@@ -1265,17 +1255,6 @@ add constraint tile_tile_class_id_fkey foreign key (tile_class_id) references ti
 
 alter table only tile
 add constraint tile_tile_footprint_fkey foreign key (x_index, y_index, tile_type_id) references tile_footprint (x_index, y_index, tile_type_id) on update cascade;
-
-
---
--- Name: ztmp; Type: ACL; Schema: -; Owner: cube_admin
---
-
-revoke all on schema ztmp from public;
-revoke all on schema ztmp from cube_admin;
-grant all on schema ztmp to cube_admin;
-grant all on schema ztmp to postgres;
-grant all on schema ztmp to public;
 
 
 --
