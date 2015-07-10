@@ -1268,17 +1268,6 @@ add constraint tile_tile_footprint_fkey foreign key (x_index, y_index, tile_type
 
 
 --
--- Name: public; Type: ACL; Schema: -; Owner: jeremyhooke
---
-
-revoke all on schema public from public;
-revoke all on schema public from jeremyhooke;
-grant all on schema public to jeremyhooke;
-grant all on schema public to postgres;
-grant all on schema public to public;
-
-
---
 -- Name: ztmp; Type: ACL; Schema: -; Owner: cube_admin
 --
 
