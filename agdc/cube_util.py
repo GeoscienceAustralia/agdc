@@ -45,7 +45,6 @@ import inspect
 #
 
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.INFO)
 
 #
 # Utility Functions

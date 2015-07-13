@@ -19,17 +19,8 @@ from agdc import DataCube
 
 PQA_CONTIGUITY = 256 # contiguity = bit 8
 
-# Set top level standard output 
-console_handler = logging.StreamHandler(sys.stdout)
-console_handler.setLevel(logging.INFO)
-console_formatter = logging.Formatter('%(message)s')
-console_handler.setFormatter(console_formatter)
-
 logger = logging.getLogger(__name__)
-if not logger.level:
-    logger.setLevel(logging.DEBUG) # Default logging level for all modules
-    logger.addHandler(console_handler)
-                
+
 
 class TileRemover(DataCube):
     '''
@@ -121,7 +112,7 @@ class TileRemover(DataCube):
             DataCube.__init__(self) # Call inherited constructor
             
         if self.debug:
-            console_handler.setLevel(logging.DEBUG)
+            logger.setLevel(logging.DEBUG)
             
         if self.action and type(self.action) == str:
             self.action = TileRemover.action_dict.get(self.action[0].lower()) or 'report'
@@ -415,6 +406,16 @@ def main():
     '''
     Main routine
     '''
+    # Set top level standard output
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.INFO)
+    console_formatter = logging.Formatter('%(message)s')
+    console_handler.setFormatter(console_formatter)
+
+    if not logger.level:
+        logger.setLevel(logging.DEBUG) # Default logging level for all modules
+        logger.addHandler(console_handler)
+
     tile_remover = TileRemover()
     
     tile_remover.get_records()

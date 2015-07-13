@@ -54,7 +54,6 @@ from .ingest_db_wrapper import IngestDBWrapper
 
 # Set up logger.
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.INFO)
 
 
 class Collection(object):

@@ -47,16 +47,7 @@ import socket
 
 from eotools.utils import log_multiline
 
-# Set top level standard output 
-console_handler = logging.StreamHandler(sys.stdout)
-console_handler.setLevel(logging.INFO)
-console_formatter = logging.Formatter('%(message)s')
-console_handler.setFormatter(console_formatter)
-
 logger = logging.getLogger(__name__)
-if not logger.level:
-    logger.setLevel(logging.INFO) # Default logging level for all modules
-    logger.addHandler(console_handler)
 
 class DataCube(object):
     SECTION_NAME = 'datacube'
@@ -247,7 +238,7 @@ where tile_type_id = %(tile_type_id)s
         
         self.debug = args.debug
         if self.debug:
-            console_handler.setLevel(logging.DEBUG)            
+            logger.setLevel(logging.DEBUG)
             logger.debug('datacube module logging level set to DEBUG')
             
         log_multiline(logger.debug, args.__dict__, 'args.__dict__',  '\t')
@@ -601,6 +592,13 @@ where tile_type_id = %(tile_type_id)s
         
                                
 if __name__ == '__main__':
+
+    # Set top level standard output
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.INFO)
+    console_formatter = logging.Formatter('%(message)s')
+    console_handler.setFormatter(console_formatter)
+
     datacube = DataCube()
     
     log_multiline(logger.info, datacube.__dict__, 'Datacube contents', '\t')

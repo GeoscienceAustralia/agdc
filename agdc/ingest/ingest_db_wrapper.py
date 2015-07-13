@@ -58,7 +58,6 @@ from eotools.utils import log_multiline
 
 # Set up logger.
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.INFO)
 
 #
 # Module level constants

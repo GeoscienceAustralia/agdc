@@ -48,15 +48,8 @@ from ..datacube import DataCube
 from ..cube_util import DatasetError, DatasetSkipError, parse_date_from_string
 from .collection import Collection
 
-#
-# Set up logger.
-#
 
 LOGGER = logging.getLogger(__name__)
-
-#
-# Classes
-#
 
 
 class IngesterDataCube(DataCube):
@@ -103,10 +96,6 @@ class AbstractIngester(with_metaclass(ABCMeta)):
         self.ingestion_start_datetime = datetime.now()
 
         self.args = self.arg_parser().parse_args()
-
-        if self.args.debug:
-            # Set DEBUG level on the root logger
-            logging.getLogger().setLevel(logging.DEBUG)
 
         if datacube is None:
             self.datacube = IngesterDataCube(self.args)
@@ -580,7 +569,7 @@ def run_ingest(ingester_class):
     ingester = ingester_class()
 
     if ingester.args.debug:
-        logging.getLogger().setLevel(logging.DEBUG)
+        logging.getLogger('agdc.ingest').setLevel(logging.DEBUG)
 
     ingester.ingest(ingester.args.source_dir)
 

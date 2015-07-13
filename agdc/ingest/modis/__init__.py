@@ -33,7 +33,6 @@
 from __future__ import absolute_import
 
 import os
-import sys
 import logging
 
 from os.path import basename
@@ -43,23 +42,7 @@ from agdc.ingest import SourceFileIngester
 from agdc.cube_util import DatasetError
 from .modis_dataset import ModisDataset
 
-#
-# Set up root logger
-#
-# Note that the logging level of the root logger will be reset to DEBUG
-# if the --debug flag is set (by AbstractIngester.__init__). To recieve
-# DEBUG level messages from a module do two things:
-#    1) set the logging level for the module you are interested in to DEBUG,
-#    2) use the --debug flag when running the script.
-#
 
-logging.basicConfig(stream=sys.stdout,
-                    format='%(message)s',
-                    level=logging.INFO)
-
-#
-# Set up logger (for this module).
-#
 
 LOGGER = logging.getLogger(__name__)
 

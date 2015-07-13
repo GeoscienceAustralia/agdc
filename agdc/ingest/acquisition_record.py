@@ -46,7 +46,6 @@ from .dataset_record import DatasetRecord
 
 # Set up logger.
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.INFO)
 
 
 class AcquisitionRecord(object):

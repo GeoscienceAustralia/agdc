@@ -56,7 +56,6 @@ from ..cube_util import DatasetError, create_directory, get_file_size_mb
 
 # Set up LOGGER.
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.INFO)
 
 #
 # Constants for PQA nodata check:

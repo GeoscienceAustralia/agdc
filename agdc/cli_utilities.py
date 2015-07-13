@@ -46,16 +46,7 @@ ERR_BAD_PARAMS = 2
 
 from .stacker import Stacker
 
-# Set top level standard output
-console_handler = logging.StreamHandler(sys.stdout)
-console_handler.setLevel(logging.INFO)
-console_formatter = logging.Formatter('%(message)s')
-console_handler.setFormatter(console_formatter)
-
 logger = logging.getLogger(__name__)
-if not logger.level:
-    logger.setLevel(logging.DEBUG) # Default logging level for all modules
-    logger.addHandler(console_handler)
 
 class CLI_Utilities(Stacker):
 
@@ -128,7 +119,17 @@ class CLI_Utilities(Stacker):
 
 
 
-if __name__ == '__main__':
+def main():
+    # Set top level standard output
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.INFO)
+    console_formatter = logging.Formatter('%(message)s')
+    console_handler.setFormatter(console_formatter)
+
+    if not logger.level:
+        logger.setLevel(logging.DEBUG)
+    logger.addHandler(console_handler)
+
     utilities = CLI_Utilities()
 
     command_names = ["get_tile_indexes", "get_tile_paths", "help"]
@@ -142,10 +143,13 @@ if __name__ == '__main__':
         command = options[0]
         options = None
 
-
     if (command == 'get_tile_indexes'):
         sys.exit(utilities.command_get_tile_indexes(options))
     elif (command == 'get_tile_paths'):
         sys.exit(utilities.command_get_tile_paths(options))
     else:
         assert False, 'Unknown command: ' + command
+
+
+if __name__ == '__main__':
+    main()

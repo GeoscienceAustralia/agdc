@@ -57,7 +57,6 @@ from .tile_record import TileRecord, TileRepository
 
 # Set up logger.
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.INFO)
 
 
 class DatasetRecord(object):

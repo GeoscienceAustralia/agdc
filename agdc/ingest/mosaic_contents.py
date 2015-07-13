@@ -52,7 +52,6 @@ import numpy
 
 # Set up logger.
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.INFO)
 
 #
 # Constants for PQA mosaic formation:

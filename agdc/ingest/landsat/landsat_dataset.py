@@ -53,7 +53,6 @@ from .landsat_bandstack import LandsatBandstack
 #
 
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.INFO)
 
 #
 # Class definition

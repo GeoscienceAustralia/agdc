@@ -52,7 +52,6 @@ from .modis_bandstack import ModisBandstack
 #
 
 LOGGER = logging.getLogger(__name__)
-LOGGER.setLevel(logging.INFO)
 
 #
 # Class definition

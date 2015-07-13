@@ -58,17 +58,9 @@ from agdc.band_lookup import BandLookup
 PQA_CONTIGUITY = 256 # contiguity = bit 8
 DEFAULT_BAND_LOOKUP_SCHEME = 'LANDSAT-UNADJUSTED'
 
-# Set top level standard output 
-console_handler = logging.StreamHandler(sys.stdout)
-console_handler.setLevel(logging.INFO)
-console_formatter = logging.Formatter('%(message)s')
-console_handler.setFormatter(console_formatter)
-
 logger = logging.getLogger(__name__)
-if not logger.level:
-    logger.setLevel(logging.DEBUG) # Default logging level for all modules
-    logger.addHandler(console_handler)
-                
+
+
 class Stacker(DataCube):
 
     def parse_args(self):
@@ -163,7 +155,7 @@ class Stacker(DataCube):
             DataCube.__init__(self, config) # Call inherited constructor
             
         if self.debug:
-            console_handler.setLevel(logging.DEBUG)
+            logger.setLevel(logging.DEBUG)
             
         # Attempt to parse dates from command line arguments or config file
         self.default_tile_type_id = default_tile_type_id or int(self.default_tile_type_id) 
@@ -1260,8 +1252,19 @@ stack_output_info = {'x_index': 144,
         log_multiline(logger.debug, output_dataset_dict, 'output_dataset_dict', '\t')    
         # Both NBAR & ORTHO datasets processed - return info for both
         return output_dataset_dict
-    
-if __name__ == '__main__':
+
+
+def main():
+    # Set top level standard output
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.INFO)
+    console_formatter = logging.Formatter('%(message)s')
+    console_handler.setFormatter(console_formatter)
+
+    if not logger.level:
+        logger.setLevel(logging.DEBUG) # Default logging level for all modules
+        logger.addHandler(console_handler)
+
     def date2datetime(input_date, time_offset=time.min):
         if not input_date:
             return None
@@ -1297,3 +1300,6 @@ if __name__ == '__main__':
     
     log_multiline(logger.debug, stack_info_dict, 'stack_info_dict', '\t')
     logger.info('Finished creating %d temporal stack files in %s.', len(stack_info_dict), stacker.output_dir)
+
+if __name__ == '__main__':
+    main()
