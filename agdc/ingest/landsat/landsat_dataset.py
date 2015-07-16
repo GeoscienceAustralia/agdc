@@ -48,6 +48,7 @@ from agdc.cube_util import DatasetError
 from agdc.ingest import AbstractDataset
 from .landsat_bandstack import LandsatBandstack
 
+
 #
 # Set up logger.
 #
@@ -57,6 +58,27 @@ LOGGER = logging.getLogger(__name__)
 #
 # Class definition
 #
+
+
+def _is_a_supported_landsat_image(filename):
+    """
+    Is the given filename of an image format we support?
+    :type filename: str
+    :return:
+
+    >>> _is_a_supported_landsat_image('ls7-B10.tif')
+    True
+    >>> _is_a_supported_landsat_image('ls7-B10.TIF')
+    True
+    >>> _is_a_supported_landsat_image('ls7-B10.tif.aux.xml')
+    False
+    >>> _is_a_supported_landsat_image('ls7-B10.nc')
+    False
+    >>> _is_a_supported_landsat_image('ls7-B10.TIFF')
+    True
+    """
+    # Only tif is currently supported for Landsat.
+    return filename.lower().endswith('.tif') or filename.lower().endswith('.tiff')
 
 
 class LandsatDataset(AbstractDataset):
@@ -447,8 +469,8 @@ class LandsatDataset(AbstractDataset):
                                    'scene01')
         if not os.path.isdir(dataset_dir):
             raise DatasetError('%s is not a valid directory' % dataset_dir)
-        filelist = [filename for filename in os.listdir(dataset_dir)
-                    if re.match(file_pattern, filename)]
+        filelist = [filename for filename in os .listdir(dataset_dir)
+                    if re.match(file_pattern, filename) and _is_a_supported_landsat_image(filename)]
         if not len(filelist) == 1:
             raise DatasetError('Unable to find unique match ' +
                                'for file pattern %s' % file_pattern)
