@@ -57,5 +57,13 @@ setup(name="agdc-api",
       maintainer="Geoscience Australia",
       description="AGDC API",
       license="BSD 3",
-      requires=["gdal", "numpy", "scipy", "psycopg2", "enum34", "psutil", "pythondateutil"]
+      install_requires=[
+          "gdal",
+          "numpy",
+          "scipy",
+          "psycopg2",
+          "enum34",
+          "psutil",
+          "python-dateutil"
+      ]
 )
