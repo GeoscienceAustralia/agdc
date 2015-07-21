@@ -61,7 +61,7 @@ setup(name="agdc-api",
           "gdal",
           "numpy",
           "scipy",
-          "psycopg2",
+          "psycopg2 >= 2.5",
           "enum34",
           "psutil",
           "python-dateutil"
