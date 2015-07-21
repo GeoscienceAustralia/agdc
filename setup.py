@@ -27,37 +27,45 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #===============================================================================
 
-from setuptools import setup, find_packages
+from setuptools import setup
 
 version = '1.1.1'
 
 setup(name='agdc',
       version = version,
       packages = [
-                  'agdc',
-                  'agdc.ingest',
-                  'agdc.ingest.modis',
-                  'agdc.ingest.landsat'
-                  ],
+          'agdc',
+          'agdc.ingest',
+          'agdc.ingest.modis',
+          'agdc.ingest.landsat',
+          'agdc.ingest.wofs',
+      ],
       package_data = {
                       'agdc': ['agdc_default.conf']
                       },
-      scripts = ['bin/stacker.sh',
-                 'bin/landsat_ingester.sh',
-                 'bin/modis_ingester.sh',
-                 'bin/bulk_submit_interactive.sh',
-                 'bin/bulk_submit_pbs.sh'
-                 ],
+      scripts=[
+          'bin/stacker.sh',
+          'bin/bulk_submit_interactive.sh',
+          'bin/bulk_submit_pbs.sh'
+      ],
+      entry_points={
+          'console_scripts': [
+              'agdc-ingest-landsat = agdc.ingest.landsat:cli',
+              'agdc-ingest-modis = agdc.ingest.modis:cli',
+              'agdc-ingest-wofs = agdc.ingest.wofs:cli'
+          ]
+      },
       install_requires=[
                   'eotools',
                   'psycopg2 >= 2.5',
                   'gdal',
                   'numexpr',
                   'pyephem',
+                  'numpy',
                   'scipy',
                   'python-dateutil',
                   'pytz'
-                  ],
+      ],
       url = 'https://github.com/GeoscienceAustralia/ga-datacube',
       author = 'Alex Ip, Matthew Hoyles, Matthew Hardy',
       maintainer = 'Alex Ip, Geoscience Australia',
@@ -65,4 +73,4 @@ setup(name='agdc',
       description = 'Australian Geoscience Data Cube (AGDC)',
       long_description = 'Australian Geoscience Data Cube (AGDC). Original Python code developed during the Unlocking the Landsat Archive. (ULA) Project, 2013',
       license = 'BSD 3'
-     )
+ )

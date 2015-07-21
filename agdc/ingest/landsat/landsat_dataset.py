@@ -48,16 +48,7 @@ from agdc.cube_util import DatasetError
 from agdc.ingest import AbstractDataset
 from .landsat_bandstack import LandsatBandstack
 
-
-#
-# Set up logger.
-#
-
 LOGGER = logging.getLogger(__name__)
-
-#
-# Class definition
-#
 
 
 def _is_a_supported_landsat_image(filename):

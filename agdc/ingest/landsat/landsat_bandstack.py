@@ -39,11 +39,14 @@
 from __future__ import absolute_import
 import os
 import re
+from collections import OrderedDict
+
 from osgeo import gdal
+from eotools.execute import execute
+
 from agdc.ingest import AbstractBandstack
 from agdc.cube_util import DatasetError, create_directory
-from collections import OrderedDict
-from eotools.execute import execute
+
 
 class LandsatBandstack(AbstractBandstack):
     """Landsat subclass of AbstractBandstack class"""
@@ -154,21 +157,3 @@ class LandsatBandstack(AbstractBandstack):
             if self.nodata_list[band_number - 1] is not None:
                 band.SetNoDataValue(self.nodata_list[band_number - 1])
             band_stack_dataset.FlushCache()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
