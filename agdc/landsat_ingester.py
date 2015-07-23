@@ -28,18 +28,13 @@
 # ===============================================================================
 
 """
-Run a Landsat ingest.
+Deprecated command-line script.
 
-Deprecated. Run "ingest.landsat" instead:
-
-    python -m agdc.ingest.landsat
-
+Run "agdc-ingest-landsat" instead (included on the shell path during setup.py install)
 """
 from __future__ import absolute_import
 
-from agdc.ingest.landsat import LandsatIngester
-from agdc.ingest import run_ingest
+import agdc.ingest.landsat
 
 if __name__ == "__main__":
-    run_ingest(LandsatIngester)
-
+    agdc.ingest.landsat.cli()

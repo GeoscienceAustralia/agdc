@@ -28,18 +28,13 @@
 # ===============================================================================
 
 """
-Run a Modis ingest.
+Deprecated command-line script. 
 
-Deprecated. Run "ingest.modis" instead:
-
-    python -m agdc.ingest.modis
-
+Run "agdc-ingest-modis" instead (included on the shell path during setup.py install)
 """
 from __future__ import absolute_import
 
-from agdc.ingest.modis import ModisIngester
-from agdc.ingest import run_ingest
-
+import agdc.ingest.modis 
 
 if __name__ == "__main__":
-    run_ingest(ModisIngester)
+    agdc.ingest.modis.cli()
