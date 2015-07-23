@@ -6,10 +6,12 @@ from collections import OrderedDict
 from datetime import datetime
 import logging
 import os
+
 import dateutil.parser
 import dateutil.tz
 from osgeo import gdal
-from ._core import SourceFileIngester
+
+from .core import SourceFileIngester
 from .abstract_bandstack import AbstractBandstack
 from .abstract_dataset import AbstractDataset
 

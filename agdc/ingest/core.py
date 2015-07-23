@@ -41,13 +41,13 @@ import argparse
 from datetime import datetime
 import json
 from abc import abstractmethod, ABCMeta
-from agdc.compat import with_metaclass
+
 import psycopg2
 
+from agdc.compat import with_metaclass
 from ..datacube import DataCube
 from ..cube_util import DatasetError, DatasetSkipError, parse_date_from_string
 from .collection import Collection
-
 
 LOGGER = logging.getLogger(__name__)
 

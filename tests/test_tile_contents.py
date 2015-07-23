@@ -38,7 +38,7 @@ import unittest
 
 from agdc import dbutil
 from agdc.ingest import AbstractIngester
-from agdc.ingest._core import IngesterDataCube
+from agdc.ingest.core import IngesterDataCube
 from agdc.ingest.landsat import LandsatDataset
 from test_landsat_tiler import TestLandsatTiler
 import ingest_test_data as TestIngest
