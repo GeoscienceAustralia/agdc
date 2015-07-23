@@ -1,5 +1,4 @@
-
-# Database migrations
+# AGDC Databases
 
 ## Initial setup
 
