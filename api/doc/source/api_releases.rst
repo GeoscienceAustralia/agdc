@@ -126,6 +126,7 @@ The ``agdc-api`` module has the following dependencies:
 
 * ``python/2.7.6``
 * ``psycopg2``
+# ``eotools``
 * ``gdal``
 * ``enum34``
 * ``luigi-mpi``
@@ -181,6 +182,10 @@ The add a module file:
             module load gdal
         }
 
+        if { ! [is-loaded eotools] } {
+            module load eotools
+        }
+
         if { ! [is-loaded psycopg2] } {
             module load psycopg2
         }
@@ -215,6 +220,7 @@ The add a module file:
         module unload enum34
         module unload gdal
         module unload psycopg2
+        module unload eotools
         module unload python/2.7.6
         module unload luigi-mpi
         module unload psutil
