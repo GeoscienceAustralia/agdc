@@ -61,7 +61,7 @@ setup(name='agdc',
                   'gdal',
                   'numexpr',
                   'pyephem',
-                  'numpy',
+                  'numpy >= 1.9',
                   'scipy',
                   'python-dateutil',
                   'pytz'
