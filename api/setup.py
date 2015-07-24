@@ -59,7 +59,7 @@ setup(name="agdc-api",
       license="BSD 3",
       install_requires=[
           "gdal",
-          "numpy",
+          "numpy >= 1.9",
           "scipy",
           "psycopg2 >= 2.5",
           "enum34",

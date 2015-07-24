@@ -130,7 +130,7 @@ The ``agdc-api`` module has the following dependencies:
 * ``enum34``
 * ``luigi-mpi``
 * ``psutil``
-* ``numpy``
+* ``numpy`` (1.9 or higher)
 * ``scipy``
 
 The first step in building the AGDC API module is to obtain the source code from the `AGDC GitHub Repository <https://github.com/GeoscienceAustralia/agdc>`_.
