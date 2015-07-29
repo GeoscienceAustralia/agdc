@@ -177,7 +177,7 @@ class GdalMdDataset(PreTiledDataset):
         return self._md.get('satellite_tag')
 
     def get_gcp_count(self):
-        return int(self._md['gcp_count'])
+        return self._get_int_param('gcp_count')
 
     def get_dataset_size(self):
         return _get_file_size(self._path)
@@ -202,8 +202,10 @@ class GdalMdDataset(PreTiledDataset):
         return None  # N/A?
 
     def _get_date_param(self, param_name):
-        t = self._md[param_name]
-        return dateutil.parser.parse(t, tzinfos=dateutil.tz.tzutc)
+        val = self._md.get(param_name)
+        if not val or val == 'None':
+            return None
+        return dateutil.parser.parse(val, tzinfos=dateutil.tz.tzutc)
 
     def get_start_datetime(self):
         return self._get_date_param('start_datetime')
