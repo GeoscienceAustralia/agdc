@@ -52,6 +52,7 @@ from .ingest_db_wrapper import IngestDBWrapper
 
 
 
+
 # Set up logger.
 LOGGER = logging.getLogger(__name__)
 
@@ -63,7 +64,7 @@ class Collection(object):
     # Interface methods
     #
 
-    def __init__(self, datacube):
+    def __init__(self, datacube, is_read_only=False):
         """Initialise the collection object."""
 
         self.datacube = datacube
@@ -74,6 +75,8 @@ class Collection(object):
         self.temp_tile_directory = os.path.join(self.datacube.tile_root,
                                                 'ingest_temp',
                                                 self.datacube.process_id)
+
+        self.is_read_only = is_read_only
         create_directory(self.temp_tile_directory)
 
     def cleanup(self):
@@ -218,8 +221,8 @@ class Collection(object):
 
     def mark_tile_for_removal(self, tile_pathname):
         """Mark a tile file for removal on transaction commit."""
-
-        self.current_transaction().mark_tile_for_removal(tile_pathname)
+        if not self.is_read_only:
+            self.current_transaction().mark_tile_for_removal(tile_pathname)
 
     def mark_tile_for_creation(self, tile_contents):
         """Mark a tile file for creation on transaction commit."""

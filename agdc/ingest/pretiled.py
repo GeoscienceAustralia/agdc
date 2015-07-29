@@ -9,6 +9,7 @@ import os
 
 import dateutil.parser
 import dateutil.tz
+
 from osgeo import gdal
 
 from .core import SourceFileIngester
@@ -287,6 +288,10 @@ class GdalMdDataset(PreTiledDataset):
 
 class PreTiledIngester(SourceFileIngester):
     """Ingest data that is already tiled"""
+
+    def __init__(self, is_valid_file, datacube=None, collection=None):
+        super(PreTiledIngester, self).__init__(is_valid_file, datacube, collection)
+        self.collection.is_read_only = True
 
     def tile(self, dataset_record, dataset):
         """Create tiles for a newly created or updated dataset.
