@@ -169,13 +169,6 @@ class Arg25BandStackWorkflow(object):
                                  default=DatasetType.ARG25,
                                  metavar=" ".join([dt.name for dt in [DatasetType.ARG25]]))
 
-        # TODO change the default to all bands once it's all working!!!!
-
-        # self.parser.add_argument("--band", help="The band(s) to process", action="store",
-        #                          # default=[Ls57Arg25Bands.RED.name],  # required=True,
-        #                          default=[b.name for b in Ls57Arg25Bands],  # required=True,
-        #                          dest="bands", type=str, nargs="+", metavar=" ".join([b.name for b in Ls57Arg25Bands]))
-
         self.parser.add_argument("--band", help="The band(s) to process", action="store",
                                  default=Ls57Arg25Bands,  # required=True,
                                  dest="bands", type=ls57_arg_band_arg, nargs="+", metavar=" ".join([b.name for b in Ls57Arg25Bands]))

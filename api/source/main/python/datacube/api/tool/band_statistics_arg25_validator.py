@@ -26,7 +26,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ===============================================================================
-
+from datacube.api.workflow.band_statistics_arg25 import percentile_interpolation_arg
 
 __author__ = "Simon Oldfield"
 
@@ -44,9 +44,9 @@ from datacube.api import Statistic, Season, Month, Satellite, DatasetType, pqa_m
 from datacube.api import writeable_dir, readable_dir, statistic_arg, season_arg, satellite_arg, dataset_type_arg
 from datacube.api import parse_date_min, parse_date_max
 from datacube.api.model import Ls57Arg25Bands
-from datacube.api.query import build_season_date_criteria, list_tiles_as_list
-from datacube.api.utils import get_dataset_type_ndv, get_dataset_data_stack
-
+from datacube.api.query import list_tiles_as_list
+from datacube.api.utils import get_dataset_type_ndv, get_dataset_data_stack, build_season_date_criteria, \
+    PercentileInterpolation
 
 _log = logging.getLogger()
 
@@ -57,6 +57,7 @@ DIR = "/g/data/u46/products/DEWNR"
 Cell = namedtuple("Cell", ["x", "y"])
 
 # TODO this is a bit quick and dirty probably a better way
+
 
 def cell_arg(s):
     vals = [int(x) for x in s.split(",")]
@@ -92,6 +93,9 @@ SEASONS = {
     Season.WINTER: ((Month.MAY, 17), (Month.OCTOBER, 25)),
     Season.SPRING: ((Month.AUGUST, 17), (Month.JANUARY, 25))
 }
+
+
+EpochParameter = namedtuple('Epoch', ['increment', 'duration'])
 
 
 def ls57_arg_band_arg(s):
@@ -141,8 +145,8 @@ class Arg25BandStatisticsValidator(object):
         self.parser.add_argument("--acq-max", help="Acquisition Date", action="store", dest="acq_max", type=str,
                                  default="2014")
 
-        self.parser.add_argument("--epoch", help="Size of year chunks (e.g. 5 means do in 5 chunks of 5 years)",
-                                 action="store", dest="epoch", type=int, default=5)
+        self.parser.add_argument("--epoch", help="Epoch increment and duration (e.g. 5 6 means 1985-1990, 1990-1995, etc)",
+                                 action="store", dest="epoch", type=int, nargs=2, default=[5, 6])
 
         self.parser.add_argument("--satellite", help="The satellite(s) to include", action="store", dest="satellites",
                                  type=satellite_arg, nargs="+", choices=Satellite,
@@ -162,6 +166,11 @@ class Arg25BandStatisticsValidator(object):
                                  default=STATISTICS,  # required=True,
                                  dest="statistic", type=statistic_arg, nargs="+",
                                  metavar=" ".join([s.name for s in Statistic]))
+
+        self.parser.add_argument("--interpolation", help="The interpolation method to use", action="store",
+                                 default=PercentileInterpolation.NEAREST,  # required=True,
+                                 dest="interpolation", type=percentile_interpolation_arg,
+                                 metavar=" ".join([s.name for s in PercentileInterpolation]))
 
         self.parser.add_argument("--season", help="The seasons for which to produce statistics", action="store",
                                  default=Season,  # required=True,
@@ -211,7 +220,8 @@ class Arg25BandStatisticsValidator(object):
 
         self.satellites = args.satellites
 
-        self.epoch = args.epoch
+        if args.epoch:
+            self.epoch = EpochParameter(int(args.epoch[0]), int(args.epoch[1]))
 
         self.seasons = args.season
 
@@ -229,6 +239,8 @@ class Arg25BandStatisticsValidator(object):
 
         self.cells = args.cell
 
+        self.interpolation = args.interpolation
+
     def log_arguments(self):
 
         _log.info("""
@@ -243,15 +255,17 @@ class Arg25BandStatisticsValidator(object):
         dataset to retrieve = {dataset_type}
         bands = {bands}
         PQA mask = {pqa_mask}
+        interpolation = {interpolation}
         """.format(cells=self.cells, acq_min=self.acq_min, acq_max=self.acq_max,
-                   epoch=self.epoch and self.epoch or "",
+                   epoch="{increment:d} / {duration:d}".format(increment=self.epoch.increment, duration=self.epoch.duration),
                    satellites=" ".join([ts.name for ts in self.satellites]),
                    output_directory=self.output_directory,
                    seasons=" ".join([s.name for s in self.seasons]),
                    statistics=" ".join([s.name for s in self.statistics]),
                    samples=self.samples and self.samples or "",
                    dataset_type=self.dataset_type.name, bands=" ".join([b.name for b in self.bands]),
-                   pqa_mask=self.mask_pqa_apply and " ".join([mask.name for mask in self.mask_pqa_mask]) or ""))
+                   pqa_mask=self.mask_pqa_apply and " ".join([mask.name for mask in self.mask_pqa_mask]) or "",
+                   interpolation=self.interpolation.name))
 
     def run(self):
 
@@ -266,9 +280,9 @@ class Arg25BandStatisticsValidator(object):
         from dateutil.rrule import rrule, YEARLY
         from dateutil.relativedelta import relativedelta
 
-        for dt in rrule(YEARLY, interval=self.epoch, dtstart=self.acq_min, until=self.acq_max):
+        for dt in rrule(YEARLY, interval=self.epoch.increment, dtstart=self.acq_min, until=self.acq_max):
             acq_min = dt.date()
-            acq_max = acq_min + relativedelta(years=self.epoch, days=-1)
+            acq_max = acq_min + relativedelta(years=self.epoch.duration, days=-1)
 
             acq_min = max(self.acq_min, acq_min)
             acq_max = min(self.acq_max, acq_max)
@@ -334,22 +348,6 @@ class Arg25BandStatisticsValidator(object):
 
                             _log.warn("band %s is %s", band.name, pixel_values[band])
 
-                            # xxx = numpy.array(pixel_values)
-                            #
-                            # _log.warn("%s", xxx)
-                            # _log.warn("%s", xxx[xxx != ndv])
-                            # _log.warn("25th percentile %d", numpy.percentile(xxx[xxx != ndv], 25, interpolation="nearest"))
-                            # _log.warn("25th percentile %d", numpy.nanpercentile(xxx[xxx != ndv], 25, interpolation="nearest"))
-                            #
-                            # yyy = numpy.ma.masked_equal(xxx, ndv)
-                            # yyy = numpy.ndarray.astype(yyy, dtype=numpy.float16, copy=False).filled(numpy.nan)
-                            #
-                            # p = numpy.nanpercentile(yyy, 25, interpolation="nearest")
-                            # p = numpy.ma.masked_invalid(p, copy=False)
-                            # p = numpy.ndarray.astype(p, dtype=numpy.int16, copy=False).filled(ndv)
-                            #
-                            # _log.warn("25th percentile float based is %d", p)
-
                         _log.warn("acq dates are %s", acq_dates)
 
                         csv_filename = self.get_csv_filename(cell, acq_min, acq_max, season, x, y)
@@ -373,7 +371,7 @@ class Arg25BandStatisticsValidator(object):
 
                                 for band in self.bands:
                                     xxx = numpy.array(pixel_values[band])
-                                    row[band.name.replace("_", " ")] = numpy.percentile(xxx[xxx != ndv], PERCENTILE[statistic], interpolation="nearest")
+                                    row[band.name.replace("_", " ")] = numpy.percentile(xxx[xxx != ndv], PERCENTILE[statistic], interpolation=self.interpolation.value)
 
                                 csv_writer.writerow(row)
 

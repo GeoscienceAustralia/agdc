@@ -16,7 +16,8 @@ module load python/2.7.6
 module load enum34
 module load psutil
 module load psycopg2
-module load gdal
+module unload gdal
+module load gdal/1.11.1-python
 module load luigi-mpi
 module load numpy
 module load scipy
@@ -31,6 +32,11 @@ COMMAND="python $HOME/source/agdc/agdc-api/api/source/main/python/datacube/api/w
 
 # MPI
 #mpirun -n 16 $COMMAND
+
+# GDAL settings
+export GDAL_CACHEMAX=1073741824
+export GDAL_SWATH_SIZE=1073741824
+export GDAL_DISABLE_READDIR_ON_OPEN=TRUE
 
 # NO MPI
 ${COMMAND} --local-scheduler --workers 16

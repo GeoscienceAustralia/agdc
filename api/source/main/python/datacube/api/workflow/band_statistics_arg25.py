@@ -37,12 +37,15 @@ import logging
 import luigi
 import numpy
 import osr
+import os
 import sys
-from datacube.api import parse_date_min, parse_date_max, Month, PqaMask, Statistic, PERCENTILE, writeable_dir
+from collections import namedtuple
+from datacube.api import parse_date_min, parse_date_max, Month, PqaMask, Statistic, PERCENTILE, writeable_dir, Season
 from datacube.api import satellite_arg, pqa_mask_arg, dataset_type_arg, statistic_arg, season_arg
-from datacube.api.query import Season, list_cells_as_generator, build_season_date_criteria, list_tiles_as_generator
+from datacube.api.query import list_cells_as_generator, list_tiles_as_list
 from datacube.api.model import Satellite, DatasetType, Ls57Arg25Bands
-from datacube.api.utils import get_dataset_type_ndv, get_dataset_data_stack, log_mem
+from datacube.api.utils import get_dataset_type_ndv, get_dataset_data_stack, log_mem, build_season_date_criteria
+from datacube.api.utils import PercentileInterpolation
 from datacube.api.utils import calculate_stack_statistic_count, calculate_stack_statistic_count_observed
 from datacube.api.utils import calculate_stack_statistic_min, calculate_stack_statistic_max
 from datacube.api.utils import calculate_stack_statistic_mean, calculate_stack_statistic_percentile
@@ -52,11 +55,7 @@ from datacube.api.workflow import Task
 _log = logging.getLogger()
 
 
-STATISTICS = [
-    #Statistic.COUNT, Statistic.COUNT_OBSERVED,
-    # Statistic.MIN, Statistic.MAX, Statistic.MEAN,
-    Statistic.PERCENTILE_25, Statistic.PERCENTILE_50, Statistic.PERCENTILE_75
-]
+STATISTICS = [Statistic.PERCENTILE_25, Statistic.PERCENTILE_50, Statistic.PERCENTILE_75]
 
 
 SEASONS = {
@@ -66,11 +65,19 @@ SEASONS = {
     Season.SPRING: ((Month.AUGUST, 17), (Month.JANUARY, 25))
 }
 
+EpochParameter = namedtuple('Epoch', ['increment', 'duration'])
+
 
 def ls57_arg_band_arg(s):
     if s in [t.name for t in Ls57Arg25Bands]:
         return Ls57Arg25Bands[s]
     raise argparse.ArgumentTypeError("{0} is not a supported LS57 ARG25 band".format(s))
+
+
+def percentile_interpolation_arg(s):
+    if s in [t.name for t in PercentileInterpolation]:
+        return PercentileInterpolation[s]
+    raise argparse.ArgumentTypeError("{0} is not a supported percentile interpolation".format(s))
 
 
 class Arg25BandStatisticsWorkflow(object):
@@ -114,6 +121,8 @@ class Arg25BandStatisticsWorkflow(object):
 
         self.statistics = None
 
+        self.interpolation = None
+
     def setup_arguments(self):
 
         # # Call method on super class
@@ -145,8 +154,8 @@ class Arg25BandStatisticsWorkflow(object):
         self.parser.add_argument("--acq-max", help="Acquisition Date", action="store", dest="acq_max", type=str,
                                  default="2014")
 
-        self.parser.add_argument("--epoch", help="Size of year chunks (e.g. 5 means do in 5 chunks of 5 years)",
-                                 action="store", dest="epoch", type=int, default=5)
+        self.parser.add_argument("--epoch", help="Epoch increment and duration (e.g. 5 6 means 1985-1990, 1990-1995, etc)",
+                                 action="store", dest="epoch", type=int, nargs=2, default=[5, 6])
 
         self.parser.add_argument("--satellite", help="The satellite(s) to include", action="store", dest="satellites",
                                  type=satellite_arg, nargs="+", choices=Satellite,
@@ -203,6 +212,11 @@ class Arg25BandStatisticsWorkflow(object):
                                  dest="statistic", type=statistic_arg, nargs="+",
                                  metavar=" ".join([s.name for s in Statistic]))
 
+        self.parser.add_argument("--interpolation", help="The interpolation method to use", action="store",
+                                 default=PercentileInterpolation.NEAREST,  # required=True,
+                                 dest="interpolation", type=percentile_interpolation_arg,
+                                 metavar=" ".join([s.name for s in PercentileInterpolation]))
+
         self.parser.add_argument("--season", help="The seasons for which to produce statistics", action="store",
                                  default=Season,  # required=True,
                                  dest="season", type=season_arg, nargs="+",
@@ -227,7 +241,8 @@ class Arg25BandStatisticsWorkflow(object):
 
         self.satellites = args.satellites
 
-        self.epoch = args.epoch
+        if args.epoch:
+            self.epoch = EpochParameter(int(args.epoch[0]), int(args.epoch[1]))
 
         self.seasons = args.season
 
@@ -254,6 +269,8 @@ class Arg25BandStatisticsWorkflow(object):
 
         self.statistics = args.statistic
 
+        self.interpolation = args.interpolation
+
     def log_arguments(self):
 
         # # Call method on super class
@@ -274,7 +291,7 @@ class Arg25BandStatisticsWorkflow(object):
         local scheduler = {local_scheduler}
         workers = {workers}
         """.format(acq_min=self.acq_min, acq_max=self.acq_max,
-                   epoch=self.epoch and self.epoch or "",
+                   epoch="{increment:d} / {duration:d}".format(increment=self.epoch.increment, duration=self.epoch.duration),
                    satellites=" ".join([ts.name for ts in self.satellites]),
                    output_directory=self.output_directory,
                    pqa_mask=self.mask_pqa_apply and " ".join([mask.name for mask in self.mask_pqa_mask]) or "",
@@ -287,19 +304,21 @@ class Arg25BandStatisticsWorkflow(object):
         Y chunk size = {chunk_size_y}
         seasons = {seasons}
         statistics = {statistics}
+        interpolation = {interpolation}
         """.format(dataset_type=self.dataset_type.name, bands=" ".join([b.name for b in self.bands]),
                    chunk_size_x=self.x_chunk_size, chunk_size_y=self.y_chunk_size,
                    seasons=" ".join([s.name for s in self.seasons]),
-                   statistics=" ".join([s.name for s in self.statistics])))
+                   statistics=" ".join([s.name for s in self.statistics]),
+                   interpolation=self.interpolation.name))
 
     def get_epochs(self):
 
         from dateutil.rrule import rrule, YEARLY
         from dateutil.relativedelta import relativedelta
 
-        for dt in rrule(YEARLY, interval=self.epoch, dtstart=self.acq_min, until=self.acq_max):
+        for dt in rrule(YEARLY, interval=self.epoch.increment, dtstart=self.acq_min, until=self.acq_max):
             acq_min = dt.date()
-            acq_max = acq_min + relativedelta(years=self.epoch, days=-1)
+            acq_max = acq_min + relativedelta(years=self.epoch.duration, days=-1)
 
             acq_min = max(self.acq_min, acq_min)
             acq_max = min(self.acq_max, acq_max)
@@ -324,29 +343,30 @@ class Arg25BandStatisticsWorkflow(object):
         from itertools import product
 
         for (acq_min, acq_max), season in product(self.get_epochs(), self.get_seasons()):
-            _log.debug("%s %s %s", acq_min, acq_max, season)
+            _log.debug("acq_min=[%s] acq_max=[%s] season=[%s]", acq_min, acq_max, season.name)
 
             acq_min_extended, acq_max_extended, criteria = build_season_date_criteria(acq_min, acq_max, season,
                                                                                       seasons=SEASONS,
                                                                                       extend=True)
 
-            _log.debug("\tcriteria is %s", criteria)
+            _log.debug("\tacq_min_extended=[%s], acq_max_extended=[%s], criteria=[%s]", acq_min_extended, acq_max_extended, criteria)
 
             for cell in list_cells_as_generator(x=x_list, y=y_list, satellites=self.satellites,
                                                 acq_min=acq_min_extended, acq_max=acq_max_extended,
                                                 dataset_types=dataset_types, include=criteria):
-                _log.info("\t%3d %4d", cell.x, cell.y)
+                _log.debug("\t%3d %4d", cell.x, cell.y)
                 yield self.create_task(x=cell.x, y=cell.y, acq_min=acq_min, acq_max=acq_max, season=season)
 
     def create_task(self, x, y, acq_min, acq_max, season):
-        _log.info("Creating task for %s %s %s %s %s", x, y, acq_min, acq_max, season)
+        _log.debug("Creating task for %s %s %s %s %s", x, y, acq_min, acq_max, season)
         return Arg25BandStatisticsTask(x=x, y=y,
                                        acq_min=acq_min, acq_max=acq_max, season=season,
                                        satellites=self.satellites,
                                        dataset_type=self.dataset_type, bands=self.bands,
                                        mask_pqa_apply=self.mask_pqa_apply, mask_pqa_mask=self.mask_pqa_mask,
                                        x_chunk_size=self.x_chunk_size, y_chunk_size=self.y_chunk_size,
-                                       statistics=self.statistics)
+                                       statistics=self.statistics, interpolation=self.interpolation,
+                                       output_directory=self.output_directory)
 
     def run(self):
 
@@ -380,6 +400,10 @@ class Arg25BandStatisticsTask(Task):
 
     statistics = luigi.Parameter(is_list=True)
 
+    interpolation = luigi.Parameter()
+
+    output_directory = luigi.Parameter()
+
     def output(self):
         acq_min = self.acq_min.strftime("%Y%m%d")
         acq_max = self.acq_max.strftime("%Y%m%d")
@@ -388,13 +412,14 @@ class Arg25BandStatisticsTask(Task):
         season_start = "{month}{day:02d}".format(month=season[0][0].name[:3], day=season[0][1])
         season_end = "{month}{day:02d}".format(month=season[1][0].name[:3], day=season[1][1])
 
-        return luigi.LocalTarget(
-            "ARG25_{x:03d}_{y:04d}_{acq_min}_{acq_max}_{season_start}_{season_end}_STATS.tif".format(x=self.x, y=self.y,
-                                                                                                     acq_min=acq_min,
-                                                                                                     acq_max=acq_max,
-                                                                                                     season_start=season_start,
-                                                                                                     season_end=season_end
-                                                                                                     ))
+        return luigi.LocalTarget(os.path.join(self.output_directory,
+                                              "ARG25_{x:03d}_{y:04d}_{acq_min}_{acq_max}_{season_start}_{season_end}_STATS.tif".format(
+                                                  x=self.x, y=self.y,
+                                                  acq_min=acq_min,
+                                                  acq_max=acq_max,
+                                                  season_start=season_start,
+                                                  season_end=season_end
+                                                  )))
 
     def requires(self):
 
@@ -415,7 +440,8 @@ class Arg25BandStatisticsTask(Task):
                                                mask_pqa_apply=self.mask_pqa_apply, mask_pqa_mask=self.mask_pqa_mask,
                                                x_chunk_size=self.x_chunk_size, y_chunk_size=self.y_chunk_size,
                                                x_offset=x_offset, y_offset=y_offset,
-                                               statistics=self.statistics)
+                                               statistics=self.statistics, interpolation=self.interpolation,
+                                               output_directory=self.output_directory)
 
     def get_chunks(self):
 
@@ -439,7 +465,8 @@ class Arg25BandStatisticsTask(Task):
             "SATELLITE": " ".join([s.name for s in self.satellites]),
             "PIXEL_QUALITY_FILTER": self.mask_pqa_apply and " ".join([mask.name for mask in self.mask_pqa_mask]) or "",
             "BANDS": " ".join([b.name for b in self.bands]),
-            "STATISTICS": " ".join([s.name for s in self.statistics])
+            "STATISTICS": " ".join([s.name for s in self.statistics]),
+            "INTERPOLATION": self.interpolation.name
         }
 
     def run(self):
@@ -464,7 +491,8 @@ class Arg25BandStatisticsTask(Task):
 
         # TODO
 
-        raster = driver.Create(self.output().path, 4000, 4000, len(self.bands) * len(self.statistics), gdal.GDT_Int16)
+        raster = driver.Create(self.output().path, 4000, 4000, len(self.bands) * len(self.statistics), gdal.GDT_Int16,
+                               options=["INTERLEAVE=BAND", "COMPRESS=LZW", "TILED=YES"])
         assert raster
 
         # TODO
@@ -542,9 +570,13 @@ class Arg25BandStatisticsBandChunkTask(Task):
 
     statistics = luigi.Parameter(is_list=True)
 
+    interpolation = luigi.Parameter()
+
+    output_directory = luigi.Parameter()
+
     def output(self):
         return [
-            luigi.LocalTarget(self.get_statistic_filename(statistic)) for statistic in STATISTICS]
+            luigi.LocalTarget(os.path.join(self.output_directory, self.get_statistic_filename(statistic))) for statistic in STATISTICS]
 
     def get_statistic_filename(self, statistic):
         return get_statistic_filename(x=self.x, y=self.y, acq_min=self.acq_min, acq_max=self.acq_max,
@@ -562,7 +594,7 @@ class Arg25BandStatisticsBandChunkTask(Task):
         if self.mask_pqa_apply:
             dataset_types.append(DatasetType.PQ25)
 
-        tiles = list_tiles_as_generator(x=[self.x], y=[self.y], satellites=self.satellites,
+        tiles = list_tiles_as_list(x=[self.x], y=[self.y], satellites=self.satellites,
                                         acq_min=acq_min, acq_max=acq_max,
                                         dataset_types=dataset_types, include=criteria)
 
@@ -628,7 +660,8 @@ class Arg25BandStatisticsBandChunkTask(Task):
                 log_mem("Before {p}".format(p=percentile.name))
 
                 print "Before {p}".format(p=percentile.name)
-                stack_stat = calculate_stack_statistic_percentile(stack=stack, percentile=PERCENTILE[percentile], ndv=ndv)
+                stack_stat = calculate_stack_statistic_percentile(stack=stack, percentile=PERCENTILE[percentile],
+                                                                  ndv=ndv, interpolation=self.interpolation)
                 numpy.save(self.get_statistic_filename(percentile), stack_stat)
                 del stack_stat
 

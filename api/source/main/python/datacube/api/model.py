@@ -354,7 +354,6 @@ class Tile:
             end_datetime_month=record["end_datetime_month"],
             datasets=DatasetTile.from_string_array(record["satellite"], record["datasets"]))
 
-
     @staticmethod
     def from_db_record(record):
         return Tile(
@@ -475,7 +474,8 @@ def make_wofs_dataset(satellite_id, nbar):
         dt = fields[5].replace(".vrt", "").replace(".tif", "")
 
     # path = "/g/data/u46/wofs/water_f7q/extents/{x:03d}_{y:04d}/{satellite}_{sensor}_WATER_{x:03d}_{y:04d}_{date}.tif".format(x=x, y=y, satellite=satellite, sensor=sensor, date=dt)
-    path = "/g/data/fk4/wofs/water_f7q/extents/{x:03d}_{y:04d}/{satellite}_{sensor}_WATER_{x:03d}_{y:04d}_{date}.tif".format(x=x, y=y, satellite=satellite, sensor=sensor, date=dt)
+    # path = "/g/data/fk4/wofs/water_f7q/extents/{x:03d}_{y:04d}/{satellite}_{sensor}_WATER_{x:03d}_{y:04d}_{date}.tif".format(x=x, y=y, satellite=satellite, sensor=sensor, date=dt)
+    path = "/g/data/fk4/wofs/current/extents/{x:03d}_{y:04d}/{satellite}_{sensor}_WATER_{x:03d}_{y:04d}_{date}.tif".format(x=x, y=y, satellite=satellite, sensor=sensor, date=dt)
     # path = "/g/data/u46/sjo/geoserver/wofs_f7q/extents/{x:03d}_{y:04d}/{satellite}_{sensor}_WATER_{x:03d}_{y:04d}_{date}.tif".format(x=x, y=y, satellite=satellite, sensor=sensor, date=dt)
 
     path = warp_file_paths(path)

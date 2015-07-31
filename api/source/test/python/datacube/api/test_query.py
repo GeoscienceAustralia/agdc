@@ -33,7 +33,7 @@ __author__ = "Simon Oldfield"
 
 import logging
 from datacube.api import parse_date_min, parse_date_max, Satellite, DatasetType
-from datacube.api.query import list_cells_as_list, list_tiles_as_list
+from datacube.api.query import list_cells_as_list, list_tiles_as_list, build_season_date_criteria
 from datacube.api.query import list_cells_vector_file_as_list
 from datacube.api.query import MONTHS_BY_SEASON, Season
 from datacube.api.query import LS7_SLC_OFF_EXCLUSION, LS7_SLC_OFF_ACQ_MIN
@@ -107,11 +107,15 @@ def test_list_cells_120_020_2005_ls578_no_ls8_pre_wrs_2(config=None):
 
 def test_list_cells_120_020_2005_ls578_summer(config=None):
 
+    acq_min, acq_max, include = build_season_date_criteria(parse_date_min(TEST_YEAR_STR),
+                                                           parse_date_max(TEST_YEAR_STR),
+                                                           Season.SUMMER)
+
     cells = list_cells_as_list(x=[TEST_CELL_X], y=[TEST_CELL_Y],
-                               acq_min=parse_date_min(TEST_YEAR_STR), acq_max=parse_date_max(TEST_YEAR_STR),
+                               acq_min=acq_min, acq_max=acq_max,
                                satellites=[Satellite.LS5, Satellite.LS7, Satellite.LS8],
                                dataset_types=[DatasetType.ARG25],
-                               months=TEST_MONTHS,
+                               include=include,
                                config=config)
 
     assert(cells and len(list(cells)) > 0)
@@ -198,12 +202,16 @@ def test_list_tiles_120_020_2005_ls578_summer(config=None):
 
     dataset_types = [DatasetType.ARG25, DatasetType.PQ25, DatasetType.FC25]
 
+    acq_min, acq_max, include = build_season_date_criteria(parse_date_min(TEST_YEAR_STR),
+                                                           parse_date_max(TEST_YEAR_STR),
+                                                           Season.SUMMER)
+
     tiles = list_tiles_as_list(x=[TEST_CELL_X], y=[TEST_CELL_Y],
-                               acq_min=parse_date_min(TEST_YEAR_STR),
-                               acq_max=parse_date_max(TEST_YEAR_STR),
+                               acq_min=acq_min,
+                               acq_max=acq_max,
                                satellites=[Satellite.LS5, Satellite.LS7, Satellite.LS8],
                                dataset_types=dataset_types,
-                               months=TEST_MONTHS,
+                               include=include,
                                config=config)
 
     assert(tiles and len(list(tiles)) > 0)
@@ -211,7 +219,7 @@ def test_list_tiles_120_020_2005_ls578_summer(config=None):
     for tile in tiles:
         _log.info("Found tile xy = %s", tile.xy)
         assert(tile.x == TEST_CELL_X and tile.y == TEST_CELL_Y and tile.xy == (TEST_CELL_X, TEST_CELL_Y)
-               and tile.end_datetime_year == TEST_YEAR
+               and tile.end_datetime_year in [acq_min.year, acq_max.year]
                and (ds in tile.datasets for ds in dataset_types)
                and tile.end_datetime_month in [m.value for m in TEST_MONTHS])
 
