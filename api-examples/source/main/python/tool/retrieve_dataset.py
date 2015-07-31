@@ -26,7 +26,6 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ===============================================================================
-import subprocess
 
 
 __author__ = "Simon Oldfield"
@@ -37,6 +36,7 @@ import gdal
 import itertools
 import logging
 import os
+import subprocess
 from datacube.api.model import DatasetType, Satellite, dataset_type_database, dataset_type_derived_nbar, BANDS
 from datacube.api.query import list_tiles
 from datacube.api.utils import PqaMask, raster_create, intersection, calculate_ndvi, calculate_evi, calculate_nbr
@@ -66,7 +66,7 @@ def dataset_type_arg(s):
     raise argparse.ArgumentTypeError("{0} is not a supported dataset type".format(s))
 
 
-class DatasetRetrievalWorkflow():
+class DatasetRetrievalWorkflow(object):
 
     application_name = None
 

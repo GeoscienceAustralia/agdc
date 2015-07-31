@@ -37,7 +37,7 @@ import psycopg2.extras
 import sys
 import os
 from collections import namedtuple
-from datacube.api.utils import extract_feature_geometry_wkb
+from datacube.api.utils import extract_feature_geometry_wkb, DateCriteria, SatelliteDateCriteria
 from datacube.config import Config
 from datacube.api.model import Tile, Cell, DatasetType, Satellite
 from datetime import date
@@ -46,105 +46,6 @@ from enum import Enum
 
 
 _log = logging.getLogger(__name__)
-
-
-class Month(Enum):
-    __order__ = "JANUARY FEBRUARY MARCH APRIL MAY JUNE JULY AUGUST SEPTEMBER OCTOBER NOVEMBER DECEMBER"
-
-    JANUARY = 1
-    FEBRUARY = 2
-    MARCH = 3
-    APRIL = 4
-    MAY = 5
-    JUNE = 6
-    JULY = 7
-    AUGUST = 8
-    SEPTEMBER = 9
-    OCTOBER = 10
-    NOVEMBER = 11
-    DECEMBER = 12
-
-
-class Season(Enum):
-    __order__ = "SPRING SUMMER AUTUMN WINTER"
-
-    SPRING = "SPRING"
-    SUMMER = "SUMMER"
-    AUTUMN = "AUTUMN"
-    WINTER = "WINTER"
-
-
-# NOTE: This is specific to Australia (well potentially) and is per the Bureau of Meteorology Climate Glossary
-# http://www.bom.gov.au/climate/glossary/seasons.shtml
-
-MONTHS_BY_SEASON = {
-    Season.SPRING: [Month.SEPTEMBER, Month.OCTOBER, Month.NOVEMBER],
-    Season.SUMMER: [Month.DECEMBER, Month.JANUARY, Month.FEBRUARY],
-    Season.AUTUMN: [Month.MARCH, Month.APRIL, Month.MAY],
-    Season.WINTER: [Month.JUNE, Month.JULY, Month.AUGUST]
-}
-
-
-# SEASON_DATES = {
-#     Season.SUMMER: ((Month.DECEMBER, 1), (Month.FEBRUARY, 28)),
-#     Season.AUTUMN: ((Month.MARCH, 1), (Month.MAY, 31)),
-#     Season.WINTER: ((Month.JUNE, 1), (Month.AUGUST, 31)),
-#     Season.SPRING: ((Month.SEPTEMBER, 1), (Month.NOVEMBER, 30))
-# }
-
-class Quarter(Enum):
-    __order__ = "Q1 Q2 Q3 Q4"
-
-    Q1 = "Q1"
-    Q2 = "Q2"
-    Q3 = "Q3"
-    Q4 = "Q4"
-
-
-MONTHS_BY_QUARTER = {
-    Quarter.Q1: [Month.JANUARY, Month.FEBRUARY, Month.MARCH],
-    Quarter.Q2: [Month.APRIL, Month.MAY, Month.JUNE],
-    Quarter.Q3: [Month.JULY, Month.AUGUST, Month.SEPTEMBER],
-    Quarter.Q4: [Month.OCTOBER, Month.NOVEMBER, Month.DECEMBER]
-}
-
-
-# QUARTER_DATES = {
-#     Quarter.Q1: ((Month.JANUARY, 1), (Month.MARCH, 31)),
-#     Quarter.Q2: ((Month.APRIL, 1), (Month.JUNE, 30)),
-#     Quarter.Q3: ((Month.JULY, 1), (Month.SEPTEMBER, 30)),
-#     Quarter.Q4: ((Month.OCTOBER, 1), (Month.DECEMBER, 31))
-# }
-
-
-SEASONS = {
-    Season.SUMMER: ((Month.DECEMBER, 1), (Month.FEBRUARY, 31)),
-    Season.AUTUMN: ((Month.MARCH, 1), (Month.MAY, 31)),
-    Season.WINTER: ((Month.JUNE, 1), (Month.AUGUST, 31)),
-    Season.SPRING: ((Month.SEPTEMBER, 1), (Month.NOVEMBER, 31))
-}
-
-
-def build_season_date_criteria(acq_min, acq_max, season, seasons=SEASONS, extend=True):
-
-    date_criteria = []
-
-    (month_start, day_start), (month_end, day_end) = seasons[season]
-
-    for year in range(acq_min.year, acq_max.year+1):
-
-        min_dt = date(year, month_start.value, 1) + relativedelta(day=day_start)
-        max_dt = date(year, month_end.value, 1) + relativedelta(day=day_end)
-
-        if min_dt > max_dt:
-            max_dt = date(year+1, month_end.value, 1) + relativedelta(day=day_end)
-
-        date_criteria.append(DateCriteria(min_dt, max_dt))
-
-        if extend and acq_max < max_dt:
-            acq_max = max_dt
-
-    return acq_min, acq_max, date_criteria
 
 
 class TileClass(Enum):
@@ -248,22 +149,6 @@ def to_file_ify_sql(sql):
     ) to STDOUT csv header delimiter ',' escape '"' null '' quote '"'
     """.format(sql=sql)
 
-
-SatelliteDateCriteria = namedtuple("SatelliteDateCriteria", "satellite acq_min acq_max")
-
-LS7_SLC_OFF_ACQ_MIN = date(2005, 5, 31)
-LS7_SLC_OFF_ACQ_MAX = None
-
-LS7_SLC_OFF_EXCLUSION = SatelliteDateCriteria(satellite=Satellite.LS7,
-                                              acq_min=LS7_SLC_OFF_ACQ_MIN, acq_max=LS7_SLC_OFF_ACQ_MAX)
-
-LS8_PRE_WRS_2_ACQ_MIN = None
-LS8_PRE_WRS_2_ACQ_MAX = date(2013, 4, 10)
-
-LS8_PRE_WRS_2_EXCLUSION = SatelliteDateCriteria(satellite=Satellite.LS8,
-                                                acq_min=LS8_PRE_WRS_2_ACQ_MIN, acq_max=LS8_PRE_WRS_2_ACQ_MAX)
-
-DateCriteria = namedtuple("DateCriteria", "acq_min acq_max")
 
 ###
 # CELLS...

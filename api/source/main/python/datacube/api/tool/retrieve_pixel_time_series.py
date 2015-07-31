@@ -36,11 +36,12 @@ import logging
 import os
 import sys
 from enum import Enum
-from datacube.api import dataset_type_arg, writeable_dir, Season, Month, season_arg
+from datacube.api import dataset_type_arg, writeable_dir, Season, Month, season_arg, BandListType
 from datacube.api.model import DatasetType, Wofs25Bands, Satellite
 from datacube.api.tool import Tool
-from datacube.api.query import build_season_date_criteria
 from datacube.api.utils import latlon_to_cell, latlon_to_xy, UINT16_MAX, BYTE_MAX, get_mask_pqa, get_band_name_union
+from datacube.api.utils import LS7_SLC_OFF_EXCLUSION, LS8_PRE_WRS_2_EXCLUSION, build_date_criteria
+from datacube.api.utils import get_pixel_time_series_filename
 from datacube.api.utils import NAN
 from datacube.api.utils import get_band_name_intersection
 from datacube.api.utils import get_mask_wofs, get_dataset_data_masked
@@ -48,22 +49,6 @@ from datacube.api.utils import get_dataset_metadata, NDV
 
 
 _log = logging.getLogger()
-
-
-class BandListType(Enum):
-    __order__ = "EXPLICIT ALL COMMON"
-
-    EXPLICIT = "EXPLICIT"
-    ALL = "ALL"
-    COMMON = "COMMON"
-
-
-SEASONS = {
-    Season.SUMMER: ((Month.NOVEMBER, 17), (Month.APRIL, 25)),
-    Season.AUTUMN: ((Month.FEBRUARY, 16), (Month.JULY, 25)),
-    Season.WINTER: ((Month.MAY, 17), (Month.OCTOBER, 25)),
-    Season.SPRING: ((Month.AUGUST, 17), (Month.JANUARY, 25))
-}
 
 
 class RetrievePixelTimeSeriesTool(Tool):
@@ -85,8 +70,6 @@ class RetrievePixelTimeSeriesTool(Tool):
         self.delimiter = None
         self.output_directory = None
         self.overwrite = None
-
-        self.season = None
 
     def setup_arguments(self):
 
@@ -111,8 +94,9 @@ class RetrievePixelTimeSeriesTool(Tool):
 
         group = self.parser.add_mutually_exclusive_group()
 
-        # TODO explicit list of bands
-        # group.add_argument("--bands", help="List of bands to retrieve", action="store")
+        group = self.parser.add_mutually_exclusive_group()
+
+        group.add_argument("--band", help="The band(s) to retrieve", action="store", dest="bands", type=str, nargs="+")
 
         group.add_argument("--bands-all", help="Retrieve all bands with NULL values where the band is N/A",
                            action="store_const", dest="bands", const=BandListType.ALL)
@@ -131,11 +115,6 @@ class RetrievePixelTimeSeriesTool(Tool):
         self.parser.add_argument("--overwrite", help="Over write existing output file", action="store_true",
                                  dest="overwrite", default=False)
 
-        self.parser.add_argument("--season", help="The seasons for which to produce statistics", action="store",
-                                 # default=Season,  # required=True,
-                                 dest="season", type=season_arg,  # nargs="+",
-                                 metavar=" ".join([s.name for s in Season]))
-
     def process_arguments(self, args):
 
         # Call method on super class
@@ -151,14 +130,18 @@ class RetrievePixelTimeSeriesTool(Tool):
 
         if args.bands == BandListType.ALL:
             self.bands = get_band_name_union(self.dataset_type, self.satellites)
-        else:
+        elif args.bands == BandListType.COMMON:
             self.bands = get_band_name_intersection(self.dataset_type, self.satellites)
+        else:
+            self.bands = []
+            potential_bands = get_band_name_union(self.dataset_type, self.satellites)
+            for band in args.bands:
+                if band in potential_bands:
+                    self.bands.append(band)
 
         self.delimiter = args.delimiter
         self.output_directory = args.output_directory
         self.overwrite = args.overwrite
-
-        self.season = args.season
 
     def log_arguments(self):
 
@@ -169,7 +152,6 @@ class RetrievePixelTimeSeriesTool(Tool):
         _log.info("""
         longitude = {longitude:f}
         latitude = {latitude:f}
-        season = {season}
         datasets to retrieve = {dataset_type}
         bands to retrieve = {bands}
         output no data values = {output_no_data}
@@ -177,7 +159,6 @@ class RetrievePixelTimeSeriesTool(Tool):
         over write = {overwrite}
         delimiter = {delimiter}
         """.format(longitude=self.longitude, latitude=self.latitude,
-                   season=self.season and self.season.name or "",
                    dataset_type=self.dataset_type.name,
                    bands=self.bands,
                    output_no_data=self.output_no_data,
@@ -198,24 +179,37 @@ class RetrievePixelTimeSeriesTool(Tool):
 
         dataset_types = [self.dataset_type]
 
-        if self.mask_pqa_apply:
+        if self.mask_pqa_apply and DatasetType.PQ25 not in dataset_types:
             dataset_types.append(DatasetType.PQ25)
 
-        if self.mask_wofs_apply:
+        if self.mask_wofs_apply and DatasetType.WATER not in dataset_types:
             dataset_types.append(DatasetType.WATER)
 
-        acq_min, acq_max, criteria = self.acq_min, self.acq_max, None
+        exclude = None
+
+        if not self.include_ls8_pre_wrs2 or not self.include_ls8_pre_wrs2:
+            exclude = []
+
+            if not self.include_ls7_slc_off:
+                exclude.append(LS7_SLC_OFF_EXCLUSION)
+
+            if not self.include_ls8_pre_wrs2:
+                exclude.append(LS8_PRE_WRS_2_EXCLUSION)
+
+        include = None
+
+        acq_min = self.acq_min
+        acq_max = self.acq_max
 
         if self.season:
-            acq_min, acq_max, criteria = build_season_date_criteria(self.acq_min, self.acq_max, self.season,
-                                                                    seasons=SEASONS, extend=True)
+            season_name, (season_start_month, season_start_day), (season_end_month, season_end_day) = self.season
 
-        _log.info("\tacq %s to %s and criteria is %s", acq_min, acq_max, criteria)
+            acq_min, acq_max, include = build_date_criteria(acq_min, acq_max, season_start_month, season_start_day, season_end_month, season_end_day)
 
         for tile in list_tiles(x=x_list, y=y_list,
                                acq_min=acq_min, acq_max=acq_max,
                                satellites=[satellite for satellite in self.satellites],
-                               dataset_types=dataset_types, include=criteria):
+                               dataset_types=dataset_types, exclude=exclude, include=include):
             yield tile
 
     def go(self):
@@ -277,60 +271,27 @@ class RetrievePixelTimeSeriesTool(Tool):
         return open(self.get_output_filename(dataset_type), "wb")
 
     def get_output_filename(self, dataset_type):
-
-        if dataset_type == DatasetType.WATER:
-            return os.path.join(self.output_directory,"LS_WOFS_{longitude:03.5f}_{latitude:03.5f}_{acq_min}_{acq_max}.csv".format(latitude=self.latitude,
-                                                                                              longitude=self.longitude,
-                                                                                              acq_min=self.acq_min,
-                                                                                              acq_max=self.acq_max))
-        satellite_str = ""
-
-        if Satellite.LS5 in self.satellites or Satellite.LS7 in self.satellites or Satellite.LS8 in self.satellites:
-            satellite_str += "LS"
-
-        if Satellite.LS5 in self.satellites:
-            satellite_str += "5"
-
-        if Satellite.LS7 in self.satellites:
-            satellite_str += "7"
-
-        if Satellite.LS8 in self.satellites:
-            satellite_str += "8"
-
-        dataset_str = ""
-
-        if dataset_type == DatasetType.ARG25:
-            dataset_str += "NBAR"
-
-        elif dataset_type == DatasetType.PQ25:
-            dataset_str += "PQA"
-
-        elif dataset_type == DatasetType.FC25:
-            dataset_str += "FC"
-
-        elif dataset_type == DatasetType.WATER:
-            dataset_str += "WOFS"
-
-        if self.mask_pqa_apply and self.mask_wofs_apply:
-            dataset_str += "_WITH_PQA_WATER"
-
-        elif self.mask_pqa_apply:
-            dataset_str += "_WITH_PQA"
-
-        elif self.mask_wofs_apply:
-            dataset_str += "_WITH_WATER"
-
-        return os.path.join(self.output_directory,
-                            "{satellite}_{dataset}_{longitude:03.5f}_{latitude:03.5f}_{acq_min}_{acq_max}.csv".format(satellite=satellite_str, dataset=dataset_str, latitude=self.latitude,
-                                                                                          longitude=self.longitude,
-                                                                                          acq_min=self.acq_min,
-                                                                                          acq_max=self.acq_max))
-
+        return get_pixel_time_series_filename(satellites=self.satellites, dataset_type=dataset_type,
+                                              lat=self.latitude, lon=self.longitude, acq_min=self.acq_min,
+                                              acq_max=self.acq_max,
+                                              season=self.season,
+                                              mask_pqa_apply=self.mask_pqa_apply, mask_wofs_apply=self.mask_wofs_apply,
+                                              mask_vector_apply=False)
 
 def has_data(bands, data, no_data_value=NDV):
     for value in [data[band][0][0] for band in bands]:
-        if value != no_data_value:
-            return True
+
+        # Note: can't do if nan == nan!!!
+
+        import numpy
+
+        if numpy.isnan(no_data_value):
+            if not numpy.isnan(value):
+                return True
+
+        else:
+            if value != no_data_value:
+                return True
 
     return False
 

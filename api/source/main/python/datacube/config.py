@@ -99,7 +99,7 @@ class Config:
 
     _DEFAULT_CONFIG = """
 [DATABASE]
-host: 130.56.244.225
+host: 130.56.244.224
 port: 6432
 database: hypercube_v0
 username: cube_user

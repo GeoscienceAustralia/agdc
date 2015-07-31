@@ -35,16 +35,19 @@ import numpy
 import gdal
 import os
 import gdalconst
+from collections import namedtuple
+from dateutil.relativedelta import relativedelta
 from enum import Enum
 from datacube.api.model import Pq25Bands, Ls57Arg25Bands, Satellite, DatasetType, Ls8Arg25Bands, Wofs25Bands, NdviBands
 from datacube.api.model import get_bands, EviBands, NbrBands, TciBands
-from datetime import datetime
 from scipy.ndimage import map_coordinates
 from eotools.coordinates import convert_coordinates
+from datetime import datetime, date
 
 
 _log = logging.getLogger(__name__)
 
+# gdal.SetCacheMax(1024*1024*1024)
 
 # Define PQ mask
 #   This represents bits 0-13 set which means:
@@ -127,7 +130,7 @@ class PercentileInterpolation(Enum):
     MIDPOINT = "midpoint"
 
 
-def empty_array(shape, dtype=numpy.int16, fill=-999):
+def empty_array(shape, dtype=numpy.int16, fill=NDV):
 
     """
     Return an empty (i.e. filled with the no data value) array of the given shape and data type
@@ -532,9 +535,23 @@ def get_mask_vector_for_cell(x, y, vector_file, vector_layer, vector_feature, wi
 def get_dataset_data_stack(tiles, dataset_type, band_name, x=0, y=0, x_size=None, y_size=None, ndv=None,
                            mask_pqa_apply=False, mask_pqa_mask=None):
 
-        stack = list()
+        # stack = list()
 
-        for tile in tiles:
+        data_type = {
+            DatasetType.ARG25: numpy.int16,
+            DatasetType.PQ25: numpy.uint16,
+            DatasetType.FC25: numpy.int16,
+            DatasetType.WATER: numpy.byte,
+            DatasetType.NDVI: numpy.float32,
+            DatasetType.EVI: numpy.float32,
+            DatasetType.NBR: numpy.float32,
+            DatasetType.TCI: numpy.float32,
+            DatasetType.DSM: numpy.int16
+        }[dataset_type]
+
+        stack = numpy.empty((len(tiles), y_size and y_size or 4000, x_size and x_size or 4000), dtype=data_type)
+
+        for index, tile in enumerate(tiles, start=0):
 
             dataset = tile.datasets[dataset_type]
             assert dataset
@@ -562,8 +579,8 @@ def get_dataset_data_stack(tiles, dataset_type, band_name, x=0, y=0, x_size=None
 
             log_mem("After get data")
 
-            stack.append(data[band])
-
+            # stack.append(data[band])
+            stack[index] = data[band]
             del data, pqa
 
             log_mem("After adding data to stack and deleting it")
@@ -590,9 +607,9 @@ def raster_create(path, data, transform, projection, no_data_value, data_type,
 def raster_create_geotiff(path, data, transform, projection, no_data_value, data_type,
                   # options=["INTERLEAVE=PIXEL", "COMPRESS=DEFLATE", "PREDICTOR=2", "ZLEVEL=9"]):
                   # options=["INTERLEAVE=PIXEL", "COMPRESS=DEFLATE", "PREDICTOR=1", "ZLEVEL=6"]):
-                  options=["INTERLEAVE=PIXEL"],
+                  # options=["INTERLEAVE=PIXEL"],
                   # options=["INTERLEAVE=PIXEL", "COMPRESS=LZW"],
-                  # options=["INTERLEAVE=PIXEL", "COMPRESS=LZW", "TILED=YES"],
+                  options=["INTERLEAVE=PIXEL", "COMPRESS=LZW", "TILED=YES"],
                   width=None, height=None, dataset_metadata=None, band_ids=None):
     """
     Create a raster from a list of numpy arrays
@@ -946,7 +963,7 @@ def calculate_tassel_cap_index(bands, coefficients, input_ndv=NDV, output_ndv=nu
     # Drop out no data values - do I need this???
 
     for b in bands.iterkeys():
-        bands_masked[b] = numpy.ma.masked_equal(bands[b], input_ndv).astype(numpy.float32) / 10000
+        bands_masked[b] = numpy.ma.masked_equal(bands[b], input_ndv).astype(numpy.float16)
 
     tci = 0
 
@@ -1102,16 +1119,16 @@ def check_overwrite_remove_or_fail(path, overwrite):
 def log_mem(s=None):
 
     if s and len(s) > 0:
-        _log.info(s)
+        _log.debug(s)
 
     import psutil
 
-    _log.info("Current memory usage is [%s]", psutil.Process().memory_info())
-    _log.info("Current memory usage is [%d] MB", psutil.Process().memory_info().rss / 1024 / 1024)
+    _log.debug("Current memory usage is [%s]", psutil.Process().memory_info())
+    _log.debug("Current memory usage is [%d] MB", psutil.Process().memory_info().rss / 1024 / 1024)
 
     import resource
 
-    _log.info("Current MAX RSS  usage is [%d] MB", resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+    _log.debug("Current MAX RSS  usage is [%d] MB", resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
 
 
 def date_to_integer(d):
@@ -1166,51 +1183,190 @@ def get_dataset_filename(dataset, output_format=OutputFormat.GEOTIFF,
     return filename
 
 
-def get_dataset_band_stack_filename(dataset, band, output_format=OutputFormat.GEOTIFF,
+
+# def get_dataset_filename(self, dataset):
+#
+#     from datacube.api.workflow import format_date
+#     from datacube.api.utils import get_satellite_string
+#
+#     satellites = get_satellite_string(self.satellites)
+#
+#     acq_min = format_date(self.acq_min)
+#     acq_max = format_date(self.acq_max)
+#
+#     return os.path.join(self.output_directory,
+#         "{satellites}_{dataset}_{x:03d}_{y:04d}_{acq_min}_{acq_max}.tif".format(
+#         satellites=satellites,
+#         dataset=dataset,
+#         x=self.x, y=self.y,
+#         acq_min=acq_min,
+#         acq_max=acq_max))
+
+
+# def get_dataset_band_stack_filename(satellites, dataset_type, band, x, y, acq_min, acq_max, season_range=None,
+#                                     mask_pqa_apply=False, mask_wofs_apply=False, mask_vector_apply=False,
+#                                     output_format=OutputFormat.GEOTIFF
+#                                     ):
+#
+#     filename_template = ""
+#
+#     if season_range:
+#         filename_template = "{satellite}_{dataset}_{x:03d}_{y:04d}_{acq_min}_{acq_max}_{season_start}_{season_end}_{band}_STACK.tif"
+#     else:
+#         filename_template = "{satellite}_{dataset}_{x:03d}_{y:04d}_{acq_min}_{acq_max}_{band}_STACK.tif"
+#
+#
+#     from datacube.api.workflow import format_date
+#     from datacube.api.utils import get_satellite_string
+#
+#     satellites_str = get_satellite_string(satellites)
+#
+#     acq_min_str = format_date(acq_min)
+#     acq_max_str = format_date(acq_max)
+#
+#     "{satellite}_{dataset}_{x:03d}_{y:04d}_{acq_min}_{acq_max}_{season_start}_{season_end}_{band}_STACK.tif".format(x=self.x,
+#                                                                                                     y=self.y,
+#                                                                                                     acq_min=acq_min,
+#                                                                                                     acq_max=acq_max,
+#                                                                                                     season_start=season_start,
+#                                                                                                     season_end=season_end,
+#                                                                                                     band=self.band.name
+#                                                                                                     ))
+#     dataset_type_from_string = {
+#         DatasetType.ARG25: "_NBAR_",
+#         DatasetType.PQ25: "_PQA_",
+#         DatasetType.FC25: "_FC_",
+#         DatasetType.WATER: "_WATER_",
+#         DatasetType.NDVI: "_NBAR_",
+#         DatasetType.EVI: "_NBAR_",
+#         DatasetType.NBR: "_NBAR_",
+#         DatasetType.TCI: "_NBAR_",
+#         DatasetType.DSM: "DSM_"
+#     }[dataset.dataset_type]
+#
+#     dataset_type_to_string = {
+#         DatasetType.ARG25: "_NBAR_",
+#         DatasetType.PQ25: "_PQA_",
+#         DatasetType.FC25: "_FC_",
+#         DatasetType.WATER: "_WATER_",
+#         DatasetType.NDVI: "_NDVI_",
+#         DatasetType.EVI: "_EVI_",
+#         DatasetType.NBR: "_NBR_",
+#         DatasetType.TCI: "_TCI_",
+#         DatasetType.DSM: "DSM_"
+#     }[dataset.dataset_type]
+#
+#     dataset_type_to_string += ((mask_pqa_apply or mask_wofs_apply or mask_vector_apply) and "WITH_" or "") + \
+#                               (mask_pqa_apply and "PQA_" or "") + \
+#                               (mask_wofs_apply and "WATER_" or "") + \
+#                               (mask_vector_apply and "VECTOR_" or "")
+#
+#     dataset_type_to_string += "STACK_" + band.name + "_"
+#
+#     filename = filename.replace(dataset_type_from_string, dataset_type_to_string)
+#
+#     ext = {OutputFormat.GEOTIFF: ".tif", OutputFormat.ENVI: ".dat"}[output_format]
+#
+#     filename = filename.replace(".vrt", ext)
+#     filename = filename.replace(".tiff", ext)
+#     filename = filename.replace(".tif", ext)
+#
+#     return filename
+
+
+def get_dataset_band_stack_filename(satellites, dataset_type, band, x, y, acq_min, acq_max, season=None,
+                                    mask_pqa_apply=False, mask_wofs_apply=False, mask_vector_apply=False,
+                                    output_format=OutputFormat.GEOTIFF):
+
+    from datacube.api.workflow import format_date
+
+    satellite_str = get_satellite_string(satellites)
+
+    dataset_type_str = {
+        DatasetType.ARG25: "NBAR",
+        DatasetType.PQ25: "PQA",
+        DatasetType.FC25: "FC",
+        DatasetType.WATER: "WATER",
+        DatasetType.NDVI: "NDVI",
+        DatasetType.EVI: "EVI",
+        DatasetType.NBR: "NBR",
+        DatasetType.TCI: "TCI",
+        DatasetType.DSM: "DSM"
+    }[dataset_type]
+
+    dataset_type_str += ((mask_pqa_apply or mask_wofs_apply or mask_vector_apply) and "_WITH" or "") + \
+                              (mask_pqa_apply and "_PQA" or "") + \
+                              (mask_wofs_apply and "_WATER" or "") + \
+                              (mask_vector_apply and "_VECTOR" or "")
+
+    ext = {OutputFormat.GEOTIFF: "tif", OutputFormat.ENVI: "dat"}[output_format]
+
+    if season:
+        filename_template = "{satellite}_{dataset}_{x:03d}_{y:04d}_{acq_min}_{acq_max}_{season_name}_{season_start}_{season_end}_{band}_STACK.{ext}"
+
+        season_name, (season_start_month, season_start_day), (season_end_month, season_end_day) = season
+
+        _, _, include = build_date_criteria(acq_min, acq_max, season_start_month, season_start_day, season_end_month, season_end_day)
+
+        season_start = "{month}_{day:02d}".format(month=season_start_month.name[:3], day=season_start_day)
+        season_end = "{month}_{day:02d}".format(month=season_end_month.name[:3], day=season_end_day)
+
+        filename = filename_template.format(satellite=satellite_str, dataset=dataset_type_str, x=x, y=y,
+                                            acq_min=format_date(acq_min), acq_max=format_date(acq_max),
+                                            season_name=season.name, season_start=season_start, season_end=season_end,
+                                            band=band.name, ext=ext)
+    else:
+        filename_template = "{satellite}_{dataset}_{x:03d}_{y:04d}_{acq_min}_{acq_max}_{band}_STACK.{ext}"
+
+        filename = filename_template.format(satellite=satellite_str, dataset=dataset_type_str, x=x, y=y,
+                                            acq_min=format_date(acq_min), acq_max=format_date(acq_max),
+                                            band=band.name, ext=ext)
+
+    return filename
+
+
+def get_pixel_time_series_filename(satellites, dataset_type, lat, lon, acq_min, acq_max, season=None,
                                     mask_pqa_apply=False, mask_wofs_apply=False, mask_vector_apply=False):
 
-    filename = dataset.path
+    from datacube.api.workflow import format_date
 
-    filename = os.path.basename(filename)
+    satellite_str = get_satellite_string(satellites)
 
-    dataset_type_from_string = {
-        DatasetType.ARG25: "_NBAR_",
-        DatasetType.PQ25: "_PQA_",
-        DatasetType.FC25: "_FC_",
-        DatasetType.WATER: "_WATER_",
-        DatasetType.NDVI: "_NBAR_",
-        DatasetType.EVI: "_NBAR_",
-        DatasetType.NBR: "_NBAR_",
-        DatasetType.TCI: "_NBAR_",
-        DatasetType.DSM: "DSM_"
-    }[dataset.dataset_type]
+    dataset_type_str = {
+        DatasetType.ARG25: "NBAR",
+        DatasetType.PQ25: "PQA",
+        DatasetType.FC25: "FC",
+        DatasetType.WATER: "WATER",
+        DatasetType.NDVI: "NDVI",
+        DatasetType.EVI: "EVI",
+        DatasetType.NBR: "NBR",
+        DatasetType.TCI: "TCI",
+        DatasetType.DSM: "DSM"
+    }[dataset_type]
 
-    dataset_type_to_string = {
-        DatasetType.ARG25: "_NBAR_",
-        DatasetType.PQ25: "_PQA_",
-        DatasetType.FC25: "_FC_",
-        DatasetType.WATER: "_WATER_",
-        DatasetType.NDVI: "_NDVI_",
-        DatasetType.EVI: "_EVI_",
-        DatasetType.NBR: "_NBR_",
-        DatasetType.TCI: "_TCI_",
-        DatasetType.DSM: "DSM_"
-    }[dataset.dataset_type]
+    dataset_type_str += ((mask_pqa_apply or mask_wofs_apply or mask_vector_apply) and "_WITH" or "") + \
+                              (mask_pqa_apply and "_PQA" or "") + \
+                              (mask_wofs_apply and "_WATER" or "") + \
+                              (mask_vector_apply and "_VECTOR" or "")
 
-    dataset_type_to_string += ((mask_pqa_apply or mask_wofs_apply or mask_vector_apply) and "WITH_" or "") + \
-                              (mask_pqa_apply and "PQA_" or "") + \
-                              (mask_wofs_apply and "WATER_" or "") + \
-                              (mask_vector_apply and "VECTOR_" or "")
+    if season:
+        filename_template = "{satellite}_{dataset}_{longitude:03.5f}_{latitude:03.5f}_{acq_min}_{acq_max}_{season_name}_{season_start}_{season_end}.csv"
 
-    dataset_type_to_string += "STACK_" + band.name + "_"
+        season_name, (season_start_month, season_start_day), (season_end_month, season_end_day) = season
 
-    filename = filename.replace(dataset_type_from_string, dataset_type_to_string)
+        _, _, include = build_date_criteria(acq_min, acq_max, season_start_month, season_start_day, season_end_month, season_end_day)
 
-    ext = {OutputFormat.GEOTIFF: ".tif", OutputFormat.ENVI: ".dat"}[output_format]
+        season_start = "{month}_{day:02d}".format(month=season_start_month.name[:3], day=season_start_day)
+        season_end = "{month}_{day:02d}".format(month=season_end_month.name[:3], day=season_end_day)
 
-    filename = filename.replace(".vrt", ext)
-    filename = filename.replace(".tiff", ext)
-    filename = filename.replace(".tif", ext)
+        filename = filename_template.format(satellite=satellite_str, dataset=dataset_type_str, latitude=lat, longitude=lon,
+                                            acq_min=format_date(acq_min), acq_max=format_date(acq_max),
+                                            season_name=season.name, season_start=season_start, season_end=season_end)
+    else:
+        filename_template = "{satellite}_{dataset}_{longitude:03.5f}_{latitude:03.5f}_{acq_min}_{acq_max}.csv"
+
+        filename = filename_template.format(satellite=satellite_str, dataset=dataset_type_str, latitude=lat, longitude=lon,
+                                            acq_min=format_date(acq_min), acq_max=format_date(acq_max))
 
     return filename
 
@@ -1374,7 +1530,6 @@ def calculate_stack_statistic_max(stack, ndv=NDV, dtype=numpy.int16):
     return stat
 
 
-
 def calculate_stack_statistic_mean(stack, ndv=NDV, dtype=numpy.int16):
 
     stack = maskify_stack(stack=stack, ndv=ndv)
@@ -1389,17 +1544,33 @@ def calculate_stack_statistic_mean(stack, ndv=NDV, dtype=numpy.int16):
 
 def calculate_stack_statistic_percentile(stack, percentile, interpolation=PercentileInterpolation.NEAREST, ndv=NDV, dtype=numpy.int16):
 
-    stack = maskify_stack(stack=stack, ndv=ndv)
+    # stack = maskify_stack(stack=stack, ndv=ndv)
+    #
+    # # numpy (1.9.2) currently doesn't have masked version of percentile so convert to float and use nanpercentile
+    #
+    # stack = numpy.ndarray.astype(stack, dtype=numpy.float16, copy=False).filled(numpy.nan)
+    #
+    # stat = numpy.nanpercentile(stack, percentile, axis=0, interpolation=interpolation.value)
+    # stat = numpy.ma.masked_invalid(stat, copy=False)
+    # stat = numpy.ndarray.astype(stat, dtype=dtype, copy=False).filled(ndv)
+    #
+    # _log.debug("max is [%s]\n%s", numpy.shape(stat), stat)
+    #
+    # return stat
 
-    # numpy (1.9.2) currently doesn't have masked version of percentile so convert to float and use nanpercentile
+    def do_percentile(data):
+        d = data[data != ndv]
 
-    stack = numpy.ndarray.astype(stack, dtype=numpy.float16, copy=False).filled(numpy.nan)
+        # numpy.percentile has a hissy if the array is empty - aka ALL no data...
 
-    stat = numpy.nanpercentile(stack, percentile, axis=0, interpolation=interpolation.value)
-    stat = numpy.ma.masked_invalid(stat, copy=False)
-    stat = numpy.ndarray.astype(stat, dtype=dtype, copy=False).filled(ndv)
+        if d.size == 0:
+            return ndv
+        else:
+            return numpy.percentile(a=d, q=percentile, interpolation=interpolation.value)
 
-    _log.debug("max is [%s]\n%s", numpy.shape(stat), stat)
+    stat = numpy.apply_along_axis(do_percentile, axis=0, arr=stack)
+
+    _log.debug("%s is [%s]\n%s", percentile, numpy.shape(stat), stat)
 
     return stat
 
@@ -1565,3 +1736,168 @@ def arbitrary_profile(dataset, xy_points, band=None, cubic=False,
     y_idx = y_idx.astype('int')
 
     return (profile, (y_idx, x_idx), (x_start_end, y_start_end))
+=======
+def x_calculate_stack_statistic_count(stack, ndv=NDV, dtype=numpy.int16):
+
+    stack = maskify_stack(stack=stack, ndv=ndv)
+
+    stack_depth, stack_size_y, stack_size_x = numpy.shape(stack)
+
+    stat = empty_array((stack_size_y, stack_size_x), dtype=dtype, fill=stack_depth)
+    stat = numpy.ndarray.astype(stat, dtype=dtype, copy=False)
+
+    _log.debug("count is [%s]\n%s", numpy.shape(stat), stat)
+
+    return stat
+
+
+def x_calculate_stack_statistic_count_observed(stack, ndv=NDV, dtype=numpy.int16):
+
+    stack = maskify_stack(stack=stack, ndv=ndv)
+
+    stat = stack.count(axis=0)
+    stat = numpy.ndarray.astype(stat, dtype=dtype, copy=False)
+
+    _log.debug("count observed is [%s]\n%s", numpy.shape(stat), stat)
+
+    return stat
+
+
+def x_calculate_stack_statistic_min(stack, ndv=NDV, dtype=numpy.int16):
+
+    stack = maskify_stack(stack=stack, ndv=ndv)
+
+    stat = numpy.min(stack, axis=0).filled(ndv)
+    stat = numpy.ndarray.astype(stat, dtype=dtype, copy=False)
+
+    _log.debug("min is [%s]\n%s", numpy.shape(stat), stat)
+
+    return stat
+
+
+def x_calculate_stack_statistic_max(stack, ndv=NDV, dtype=numpy.int16):
+
+    stack = maskify_stack(stack=stack, ndv=ndv)
+
+    stat = numpy.max(stack, axis=0).filled(ndv)
+    stat = numpy.ndarray.astype(stat, dtype=dtype, copy=False)
+
+    _log.debug("max is [%s]\n%s", numpy.shape(stat), stat)
+
+    return stat
+
+
+def x_calculate_stack_statistic_mean(stack, ndv=NDV, dtype=numpy.int16):
+
+    stack = maskify_stack(stack=stack, ndv=ndv)
+
+    stat = numpy.mean(stack, axis=0).filled(ndv)
+    stat = numpy.ndarray.astype(stat, dtype=dtype, copy=False)
+
+    _log.debug("max is [%s]\n%s", numpy.shape(stat), stat)
+
+    return stat
+
+
+def x_calculate_stack_statistic_percentile(stack, percentile, interpolation=PercentileInterpolation.NEAREST, ndv=NDV, dtype=numpy.int16):
+
+    stack = maskify_stack(stack=stack, ndv=ndv)
+
+    # numpy (1.9.2) currently doesn't have masked version of percentile so convert to float and use nanpercentile
+
+    stack = numpy.ndarray.astype(stack, dtype=numpy.float16, copy=False).filled(numpy.nan)
+
+    stat = numpy.nanpercentile(stack, percentile, axis=0, interpolation=interpolation.value)
+    stat = numpy.ma.masked_invalid(stat, copy=False)
+    stat = numpy.ndarray.astype(stat, dtype=dtype, copy=False).filled(ndv)
+
+    _log.debug("max is [%s]\n%s", numpy.shape(stat), stat)
+
+    return stat
+
+
+class Month(Enum):
+    __order__ = "JANUARY FEBRUARY MARCH APRIL MAY JUNE JULY AUGUST SEPTEMBER OCTOBER NOVEMBER DECEMBER"
+
+    JANUARY = 1
+    FEBRUARY = 2
+    MARCH = 3
+    APRIL = 4
+    MAY = 5
+    JUNE = 6
+    JULY = 7
+    AUGUST = 8
+    SEPTEMBER = 9
+    OCTOBER = 10
+    NOVEMBER = 11
+    DECEMBER = 12
+
+
+class Season(Enum):
+    __order__ = "SPRING SUMMER AUTUMN WINTER"
+
+    SPRING = "SPRING"
+    SUMMER = "SUMMER"
+    AUTUMN = "AUTUMN"
+    WINTER = "WINTER"
+
+
+class Quarter(Enum):
+    __order__ = "Q1 Q2 Q3 Q4"
+
+    Q1 = "Q1"
+    Q2 = "Q2"
+    Q3 = "Q3"
+    Q4 = "Q4"
+
+
+SEASONS = {
+    Season.SUMMER: ((Month.DECEMBER, 1), (Month.FEBRUARY, 31)),
+    Season.AUTUMN: ((Month.MARCH, 1), (Month.MAY, 31)),
+    Season.WINTER: ((Month.JUNE, 1), (Month.AUGUST, 31)),
+    Season.SPRING: ((Month.SEPTEMBER, 1), (Month.NOVEMBER, 31))
+}
+
+
+SatelliteDateCriteria = namedtuple("SatelliteDateCriteria", "satellite acq_min acq_max")
+
+LS7_SLC_OFF_ACQ_MIN = date(2005, 5, 31)
+LS7_SLC_OFF_ACQ_MAX = None
+
+LS7_SLC_OFF_EXCLUSION = SatelliteDateCriteria(satellite=Satellite.LS7,
+                                              acq_min=LS7_SLC_OFF_ACQ_MIN, acq_max=LS7_SLC_OFF_ACQ_MAX)
+
+LS8_PRE_WRS_2_ACQ_MIN = None
+LS8_PRE_WRS_2_ACQ_MAX = date(2013, 4, 10)
+
+LS8_PRE_WRS_2_EXCLUSION = SatelliteDateCriteria(satellite=Satellite.LS8,
+                                                acq_min=LS8_PRE_WRS_2_ACQ_MIN, acq_max=LS8_PRE_WRS_2_ACQ_MAX)
+
+DateCriteria = namedtuple("DateCriteria", "acq_min acq_max")
+
+
+def build_season_date_criteria(acq_min, acq_max, season, seasons=SEASONS, extend=True):
+
+    (month_start, day_start), (month_end, day_end) = seasons[season]
+
+    return build_date_criteria(acq_min, acq_max, month_start, day_start, month_end, day_end, extend=extend)
+
+
+def build_date_criteria(acq_min, acq_max, month_start, day_start, month_end, day_end, extend=True):
+
+    date_criteria = []
+
+    for year in range(acq_min.year, acq_max.year+1):
+
+        min_dt = date(year, month_start.value, 1) + relativedelta(day=day_start)
+        max_dt = date(year, month_end.value, 1) + relativedelta(day=day_end)
+
+        if min_dt > max_dt:
+            max_dt = date(year+1, month_end.value, 1) + relativedelta(day=day_end)
+
+        date_criteria.append(DateCriteria(min_dt, max_dt))
+
+        if extend and acq_max < max_dt:
+            acq_max = max_dt
+
+    return acq_min, acq_max, date_criteria

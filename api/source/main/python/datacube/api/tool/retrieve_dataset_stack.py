@@ -33,26 +33,17 @@ __author__ = "Simon Oldfield"
 
 import logging
 import os
-from datacube.api import dataset_type_arg, writeable_dir, output_format_arg
+from datacube.api import dataset_type_arg, writeable_dir, output_format_arg, BandListType
 from datacube.api.model import DatasetType
+from datacube.api.utils import LS7_SLC_OFF_EXCLUSION, LS8_PRE_WRS_2_EXCLUSION, build_date_criteria
 from datacube.api.tool import CellTool
-from datacube.api.utils import get_mask_pqa, get_mask_wofs, get_dataset_data_masked, format_date, OutputFormat, \
-    get_mask_vector_for_cell
-from datacube.api.utils import get_dataset_band_stack_filename
+from datacube.api.utils import get_mask_pqa, get_mask_wofs, get_dataset_data_masked, format_date, OutputFormat
+from datacube.api.utils import get_dataset_band_stack_filename, get_mask_vector_for_cell
 from datacube.api.utils import get_band_name_union, get_band_name_intersection
 from datacube.api.utils import get_dataset_ndv, get_dataset_datatype, get_dataset_metadata
-from enum import Enum
 
 
 _log = logging.getLogger()
-
-
-class BandListType(Enum):
-    __order__ = "EXPLICIT ALL COMMON"
-
-    EXPLICIT = "EXPLICIT"
-    ALL = "ALL"
-    COMMON = "COMMON"
 
 
 class RetrieveDatasetStackTool(CellTool):
@@ -87,8 +78,7 @@ class RetrieveDatasetStackTool(CellTool):
 
         group = self.parser.add_mutually_exclusive_group()
 
-        # TODO explicit list of bands
-        # group.add_argument("--bands", help="List of bands to retrieve", action="store")
+        group.add_argument("--band", help="The band(s) to retrieve", action="store", dest="bands", type=str, nargs="+")
 
         group.add_argument("--bands-all", help="Retrieve all bands with NULL values where the band is N/A",
                            action="store_const", dest="bands", const=BandListType.ALL)
@@ -125,8 +115,14 @@ class RetrieveDatasetStackTool(CellTool):
 
         if args.bands == BandListType.ALL:
             self.bands = get_band_name_union(self.dataset_type, self.satellites)
-        else:
+        elif args.bands == BandListType.COMMON:
             self.bands = get_band_name_intersection(self.dataset_type, self.satellites)
+        else:
+            self.bands = []
+            potential_bands = get_band_name_union(self.dataset_type, self.satellites)
+            for band in args.bands:
+                if band in potential_bands:
+                    self.bands.append(band)
 
         self.output_directory = args.output_directory
         self.overwrite = args.overwrite
@@ -173,24 +169,47 @@ class RetrieveDatasetStackTool(CellTool):
         if self.mask_wofs_apply and DatasetType.WATER not in dataset_types:
             dataset_types.append(DatasetType.WATER)
 
+        exclude = None
+
+        if not self.include_ls8_pre_wrs2 or not self.include_ls8_pre_wrs2:
+            exclude = []
+
+            if not self.include_ls7_slc_off:
+                exclude.append(LS7_SLC_OFF_EXCLUSION)
+
+            if not self.include_ls8_pre_wrs2:
+                exclude.append(LS8_PRE_WRS_2_EXCLUSION)
+
+        include = None
+
+        acq_min = self.acq_min
+        acq_max = self.acq_max
+
+        if self.season:
+            season_name, (season_start_month, season_start_day), (season_end_month, season_end_day) = self.season
+
+            acq_min, acq_max, include = build_date_criteria(acq_min, acq_max, season_start_month, season_start_day, season_end_month, season_end_day)
+
         for tile in list_tiles(x=x_list, y=y_list,
-                               acq_min=self.acq_min, acq_max=self.acq_max,
+                               acq_min=acq_min, acq_max=acq_max,
                                satellites=[satellite for satellite in self.satellites],
-                               dataset_types=dataset_types):
+                               dataset_types=dataset_types, exclude=exclude, include=include):
             yield tile
 
     def go(self):
 
         # If we are applying a vector mask then calculate it not (once as it is the same for all tiles)
 
-        mask = None
+        mask_vector = None
 
         if self.mask_vector_apply:
-            mask = get_mask_vector_for_cell(self.x, self.y, self.mask_vector_file, self.mask_vector_layer, self.mask_vector_feature)
+            mask_vector = get_mask_vector_for_cell(self.x, self.y, self.mask_vector_file, self.mask_vector_layer, self.mask_vector_feature)
 
         # TODO move the dicking around with bands stuff into utils?
 
         import gdal
+
+        # gdal.SetCacheMax(1024*1024*1024)
 
         driver = raster = None
         metadata = None
@@ -217,6 +236,8 @@ class RetrieveDatasetStackTool(CellTool):
 
             _log.info("Total tiles for band [%s] is [%d]", band_name, len(relevant_tiles))
 
+            filename = None
+
             for index, tile in enumerate(relevant_tiles, start=1):
 
                 dataset = tile.datasets[self.dataset_type]
@@ -236,12 +257,26 @@ class RetrieveDatasetStackTool(CellTool):
                     _log.debug("No [%s] dataset present for [%s] - skipping", self.dataset_type.name, tile.end_datetime)
                     continue
 
-                filename = os.path.join(self.output_directory,
-                                        get_dataset_band_stack_filename(dataset, band,
-                                                                        output_format=self.output_format,
-                                                                        mask_pqa_apply=self.mask_pqa_apply,
-                                                                        mask_wofs_apply=self.mask_wofs_apply,
-                                                                        mask_vector_apply=self.mask_vector_apply))
+                if not filename:
+                    filename = os.path.join(self.output_directory,
+                                            get_dataset_band_stack_filename(satellites=self.satellites,
+                                                                            dataset_type=self.dataset_type,
+                                                                            band=band,
+                                                                            x=self.x, y=self.y,
+                                                                            acq_min=self.acq_min, acq_max=self.acq_max,
+                                                                            season=self.season,
+                                                                            output_format=self.output_format,
+                                                                            mask_pqa_apply=self.mask_pqa_apply,
+                                                                            mask_wofs_apply=self.mask_wofs_apply,
+                                                                            mask_vector_apply=self.mask_vector_apply))
+
+                _log.info("Stacking [%s] band data from [%s] with PQA [%s] and PQA mask [%s] and WOFS [%s] and WOFS mask [%s] to band [%d] of [%s]",
+                          band.name, dataset.path,
+                          pqa and pqa.path or "",
+                          pqa and self.mask_pqa_mask or "",
+                          wofs and wofs.path or "", wofs and self.mask_wofs_mask or "",
+                          index,
+                          filename)
 
                 if not metadata:
                     metadata = get_dataset_metadata(dataset)
@@ -267,9 +302,9 @@ class RetrieveDatasetStackTool(CellTool):
                 if not raster:
 
                     if self.output_format == OutputFormat.GEOTIFF:
-                        raster = driver.Create(filename, metadata.shape[0], metadata.shape[1], len(tiles), data_type, options=["BIGTIFF=YES", "INTERLEAVE=BAND"])
+                        raster = driver.Create(filename, metadata.shape[0], metadata.shape[1], len(relevant_tiles), data_type, options=["TILED=YES", "BIGTIFF=YES", "COMPRESS=LZW", "INTERLEAVE=BAND"])
                     elif self.output_format == OutputFormat.ENVI:
-                        raster = driver.Create(filename, metadata.shape[0], metadata.shape[1], len(tiles), data_type, options=["INTERLEAVE=BSQ"])
+                        raster = driver.Create(filename, metadata.shape[0], metadata.shape[1], len(relevant_tiles), data_type, options=["INTERLEAVE=BSQ"])
 
                     assert raster
 
@@ -279,7 +314,7 @@ class RetrieveDatasetStackTool(CellTool):
 
                 raster.SetMetadata(self.generate_raster_metadata())
 
-                # mask = None
+                mask = mask_vector
 
                 if pqa:
                     mask = get_mask_pqa(pqa, self.mask_pqa_mask, mask=mask)
@@ -287,16 +322,12 @@ class RetrieveDatasetStackTool(CellTool):
                 if wofs:
                     mask = get_mask_wofs(wofs, self.mask_wofs_mask, mask=mask)
 
-                _log.info("Stacking [%s] band data from [%s] with PQA [%s] and PQA mask [%s] and WOFS [%s] and WOFS mask [%s] to [%s]",
-                          band.name, dataset.path,
-                          pqa and pqa.path or "",
-                          pqa and self.mask_pqa_mask or "",
-                          wofs and wofs.path or "", wofs and self.mask_wofs_mask or "",
-                          filename)
+                # _log.info("mask[3500,3500] is [%s]", mask[3500, 3500])
 
                 data = get_dataset_data_masked(dataset, mask=mask, ndv=ndv)
 
                 _log.debug("data is [%s]", data)
+                # _log.info("data[3500,3500] is [%s]", data[band][3500, 3500])
 
                 stack_band = raster.GetRasterBand(index)
 

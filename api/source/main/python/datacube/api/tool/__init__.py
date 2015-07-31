@@ -30,18 +30,22 @@
 
 
 import abc
+from collections import namedtuple
 import argparse
 import logging
 import sys
 from datacube.api.model import Satellite, dataset_type_database, dataset_type_derived_nbar
 from datacube.api.utils import PqaMask, WofsMask
-from datacube.api import satellite_arg, pqa_mask_arg, wofs_mask_arg, parse_date_min, parse_date_max, readable_file
-
+from datacube.api import satellite_arg, pqa_mask_arg, wofs_mask_arg, parse_date_min, parse_date_max, readable_file, \
+    parse_season_min, parse_season_max
 
 __author__ = "Simon Oldfield"
 
 
 _log = logging.getLogger()
+
+
+SeasonParameter = namedtuple('Season', ['name', 'start', 'end'])
 
 
 class Tool(object):
@@ -57,6 +61,8 @@ class Tool(object):
         self.acq_min = None
         self.acq_max = None
 
+        self.season = None
+
         # self.process_min = None
         # self.process_max = None
         #
@@ -71,9 +77,8 @@ class Tool(object):
         self.mask_wofs_apply = None
         self.mask_wofs_mask = None
 
-    @staticmethod
-    def get_supported_dataset_types():
-        return dataset_type_database + dataset_type_derived_nbar
+        self.include_ls7_slc_off = None
+        self.include_ls8_pre_wrs2 = None
 
     def setup_arguments(self):
 
@@ -86,8 +91,12 @@ class Tool(object):
 
         self.parser.add_argument("--acq-min", help="Acquisition Date", action="store", dest="acq_min", type=str,
                                  default="1980")
+
         self.parser.add_argument("--acq-max", help="Acquisition Date", action="store", dest="acq_max", type=str,
                                  default="2020")
+
+        self.parser.add_argument("--season", help="Seasonal acquisition range within acquisition period",
+                                 action="store", dest="season", type=str, nargs=3)
 
         # parser.add_argument("--process-min", help="Process Date", action="store", dest="process_min", type=str)
         # parser.add_argument("--process-max", help="Process Date", action="store", dest="process_max", type=str)
@@ -102,6 +111,7 @@ class Tool(object):
 
         self.parser.add_argument("--mask-pqa-apply", help="Apply PQA mask", action="store_true", dest="mask_pqa_apply",
                                  default=False)
+
         self.parser.add_argument("--mask-pqa-mask", help="The PQA mask to apply", action="store", dest="mask_pqa_mask",
                                  type=pqa_mask_arg, nargs="+", choices=PqaMask, default=[PqaMask.PQ_MASK_CLEAR],
                                  metavar=" ".join([s.name for s in PqaMask]))
@@ -109,10 +119,19 @@ class Tool(object):
         self.parser.add_argument("--mask-wofs-apply", help="Apply WOFS mask", action="store_true",
                                  dest="mask_wofs_apply",
                                  default=False)
+
         self.parser.add_argument("--mask-wofs-mask", help="The WOFS mask to apply", action="store",
                                  dest="mask_wofs_mask",
                                  type=wofs_mask_arg, nargs="+", choices=WofsMask, default=[WofsMask.WET],
                                  metavar=" ".join([s.name for s in WofsMask]))
+
+        self.parser.add_argument("--no-ls7-slc-off",
+                                 help="Exclude LS7 SLC OFF datasets",
+                                 action="store_false", dest="include_ls7_slc_off", default=True)
+
+        self.parser.add_argument("--no-ls8-pre-wrs2",
+                                 help="Exclude LS8 PRE-WRS2 datasets",
+                                 action="store_false", dest="include_ls8_pre_wrs2", default=True)
 
     def process_arguments(self, args):
 
@@ -120,6 +139,11 @@ class Tool(object):
 
         self.acq_min = parse_date_min(args.acq_min)
         self.acq_max = parse_date_max(args.acq_max)
+
+        if args.season:
+            self.season = SeasonParameter(args.season[0],
+                                          parse_season_min(args.season[1]),
+                                          parse_season_max(args.season[2]))
 
         # self.process_min = parse_date_min(args.process_min)
         # self.process_max = parse_date_max(args.process_max)
@@ -135,6 +159,9 @@ class Tool(object):
         self.mask_wofs_apply = args.mask_wofs_apply
         self.mask_wofs_mask = args.mask_wofs_mask
 
+        self.include_ls7_slc_off = args.include_ls7_slc_off
+        self.include_ls8_pre_wrs2 = args.include_ls8_pre_wrs2
+
     def log_arguments(self):
 
         # process = {process_min} to {process_max}
@@ -145,12 +172,22 @@ class Tool(object):
         _log.info("""
         acq = {acq_min} to {acq_max}
         satellites = {satellites}
+        LS7 SLC OFF = {ls7_slc_off}
+        LS8 PRE WRS2 = {ls8_pre_wrs2}
         PQA mask = {pqa_mask}
         WOFS mask = {wofs_mask}
+        season = {season}
         """.format(acq_min=self.acq_min, acq_max=self.acq_max,
                    satellites=" ".join([satellite.name for satellite in self.satellites]),
                    pqa_mask=self.mask_pqa_apply and " ".join([mask.name for mask in self.mask_pqa_mask]) or "",
-                   wofs_mask=self.mask_wofs_apply and " ".join([mask.name for mask in self.mask_wofs_mask]) or ""))
+                   wofs_mask=self.mask_wofs_apply and " ".join([mask.name for mask in self.mask_wofs_mask]) or "",
+                   ls7_slc_off=self.include_ls7_slc_off and "INCLUDED" or "EXCLUDED",
+                   ls8_pre_wrs2=self.include_ls8_pre_wrs2 and "INCLUDED" or "EXCLUDED",
+                   season=self.season and self.season or ""))
+
+    @staticmethod
+    def get_supported_dataset_types():
+        return dataset_type_database + dataset_type_derived_nbar
 
     @abc.abstractmethod
     def go(self):
@@ -191,16 +228,20 @@ class CellTool(Tool):
 
         self.parser.add_argument("--x", help="X grid reference", action="store", dest="x", type=int,
                                  choices=range(110, 155 + 1), required=True, metavar="[110 - 155]")
+
         self.parser.add_argument("--y", help="Y grid reference", action="store", dest="y", type=int,
                                  choices=range(-45, -10 + 1), required=True, metavar="[-45 - -10]")
 
         self.parser.add_argument("--mask-vector-apply", help="Apply mask from feature in vector file",
                                  action="store_true", dest="mask_vector_apply", default=False)
+
         self.parser.add_argument("--mask-vector-file", help="The vector file containing the mask",
                                  action="store", dest="mask_vector_file",
                                  type=readable_file)
+
         self.parser.add_argument("--mask-vector-layer", help="The (index of) the layer containing the mask",
                                  action="store", dest="mask_vector_layer", type=int, default=0)
+
         self.parser.add_argument("--mask-vector-feature", help="The (index of) the feature containing the mask",
                                  action="store", dest="mask_vector_feature", type=int, default=0)
 

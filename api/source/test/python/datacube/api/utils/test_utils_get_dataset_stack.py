@@ -3,7 +3,7 @@
 # ===============================================================================
 # Copyright (c)  2014 Geoscience Australia
 # All rights reserved.
-#
+# 
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
 #     * Redistributions of source code must retain the above copyright
@@ -14,7 +14,7 @@
 #     * Neither Geoscience Australia nor the names of its contributors may be
 #       used to endorse or promote products derived from this software
 #       without specific prior written permission.
-#
+# 
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 # ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
 # WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -26,45 +26,34 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ===============================================================================
-
+from datetime import date
+import numpy
+from datacube.api import Satellite, DatasetType, PqaMask
+from datacube.api.model import Ls57Arg25Bands
+from datacube.api.query import list_tiles_as_list
+from datacube.api.utils import get_dataset_data_stack, NDV
 
 __author__ = "Simon Oldfield"
 
+import logging
 
-from setuptools import setup
+_log = logging.getLogger()
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 
 
-setup(name="agdc-api",
-      version="0.1.0-b20150722-DEWNR",
-      package_dir={"": "source/main/python", "test": "source/test/python"},
-      packages=["datacube", "datacube.api", "datacube.api.tool", "datacube.api.workflow"],
-      scripts=[
-          # Tools
-          "source/main/python/datacube/api/tool/retrieve_aoi_time_series.py",
-          "source/main/python/datacube/api/tool/retrieve_dataset.py",
-          "source/main/python/datacube/api/tool/retrieve_dataset_stack.py",
-          "source/main/python/datacube/api/tool/retrieve_pixel_time_series.py",
-          "source/main/python/datacube/api/tool/band_statistics_arg25_validator.py",
+def test_get_dataset_stack():
 
-          # Workflows
-          "source/main/python/datacube/api/workflow/band_stack.py",
-          "source/main/python/datacube/api/workflow/band_stack_arg25.py",
-          "source/main/python/datacube/api/workflow/band_statistics_arg25.py",
-          "source/main/python/datacube/api/workflow/band_statistics_arg25.pbs.sh",
-          "source/main/python/datacube/api/workflow/band_statistics_arg25.pbs.submit.sh",
-      ],
-      author="Geoscience Australia",
-      maintainer="Geoscience Australia",
-      description="AGDC API",
-      license="BSD 3",
-      install_requires=[
-          "gdal",
-          "numpy >= 1.9",
-          "scipy",
-          "eotools",
-          "psycopg2 >= 2.5",
-          "enum34",
-          "psutil",
-          "python-dateutil"
-      ]
-)
+    tiles = list_tiles_as_list(x=[120], y=[-20], satellites=[Satellite.LS5, Satellite.LS7],
+                               acq_min=date(2014, 1, 1), acq_max=date(2014, 12, 31),
+                               dataset_types=[DatasetType.ARG25, DatasetType.PQ25])
+
+    _log.info("\nFound %d tiles", len(tiles))
+
+    stack = get_dataset_data_stack(tiles, DatasetType.ARG25, Ls57Arg25Bands.BLUE.name, ndv=NDV,
+                                   mask_pqa_apply=True, mask_pqa_mask=[PqaMask.PQ_MASK_CLEAR])
+
+    _log.info("\nStack is %s", numpy.shape(stack))
+
+
+if __name__ == "__main__":
+    test_get_dataset_stack()

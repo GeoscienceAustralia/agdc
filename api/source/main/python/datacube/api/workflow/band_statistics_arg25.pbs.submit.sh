@@ -27,11 +27,12 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #===============================================================================
 
-PBS_SCRIPT="$HOME/source/agdc/agdc-api/api/source/main/python/datacube/api/workflow/band_statistics_arg25.pbs.sh"
+#PBS_SCRIPT="$HOME/source/agdc/agdc-api/api/source/main/python/datacube/api/workflow/band_statistics_arg25.pbs.sh"
+PBS_SCRIPT="$(which band_statistics_arg25.pbs.sh)"
 
-if [ $# -lt 5 ]
+if [ $# -ne 5 ] && [ $# -ne 7 ]
 then
-    echo "Usage is $0 <x min> <x max> <y min> <y max> <output directory>"
+    echo "Usage is $0 <x min> <x max> <y min> <y max> <output directory> [<x increment> <y increment>]"
     exit -1
 fi
 
@@ -43,12 +44,41 @@ ymax=$4
 
 outputdir="$5"
 
-echo "Submitting jobs for x=[$xmin to $xmax] y=[$ymin to $ymax] to output directory $outputdir..."
+xinc=1
+yinc=1
 
-for x in $(seq $xmin $xmax)
+if [ $# -eq 7 ]
+then
+    xinc=$6
+    yinc=$7
+fi
+
+echo "Submitting jobs for x=[$xmin to $xmax increment=$xinc] y=[$ymin to $ymax increment=$yinc] to output directory $outputdir..."
+
+for x in $(seq $xmin $xinc $xmax)
 do
-    for y in $(seq $ymin $ymax)
+    for y in $(seq $ymin $yinc $ymax)
     do
-        qsub -v outputdir=$outputdir,xmin=$x,xmax=$x,ymin=$y,ymax=$y ${PBS_SCRIPT}
+        qsub -v outputdir=$outputdir,xmin=$x,xmax=$((x+$xinc-1)),ymin=$y,ymax=$((y+$yinc-1)) ${PBS_SCRIPT}
     done
 done
+
+#[ $# -lt 3 ] && echo "Usage is $0 <x> <y> <output directory>" && exit
+#
+#x=$1
+#y=$2
+#
+#outputdir="$3"
+#
+#epoch=6
+#epoch=5
+#
+#echo "Submitting jobs for cell [$x/$y] to output directory [$outputdir]..."
+#
+#for acqmin in $(seq 1985 $((epoch-1)) 2010)
+#do
+#    for season in SUMMER AUTUMN WINTER SPRING
+#    do
+#        qsub -v outputdir=$outputdir,season=$season,acqmin=$acqmin,acqmax=$((acqmin+5)),epoch=$epoch,xmin=$x,xmax=$x,ymin=$y,ymax=$y ${PBS_SCRIPT}
+#    done
+#done

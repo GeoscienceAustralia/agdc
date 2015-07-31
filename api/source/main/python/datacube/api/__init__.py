@@ -24,7 +24,9 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ===============================================================================
-
+from collections import namedtuple
+from datetime import date
+from dateutil.relativedelta import relativedelta
 
 __author__ = "Simon Oldfield"
 
@@ -33,8 +35,7 @@ import argparse
 import logging
 import os
 from datacube.api.model import Satellite, DatasetType
-from datacube.api.query import Month, Season
-from datacube.api.utils import PqaMask, WofsMask, OutputFormat
+from datacube.api.utils import PqaMask, WofsMask, OutputFormat, Season, Month
 from enum import Enum
 
 
@@ -199,6 +200,42 @@ def parse_date_max(s):
     return None
 
 
+def parse_season_min(s):
+
+    if s:
+
+        i = [int(x) for x in s.split("-")]
+
+        month = Month(i[0])
+
+        day = 1
+
+        if len(i) > 1:
+            day = i[1]
+
+        return month, day
+
+    return None
+
+
+def parse_season_max(s):
+
+    if s:
+
+        i = [int(x) for x in s.split("-")]
+
+        month = Month(i[0])
+
+        day = 31
+
+        if len(i) > 1:
+            day = i[1]
+
+        return month, day
+
+    return None
+
+
 def output_format_arg(s):
     if s in [f.name for f in OutputFormat]:
         return OutputFormat[s]
@@ -230,6 +267,14 @@ PERCENTILE = {
     Statistic.PERCENTILE_90: 90,
     Statistic.PERCENTILE_95: 95
 }
+
+
+class BandListType(Enum):
+    __order__ = "EXPLICIT ALL COMMON"
+
+    EXPLICIT = "EXPLICIT"
+    ALL = "ALL"
+    COMMON = "COMMON"
 
 
 
