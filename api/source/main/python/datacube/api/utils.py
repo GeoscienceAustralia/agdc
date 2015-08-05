@@ -1736,7 +1736,8 @@ def arbitrary_profile(dataset, xy_points, band=None, cubic=False,
     y_idx = y_idx.astype('int')
 
     return (profile, (y_idx, x_idx), (x_start_end, y_start_end))
-=======
+
+
 def x_calculate_stack_statistic_count(stack, ndv=NDV, dtype=numpy.int16):
 
     stack = maskify_stack(stack=stack, ndv=ndv)
