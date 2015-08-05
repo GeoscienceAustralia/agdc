@@ -36,12 +36,9 @@ import psycopg2
 import psycopg2.extras
 import sys
 import os
-from collections import namedtuple
 from datacube.api.utils import extract_feature_geometry_wkb, DateCriteria, SatelliteDateCriteria
 from datacube.config import Config
-from datacube.api.model import Tile, Cell, DatasetType, Satellite
-from datetime import date
-from dateutil.relativedelta import relativedelta
+from datacube.api.model import Tile, Cell, DatasetType
 from enum import Enum
 
 
