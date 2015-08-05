@@ -42,7 +42,7 @@ import sys
 from collections import namedtuple
 from datacube.api import parse_date_min, parse_date_max, Month, PqaMask, Statistic, PERCENTILE, writeable_dir, Season
 from datacube.api import satellite_arg, pqa_mask_arg, dataset_type_arg, statistic_arg, season_arg
-from datacube.api.query import list_cells_as_generator, list_tiles_as_list
+from datacube.api.query import list_cells_as_list, list_tiles_as_list
 from datacube.api.model import Satellite, DatasetType, Ls57Arg25Bands
 from datacube.api.utils import get_dataset_type_ndv, get_dataset_data_stack, log_mem, build_season_date_criteria
 from datacube.api.utils import PercentileInterpolation
@@ -351,7 +351,7 @@ class Arg25BandStatisticsWorkflow(object):
 
             _log.debug("\tacq_min_extended=[%s], acq_max_extended=[%s], criteria=[%s]", acq_min_extended, acq_max_extended, criteria)
 
-            for cell in list_cells_as_generator(x=x_list, y=y_list, satellites=self.satellites,
+            for cell in list_cells_as_list(x=x_list, y=y_list, satellites=self.satellites,
                                                 acq_min=acq_min_extended, acq_max=acq_max_extended,
                                                 dataset_types=dataset_types, include=criteria):
                 _log.debug("\t%3d %4d", cell.x, cell.y)
