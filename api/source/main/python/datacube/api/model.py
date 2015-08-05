@@ -408,8 +408,16 @@ BANDS = {
 
 
 def get_bands(dataset_type, satellite):
+
+    # Try WITH satellite
+
     if (dataset_type, satellite) in BANDS:
         return BANDS[(dataset_type, satellite)]
+
+    # Try WITHOUT satellite
+
+    elif (dataset_type, None) in BANDS:
+        return BANDS[(dataset_type, None)]
 
     return None
 

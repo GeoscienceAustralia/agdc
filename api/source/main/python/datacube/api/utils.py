@@ -848,52 +848,52 @@ TCI_COEFFICIENTS = {
     Satellite.LS7:
     {
         TasselCapIndex.BRIGHTNESS: {
-            Ls57Arg25Bands.BLUE: 0.3561,
-            Ls57Arg25Bands.GREEN: 0.3972,
-            Ls57Arg25Bands.RED: 0.3904,
-            Ls57Arg25Bands.NEAR_INFRARED: 0.6966,
-            Ls57Arg25Bands.SHORT_WAVE_INFRARED_1: 0.2286,
-            Ls57Arg25Bands.SHORT_WAVE_INFRARED_2: 0.1596},
+            Ls57Arg25Bands.BLUE: 0.3037,
+            Ls57Arg25Bands.GREEN: 0.2793,
+            Ls57Arg25Bands.RED: 0.4743,
+            Ls57Arg25Bands.NEAR_INFRARED: 0.5585,
+            Ls57Arg25Bands.SHORT_WAVE_INFRARED_1: 0.5082,
+            Ls57Arg25Bands.SHORT_WAVE_INFRARED_2: 0.1863},
 
         TasselCapIndex.GREENNESS: {
-            Ls57Arg25Bands.BLUE: -0.3344,
-            Ls57Arg25Bands.GREEN: -0.3544,
-            Ls57Arg25Bands.RED: -0.4556,
-            Ls57Arg25Bands.NEAR_INFRARED: 0.6966,
-            Ls57Arg25Bands.SHORT_WAVE_INFRARED_1: -0.0242,
-            Ls57Arg25Bands.SHORT_WAVE_INFRARED_2: -0.2630},
+            Ls57Arg25Bands.BLUE: -0.2848,
+            Ls57Arg25Bands.GREEN: -0.2435,
+            Ls57Arg25Bands.RED: -0.5436,
+            Ls57Arg25Bands.NEAR_INFRARED: 0.7243,
+            Ls57Arg25Bands.SHORT_WAVE_INFRARED_1: 0.0840,
+            Ls57Arg25Bands.SHORT_WAVE_INFRARED_2: -0.1800},
 
         TasselCapIndex.WETNESS: {
-            Ls57Arg25Bands.BLUE: 0.2626,
-            Ls57Arg25Bands.GREEN: 0.2141,
-            Ls57Arg25Bands.RED: 0.0926,
-            Ls57Arg25Bands.NEAR_INFRARED: 0.0656,
-            Ls57Arg25Bands.SHORT_WAVE_INFRARED_1: -0.7629,
-            Ls57Arg25Bands.SHORT_WAVE_INFRARED_2: -0.5388},
+            Ls57Arg25Bands.BLUE: 0.1509,
+            Ls57Arg25Bands.GREEN: 0.1973,
+            Ls57Arg25Bands.RED: 0.3279,
+            Ls57Arg25Bands.NEAR_INFRARED: 0.3406,
+            Ls57Arg25Bands.SHORT_WAVE_INFRARED_1: -0.7112,
+            Ls57Arg25Bands.SHORT_WAVE_INFRARED_2: -0.4572},
 
         TasselCapIndex.FOURTH: {
-            Ls57Arg25Bands.BLUE: 0.0805,
-            Ls57Arg25Bands.GREEN: -0.0498,
-            Ls57Arg25Bands.RED: 0.1950,
-            Ls57Arg25Bands.NEAR_INFRARED: -0.1327,
-            Ls57Arg25Bands.SHORT_WAVE_INFRARED_1: 0.5752,
-            Ls57Arg25Bands.SHORT_WAVE_INFRARED_2: -0.7775},
+            Ls57Arg25Bands.BLUE: -0.8242,
+            Ls57Arg25Bands.GREEN: 0.0849,
+            Ls57Arg25Bands.RED: 0.4392,
+            Ls57Arg25Bands.NEAR_INFRARED: -0.0580,
+            Ls57Arg25Bands.SHORT_WAVE_INFRARED_1: 0.2012,
+            Ls57Arg25Bands.SHORT_WAVE_INFRARED_2: -0.2768},
 
         TasselCapIndex.FIFTH: {
-            Ls57Arg25Bands.BLUE: -0.7252,
-            Ls57Arg25Bands.GREEN: -0.0202,
-            Ls57Arg25Bands.RED: 0.6683,
-            Ls57Arg25Bands.NEAR_INFRARED: 0.0631,
-            Ls57Arg25Bands.SHORT_WAVE_INFRARED_1: -0.1494,
-            Ls57Arg25Bands.SHORT_WAVE_INFRARED_2: -0.0274},
+            Ls57Arg25Bands.BLUE: -0.3280,
+            Ls57Arg25Bands.GREEN: 0.0549,
+            Ls57Arg25Bands.RED: 0.1075,
+            Ls57Arg25Bands.NEAR_INFRARED: 0.1855,
+            Ls57Arg25Bands.SHORT_WAVE_INFRARED_1: -0.4357,
+            Ls57Arg25Bands.SHORT_WAVE_INFRARED_2: 0.8085},
 
         TasselCapIndex.SIXTH: {
-            Ls57Arg25Bands.BLUE: 0.4000,
-            Ls57Arg25Bands.GREEN: -0.8172,
-            Ls57Arg25Bands.RED: 0.3832,
-            Ls57Arg25Bands.NEAR_INFRARED: 0.0602,
-            Ls57Arg25Bands.SHORT_WAVE_INFRARED_1: -0.1095,
-            Ls57Arg25Bands.SHORT_WAVE_INFRARED_2: 0.0985}
+            Ls57Arg25Bands.BLUE: 0.1084,
+            Ls57Arg25Bands.GREEN: -0.9022,
+            Ls57Arg25Bands.RED: 0.4120,
+            Ls57Arg25Bands.NEAR_INFRARED: 0.0573,
+            Ls57Arg25Bands.SHORT_WAVE_INFRARED_1: -0.0251,
+            Ls57Arg25Bands.SHORT_WAVE_INFRARED_2: 0.0238}
     },
 
     Satellite.LS8:

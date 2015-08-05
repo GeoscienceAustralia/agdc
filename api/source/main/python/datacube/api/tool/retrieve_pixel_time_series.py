@@ -93,8 +93,6 @@ class RetrievePixelTimeSeriesTool(Tool):
 
         group = self.parser.add_mutually_exclusive_group()
 
-        group = self.parser.add_mutually_exclusive_group()
-
         group.add_argument("--band", help="The band(s) to retrieve", action="store", dest="bands", type=str, nargs="+")
 
         group.add_argument("--bands-all", help="Retrieve all bands with NULL values where the band is N/A",
@@ -277,7 +275,9 @@ class RetrievePixelTimeSeriesTool(Tool):
                                               mask_pqa_apply=self.mask_pqa_apply, mask_wofs_apply=self.mask_wofs_apply,
                                               mask_vector_apply=False)
 
+
 def has_data(bands, data, no_data_value=NDV):
+
     for value in [data[band][0][0] for band in bands]:
 
         # Note: can't do if nan == nan!!!

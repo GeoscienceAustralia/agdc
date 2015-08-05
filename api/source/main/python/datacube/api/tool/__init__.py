@@ -95,8 +95,8 @@ class Tool(object):
         self.parser.add_argument("--acq-max", help="Acquisition Date", action="store", dest="acq_max", type=str,
                                  default="2020")
 
-        self.parser.add_argument("--season", help="Seasonal acquisition range within acquisition period",
-                                 action="store", dest="season", type=str, nargs=3)
+        self.parser.add_argument("--season", help="Seasonal acquisition range within acquisition period (e.g. --season WINTER 06 08 means WINTER from JUN-01 to AUG-30)",
+                                 action="store", dest="season", type=str, nargs=3, metavar="<season name> <season start> <season end>")
 
         # parser.add_argument("--process-min", help="Process Date", action="store", dest="process_min", type=str)
         # parser.add_argument("--process-max", help="Process Date", action="store", dest="process_max", type=str)
