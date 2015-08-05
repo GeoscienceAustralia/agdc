@@ -1152,7 +1152,10 @@ def get_dataset_filename(dataset, output_format=OutputFormat.GEOTIFF,
         DatasetType.EVI: "_NBAR_",
         DatasetType.NBR: "_NBAR_",
         DatasetType.TCI: "_NBAR_",
-        DatasetType.DSM: "DSM_"
+        DatasetType.DSM: "DSM_",
+        DatasetType.DEM: "DEM_",
+        DatasetType.DEM_HYDROLOGICALLY_ENFORCED: "DEM-H_",
+        DatasetType.DEM_SMOOTHED: "DEM-S_",
     }[dataset.dataset_type]
 
     dataset_type_to_string = {
@@ -1164,7 +1167,10 @@ def get_dataset_filename(dataset, output_format=OutputFormat.GEOTIFF,
         DatasetType.EVI: "_EVI_",
         DatasetType.NBR: "_NBR_",
         DatasetType.TCI: "_TCI_",
-        DatasetType.DSM: "DSM_"
+        DatasetType.DSM: "DSM_",
+        DatasetType.DEM: "DEM_",
+        DatasetType.DEM_HYDROLOGICALLY_ENFORCED: "DEM_H_",
+        DatasetType.DEM_SMOOTHED: "DEM_S_"
     }[dataset.dataset_type]
 
     dataset_type_to_string += ((mask_pqa_apply or mask_wofs_apply or mask_vector_apply) and "WITH_" or "") + \
@@ -1385,7 +1391,10 @@ def get_dataset_type_datatype(dataset_type):
         DatasetType.EVI: gdalconst.GDT_Float32,
         DatasetType.NBR: gdalconst.GDT_Float32,
         DatasetType.TCI: gdalconst.GDT_Float32,
-        DatasetType.DSM: gdalconst.GDT_Int16
+        DatasetType.DSM: gdalconst.GDT_Float32,
+        DatasetType.DEM: gdalconst.GDT_Float32,
+        DatasetType.DEM_HYDROLOGICALLY_ENFORCED: gdalconst.GDT_Float32,
+        DatasetType.DEM_SMOOTHED: gdalconst.GDT_Float32
     }[dataset_type]
 
 
@@ -1403,7 +1412,10 @@ def get_dataset_type_ndv(dataset_type):
         DatasetType.EVI: NAN,
         DatasetType.NBR: NAN,
         DatasetType.TCI: NAN,
-        DatasetType.DSM: NDV
+        DatasetType.DSM: NAN,
+        DatasetType.DEM: NAN,
+        DatasetType.DEM_HYDROLOGICALLY_ENFORCED: NAN,
+        DatasetType.DEM_SMOOTHED: NAN
     }[dataset_type]
 
 
