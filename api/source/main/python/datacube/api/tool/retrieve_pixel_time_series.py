@@ -35,9 +35,8 @@ import csv
 import logging
 import os
 import sys
-from enum import Enum
-from datacube.api import dataset_type_arg, writeable_dir, Season, Month, season_arg, BandListType
-from datacube.api.model import DatasetType, Wofs25Bands, Satellite
+from datacube.api import dataset_type_arg, writeable_dir, BandListType
+from datacube.api.model import DatasetType, Wofs25Bands
 from datacube.api.tool import Tool
 from datacube.api.utils import latlon_to_cell, latlon_to_xy, UINT16_MAX, BYTE_MAX, get_mask_pqa, get_band_name_union
 from datacube.api.utils import LS7_SLC_OFF_EXCLUSION, LS8_PRE_WRS_2_EXCLUSION, build_date_criteria
