@@ -209,11 +209,12 @@ class RetrieveDatasetStackTool(CellTool):
 
         import gdal
 
-        # gdal.SetCacheMax(1024*1024*1024)
+        if self.output_format == OutputFormat.GEOTIFF:
+            driver = gdal.GetDriverByName("GTiff")
+        elif self.output_format == OutputFormat.ENVI:
+            driver = gdal.GetDriverByName("ENVI")
 
-        driver = raster = None
-        metadata = None
-        data_type = ndv = None
+        assert driver
 
         tiles = self.get_tiles()
         _log.info("Total tiles found [%d]", len(tiles))
@@ -237,6 +238,10 @@ class RetrieveDatasetStackTool(CellTool):
             _log.info("Total tiles for band [%s] is [%d]", band_name, len(relevant_tiles))
 
             filename = None
+
+            raster = None
+            metadata = None
+            data_type = ndv = None
 
             for index, tile in enumerate(relevant_tiles, start=1):
 
@@ -289,15 +294,6 @@ class RetrieveDatasetStackTool(CellTool):
                 if not ndv:
                     ndv = get_dataset_ndv(dataset)
                     assert ndv
-
-                if not driver:
-
-                    if self.output_format == OutputFormat.GEOTIFF:
-                        driver = gdal.GetDriverByName("GTiff")
-                    elif self.output_format == OutputFormat.ENVI:
-                        driver = gdal.GetDriverByName("ENVI")
-
-                    assert driver
 
                 if not raster:
 

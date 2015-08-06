@@ -1297,7 +1297,10 @@ def get_dataset_band_stack_filename(satellites, dataset_type, band, x, y, acq_mi
         DatasetType.EVI: "EVI",
         DatasetType.NBR: "NBR",
         DatasetType.TCI: "TCI",
-        DatasetType.DSM: "DSM"
+        DatasetType.DSM: "DSM",
+        DatasetType.DEM: "DEM",
+        DatasetType.DEM_HYDROLOGICALLY_ENFORCED: "DEM_H",
+        DatasetType.DEM_SMOOTHED: "DEM_S",
     }[dataset_type]
 
     dataset_type_str += ((mask_pqa_apply or mask_wofs_apply or mask_vector_apply) and "_WITH" or "") + \
