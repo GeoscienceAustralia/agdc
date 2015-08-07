@@ -298,7 +298,7 @@ class SummariseDatasetTimeSeriesWorkflow():
     def run(self):
         self.parse_arguments()
 
-        config = Config(os.path.expanduser("~/.datacube/config"))
+        config = Config()
         _log.debug(config.to_str())
 
         path = self.get_output_filename(self.dataset_type)

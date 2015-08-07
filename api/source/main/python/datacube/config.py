@@ -49,18 +49,16 @@ class Config:
 
     _config = None
 
-    def __init__(self, path=None):
+    def __init__(self, path="$HOME/.datacube/config"):
 
-        import StringIO
+        def get_path(p):
+            return p and os.path.expandvars(p) or None
 
         self._config = ConfigParser.SafeConfigParser()
 
-        # Read default config
-        self._config.readfp(StringIO.StringIO(self._DEFAULT_CONFIG))
-
-        # Read additional config(s)
-        if path and os.path.isfile(path):
-            self._config.read(path)
+        # Read central default config and/or specified config
+        self._config.read([get_path(os.environ["AGDC_API_CONFIG"]),
+                           get_path(path)])
 
     def _get_string(self, section, key):
         return self._config.get(section.value, key.value)
@@ -93,17 +91,3 @@ class Config:
 
     def to_str(self):
         return [(k.value, self._get_string(Config.Section.DATABASE, k)) for k in Config.DatabaseKey]
-
-    # NOTE: This currently points to the datacube "DEV" server
-    # Override by providing your own config file - for e.g. in $HOME/.datacube/.config
-
-    _DEFAULT_CONFIG = """
-[DATABASE]
-host: 130.56.244.224
-port: 6432
-database: hypercube_v0
-username: cube_user
-password: GAcube0
-schemas: agdc, public, gis, topology
-"""
-

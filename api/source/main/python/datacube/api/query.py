@@ -109,7 +109,7 @@ def connect_to_db(config=None):
     connection = cursor = None
 
     if not config:
-        config = Config(os.path.expandvars("$HOME/.datacube/config"))
+        config = Config()
         _log.debug(config.to_str())
 
     connection_string = ""

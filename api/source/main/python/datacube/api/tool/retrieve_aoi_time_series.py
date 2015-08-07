@@ -155,7 +155,7 @@ class RetrieveAoiTimeSeries(AoiTool):
         cells_vector = self.extract_cells_from_vector()
         _log.debug("Intersecting cells_vector are [%d] [%s]", len(cells_vector), cells_vector)
 
-        config = Config(os.path.expanduser("~/.datacube/config"))
+        config = Config()
         _log.debug(config.to_str())
 
         x_list = range(x_min, x_max + 1)

@@ -243,7 +243,7 @@ class TimeSeriesRetrievalWorkflow():
     def run(self):
         self.parse_arguments()
 
-        config = Config(os.path.expanduser("~/.datacube/config"))
+        config = Config()
         _log.debug(config.to_str())
 
         cell_x, cell_y = latlon_to_cell(self.latitude, self.longitude)
