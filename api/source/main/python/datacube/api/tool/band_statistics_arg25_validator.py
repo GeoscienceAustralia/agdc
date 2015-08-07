@@ -26,7 +26,7 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ===============================================================================
-from datacube.api.workflow.band_statistics_arg25 import percentile_interpolation_arg
+
 
 __author__ = "Simon Oldfield"
 
@@ -45,40 +45,28 @@ from datacube.api import writeable_dir, readable_dir, statistic_arg, season_arg,
 from datacube.api import parse_date_min, parse_date_max
 from datacube.api.model import Ls57Arg25Bands
 from datacube.api.query import list_tiles_as_list
-from datacube.api.utils import get_dataset_type_ndv, get_dataset_data_stack, build_season_date_criteria, \
-    PercentileInterpolation
+from datacube.api.utils import get_dataset_type_ndv, get_dataset_data_stack, build_season_date_criteria
+from datacube.api.utils import PercentileInterpolation
+from datacube.api.workflow.band_statistics_arg25 import percentile_interpolation_arg
+from datetime import date
+
 
 _log = logging.getLogger()
 
 
-DIR = "/g/data/u46/products/DEWNR"
-
-
 Cell = namedtuple("Cell", ["x", "y"])
+
 
 # TODO this is a bit quick and dirty probably a better way
 
-
 def cell_arg(s):
-    vals = [int(x) for x in s.split(",")]
+    values = [int(x) for x in s.split(",")]
 
-    if len(vals) == 2:
-        return Cell(vals[0], vals[1])
+    if len(values) == 2:
+        return Cell(values[0], values[1])
 
     raise argparse.ArgumentTypeError("{0} is not a supported PQA mask".format(s))
 
-CELLS = [
-    Cell(137, -28),
-    Cell(138, -36),
-    Cell(139, -31),
-    Cell(139, -36),
-    Cell(139, -37),
-    Cell(139, -38),
-    Cell(140, -36),
-    Cell(140, -37),
-    Cell(140, -38),
-    Cell(140, -39)
-]
 
 STATISTICS = [
     #Statistic.COUNT, Statistic.COUNT_OBSERVED,
@@ -115,7 +103,6 @@ class Arg25BandStatisticsValidator(object):
         self.input_directory = None
         self.output_directory = None
 
-        # TODO
         self.cells = None
 
         self.acq_min = None
@@ -137,13 +124,15 @@ class Arg25BandStatisticsValidator(object):
         self.mask_pqa_apply = None
         self.mask_pqa_mask = None
 
+        self.interpolation = None
+
     def setup_arguments(self):
 
         self.parser.add_argument("--acq-min", help="Acquisition Date", action="store", dest="acq_min", type=str,
                                  default="1985")
 
         self.parser.add_argument("--acq-max", help="Acquisition Date", action="store", dest="acq_max", type=str,
-                                 default="2014")
+                                 default="2015")
 
         self.parser.add_argument("--epoch", help="Epoch increment and duration (e.g. 5 6 means 1985-1990, 1990-1995, etc)",
                                  action="store", dest="epoch", type=int, nargs=2, default=[5, 6])
@@ -154,10 +143,7 @@ class Arg25BandStatisticsValidator(object):
                                  metavar=" ".join([ts.name for ts in Satellite]))
 
         self.parser.add_argument("--input-directory", help="input directory", action="store", dest="input_directory",
-                                 type=readable_dir,
-                                 #required=True
-                                 default=DIR
-                                 )
+                                 type=readable_dir, required=True)
 
         self.parser.add_argument("--output-directory", help="output directory", action="store", dest="output_directory",
                                  type=writeable_dir, required=True)
@@ -189,7 +175,8 @@ class Arg25BandStatisticsValidator(object):
 
         self.parser.add_argument("--band", help="The band(s) to process", action="store",
                                  default=Ls57Arg25Bands,  # required=True,
-                                 dest="bands", type=ls57_arg_band_arg, nargs="+", metavar=" ".join([b.name for b in Ls57Arg25Bands]))
+                                 dest="bands", type=ls57_arg_band_arg, nargs="+",
+                                 metavar=" ".join([b.name for b in Ls57Arg25Bands]))
 
         self.parser.add_argument("--mask-pqa-apply", help="Apply PQA mask", action="store_true", dest="mask_pqa_apply",
                                  default=True)
@@ -200,8 +187,8 @@ class Arg25BandStatisticsValidator(object):
                                  metavar=" ".join([ts.name for ts in PqaMask]))
 
         self.parser.add_argument("--cell", help="The cell(s) to validate", action="store",
-                                 default=CELLS,  # required=True,
-                                 dest="cell", type=cell_arg, nargs="+", metavar="(x,y) [(x,y) (x,y) ...]")
+                                 required=True, dest="cell", type=cell_arg, nargs="+",
+                                 metavar="(x,y) [(x,y) (x,y) ...]")
 
         group = self.parser.add_mutually_exclusive_group()
 
@@ -308,6 +295,11 @@ class Arg25BandStatisticsValidator(object):
         for cell in self.cells:
             for season in self.seasons:
                 for acq_min, acq_max in self.get_epochs():
+
+                    if acq_min >= date(2015, 1, 1):
+                        _log.info("Skipping extra epoch {acq_min} to {acq_max}".format(acq_min=acq_min, acq_max=acq_max))
+                        continue
+
                     _log.debug("Processing cell ({x:03d},{y:04d}) - {season} - {acq_min} to {acq_max}".format(
                         x=cell.x, y=cell.y, season=season.name, acq_min=acq_min, acq_max=acq_max))
 
@@ -410,6 +402,7 @@ class Arg25BandStatisticsValidator(object):
                                 acq_max=acq_max.strftime("%Y%m%d"),
                                 season_start=season_start, season_end=season_end,
                                 x_offset=x, y_offset=y))
+
 
 def read_pixel_statistics(path, x, y):
 
