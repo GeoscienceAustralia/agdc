@@ -35,7 +35,6 @@ import logging
 import psycopg2
 import psycopg2.extras
 import sys
-import os
 from datacube.api.utils import extract_feature_geometry_wkb, DateCriteria, SatelliteDateCriteria
 from datacube.config import Config
 from datacube.api.model import Tile, Cell, DatasetType
