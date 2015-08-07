@@ -297,15 +297,15 @@ class Arg25BandStatisticsValidator(object):
                 for acq_min, acq_max in self.get_epochs():
 
                     if acq_min >= date(2015, 1, 1):
-                        _log.info("Skipping extra epoch {acq_min} to {acq_max}".format(acq_min=acq_min, acq_max=acq_max))
+                        _log.debug("Skipping extra epoch {acq_min} to {acq_max}".format(acq_min=acq_min, acq_max=acq_max))
                         continue
 
-                    _log.debug("Processing cell ({x:03d},{y:04d}) - {season} - {acq_min} to {acq_max}".format(
+                    _log.info("Processing cell ({x:03d},{y:04d}) - {season} - {acq_min} to {acq_max}".format(
                         x=cell.x, y=cell.y, season=season.name, acq_min=acq_min, acq_max=acq_max))
 
                     statistics_filename = self.get_statistics_filename(cell=cell, acq_min=acq_min, acq_max=acq_max, season=season)
 
-                    _log.info("Statistics file is %s", statistics_filename)
+                    _log.debug("Statistics file is %s", statistics_filename)
 
                     for x, y in self.get_random_locations():
                         _log.debug("\tChecking ({x:03d},{y:04d})".format(x=x, y=y))
@@ -316,7 +316,7 @@ class Arg25BandStatisticsValidator(object):
                         calculated_statistics_reshaped = dict()
 
                         for index, (band, statistic) in enumerate(product(self.bands, self.statistics), start=0):
-                            _log.warn("%s - %s = %d", band.name, statistic.name, calculated_statistics[index])
+                            _log.debug("%s - %s = %d", band.name, statistic.name, calculated_statistics[index])
 
                             if statistic not in calculated_statistics_reshaped:
                                 calculated_statistics_reshaped[statistic] = dict()
@@ -338,12 +338,12 @@ class Arg25BandStatisticsValidator(object):
                                                                                    band=band,
                                                                                    x_offset=x, y_offset=y)
 
-                            _log.warn("band %s is %s", band.name, pixel_values[band])
+                            _log.debug("band %s is %s", band.name, pixel_values[band])
 
-                        _log.warn("acq dates are %s", acq_dates)
+                        _log.debug("acq dates are %s", acq_dates)
 
                         csv_filename = self.get_csv_filename(cell, acq_min, acq_max, season, x, y)
-                        _log.warn("csv filename is %s", csv_filename)
+                        _log.debug("csv filename is %s", csv_filename)
 
                         with open(csv_filename, "wb") as csv_file:
 
