@@ -26,8 +26,6 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ===============================================================================
-from datacube.api import dataset_type_arg, writeable_dir
-from datacube.api.tool import AoiTool
 
 
 __author__ = "Simon Oldfield"
@@ -36,6 +34,8 @@ __author__ = "Simon Oldfield"
 import csv
 import logging
 import os
+from datacube.api import dataset_type_arg, writeable_dir
+from datacube.api.tool import AoiTool
 from datacube.api.utils import log_mem, intersection, get_mask_pqa, get_mask_wofs, get_dataset_data, NDV
 from datacube.api.utils import get_dataset_metadata
 from datacube.api.model import DatasetType, Satellite, get_bands
