@@ -49,6 +49,7 @@ _log = logging.getLogger(__name__)
 
 # gdal.SetCacheMax(1024*1024*1024)
 
+
 # Define PQ mask
 #   This represents bits 0-13 set which means:
 #       -  0 = band 10 not saturated
@@ -1552,7 +1553,19 @@ def calculate_stack_statistic_mean(stack, ndv=NDV, dtype=numpy.int16):
     stat = numpy.mean(stack, axis=0).filled(ndv)
     stat = numpy.ndarray.astype(stat, dtype=dtype, copy=False)
 
-    _log.debug("max is [%s]\n%s", numpy.shape(stat), stat)
+    _log.debug("mean is [%s]\n%s", numpy.shape(stat), stat)
+
+    return stat
+
+
+def calculate_stack_statistic_median(stack, ndv=NDV, dtype=numpy.int16):
+
+    stack = maskify_stack(stack=stack, ndv=ndv)
+
+    stat = numpy.median(stack, axis=0).filled(ndv)
+    stat = numpy.ndarray.astype(stat, dtype=dtype, copy=False)
+
+    _log.debug("median is [%s]\n%s", numpy.shape(stat), stat)
 
     return stat
 
@@ -1588,6 +1601,7 @@ def calculate_stack_statistic_percentile(stack, percentile, interpolation=Percen
     _log.debug("%s is [%s]\n%s", percentile, numpy.shape(stat), stat)
 
     return stat
+
 
 def get_mask_aoi_cell(vector_file, vector_layer, vector_feature, x, y, width=4000, height=4000, epsg=4326):
 
