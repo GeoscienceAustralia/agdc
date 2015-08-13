@@ -9,7 +9,6 @@ import os
 
 import dateutil.parser
 import dateutil.tz
-
 from osgeo import gdal
 
 from .core import SourceFileIngester
@@ -206,7 +205,7 @@ class GdalMdDataset(PreTiledDataset):
         val = self._md.get(param_name)
         if not val or val == 'None':
             return None
-        return dateutil.parser.parse(val, tzinfos=dateutil.tz.tzutc)
+        return dateutil.parser.parse(val)
 
     def get_start_datetime(self):
         return self._get_date_param('start_datetime')
