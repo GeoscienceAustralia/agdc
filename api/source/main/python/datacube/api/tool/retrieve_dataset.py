@@ -210,10 +210,6 @@ class RetrieveDatasetTool(CellTool):
 
         for tile in self.get_tiles():
 
-            if self.list_only:
-                _log.info("Would retrieve datasets [%s]", tile.datasets[self.dataset_type].path)
-                continue
-
             pqa = (self.mask_pqa_apply and DatasetType.PQ25 in tile.datasets) and tile.datasets[DatasetType.PQ25] or None
             wofs = (self.mask_wofs_apply and DatasetType.WATER in tile.datasets) and tile.datasets[DatasetType.WATER] or None
 
@@ -221,6 +217,10 @@ class RetrieveDatasetTool(CellTool):
 
             if not dataset:
                 _log.info("No applicable [%s] dataset for [%s]", self.dataset_type.name, tile.end_datetime)
+                continue
+
+            if self.list_only:
+                _log.info("Would retrieve dataset [%s]", tile.datasets[self.dataset_type].path)
                 continue
 
             filename = os.path.join(self.output_directory,
