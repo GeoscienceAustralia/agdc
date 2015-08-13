@@ -26,16 +26,19 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # ===============================================================================
-from datetime import date
+
+
+__author__ = "Simon Oldfield"
+
+
+import logging
 import numpy
 from datacube.api import Satellite, DatasetType, PqaMask
 from datacube.api.model import Ls57Arg25Bands
 from datacube.api.query import list_tiles_as_list
 from datacube.api.utils import get_dataset_data_stack, NDV
+from datetime import date
 
-__author__ = "Simon Oldfield"
-
-import logging
 
 _log = logging.getLogger()
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')

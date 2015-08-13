@@ -63,6 +63,7 @@ def test_get_band_stack_filename():
         mask_pqa_apply=False, mask_wofs_apply=False, mask_vector_apply=False,
         output_format=OutputFormat.GEOTIFF) == "LS578_NBAR_120_-020_2000_01_01_2005_12_31_BLUE_STACK.tif"
 
+
 def test_get_band_stack_filename_seasons_bom():
 
     season = Season.SUMMER
