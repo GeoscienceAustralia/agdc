@@ -43,7 +43,7 @@ from datetime import date
 from pathlib import Path
 
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
 
 
 _log = logging.getLogger()
@@ -97,10 +97,8 @@ VECTOR_FILE_STATES = get_test_data_path_common("Mainlands.shp")
 VECTOR_LAYER_STATES = 0
 VECTOR_FEATURE_STATES = 4
 
-DATASET_TYPE_ARG25 = [DatasetType.ARG25]
-DATASET_TYPE_FC25 = [DatasetType.FC25]
-
-DATASET_TYPE_ARG25_FC25_PQ25 = [DatasetType.ARG25, DatasetType.FC25, DatasetType.PQ25]
+DATASET_TYPE_WOFS = [DatasetType.WATER]
+# DATASET_TYPE_ARG25_FC25_PQ25 = [DatasetType.ARG25, DatasetType.FC25, DatasetType.PQ25]
 
 SATELLITE_LS578 = [Satellite.LS5, Satellite.LS7, Satellite.LS8]
 
@@ -129,12 +127,12 @@ SEASONS_ARG25_STATS = {
 @pytest.mark.cells
 def test_list_cells_ls578(config=None):
 
-    filename = "cells_ls578.csv"
+    filename = "cells_ls578_wofs.csv"
 
     list_cells_to_file(x=range(MIN_X, MAX_X + 1), y=range(MIN_Y, MAX_Y + 1),
                        acq_min=MIN_ACQ_MIN, acq_max=MAX_ACQ_MAX,
                        satellites=SATELLITE_LS578,
-                       dataset_types=DATASET_TYPE_ARG25,
+                       dataset_types=DATASET_TYPE_WOFS,
                        filename=filename,
                        config=config)
 
@@ -145,12 +143,12 @@ def test_list_cells_ls578(config=None):
 @pytest.mark.cells
 def test_list_cells_120_020_2005_ls578(config=None):
 
-    filename = "cells_120_020_2005_ls578.csv"
+    filename = "cells_120_020_2005_ls578_wofs.csv"
 
     list_cells_to_file(x=[CELL_X], y=[CELL_Y],
                        acq_min=ACQ_MIN_2005, acq_max=ACQ_MAX_2005,
                        satellites=SATELLITE_LS578,
-                       dataset_types=DATASET_TYPE_ARG25,
+                       dataset_types=DATASET_TYPE_WOFS,
                        filename=filename,
                        config=config)
 
@@ -161,12 +159,12 @@ def test_list_cells_120_020_2005_ls578(config=None):
 @pytest.mark.cells
 def test_list_cells_120_020_2005_ls5(config=None):
 
-    filename = "cells_120_020_2005_ls5.csv"
+    filename = "cells_120_020_2005_ls5_wofs.csv"
 
     list_cells_to_file(x=[CELL_X], y=[CELL_Y],
                        acq_min=ACQ_MIN_2005, acq_max=ACQ_MAX_2005,
                        satellites=SATELLITE_LS5,
-                       dataset_types=DATASET_TYPE_ARG25,
+                       dataset_types=DATASET_TYPE_WOFS,
                        filename=filename,
                        config=config)
 
@@ -177,12 +175,12 @@ def test_list_cells_120_020_2005_ls5(config=None):
 @pytest.mark.cells
 def test_list_cells_120_020_2005_ls7(config=None):
 
-    filename = "cells_120_020_2005_ls7.csv"
+    filename = "cells_120_020_2005_ls7_wofs.csv"
 
     list_cells_to_file(x=[CELL_X], y=[CELL_Y],
                        acq_min=ACQ_MIN_2005, acq_max=ACQ_MAX_2005,
                        satellites=SATELLITE_LS7,
-                       dataset_types=DATASET_TYPE_ARG25,
+                       dataset_types=DATASET_TYPE_WOFS,
                        filename=filename,
                        config=config)
 
@@ -193,12 +191,12 @@ def test_list_cells_120_020_2005_ls7(config=None):
 @pytest.mark.cells
 def test_list_cells_120_020_2005_ls8(config=None):
 
-    filename = "cells_120_020_2005_ls8.csv"
+    filename = "cells_120_020_2005_ls8_wofs.csv"
 
     list_cells_to_file(x=[CELL_X], y=[CELL_Y],
                        acq_min=ACQ_MIN_2005, acq_max=ACQ_MAX_2005,
                        satellites=SATELLITE_LS8,
-                       dataset_types=DATASET_TYPE_ARG25,
+                       dataset_types=DATASET_TYPE_WOFS,
                        filename=filename,
                        config=config)
 
@@ -209,12 +207,12 @@ def test_list_cells_120_020_2005_ls8(config=None):
 @pytest.mark.cells
 def test_list_cells_120_020_2014_ls578(config=None):
 
-    filename = "cells_120_020_2014_ls578.csv"
+    filename = "cells_120_020_2014_ls578_wofs.csv"
 
     list_cells_to_file(x=[CELL_X], y=[CELL_Y],
                        acq_min=ACQ_MIN_2014, acq_max=ACQ_MAX_2014,
                        satellites=SATELLITE_LS578,
-                       dataset_types=DATASET_TYPE_ARG25,
+                       dataset_types=DATASET_TYPE_WOFS,
                        filename=filename,
                        config=config)
 
@@ -225,12 +223,12 @@ def test_list_cells_120_020_2014_ls578(config=None):
 @pytest.mark.cells
 def test_list_cells_120_020_2014_ls5(config=None):
 
-    filename = "cells_120_020_2014_ls5.csv"
+    filename = "cells_120_020_2014_ls5_wofs.csv"
 
     list_cells_to_file(x=[CELL_X], y=[CELL_Y],
                        acq_min=ACQ_MIN_2014, acq_max=ACQ_MAX_2014,
                        satellites=SATELLITE_LS5,
-                       dataset_types=DATASET_TYPE_ARG25,
+                       dataset_types=DATASET_TYPE_WOFS,
                        filename=filename,
                        config=config)
 
@@ -241,12 +239,12 @@ def test_list_cells_120_020_2014_ls5(config=None):
 @pytest.mark.cells
 def test_list_cells_120_020_2014_ls7(config=None):
 
-    filename = "cells_120_020_2014_ls7.csv"
+    filename = "cells_120_020_2014_ls7_wofs.csv"
 
     list_cells_to_file(x=[CELL_X], y=[CELL_Y],
                        acq_min=ACQ_MIN_2014, acq_max=ACQ_MAX_2014,
                        satellites=SATELLITE_LS7,
-                       dataset_types=DATASET_TYPE_ARG25,
+                       dataset_types=DATASET_TYPE_WOFS,
                        filename=filename,
                        config=config)
 
@@ -257,12 +255,12 @@ def test_list_cells_120_020_2014_ls7(config=None):
 @pytest.mark.cells
 def test_list_cells_120_020_2014_ls8(config=None):
 
-    filename = "cells_120_020_2014_ls8.csv"
+    filename = "cells_120_020_2014_ls8_wofs.csv"
 
     list_cells_to_file(x=[CELL_X], y=[CELL_Y],
                        acq_min=ACQ_MIN_2014, acq_max=ACQ_MAX_2014,
                        satellites=SATELLITE_LS8,
-                       dataset_types=DATASET_TYPE_ARG25,
+                       dataset_types=DATASET_TYPE_WOFS,
                        filename=filename,
                        config=config)
 
@@ -273,12 +271,12 @@ def test_list_cells_120_020_2014_ls8(config=None):
 @pytest.mark.cells
 def test_list_cells_120_020_2005_ls578_no_ls7_slc(config=None):
 
-    filename = "cells_120_020_2005_ls578_no_ls7_slc.csv"
+    filename = "cells_120_020_2005_ls578_wofs_no_ls7_slc.csv"
 
     list_cells_to_file(x=[CELL_X], y=[CELL_Y],
                        acq_min=ACQ_MIN_2005, acq_max=ACQ_MAX_2005,
                        satellites=SATELLITE_LS578,
-                       dataset_types=DATASET_TYPE_ARG25,
+                       dataset_types=DATASET_TYPE_WOFS,
                        filename=filename,
                        exclude=[LS7_SLC_OFF_EXCLUSION],
                        config=config)
@@ -286,16 +284,14 @@ def test_list_cells_120_020_2005_ls578_no_ls7_slc(config=None):
     assert filecmp.cmp(filename, get_test_data_path(filename))
 
 
-@pytest.mark.quick
-@pytest.mark.cells
 def test_list_cells_120_020_2005_ls578_no_ls8_pre_wrs_2(config=None):
 
-    filename = "cells_120_020_2005_ls578_no_ls8_pre_wrs_2.csv"
+    filename = "cells_120_020_2005_ls578_wofs_no_ls8_pre_wrs_2.csv"
 
     list_cells_to_file(x=[CELL_X], y=[CELL_Y],
                        acq_min=ACQ_MIN_2005, acq_max=ACQ_MAX_2005,
                        satellites=SATELLITE_LS578,
-                       dataset_types=DATASET_TYPE_ARG25,
+                       dataset_types=DATASET_TYPE_WOFS,
                        filename=filename,
                        exclude=[LS8_PRE_WRS_2_EXCLUSION],
                        config=config)
@@ -304,18 +300,18 @@ def test_list_cells_120_020_2005_ls578_no_ls8_pre_wrs_2(config=None):
 
 
 @pytest.mark.quick
-@pytest.mark.season
 @pytest.mark.cells
+@pytest.mark.season
 def test_list_cells_120_020_2005_ls578_summer(config=None):
 
-    filename = "cells_120_020_2005_ls578_summer.csv"
+    filename = "cells_120_020_2005_ls578_wofs_summer.csv"
 
     acq_min, acq_max, include = build_season_date_criteria(ACQ_MIN_2005, ACQ_MAX_2005, Season.SUMMER)
 
     list_cells_to_file(x=[CELL_X], y=[CELL_Y],
                        acq_min=acq_min, acq_max=acq_max,
                        satellites=SATELLITE_LS578,
-                       dataset_types=DATASET_TYPE_ARG25,
+                       dataset_types=DATASET_TYPE_WOFS,
                        filename=filename,
                        include=include,
                        config=config)
@@ -324,11 +320,11 @@ def test_list_cells_120_020_2005_ls578_summer(config=None):
 
 
 @pytest.mark.quick
-@pytest.mark.season
 @pytest.mark.cells
+@pytest.mark.season
 def test_list_cells_120_020_2000_2010_ls578_summer(config=None):
 
-    filename = "cells_120_020_2000_2010_ls578_summer.csv"
+    filename = "cells_120_020_2000_2010_ls578_wofs_summer.csv"
 
     acq_min = parse_date_min("2000")
     acq_max = parse_date_max("2010")
@@ -338,7 +334,7 @@ def test_list_cells_120_020_2000_2010_ls578_summer(config=None):
     list_cells_to_file(x=[CELL_X], y=[CELL_Y],
                        acq_min=acq_min, acq_max=acq_max,
                        satellites=SATELLITE_LS578,
-                       dataset_types=DATASET_TYPE_ARG25,
+                       dataset_types=DATASET_TYPE_WOFS,
                        filename=filename,
                        include=include,
                        config=config)
@@ -347,11 +343,11 @@ def test_list_cells_120_020_2000_2010_ls578_summer(config=None):
 
 
 @pytest.mark.quick
-@pytest.mark.season
 @pytest.mark.cells
+@pytest.mark.season
 def test_list_cells_120_020_2000_2010_ls578_summer_arg25_stats(config=None):
 
-    filename = "cells_120_020_2000_2010_ls578_summer_arg25_stats.csv"
+    filename = "cells_120_020_2000_2010_ls578_wofs_summer_arg25_stats.csv"
 
     acq_min = parse_date_min("2000")
     acq_max = parse_date_max("2010")
@@ -361,7 +357,7 @@ def test_list_cells_120_020_2000_2010_ls578_summer_arg25_stats(config=None):
     list_cells_to_file(x=[CELL_X], y=[CELL_Y],
                        acq_min=acq_min, acq_max=acq_max,
                        satellites=SATELLITE_LS578,
-                       dataset_types=DATASET_TYPE_ARG25,
+                       dataset_types=DATASET_TYPE_WOFS,
                        filename=filename,
                        include=include,
                        config=config)
@@ -373,28 +369,12 @@ def test_list_cells_120_020_2000_2010_ls578_summer_arg25_stats(config=None):
 @pytest.mark.tiles
 def test_list_tiles_120_020_2005_ls578(config=None):
 
-    filename = "tiles_120_020_2005_ls578.csv"
+    filename = "tiles_120_020_2005_ls578_wofs.csv"
 
     list_tiles_to_file(x=[CELL_X], y=[CELL_Y],
                        acq_min=ACQ_MIN_2005, acq_max=ACQ_MAX_2005,
                        satellites=SATELLITE_LS578,
-                       dataset_types=DATASET_TYPE_ARG25_FC25_PQ25,
-                       filename=filename,
-                       config=config)
-
-    assert filecmp.cmp(filename, get_test_data_path(filename))
-
-
-@pytest.mark.quick
-@pytest.mark.tiles
-def test_list_tiles_120_020_2005_ls578_fc(config=None):
-
-    filename = "tiles_120_020_2005_ls578_fc.csv"
-
-    list_tiles_to_file(x=[CELL_X], y=[CELL_Y],
-                       acq_min=ACQ_MIN_2005, acq_max=ACQ_MAX_2005,
-                       satellites=SATELLITE_LS578,
-                       dataset_types=DATASET_TYPE_FC25,
+                       dataset_types=DATASET_TYPE_WOFS,
                        filename=filename,
                        config=config)
 
@@ -405,12 +385,12 @@ def test_list_tiles_120_020_2005_ls578_fc(config=None):
 @pytest.mark.tiles
 def test_list_tiles_120_020_2005_ls578_no_ls7_slc(config=None):
 
-    filename = "tiles_120_020_2005_ls578_no_ls7_slc.csv"
+    filename = "tiles_120_020_2005_ls578_wofs_no_ls7_slc.csv"
 
     list_tiles_to_file(x=[CELL_X], y=[CELL_Y],
                        acq_min=ACQ_MIN_2005, acq_max=ACQ_MAX_2005,
                        satellites=SATELLITE_LS578,
-                       dataset_types=DATASET_TYPE_ARG25_FC25_PQ25,
+                       dataset_types=DATASET_TYPE_WOFS,
                        filename=filename,
                        exclude=[LS7_SLC_OFF_EXCLUSION],
                        config=config)
@@ -422,12 +402,12 @@ def test_list_tiles_120_020_2005_ls578_no_ls7_slc(config=None):
 @pytest.mark.tiles
 def test_list_tiles_120_020_2005_ls578_no_ls8_pre_wrs_2(config=None):
 
-    filename = "tiles_120_020_2005_ls578_no_ls8_pre_wrs_2.csv"
+    filename = "tiles_120_020_2005_ls578_wofs_no_ls8_pre_wrs_2.csv"
 
     list_tiles_to_file(x=[CELL_X], y=[CELL_Y],
                        acq_min=ACQ_MIN_2005, acq_max=ACQ_MAX_2005,
                        satellites=SATELLITE_LS578,
-                       dataset_types=DATASET_TYPE_ARG25_FC25_PQ25,
+                       dataset_types=DATASET_TYPE_WOFS,
                        filename=filename,
                        exclude=[LS8_PRE_WRS_2_EXCLUSION],
                        config=config)
@@ -436,11 +416,11 @@ def test_list_tiles_120_020_2005_ls578_no_ls8_pre_wrs_2(config=None):
 
 
 @pytest.mark.quick
-@pytest.mark.season
 @pytest.mark.tiles
+@pytest.mark.season
 def test_list_tiles_120_020_2005_ls578_summer(config=None):
 
-    filename = "tiles_120_020_2005_ls578_summer.csv"
+    filename = "tiles_120_020_2005_ls578_wofs_summer.csv"
 
     acq_min, acq_max, include = build_season_date_criteria(ACQ_MIN_2005, ACQ_MAX_2005, Season.SUMMER)
 
@@ -448,7 +428,7 @@ def test_list_tiles_120_020_2005_ls578_summer(config=None):
                        acq_min=acq_min,
                        acq_max=acq_max,
                        satellites=SATELLITE_LS578,
-                       dataset_types=DATASET_TYPE_ARG25_FC25_PQ25,
+                       dataset_types=DATASET_TYPE_WOFS,
                        filename=filename,
                        include=include,
                        config=config)
@@ -457,9 +437,9 @@ def test_list_tiles_120_020_2005_ls578_summer(config=None):
 
 
 @pytest.mark.quick
-@pytest.mark.season
 @pytest.mark.tiles
-def test_list_tiles_120_020_2000_2010_ls578_summer(config=None):
+@pytest.mark.season
+def test_list_tiles_120_020_2000_2010_ls578_wofs_summer(config=None):
 
     filename = "tiles_120_020_2000_2010_ls578_summer.csv"
 
@@ -469,7 +449,7 @@ def test_list_tiles_120_020_2000_2010_ls578_summer(config=None):
                        acq_min=acq_min,
                        acq_max=acq_max,
                        satellites=SATELLITE_LS578,
-                       dataset_types=DATASET_TYPE_ARG25_FC25_PQ25,
+                       dataset_types=DATASET_TYPE_WOFS,
                        filename=filename,
                        include=include,
                        config=config)
@@ -478,11 +458,11 @@ def test_list_tiles_120_020_2000_2010_ls578_summer(config=None):
 
 
 @pytest.mark.quick
-@pytest.mark.season
 @pytest.mark.tiles
+@pytest.mark.season
 def test_list_tiles_120_020_2000_2010_ls578_summer_arg25_stats(config=None):
 
-    filename = "tiles_120_020_2000_2010_ls578_summer_arg25_stats.csv"
+    filename = "tiles_120_020_2000_2010_ls578_wofs_summer_arg25_stats.csv"
 
     acq_min, acq_max, include = build_season_date_criteria(ACQ_MIN_2000, ACQ_MAX_2010, Season.SUMMER, seasons=SEASONS_ARG25_STATS)
 
@@ -490,7 +470,7 @@ def test_list_tiles_120_020_2000_2010_ls578_summer_arg25_stats(config=None):
                        acq_min=acq_min,
                        acq_max=acq_max,
                        satellites=SATELLITE_LS578,
-                       dataset_types=DATASET_TYPE_ARG25_FC25_PQ25,
+                       dataset_types=DATASET_TYPE_WOFS,
                        filename=filename,
                        include=include,
                        config=config)
@@ -501,18 +481,18 @@ def test_list_tiles_120_020_2000_2010_ls578_summer_arg25_stats(config=None):
 # AOI
 
 @pytest.mark.quick
-@pytest.mark.cells
+@pytest.mark.tiles
 @pytest.mark.aoi
 def test_list_cells_act_2005_ls578(config=None):
 
-    filename = "cells_act_2005_ls578.csv"
+    filename = "cells_act_2005_ls578_wofs.csv"
 
     list_cells_vector_file_to_file(vector_file=VECTOR_FILE_STATES,
                                    vector_layer=VECTOR_LAYER_STATES,
                                    vector_feature=VECTOR_FEATURE_STATES,
                                    satellites=SATELLITE_LS578,
                                    acq_min=ACQ_MIN_2005, acq_max=ACQ_MAX_2005,
-                                   dataset_types=DATASET_TYPE_ARG25,
+                                   dataset_types=DATASET_TYPE_WOFS,
                                    filename=filename,
                                    config=config)
 
