@@ -1931,3 +1931,35 @@ def build_date_criteria(acq_min, acq_max, month_start, day_start, month_end, day
             acq_max = max_dt
 
     return acq_min, acq_max, date_criteria
+
+
+def generate_dataset_metadata(x, y, acq_dt, dataset, bands=None,
+                              mask_pqa_apply=False, mask_pqa_mask=None, mask_wofs_apply=False, mask_wofs_mask=None):
+
+    return {
+        "X_INDEX": "{x:03d}".format(x=x),
+        "Y_INDEX": "{y:04d}".format(y=y),
+        "DATASET_TYPE": dataset.dataset_type.name,
+        "BANDS": " ".join([b.name for b in (bands or dataset.bands)]),
+        "ACQUISITION_DATE": "{acq_dt}".format(acq_dt=format_date_time(acq_dt)),
+        "SATELLITE": dataset.satellite.name,
+        "PIXEL_QUALITY_FILTER": mask_pqa_apply and " ".join([mask.name for mask in mask_pqa_mask]) or "",
+        "WATER_FILTER": mask_wofs_apply and " ".join([mask.name for mask in mask_wofs_mask]) or ""
+    }
+
+
+def is_ndv(v, ndv=NDV):
+
+    # Note: can't do if nan == nan!!!
+
+    import numpy
+
+    if numpy.isnan(ndv):
+        if numpy.isnan(v):
+            return True
+
+    else:
+        if v == ndv:
+            return True
+
+    return False

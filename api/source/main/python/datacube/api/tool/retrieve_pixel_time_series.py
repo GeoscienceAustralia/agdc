@@ -38,7 +38,8 @@ import sys
 from datacube.api import dataset_type_arg, writeable_dir, BandListType
 from datacube.api.model import DatasetType, Wofs25Bands
 from datacube.api.tool import Tool
-from datacube.api.utils import latlon_to_cell, latlon_to_xy, UINT16_MAX, BYTE_MAX, get_mask_pqa, get_band_name_union
+from datacube.api.utils import latlon_to_cell, latlon_to_xy, UINT16_MAX, BYTE_MAX, get_mask_pqa, get_band_name_union, \
+    is_ndv
 from datacube.api.utils import LS7_SLC_OFF_EXCLUSION, LS8_PRE_WRS_2_EXCLUSION, build_date_criteria
 from datacube.api.utils import get_pixel_time_series_filename
 from datacube.api.utils import NAN
@@ -280,17 +281,8 @@ def has_data(bands, data, no_data_value=NDV):
 
     for value in [data[band][0][0] for band in bands]:
 
-        # Note: can't do if nan == nan!!!
-
-        import numpy
-
-        if numpy.isnan(no_data_value):
-            if not numpy.isnan(value):
-                return True
-
-        else:
-            if value != no_data_value:
-                return True
+        if not is_ndv(value, no_data_value):
+            return True
 
     return False
 
