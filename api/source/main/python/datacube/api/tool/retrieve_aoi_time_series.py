@@ -34,9 +34,10 @@ __author__ = "Simon Oldfield"
 import csv
 import logging
 import os
-from datacube.api import dataset_type_arg, writeable_dir
+from datacube.api import dataset_type_arg, writeable_dir, BandListType
 from datacube.api.tool import AoiTool
-from datacube.api.utils import log_mem, intersection, get_mask_pqa, get_mask_wofs, get_dataset_data, NDV
+from datacube.api.utils import log_mem, intersection, get_mask_pqa, get_mask_wofs, get_dataset_data, NDV, \
+    get_band_name_union, get_band_name_intersection
 from datacube.api.utils import get_dataset_metadata
 from datacube.api.model import DatasetType, Satellite, get_bands
 from functools import reduce
@@ -70,8 +71,17 @@ class RetrieveAoiTimeSeries(AoiTool):
                                  choices=self.get_supported_dataset_types(), default=DatasetType.ARG25,
                                  metavar=" ".join([s.name for s in self.get_supported_dataset_types()]))
 
-        self.parser.add_argument("--band", help="The band(s) to retrieve", action="store",
-                                 dest="bands", type=int, nargs="+")
+        group = self.parser.add_mutually_exclusive_group()
+
+        group.add_argument("--band", help="The band(s) to retrieve", action="store", dest="bands", type=str, nargs="+")
+
+        group.add_argument("--bands-all", help="Retrieve all bands with NULL values where the band is N/A",
+                           action="store_const", dest="bands", const=BandListType.ALL)
+
+        group.add_argument("--bands-common", help="Retrieve only bands in common across all satellites",
+                           action="store_const", dest="bands", const=BandListType.COMMON)
+
+        self.parser.set_defaults(bands=BandListType.ALL)
 
         self.parser.add_argument("--output-directory", help="Output directory", action="store", dest="output_directory",
                                  type=writeable_dir)
@@ -92,7 +102,18 @@ class RetrieveAoiTimeSeries(AoiTool):
         AoiTool.process_arguments(self, args)
 
         self.dataset_type = args.dataset_type
-        self.bands = args.bands
+
+        if args.bands == BandListType.ALL:
+            self.bands = get_band_name_union(self.dataset_type, self.satellites)
+        elif args.bands == BandListType.COMMON:
+            self.bands = get_band_name_intersection(self.dataset_type, self.satellites)
+        else:
+            self.bands = []
+            potential_bands = get_band_name_union(self.dataset_type, self.satellites)
+            for band in args.bands:
+                if band in potential_bands:
+                    self.bands.append(band)
+
         self.output_directory = args.output_directory
         self.overwrite = args.overwrite
         self.list_only = args.list_only
@@ -106,13 +127,13 @@ class RetrieveAoiTimeSeries(AoiTool):
 
         _log.info("""
         dataset type = {dataset_type}
-        bands = {bands}
+        bands to retrieve = {bands}
         output directory = {output}
         over write existing = {overwrite}
         list only = {list_only}
         output no data values = {output_no_data}
         """.format(dataset_type=self.dataset_type.name,
-                   bands=self.bands and self.bands or "",
+                   bands=self.bands,
                    output=self.output_directory,
                    overwrite=self.overwrite,
                    list_only=self.list_only,
@@ -124,30 +145,6 @@ class RetrieveAoiTimeSeries(AoiTool):
         import numpy
         from datacube.api.query import list_cells_as_list, list_tiles_as_list
         from datacube.config import Config
-
-        # Verify that all the requested satellites have the same band combinations
-
-        dataset_bands = get_bands(self.dataset_type, self.satellites[0])
-
-        _log.info("dataset bands is [%s]", " ".join([b.name for b in dataset_bands]))
-
-        for satellite in self.satellites:
-            if dataset_bands != get_bands(self.dataset_type, satellite):
-                _log.error("Satellites [%s] have differing bands", " ".join([satellite.name for satellite in self.satellites]))
-                raise Exception("Satellites with different band combinations selected")
-
-        bands = []
-
-        dataset_bands_list = list(dataset_bands)
-
-        if not self.bands:
-            bands = dataset_bands_list
-
-        else:
-            for b in self.bands:
-                bands.append(dataset_bands_list[b - 1])
-
-        _log.info("Using bands [%s]", " ".join(band.name for band in bands))
 
         x_min, x_max, y_max, y_min = self.extract_bounds_from_vector()
         _log.debug("The bounds are [%s]", (x_min, x_max, y_min, y_max))
@@ -208,11 +205,11 @@ class RetrieveAoiTimeSeries(AoiTool):
                 import operator
 
                 header = reduce(operator.add, [["DATE", "INSTRUMENT", "# PIXELS", "# PIXELS IN AOI"]] + [
-                    ["%s - # DATA PIXELS" % b.name,
-                     "%s - # DATA PIXELS AFTER PQA" % b.name,
-                     "%s - # DATA PIXELS AFTER PQA WOFS" % b.name,
-                     "%s - # DATA PIXELS AFTER PQA WOFS AOI" % b.name,
-                     "%s - MIN" % b.name, "%s - MAX" % b.name, "%s - MEAN" % b.name] for b in bands])
+                    ["%s - # DATA PIXELS" % band_name,
+                     "%s - # DATA PIXELS AFTER PQA" % band_name,
+                     "%s - # DATA PIXELS AFTER PQA WOFS" % band_name,
+                     "%s - # DATA PIXELS AFTER PQA WOFS AOI" % band_name,
+                     "%s - MIN" % band_name, "%s - MAX" % band_name, "%s - MEAN" % band_name] for band_name in self.bands])
 
                 csv_writer.writerow(header)
 
@@ -248,6 +245,16 @@ class RetrieveAoiTimeSeries(AoiTool):
 
                     _log.debug("mask_wofs is [%s]\n[%s]", numpy.shape(mask_wofs), mask_wofs)
 
+                    dataset = tile.datasets[self.dataset_type]
+
+                    bands = []
+
+                    dataset_band_names = [b.name for b in dataset.bands]
+
+                    for b in self.bands:
+                        if b in dataset_band_names:
+                            bands.append(dataset.bands[b])
+
                     data = get_dataset_data(tile.datasets[self.dataset_type], bands=bands)
                     _log.debug("data is [%s]\n[%s]", numpy.shape(data), data)
 
@@ -259,41 +266,55 @@ class RetrieveAoiTimeSeries(AoiTool):
                     mmax = dict()
                     mmean = dict()
 
-                    for band in bands:
+                    for band_name in self.bands:
+
+                        # Add "zeroed" entries for non-present bands - should only be if outputs for those bands have been explicitly requested
+
+                        if band_name not in dataset_band_names:
+                            pixel_count_data[band_name] = 0
+                            pixel_count_data_pqa[band_name] = 0
+                            pixel_count_data_pqa_wofs[band_name] = 0
+                            pixel_count_data_pqa_wofs_aoi[band_name] = 0
+                            mmin[band_name] = numpy.ma.masked
+                            mmax[band_name] = numpy.ma.masked
+                            mmean[band_name] = numpy.ma.masked
+                            continue
+
+                        band = dataset.bands[band_name]
 
                         data[band] = numpy.ma.masked_equal(data[band], NDV)
                         _log.debug("masked data is [%s] [%d]\n[%s]", numpy.shape(data), numpy.ma.count(data), data)
 
-                        pixel_count_data[band] = numpy.ma.count(data[band])
+                        pixel_count_data[band_name] = numpy.ma.count(data[band])
 
                         if pqa:
                             data[band].mask = numpy.ma.mask_or(data[band].mask, mask_pqa)
                             _log.debug("PQA masked data is [%s] [%d]\n[%s]", numpy.shape(data[band]), numpy.ma.count(data[band]), data[band])
 
-                        pixel_count_data_pqa[band] = numpy.ma.count(data[band])
+                        pixel_count_data_pqa[band_name] = numpy.ma.count(data[band])
 
                         if wofs:
                             data[band].mask = numpy.ma.mask_or(data[band].mask, mask_wofs)
                             _log.debug("WOFS masked data is [%s] [%d]\n[%s]", numpy.shape(data[band]), numpy.ma.count(data[band]), data[band])
 
-                        pixel_count_data_pqa_wofs[band] = numpy.ma.count(data[band])
+                        pixel_count_data_pqa_wofs[band_name] = numpy.ma.count(data[band])
 
                         data[band].mask = numpy.ma.mask_or(data[band].mask, mask_aoi)
                         _log.debug("AOI masked data is [%s] [%d]\n[%s]", numpy.shape(data[band]), numpy.ma.count(data[band]), data[band])
 
-                        pixel_count_data_pqa_wofs_aoi[band] = numpy.ma.count(data[band])
+                        pixel_count_data_pqa_wofs_aoi[band_name] = numpy.ma.count(data[band])
 
-                        mmin[band] = numpy.ma.min(data[band])
-                        mmax[band] = numpy.ma.max(data[band])
-                        mmean[band] = numpy.ma.mean(data[band])
+                        mmin[band_name] = numpy.ma.min(data[band])
+                        mmax[band_name] = numpy.ma.max(data[band])
+                        mmean[band_name] = numpy.ma.mean(data[band])
 
-                        # Convert the mean to an int...which is actually trickier than you would expect due to masking....
+                        # Convert the mean to an int...taking into account masking....
 
-                        if numpy.ma.count(mmean[band]) != 0:
-                            mmean[band] = mmean[band].astype(numpy.int16)
+                        if not numpy.ma.is_masked(mmean[band_name]):
+                            mmean[band_name] = mmean[band_name].astype(numpy.int16)
 
-                    # Should we output if no data values found?
                     pixel_count_data_pqa_wofs_aoi_all_bands = reduce(operator.add, pixel_count_data_pqa_wofs_aoi.itervalues())
+
                     if pixel_count_data_pqa_wofs_aoi_all_bands == 0 and not self.output_no_data:
                         _log.info("Skipping dataset with no non-masked data values in ANY band")
                         continue
@@ -304,9 +325,9 @@ class RetrieveAoiTimeSeries(AoiTool):
                               self.decode_satellite_as_instrument(tile.datasets[self.dataset_type].satellite),
                               pixel_count, pixel_count_aoi]] +
 
-                            [[pixel_count_data[band], pixel_count_data_pqa[band],
-                              pixel_count_data_pqa_wofs[band], pixel_count_data_pqa_wofs_aoi[band],
-                              mmin[band], mmax[band], mmean[band]] for band in bands])
+                            [[pixel_count_data[band_name], pixel_count_data_pqa[band_name],
+                              pixel_count_data_pqa_wofs[band_name], pixel_count_data_pqa_wofs_aoi[band_name],
+                              mmin[band_name], mmax[band_name], mmean[band_name]] for band_name in self.bands])
 
                     csv_writer.writerow(row)
 
