@@ -99,7 +99,7 @@ class RetrieveDatasetTool(CellTool):
 
         group.add_argument("--band", help="The band(s) to retrieve", action="store", dest="bands", type=str, nargs="+")
 
-        group.add_argument("--bands-all", help="Retrieve all bands with NULL values where the band is N/A",
+        group.add_argument("--bands-all", help="Retrieve all bands with NULL values where the band is not present",
                            action="store_const", dest="bands", const=BandListType.ALL)
 
         group.add_argument("--bands-common", help="Retrieve only bands in common across all satellites",
