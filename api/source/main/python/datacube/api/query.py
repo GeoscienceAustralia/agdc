@@ -127,6 +127,7 @@ def connect_to_db(config=None):
 
     cursor = connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
     cursor.execute("set search_path to {schemas}".format(schemas=config.get_db_schemas()))
+
     return connection, cursor
 
 
