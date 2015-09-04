@@ -28,18 +28,16 @@
 # ===============================================================================
 
 
-__author__ = "Simon Oldfield"
-
-
+import argparse
 import csv
 import logging
 import os
 import sys
 from datacube.api import dataset_type_arg, writeable_dir, BandListType
-from datacube.api.model import DatasetType, Wofs25Bands
+from datacube.api.model import DatasetType, Wofs25Bands, Cell
 from datacube.api.tool import Tool
-from datacube.api.utils import latlon_to_cell, latlon_to_xy, UINT16_MAX, BYTE_MAX, get_mask_pqa, get_band_name_union, \
-    is_ndv
+from datacube.api.utils import latlon_to_cell, latlon_to_xy, UINT16_MAX, BYTE_MAX, get_mask_pqa, get_band_name_union
+from datacube.api.utils import is_ndv
 from datacube.api.utils import LS7_SLC_OFF_EXCLUSION, LS8_PRE_WRS_2_EXCLUSION, build_date_criteria
 from datacube.api.utils import get_pixel_time_series_filename
 from datacube.api.utils import NAN
@@ -48,7 +46,19 @@ from datacube.api.utils import get_mask_wofs, get_dataset_data_masked
 from datacube.api.utils import get_dataset_metadata, NDV
 
 
+__author__ = "Simon Oldfield"
+
+
 _log = logging.getLogger()
+
+
+def cell_arg(s):
+    values = [int(x) for x in s.split(",")]
+
+    if len(values) == 2:
+        return Cell(values[0], values[1])
+
+    raise argparse.ArgumentTypeError("{0} is not a valid cell".format(s))
 
 
 class RetrievePixelTimeSeriesTool(Tool):
@@ -213,6 +223,7 @@ class RetrievePixelTimeSeriesTool(Tool):
     def go(self):
 
         cell_x, cell_y = latlon_to_cell(self.latitude, self.longitude)
+        cell_x, cell_y = 20, 10
 
         _log.info("cell is %d %d", cell_x, cell_y)
 
@@ -316,6 +327,7 @@ def retrieve_pixel_value(dataset, pqa, pqa_masks, wofs, wofs_masks, latitude, lo
     metadata = get_dataset_metadata(dataset)
 
     x, y = latlon_to_xy(latitude, longitude, metadata.transform)
+    x, y = 500, 500
 
     _log.info("Retrieving value at x=[%d] y=[%d] from %s", x, y, dataset.path)
 

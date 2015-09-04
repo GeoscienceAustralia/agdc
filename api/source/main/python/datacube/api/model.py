@@ -111,6 +111,29 @@ class Ls8Arg25Bands(Enum):
     SHORT_WAVE_INFRARED_2 = 7
 
 
+class Ls57UsgsSrBands(Enum):
+    __order__ = "BLUE GREEN RED NEAR_INFRARED SHORT_WAVE_INFRARED_1 SHORT_WAVE_INFRARED_2"
+
+    BLUE = 1
+    GREEN = 2
+    RED = 3
+    NEAR_INFRARED = 4
+    SHORT_WAVE_INFRARED_1 = 5
+    SHORT_WAVE_INFRARED_2 = 6
+
+
+class Ls8UsgsSrBands(Enum):
+    __order__ = "COASTAL_AEROSOL BLUE GREEN RED NEAR_INFRARED SHORT_WAVE_INFRARED_1 SHORT_WAVE_INFRARED_2"
+
+    COASTAL_AEROSOL = 1
+    BLUE = 2
+    GREEN = 3
+    RED = 4
+    NEAR_INFRARED = 5
+    SHORT_WAVE_INFRARED_1 = 6
+    SHORT_WAVE_INFRARED_2 = 7
+
+
 class Pq25Bands(Enum):
     __order__ = "PQ"
 
@@ -187,12 +210,14 @@ class DatasetType(Enum):
     SAVI = "SAVI"
     TCI = "TCI"
     NBR = "NBR"
+    USGSSR = "USGSSR"
 
 
 dataset_type_database = [DatasetType.ARG25, DatasetType.PQ25, DatasetType.FC25,
                          DatasetType.WATER,
                          DatasetType.DSM,
-                         DatasetType.DEM, DatasetType.DEM_HYDROLOGICALLY_ENFORCED, DatasetType.DEM_SMOOTHED]
+                         DatasetType.DEM, DatasetType.DEM_HYDROLOGICALLY_ENFORCED, DatasetType.DEM_SMOOTHED,
+                         DatasetType.USGSSR]
 dataset_type_filesystem = []
 dataset_type_derived_nbar = [DatasetType.NDVI, DatasetType.EVI, DatasetType.NBR, DatasetType.TCI]  # TCI, SAVI, etc...
 
@@ -228,15 +253,15 @@ class DatasetTile:
             dst = DatasetTile(satellite_id, dataset[0], dataset[1])
             out[dst.dataset_type] = dst
 
-        # TODO DODGINESS until WOFS is ingested into the database
-
-        # Construct a WOFS dataset based on the NBAR dataset
-        # If one exists on the filesystem then add it otherwise (None is returned by the make_wofs_dataset) we don't
-
-        dst = make_wofs_dataset(satellite_id, out[DatasetType.ARG25])
-
-        if dst:
-            out[DatasetType.WATER] = dst
+        # # TODO DODGINESS until WOFS is ingested into the database
+        #
+        # # Construct a WOFS dataset based on the NBAR dataset
+        # # If one exists on the filesystem then add it otherwise (None is returned by the make_wofs_dataset) we don't
+        #
+        # dst = make_wofs_dataset(satellite_id, out[DatasetType.ARG25])
+        #
+        # if dst:
+        #     out[DatasetType.WATER] = dst
 
         return out
 
@@ -368,6 +393,10 @@ class Tile:
 
 
 BANDS = {
+    (DatasetType.USGSSR, Satellite.LS5): Ls57UsgsSrBands,
+    (DatasetType.USGSSR, Satellite.LS7): Ls57UsgsSrBands,
+    (DatasetType.USGSSR, Satellite.LS8): Ls8UsgsSrBands,
+
     (DatasetType.ARG25, Satellite.LS5): Ls57Arg25Bands,
     (DatasetType.ARG25, Satellite.LS7): Ls57Arg25Bands,
     (DatasetType.ARG25, Satellite.LS8): Ls8Arg25Bands,

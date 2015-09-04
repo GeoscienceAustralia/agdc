@@ -65,7 +65,7 @@ def cell_arg(s):
     if len(values) == 2:
         return Cell(values[0], values[1])
 
-    raise argparse.ArgumentTypeError("{0} is not a supported PQA mask".format(s))
+    raise argparse.ArgumentTypeError("{0} is not a valid cell".format(s))
 
 
 STATISTICS = [

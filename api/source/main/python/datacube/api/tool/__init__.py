@@ -34,6 +34,7 @@ from collections import namedtuple
 import argparse
 import logging
 import sys
+from enum import Enum
 from datacube.api.model import Satellite, dataset_type_database, dataset_type_derived_nbar
 from datacube.api.utils import PqaMask, WofsMask
 from datacube.api import satellite_arg, pqa_mask_arg, wofs_mask_arg, parse_date_min, parse_date_max, readable_file, \
@@ -202,6 +203,19 @@ class Tool(object):
         self.go()
 
 
+def crs_type_arg(s):
+    if s in [t.name for t in CellTool]:
+        return CellReferenceSystem[s]
+    raise argparse.ArgumentTypeError("{0} is not a supported Cell Reference System".format(s))
+
+
+class CellReferenceSystem(Enum):
+    __order__ = "GA USGS"
+
+    GA = "GA"
+    USGS = "USGS"
+
+
 class CellTool(Tool):
 
     __metaclass__ = abc.ABCMeta
@@ -212,6 +226,9 @@ class CellTool(Tool):
         # super(self.__class__, self).__init__(name)
         Tool.__init__(self, name)
 
+        # TODO
+
+        self.crs = None
         self.x = None
         self.y = None
 
@@ -226,11 +243,18 @@ class CellTool(Tool):
         # super(self.__class__, self).setup_arguments()
         Tool.setup_arguments(self)
 
+        # TODO
+
+        self.parser.add_argument("--crs", help="Cell Reference System", action="store", dest="crs", type=crs_type_arg,
+                                 choices=CellReferenceSystem, default=CellReferenceSystem.USGS)
+
         self.parser.add_argument("--x", help="X grid reference", action="store", dest="x", type=int,
-                                 choices=range(110, 155 + 1), required=True, metavar="[110 - 155]")
+                                 # choices=range(110, 155 + 1), metavar="[110 - 155]",
+                                 required=True)
 
         self.parser.add_argument("--y", help="Y grid reference", action="store", dest="y", type=int,
-                                 choices=range(-45, -10 + 1), required=True, metavar="[-45 - -10]")
+                                 # choices=range(-45, -10 + 1), metavar="[-45 - -10]",
+                                 required=True)
 
         self.parser.add_argument("--mask-vector-apply", help="Apply mask from feature in vector file",
                                  action="store_true", dest="mask_vector_apply", default=False)

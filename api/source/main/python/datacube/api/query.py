@@ -51,16 +51,19 @@ class TileClass(Enum):
     MOSAIC = 4
 
 
-TILE_CLASSES = [TileClass.SINGLE, TileClass.MOSAIC]
+# TILE_CLASSES = [TileClass.SINGLE, TileClass.MOSAIC]
+TILE_CLASSES = [TileClass.SINGLE]
 
 
 class TileType(Enum):
     __order__ = "ONE_DEGREE"
 
     ONE_DEGREE = 1
+    USGS = 6
 
 
-TILE_TYPE = TileType.ONE_DEGREE
+# TILE_TYPE = TileType.ONE_DEGREE
+TILE_TYPE = TileType.USGS
 
 
 class ProcessingLevel(Enum):
@@ -76,6 +79,7 @@ class ProcessingLevel(Enum):
     DEM = 110
     DEM_S = 120
     DEM_H = 130
+    USGSSR = 7
 
 
 class SortType(Enum):
@@ -377,22 +381,43 @@ def build_list_cells_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_
     :rtype: (str, dict)
     """
 
+    # TODO how to find the "one true dataset" - i.e. to not hard-code NBAR (or now USGSSR)!!!
+
+    # sql = """
+    #     SELECT DISTINCT nbar.x_index, nbar.y_index
+    #     FROM acquisition
+    #     JOIN satellite ON satellite.satellite_id=acquisition.satellite_id
+    #     """
+
     sql = """
-        SELECT DISTINCT nbar.x_index, nbar.y_index
+        SELECT DISTINCT sr.x_index, sr.y_index
         FROM acquisition
         JOIN satellite ON satellite.satellite_id=acquisition.satellite_id
         """
 
-    sql += """
-        join
-            (
-            select
-                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
-            from tile
-            join dataset on dataset.dataset_id=tile.dataset_id
-            where dataset.level_id = %(level_nbar)s
-            ) as nbar on nbar.acquisition_id=acquisition.acquisition_id
-            """
+    if DatasetType.USGSSR in dataset_types:
+        sql += """
+            join
+                (
+                select
+                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+                from tile
+                join dataset on dataset.dataset_id=tile.dataset_id
+                where dataset.level_id = %(level_usgssr)s
+                ) as sr on sr.acquisition_id=acquisition.acquisition_id
+                """
+
+    if DatasetType.ARG25 in dataset_types:
+        sql += """
+            join
+                (
+                select
+                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+                from tile
+                join dataset on dataset.dataset_id=tile.dataset_id
+                where dataset.level_id = %(level_nbar)s
+                ) as nbar on nbar.acquisition_id=acquisition.acquisition_id
+                """
 
     if DatasetType.PQ25 in dataset_types:
         sql += """
@@ -481,11 +506,21 @@ def build_list_cells_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_
                 and dem_s.tile_type_id=nbar.tile_type_id and dem_s.tile_class_id=nbar.tile_class_id
         """
 
+    # TODO how to find the "one true dataset" - i.e. to not hard-code NBAR (or now USGSSR)!!!
+
+    # sql += """
+    #     where
+    #         nbar.tile_type_id = ANY(%(tile_type)s) and nbar.tile_class_id = ANY(%(tile_class)s) -- mandatory
+    #         and satellite.satellite_tag = ANY(%(satellite)s)
+    #         and nbar.x_index = ANY(%(x)s) and nbar.y_index = ANY(%(y)s)
+    #         and end_datetime::date between %(acq_min)s and %(acq_max)s
+    #     """
+
     sql += """
         where
-            nbar.tile_type_id = ANY(%(tile_type)s) and nbar.tile_class_id = ANY(%(tile_class)s) -- mandatory
+            sr.tile_type_id = ANY(%(tile_type)s) and sr.tile_class_id = ANY(%(tile_class)s) -- mandatory
             and satellite.satellite_tag = ANY(%(satellite)s)
-            and nbar.x_index = ANY(%(x)s) and nbar.y_index = ANY(%(y)s)
+            and sr.x_index = ANY(%(x)s) and sr.y_index = ANY(%(y)s)
             and end_datetime::date between %(acq_min)s and %(acq_max)s
         """
 
@@ -567,16 +602,34 @@ def build_list_cells_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_
         if len(esql) > 0:
             sql += " and (" + esql + ")"
 
+    # TODO how to find the "one true dataset" - i.e. to not hard-code NBAR (or now USGSSR)!!!
+
+    # sql += """
+    #     order by nbar.x_index {sort}, nbar.y_index {sort}
+    # """.format(sort=sort.value)
+
     sql += """
-        order by nbar.x_index {sort}, nbar.y_index {sort}
+        order by sr.x_index {sort}, sr.y_index {sort}
     """.format(sort=sort.value)
+
+    # TODO how to find the "one true dataset" - i.e. to not hard-code NBAR (or now USGSSR)!!!
+
+    # params = {"tile_type": [TILE_TYPE.value],
+    #           "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
+    #           "satellite": [satellite.value for satellite in satellites],
+    #           "x": x, "y": y,
+    #           "acq_min": acq_min, "acq_max": acq_max,
+    #           "level_nbar": ProcessingLevel.NBAR.value}
 
     params = {"tile_type": [TILE_TYPE.value],
               "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
               "satellite": [satellite.value for satellite in satellites],
               "x": x, "y": y,
               "acq_min": acq_min, "acq_max": acq_max,
-              "level_nbar": ProcessingLevel.NBAR.value}
+              "level_usgssr": ProcessingLevel.USGSSR.value}
+
+    if DatasetType.ARG25 in dataset_types:
+        params["level_nbar"] = ProcessingLevel.NBAR.value
 
     if DatasetType.PQ25 in dataset_types:
         params["level_pqa"] = ProcessingLevel.PQA.value
@@ -1250,20 +1303,36 @@ def build_list_tiles_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_
     :rtype: (str, dict)
     """
 
+    # TODO how to find the "one true dataset" - i.e. to not hard-code NBAR (or now USGSSR)!!!
+
+    # sql = """
+    #     select
+    #         acquisition.acquisition_id, satellite_tag as satellite, start_datetime, end_datetime,
+    #         extract(year from end_datetime) as end_datetime_year, extract(month from end_datetime) as end_datetime_month,
+    #         nbar.x_index, nbar.y_index, point(nbar.x_index, nbar.y_index) as xy,
+    #     """
+
     sql = """
         select
             acquisition.acquisition_id, satellite_tag as satellite, start_datetime, end_datetime,
             extract(year from end_datetime) as end_datetime_year, extract(month from end_datetime) as end_datetime_month,
-            nbar.x_index, nbar.y_index, point(nbar.x_index, nbar.y_index) as xy,
+            sr.x_index, sr.y_index, point(sr.x_index, sr.y_index) as xy,
         """
 
     sql += """
             ARRAY[
     """
 
+    # TODO how to find the "one true dataset" - i.e. to not hard-code NBAR (or now USGSSR)!!!
+
     sql += """
-            ['ARG25', nbar.tile_pathname]
+            ['USGSSR', sr.tile_pathname]
     """
+
+    if DatasetType.ARG25 in dataset_types:
+        sql += """
+                ['ARG25', nbar.tile_pathname]
+        """
 
     if DatasetType.PQ25 in dataset_types:
         sql += """
@@ -1324,6 +1393,8 @@ def build_list_tiles_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_
         join satellite on satellite.satellite_id=acquisition.satellite_id
         """
 
+    # TODO how to find the "one true dataset" - i.e. to not hard-code NBAR (or now USGSSR)!!!
+
     sql += """
         join
             (
@@ -1331,9 +1402,20 @@ def build_list_tiles_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_
                 dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
             from tile
             join dataset on dataset.dataset_id=tile.dataset_id
-            where dataset.level_id = %(level_nbar)s
-            ) as nbar on nbar.acquisition_id=acquisition.acquisition_id
+            where dataset.level_id = %(level_usgssr)s
+            ) as sr on sr.acquisition_id=acquisition.acquisition_id
             """
+    if DatasetType.ARG25 in dataset_types:
+        sql += """
+            join
+                (
+                select
+                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+                from tile
+                join dataset on dataset.dataset_id=tile.dataset_id
+                where dataset.level_id = %(level_nbar)s
+                ) as nbar on nbar.acquisition_id=acquisition.acquisition_id
+                """
 
     if DatasetType.PQ25 in dataset_types:
         sql += """
@@ -1422,11 +1504,21 @@ def build_list_tiles_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_
                 and dem_s.tile_type_id=nbar.tile_type_id and dem_s.tile_class_id=nbar.tile_class_id
         """
 
+    # TODO how to find the "one true dataset" - i.e. to not hard-code NBAR (or now USGSSR)!!!
+
+    # sql += """
+    #     where
+    #         nbar.tile_type_id = ANY(%(tile_type)s) and nbar.tile_class_id = ANY(%(tile_class)s) -- mandatory
+    #         and satellite.satellite_tag = ANY(%(satellite)s)
+    #         and nbar.x_index = ANY(%(x)s) and nbar.y_index = ANY(%(y)s)
+    #         and end_datetime::date between %(acq_min)s and %(acq_max)s
+    #     """
+
     sql += """
         where
-            nbar.tile_type_id = ANY(%(tile_type)s) and nbar.tile_class_id = ANY(%(tile_class)s) -- mandatory
+            sr.tile_type_id = ANY(%(tile_type)s) and sr.tile_class_id = ANY(%(tile_class)s) -- mandatory
             and satellite.satellite_tag = ANY(%(satellite)s)
-            and nbar.x_index = ANY(%(x)s) and nbar.y_index = ANY(%(y)s)
+            and sr.x_index = ANY(%(x)s) and sr.y_index = ANY(%(y)s)
             and end_datetime::date between %(acq_min)s and %(acq_max)s
         """
 
@@ -1508,16 +1600,34 @@ def build_list_tiles_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_
         if len(esql) > 0:
             sql += " and (" + esql + ")"
 
+    # TODO how to find the "one true dataset" - i.e. to not hard-code NBAR (or now USGSSR)!!!
+
+    # sql += """
+    #     order by nbar.x_index, nbar.y_index, end_datetime {sort}, satellite asc
+    # """.format(sort=sort.value)
+
     sql += """
-        order by nbar.x_index, nbar.y_index, end_datetime {sort}, satellite asc
+        order by sr.x_index, sr.y_index, end_datetime {sort}, satellite asc
     """.format(sort=sort.value)
+
+    # TODO how to find the "one true dataset" - i.e. to not hard-code NBAR (or now USGSSR)!!!
+
+    # params = {"tile_type": [TILE_TYPE.value],
+    #           "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
+    #           "satellite": [satellite.value for satellite in satellites],
+    #           "x": x, "y": y,
+    #           "acq_min": acq_min, "acq_max": acq_max,
+    #           "level_nbar": ProcessingLevel.NBAR.value}
 
     params = {"tile_type": [TILE_TYPE.value],
               "tile_class": [tile_class.value for tile_class in TILE_CLASSES],
               "satellite": [satellite.value for satellite in satellites],
               "x": x, "y": y,
               "acq_min": acq_min, "acq_max": acq_max,
-              "level_nbar": ProcessingLevel.NBAR.value}
+              "level_usgssr": ProcessingLevel.USGSSR.value}
+
+    if DatasetType.ARG25 in dataset_types:
+        params["level_nbar"] = ProcessingLevel.PQA.value
 
     if DatasetType.PQ25 in dataset_types:
         params["level_pqa"] = ProcessingLevel.PQA.value

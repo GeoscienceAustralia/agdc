@@ -75,7 +75,7 @@ class RetrieveDatasetTool(CellTool):
                                  dest="dataset_type",
                                  type=dataset_type_arg,
                                  # nargs="+",
-                                 choices=self.get_supported_dataset_types(), default=DatasetType.ARG25, required=True,
+                                 choices=self.get_supported_dataset_types(), default=DatasetType.USGSSR, required=True,
                                  metavar=" ".join([s.name for s in self.get_supported_dataset_types()]))
 
         self.parser.add_argument("--output-directory", help="Output directory", action="store", dest="output_directory",

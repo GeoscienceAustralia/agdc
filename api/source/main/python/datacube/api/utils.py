@@ -1145,6 +1145,7 @@ def get_dataset_filename(dataset, output_format=OutputFormat.GEOTIFF,
     filename = os.path.basename(filename)
 
     dataset_type_from_string = {
+        DatasetType.USGSSR: "_USGS_SR_",
         DatasetType.ARG25: "_NBAR_",
         DatasetType.PQ25: "_PQA_",
         DatasetType.FC25: "_FC_",
@@ -1160,6 +1161,7 @@ def get_dataset_filename(dataset, output_format=OutputFormat.GEOTIFF,
     }[dataset.dataset_type]
 
     dataset_type_to_string = {
+        DatasetType.USGSSR: "_USGS_SR_",
         DatasetType.ARG25: "_NBAR_",
         DatasetType.PQ25: "_PQA_",
         DatasetType.FC25: "_FC_",
@@ -1290,6 +1292,7 @@ def get_dataset_band_stack_filename(satellites, dataset_type, band, x, y, acq_mi
     satellite_str = get_satellite_string(satellites)
 
     dataset_type_str = {
+        DatasetType.USGSSR: "USGS_SR",
         DatasetType.ARG25: "NBAR",
         DatasetType.PQ25: "PQA",
         DatasetType.FC25: "FC",
@@ -1387,6 +1390,7 @@ def get_dataset_datatype(dataset):
 
 def get_dataset_type_datatype(dataset_type):
     return {
+        DatasetType.USGSSR: gdalconst.GDT_Int16,
         DatasetType.ARG25: gdalconst.GDT_Int16,
         DatasetType.PQ25: gdalconst.GDT_Int16,
         DatasetType.FC25: gdalconst.GDT_Int16,
@@ -1408,6 +1412,7 @@ def get_dataset_ndv(dataset):
 
 def get_dataset_type_ndv(dataset_type):
     return {
+        DatasetType.USGSSR: -9999,
         DatasetType.ARG25: NDV,
         DatasetType.PQ25: UINT16_MAX,
         DatasetType.FC25: NDV,
