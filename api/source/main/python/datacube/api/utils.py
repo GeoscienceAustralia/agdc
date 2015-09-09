@@ -1864,12 +1864,14 @@ class Month(Enum):
 
 
 class Season(Enum):
-    __order__ = "SPRING SUMMER AUTUMN WINTER"
+    __order__ = "SPRING SUMMER AUTUMN WINTER CALENDAR_YEAR FINANCIAL_YEAR"
 
     SPRING = "SPRING"
     SUMMER = "SUMMER"
     AUTUMN = "AUTUMN"
     WINTER = "WINTER"
+    CALENDAR_YEAR = "CALENDAR_YEAR"
+    FINANCIAL_YEAR = "FINANCIAL_YEAR"
 
 
 class Quarter(Enum):

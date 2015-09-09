@@ -43,7 +43,7 @@ from collections import namedtuple
 from datacube.api import parse_date_min, parse_date_max, Month, PqaMask, Statistic, PERCENTILE, writeable_dir, Season
 from datacube.api import satellite_arg, pqa_mask_arg, dataset_type_arg, statistic_arg, season_arg
 from datacube.api.query import list_cells_as_list, list_tiles_as_list
-from datacube.api.model import Satellite, DatasetType, Ls57Arg25Bands
+from datacube.api.model import Satellite, DatasetType, Ls57Arg25Bands, NdviBands
 from datacube.api.utils import get_dataset_type_ndv, get_dataset_data_stack, log_mem, build_season_date_criteria
 from datacube.api.utils import PercentileInterpolation
 from datacube.api.utils import calculate_stack_statistic_count, calculate_stack_statistic_count_observed
@@ -55,14 +55,13 @@ from datacube.api.workflow import Task
 _log = logging.getLogger()
 
 
-STATISTICS = [Statistic.PERCENTILE_25, Statistic.PERCENTILE_50, Statistic.PERCENTILE_75]
-
-
 SEASONS = {
     Season.SUMMER: ((Month.NOVEMBER, 17), (Month.APRIL, 25)),
     Season.AUTUMN: ((Month.FEBRUARY, 16), (Month.JULY, 25)),
     Season.WINTER: ((Month.MAY, 17), (Month.OCTOBER, 25)),
-    Season.SPRING: ((Month.AUGUST, 17), (Month.JANUARY, 25))
+    Season.SPRING: ((Month.AUGUST, 17), (Month.JANUARY, 25)),
+    Season.FINANCIAL_YEAR: ((Month.JULY, 1), (Month.JUNE, 30)),
+    Season.CALENDAR_YEAR: ((Month.JANUARY, 1),(Month.DECEMBER, 31))
 }
 
 EpochParameter = namedtuple('Epoch', ['increment', 'duration'])
@@ -71,7 +70,9 @@ EpochParameter = namedtuple('Epoch', ['increment', 'duration'])
 def ls57_arg_band_arg(s):
     if s in [t.name for t in Ls57Arg25Bands]:
         return Ls57Arg25Bands[s]
-    raise argparse.ArgumentTypeError("{0} is not a supported LS57 ARG25 band".format(s))
+    if s in [t.name for t in NdviBands]:
+        return NdviBands[s]
+    raise argparse.ArgumentTypeError("{0} is not a supported band".format(s))
 
 
 def percentile_interpolation_arg(s):
@@ -79,8 +80,100 @@ def percentile_interpolation_arg(s):
         return PercentileInterpolation[s]
     raise argparse.ArgumentTypeError("{0} is not a supported percentile interpolation".format(s))
 
+def create_tasks(args):
+    x_list = range(args.x_min, args.x_max + 1)
+    y_list = range(args.y_min, args.y_max + 1)
 
-class Arg25BandStatisticsWorkflow(object):
+    dataset_types = [args.dataset_type]
+
+    if args.mask_pqa_apply:
+        dataset_types.append(DatasetType.PQ25)
+
+    from itertools import product
+
+    for (acq_min, acq_max), season in product(args.get_epochs(), args.get_seasons()):
+        _log.debug("acq_min=[%s] acq_max=[%s] season=[%s]", acq_min, acq_max, season.name)
+
+        acq_min_extended, acq_max_extended, criteria = build_season_date_criteria(acq_min, acq_max, season,
+                                                                                  seasons=SEASONS,
+                                                                                  extend=True)
+
+        _log.debug("\tacq_min_extended=[%s], acq_max_extended=[%s], criteria=[%s]", acq_min_extended, acq_max_extended, criteria)
+
+        for cell in list_cells_as_list(x=x_list, y=y_list, satellites=args.satellites,
+                                            acq_min=acq_min_extended, acq_max=acq_max_extended,
+                                            dataset_types=dataset_types, include=criteria):
+            _log.debug("\t%3d %4d", cell.x, cell.y)
+            #yield args.create_task(x=cell.x, y=cell.y, acq_min=acq_min, acq_max=acq_max, season=season)
+            _log.debug("Creating task for %s %s %s %s %s", cell.x, cell.y, acq_min, acq_max, season)
+            yield Arg25BandStatisticsTask(x=cell.x, y=cell.y,
+                                       acq_min=acq_min, acq_max=acq_max, season=season,
+                                       satellites=args.satellites,
+                                       dataset_type=args.dataset_type, bands=args.bands,
+                                       mask_pqa_apply=args.mask_pqa_apply, mask_pqa_mask=args.mask_pqa_mask,
+                                       x_chunk_size=args.x_chunk_size, y_chunk_size=args.y_chunk_size,
+                                       statistics=args.statistics, interpolation=args.interpolation,
+                                       output_directory=args.output_directory)
+
+
+def create_tasks2(args):
+    x_list = range(args.x_min, args.x_max + 1)
+    y_list = range(args.y_min, args.y_max + 1)
+
+    dataset_types = [args.dataset_type]
+    if args.mask_pqa_apply:
+        dataset_types.append(DatasetType.PQ25)
+
+    from itertools import product
+
+    if args.file_per_statistic:
+        for (season, band, statistic) in product(args.get_seasons(), args.bands, args.statistics):
+            acq_min_extended, acq_max_extended, criteria = build_season_date_criteria(args.acq_min, args.acq_max, season,
+                                                                                      seasons=SEASONS,
+                                                                                      extend=True)
+            for cell in list_cells_as_list(x=x_list, y=y_list, satellites=args.satellites,
+                                            acq_min=acq_min_extended, acq_max=acq_max_extended,
+                                            dataset_types=dataset_types, include=criteria):
+                yield Arg25EpochStatisticsTask(x=cell.x, y=cell.y,
+                                               acq_min=acq_min_extended, acq_max=acq_max_extended,
+                                               season=season,
+                                               epochs = list(args.get_epochs()),
+                                               satellites=args.satellites,
+                                               dataset_type=args.dataset_type,
+                                               band=band,
+                                               bands=args.bands,
+                                               mask_pqa_apply=args.mask_pqa_apply, mask_pqa_mask=args.mask_pqa_mask,
+                                               x_chunk_size=args.x_chunk_size, y_chunk_size=args.y_chunk_size,
+                                               statistic = statistic,
+                                               statistics=args.statistics, interpolation=args.interpolation,
+                                               output_directory=args.output_directory)
+        return
+
+    for (acq_min, acq_max), season in product(args.get_epochs(), args.get_seasons()):
+        _log.debug("acq_min=[%s] acq_max=[%s] season=[%s]", acq_min, acq_max, season.name)
+
+        acq_min_extended, acq_max_extended, criteria = build_season_date_criteria(acq_min, acq_max, season,
+                                                                                  seasons=SEASONS,
+                                                                                  extend=True)
+
+        _log.debug("\tacq_min_extended=[%s], acq_max_extended=[%s], criteria=[%s]", acq_min_extended, acq_max_extended, criteria)
+        for cell in list_cells_as_list(x=x_list, y=y_list, satellites=args.satellites,
+                                            acq_min=acq_min_extended, acq_max=acq_max_extended,
+                                            dataset_types=dataset_types, include=criteria):
+            _log.debug("\t%3d %4d", cell.x, cell.y)
+            #yield args.create_task(x=cell.x, y=cell.y, acq_min=acq_min, acq_max=acq_max, season=season)
+            _log.debug("Creating task for %s %s %s %s %s", cell.x, cell.y, acq_min, acq_max, season)
+
+            yield Arg25BandStatisticsTask(x=cell.x, y=cell.y,
+                                       acq_min=acq_min_extended, acq_max=acq_max_extended, season=season,
+                                       satellites=args.satellites,
+                                       dataset_type=args.dataset_type, bands=args.bands,
+                                       mask_pqa_apply=args.mask_pqa_apply, mask_pqa_mask=args.mask_pqa_mask,
+                                       x_chunk_size=args.x_chunk_size, y_chunk_size=args.y_chunk_size,
+                                       statistics=args.statistics, interpolation=args.interpolation,
+                                       output_directory=args.output_directory)
+
+class Arguments(object):
 
     def __init__(self, name="Arg25 Band Statistics Workflow"):
 
@@ -122,6 +215,11 @@ class Arg25BandStatisticsWorkflow(object):
         self.statistics = None
 
         self.interpolation = None
+
+        self.file_per_statistic = False
+
+        self.setup_arguments()
+        self.process_arguments(self.parser.parse_args())
 
     def setup_arguments(self):
 
@@ -177,6 +275,9 @@ class Arg25BandStatisticsWorkflow(object):
         self.parser.add_argument("--workers", help="Number of worker tasks", action="store", dest="workers", type=int,
                                  default=16)
 
+        self.parser.add_argument("--file-per-statistic", help="Generate one file per statistic", action="store_true", dest="file_per_statistic",
+                                 default=False)
+
         group = self.parser.add_mutually_exclusive_group()
 
         group.add_argument("--quiet", help="Less output", action="store_const", dest="log_level", const=logging.WARN)
@@ -187,9 +288,9 @@ class Arg25BandStatisticsWorkflow(object):
         self.parser.add_argument("--dataset-type", help="The type of dataset to process", action="store",
                                  dest="dataset_type",
                                  type=dataset_type_arg,
-                                 choices=[DatasetType.ARG25],  # required=True,
+                                 choices=[DatasetType.ARG25, DatasetType.NDVI],  # required=True,
                                  default=DatasetType.ARG25,
-                                 metavar=" ".join([dt.name for dt in [DatasetType.ARG25]]))
+                                 metavar=" ".join([dt.name for dt in [DatasetType.ARG25, DatasetType.NDVI]]))
 
         self.parser.add_argument("--band", help="The band(s) to process", action="store",
                                  default=Ls57Arg25Bands,  # required=True,
@@ -208,7 +309,7 @@ class Arg25BandStatisticsWorkflow(object):
                                  )
 
         self.parser.add_argument("--statistic", help="The statistic(s) to produce", action="store",
-                                 default=STATISTICS,  # required=True,
+                                 default=[Statistic.PERCENTILE_25, Statistic.PERCENTILE_50, Statistic.PERCENTILE_75],  # required=True,
                                  dest="statistic", type=statistic_arg, nargs="+",
                                  metavar=" ".join([s.name for s in Statistic]))
 
@@ -271,6 +372,8 @@ class Arg25BandStatisticsWorkflow(object):
 
         self.interpolation = args.interpolation
 
+        self.file_per_statistic = args.file_per_statistic
+
     def log_arguments(self):
 
         # # Call method on super class
@@ -330,51 +433,177 @@ class Arg25BandStatisticsWorkflow(object):
         for season in self.seasons:
             yield season
 
-    def create_tasks(self):
 
-        x_list = range(self.x_min, self.x_max + 1)
-        y_list = range(self.y_min, self.y_max + 1)
+class Arg25EpochStatisticsTask(Task):
+    x = luigi.IntParameter()
+    y = luigi.IntParameter()
 
+    acq_min = luigi.DateParameter()
+    acq_max = luigi.DateParameter()
+
+    season = luigi.Parameter()
+    epochs = luigi.Parameter(is_list=True, significant=False)
+
+    satellites = luigi.Parameter(is_list=True)
+
+    dataset_type = luigi.Parameter()
+
+    band = luigi.Parameter()
+    bands = luigi.Parameter(is_list=True)
+
+    mask_pqa_apply = luigi.BooleanParameter()
+    mask_pqa_mask = luigi.Parameter(is_list=True)
+
+    x_chunk_size = luigi.IntParameter()
+    y_chunk_size = luigi.IntParameter()
+
+    statistic = luigi.Parameter()
+    statistics = luigi.Parameter(is_list=True)
+
+    interpolation = luigi.Parameter()
+
+    output_directory = luigi.Parameter()
+
+    def output(self):
+        acq_min = self.acq_min.strftime("%Y%m%d")
+        acq_max = self.acq_max.strftime("%Y%m%d")
+
+        season = SEASONS[self.season]
+        season_start = "{month}{day:02d}".format(month=season[0][0].name[:3], day=season[0][1])
+        season_end = "{month}{day:02d}".format(month=season[1][0].name[:3], day=season[1][1])
+
+        return luigi.LocalTarget(os.path.join(self.output_directory,
+                                              "ARG25_{x:03d}_{y:04d}_{acq_min}_{acq_max}_{season_start}_{season_end}_{band}_{stat}.tif".format(
+                                                  x=self.x, y=self.y,
+                                                  acq_min=acq_min,
+                                                  acq_max=acq_max,
+                                                  season_start=season_start,
+                                                  season_end=season_end,
+                                                  band=self.band.name,
+                                                  stat=self.statistic.name
+                                                  )))
+
+    def requires(self):
         dataset_types = [self.dataset_type]
-
         if self.mask_pqa_apply:
             dataset_types.append(DatasetType.PQ25)
 
-        from itertools import product
+        for (acq_min, acq_max) in self.epochs:
+            _log.debug("acq_min=[%s] acq_max=[%s] season=[%s]", acq_min, acq_max, self.season.name)
 
-        for (acq_min, acq_max), season in product(self.get_epochs(), self.get_seasons()):
-            _log.debug("acq_min=[%s] acq_max=[%s] season=[%s]", acq_min, acq_max, season.name)
-
-            acq_min_extended, acq_max_extended, criteria = build_season_date_criteria(acq_min, acq_max, season,
+            acq_min_extended, acq_max_extended, criteria = build_season_date_criteria(acq_min, acq_max, self.season,
                                                                                       seasons=SEASONS,
                                                                                       extend=True)
 
             _log.debug("\tacq_min_extended=[%s], acq_max_extended=[%s], criteria=[%s]", acq_min_extended, acq_max_extended, criteria)
-
-            for cell in list_cells_as_list(x=x_list, y=y_list, satellites=self.satellites,
+            for cell in list_cells_as_list(x=[self.x], y=[self.y], satellites=self.satellites,
                                                 acq_min=acq_min_extended, acq_max=acq_max_extended,
                                                 dataset_types=dataset_types, include=criteria):
                 _log.debug("\t%3d %4d", cell.x, cell.y)
-                yield self.create_task(x=cell.x, y=cell.y, acq_min=acq_min, acq_max=acq_max, season=season)
+                #yield args.create_task(x=cell.x, y=cell.y, acq_min=acq_min, acq_max=acq_max, season=season)
+                _log.debug("Creating task for %s %s %s %s %s", cell.x, cell.y, acq_min, acq_max, self.season)
 
-    def create_task(self, x, y, acq_min, acq_max, season):
-        _log.debug("Creating task for %s %s %s %s %s", x, y, acq_min, acq_max, season)
-        return Arg25BandStatisticsTask(x=x, y=y,
-                                       acq_min=acq_min, acq_max=acq_max, season=season,
-                                       satellites=self.satellites,
-                                       dataset_type=self.dataset_type, bands=self.bands,
-                                       mask_pqa_apply=self.mask_pqa_apply, mask_pqa_mask=self.mask_pqa_mask,
-                                       x_chunk_size=self.x_chunk_size, y_chunk_size=self.y_chunk_size,
-                                       statistics=self.statistics, interpolation=self.interpolation,
-                                       output_directory=self.output_directory)
+                yield Arg25BandStatisticsTask(x=cell.x, y=cell.y,
+                                           acq_min=acq_min_extended, acq_max=acq_max_extended, season=self.season,
+                                           satellites=args.satellites,
+                                           dataset_type=args.dataset_type, bands=args.bands,
+                                           mask_pqa_apply=args.mask_pqa_apply, mask_pqa_mask=args.mask_pqa_mask,
+                                           x_chunk_size=args.x_chunk_size, y_chunk_size=args.y_chunk_size,
+                                           statistics=args.statistics, interpolation=args.interpolation,
+                                           output_directory=args.output_directory)
+
+    def get_statistic_filename(self, acq_min, acq_max, x_offset, y_offset):
+        return os.path.join(self.output_directory, get_statistic_filename(x=self.x, y=self.y, acq_min=acq_min, acq_max=acq_max,
+                                      season=self.season, band=self.band, statistic=self.statistic,
+                                      x_offset=x_offset, y_offset=y_offset))
+
+    def generate_raster_metadata(self):
+        return {
+            "X_INDEX": "{x:03d}".format(x=self.x),
+            "Y_INDEX": "{y:04d}".format(y=self.y),
+            "DATASET_TYPE": "{dataset_type} STATISTICS".format(dataset_type=self.dataset_type.name),
+            "ACQUISITION_DATE": "{acq_min} to {acq_max}".format(acq_min=self.acq_min, acq_max=self.acq_max),
+            "SEASON": self.season.name,
+            "SATELLITE": " ".join([s.name for s in self.satellites]),
+            "PIXEL_QUALITY_FILTER": self.mask_pqa_apply and " ".join([mask.name for mask in self.mask_pqa_mask]) or "",
+            "BANDS": self.band.name,
+            "STATISTICS": self.statistic.name,
+            "INTERPOLATION": self.interpolation.name
+        }
 
     def run(self):
 
-        self.setup_arguments()
-        self.process_arguments(self.parser.parse_args())
-        self.log_arguments()
+        _log.info("*** Aggregating chunk NPY files into TIF")
 
-        luigi.build(self.create_tasks(), local_scheduler=self.local_scheduler, workers=self.workers)
+        ndv = get_dataset_type_ndv(self.dataset_type)
+
+        # TODO
+
+        transform = (self.x, 0.00025, 0.0, self.y+1, 0.0, -0.00025)
+
+        srs = osr.SpatialReference()
+        srs.ImportFromEPSG(4326)
+
+        projection = srs.ExportToWkt()
+
+        driver = gdal.GetDriverByName("GTiff")
+        assert driver
+
+        # Create the output TIF
+
+        # TODO
+
+        raster = driver.Create(self.output().path, 4000, 4000, len(self.epochs) * len(self.statistics), gdal.GDT_Int16,
+                               options=["INTERLEAVE=BAND", "COMPRESS=LZW", "TILED=YES"])
+        assert raster
+
+        # TODO
+
+        raster.SetGeoTransform(transform)
+        raster.SetProjection(projection)
+
+        raster.SetMetadata(self.generate_raster_metadata())
+
+        from itertools import product
+
+        for index, (acq_min, acq_max) in enumerate(self.epochs, start=1):
+            _log.info("Doing band [%s] statistic [%s] which is band number [%s]", self.band.name, self.statistic.name, index)
+
+            acq_min_extended, acq_max_extended, criteria = build_season_date_criteria(acq_min, acq_max, self.season,
+                                                                                  seasons=SEASONS,
+                                                                                  extend=True)
+
+            band = raster.GetRasterBand(index)
+            assert band
+
+            # TODO
+            band.SetNoDataValue(ndv)
+            band.SetDescription("{band} - {stat}".format(band=self.band.name, stat=self.statistic.name))
+
+            for x_offset, y_offset in product(range(0, 4000, self.x_chunk_size),
+                                              range(0, 4000, self.y_chunk_size)):
+                filename = self.get_statistic_filename(acq_min_extended, acq_max_extended, x_offset, y_offset)
+
+                _log.info("Processing chunk [%4d|%4d] for [%s] from [%s]", x_offset, y_offset, self.statistic.name, filename)
+
+                # read the chunk
+                data = numpy.load(filename)
+
+                _log.info("data is [%s]\n[%s]", numpy.shape(data), data)
+                _log.info("Writing it to (%d,%d)", x_offset, y_offset)
+
+                # write the chunk to the TIF at the offset
+                band.WriteArray(data, x_offset, y_offset)
+
+                band.FlushCache()
+
+            band.ComputeStatistics(True)
+            band.FlushCache()
+
+            del band
+
+        raster.FlushCache()
+        del raster
 
 
 class Arg25BandStatisticsTask(Task):
@@ -451,9 +680,9 @@ class Arg25BandStatisticsTask(Task):
             yield x_offset, y_offset
 
     def get_statistic_filename(self, statistic, x_offset, y_offset, band):
-        return get_statistic_filename(x=self.x, y=self.y, acq_min=self.acq_min, acq_max=self.acq_max,
+        return os.path.join(self.output_directory, get_statistic_filename(x=self.x, y=self.y, acq_min=self.acq_min, acq_max=self.acq_max,
                                       season=self.season, band=band, statistic=statistic,
-                                      x_offset=x_offset, y_offset=y_offset)
+                                      x_offset=x_offset, y_offset=y_offset))
 
     def generate_raster_metadata(self):
         return {
@@ -576,12 +805,12 @@ class Arg25BandStatisticsBandChunkTask(Task):
 
     def output(self):
         return [
-            luigi.LocalTarget(os.path.join(self.output_directory, self.get_statistic_filename(statistic))) for statistic in STATISTICS]
+            luigi.LocalTarget(self.get_statistic_filename(statistic)) for statistic in self.statistics]
 
     def get_statistic_filename(self, statistic):
-        return get_statistic_filename(x=self.x, y=self.y, acq_min=self.acq_min, acq_max=self.acq_max,
+        return os.path.join(self.output_directory, get_statistic_filename(x=self.x, y=self.y, acq_min=self.acq_min, acq_max=self.acq_max,
                                       season=self.season, band=self.band, statistic=statistic,
-                                      x_offset=self.x_offset, y_offset=self.y_offset)
+                                      x_offset=self.x_offset, y_offset=self.y_offset))
 
     def get_tiles(self):
         acq_min, acq_max, criteria = build_season_date_criteria(self.acq_min, self.acq_max, self.season,
@@ -654,7 +883,7 @@ class Arg25BandStatisticsBandChunkTask(Task):
             numpy.save(self.get_statistic_filename(Statistic.MEAN), stack_stat)
             del stack_stat
 
-        for percentile in [Statistic.PERCENTILE_25, Statistic.PERCENTILE_50, Statistic.PERCENTILE_75, Statistic.PERCENTILE_90, Statistic.PERCENTILE_95]:
+        for percentile in PERCENTILE:
 
             if percentile in self.statistics:
                 log_mem("Before {p}".format(p=percentile.name))
@@ -685,5 +914,8 @@ def get_statistic_filename(x, y, acq_min, acq_max, season, band, statistic, x_of
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+    args = Arguments()
+    args.log_arguments()
 
-    Arg25BandStatisticsWorkflow().run()
+    luigi.build(create_tasks2(args), local_scheduler=args.local_scheduler, workers=args.workers)
+    #Arg25BandStatisticsWorkflow().run()
