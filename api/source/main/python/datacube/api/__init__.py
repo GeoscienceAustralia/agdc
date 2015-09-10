@@ -26,18 +26,22 @@
 # ===============================================================================
 
 
-__author__ = "Simon Oldfield"
-
-
 import argparse
 import logging
 import os
 from datacube.api.model import Satellite, DatasetType
-from datacube.api.utils import PqaMask, WofsMask, OutputFormat, Season, Month
 from enum import Enum
+
+__author__ = "Simon Oldfield"
 
 
 _log = logging.getLogger()
+
+
+def cloud_qa_mask_arg(s):
+    if s in [m.name for m in Ls8CloudMask]:
+        return Ls8CloudMask[s]
+    raise argparse.ArgumentTypeError("{0} is not a supported Cloud QA mask".format(s))
 
 
 def satellite_arg(s):
@@ -275,6 +279,144 @@ class BandListType(Enum):
     COMMON = "COMMON"
 
 
+class TileClass(Enum):
+    __order__ = "SINGLE MOSAIC"
+
+    SINGLE = 1
+    MOSAIC = 4
+
+
+class CoordinateReferenceSystem(Enum):
+    EPSG_4326 = "EPSG:4326"
+    CONUS_ALBERS = "+proj=aea +lat_1=29.5 +lat_2=45.5 +lat_0=23 +lon_0=-96 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs"
+
+
+class TileType(Enum):
+    __order__ = "GA USGS"
+
+    GA = 1
+    USGS = 6
+
+
+class ProcessingLevel(Enum):
+    __order__ = "ORTHO NBAR PQA FC L1T MAP DSM DEM DEM_S DEM_H"
+
+    ORTHO = 1
+    NBAR = 2
+    PQA = 3
+    FC = 4
+    L1T = 5
+    MAP = 10
+    DSM = 100
+    DEM = 110
+    DEM_S = 120
+    DEM_H = 130
+    USGS_SR_BAND = 70
+    USGS_SR_ATTR = 71
+    USGS_SR_INT16_ATTR = 72
+    USGS_CFMASK = 73
+
+
+# Define PQ mask
+#   This represents bits 0-13 set which means:
+#       -  0 = band 10 not saturated
+#       -  1 = band 20 not saturated
+#       -  2 = band 30 not saturated
+#       -  3 = band 40 not saturated
+#       -  4 = band 50 not saturated
+#       -  5 = band 61 not saturated
+#       -  6 = band 62 not saturated
+#       -  7 = band 70 not saturated
+#       -  8 = contiguity ok (i.e. all bands present)
+#       -  9 = land (not sea)
+#       - 10 = not cloud (ACCA test)
+#       - 11 = not cloud (FMASK test)
+#       - 12 = not cloud shadow (ACCA test)
+#       - 13 = not cloud shadow (FMASK test)
+
+class PqaMask(Enum):
+    PQ_MASK_CLEAR = 16383               # bits 0 - 13 set
+
+    PQ_MASK_SATURATION = 255            # bits 0 - 7 set
+    PQ_MASK_SATURATION_OPTICAL = 159    # bits 0-4 and 7 set
+    PQ_MASK_SATURATION_THERMAL = 96     # bits 5,6 set
+
+    PQ_MASK_CONTIGUITY = 256            # bit 8 set
+
+    PQ_MASK_LAND = 512                  # bit 9 set
+
+    PQ_MASK_CLOUD = 15360               # bits 10-13
+
+    PQ_MASK_CLOUD_ACCA = 1024           # bit 10 set
+    PQ_MASK_CLOUD_FMASK = 2048          # bit 11 set
+
+    PQ_MASK_CLOUD_SHADOW_ACCA = 4096    # bit 12 set
+    PQ_MASK_CLOUD_SHADOW_FMASK = 8192   # bit 13 set
+
+
+class WofsMask(Enum):
+    DRY = 0
+    NO_DATA = 1
+    SATURATION_CONTIGUITY = 2
+    SEA_WATER = 4
+    TERRAIN_SHADOW = 8
+    HIGH_SLOPE = 16
+    CLOUD_SHADOW = 32
+    CLOUD = 64
+    WET = 128
+
+
+class OutputFormat(Enum):
+    __order__ = "GEOTIFF ENVI"
+
+    GEOTIFF = "GTiff"
+    ENVI = "ENVI"
+
+
+class Month(Enum):
+    __order__ = "JANUARY FEBRUARY MARCH APRIL MAY JUNE JULY AUGUST SEPTEMBER OCTOBER NOVEMBER DECEMBER"
+
+    JANUARY = 1
+    FEBRUARY = 2
+    MARCH = 3
+    APRIL = 4
+    MAY = 5
+    JUNE = 6
+    JULY = 7
+    AUGUST = 8
+    SEPTEMBER = 9
+    OCTOBER = 10
+    NOVEMBER = 11
+    DECEMBER = 12
+
+
+class Season(Enum):
+    __order__ = "SPRING SUMMER AUTUMN WINTER"
+
+    SPRING = "SPRING"
+    SUMMER = "SUMMER"
+    AUTUMN = "AUTUMN"
+    WINTER = "WINTER"
+
+
+class Quarter(Enum):
+    __order__ = "Q1 Q2 Q3 Q4"
+
+    Q1 = "Q1"
+    Q2 = "Q2"
+    Q3 = "Q3"
+    Q4 = "Q4"
+
+
+# TODO proper handling of mutiple AEROSOL values!
+# Probably change the mask to be 2 attributes - the bits to use to mask and the value expected to match
+
+class Ls8CloudMask(Enum):
+    MASK_CIRRUS_CLOUD = 0b00000001
+    MASK_CLOUD = 0b00000010
+    MASK_ADJACENT_TO_CLOUD = 0b00000100
+    MASK_CLOUD_SHADOW = 0b00001000
+    MASK_HIGH_AEROSOL = 0b00110000
 
 
 

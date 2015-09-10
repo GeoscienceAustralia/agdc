@@ -36,9 +36,9 @@ import logging
 import sys
 from enum import Enum
 from datacube.api.model import Satellite, dataset_type_database, dataset_type_derived_nbar
-from datacube.api.utils import PqaMask, WofsMask
+from datacube.api.utils import PqaMask, WofsMask, Ls8CloudMask
 from datacube.api import satellite_arg, pqa_mask_arg, wofs_mask_arg, parse_date_min, parse_date_max, readable_file, \
-    parse_season_min, parse_season_max
+    parse_season_min, parse_season_max, cloud_qa_mask_arg
 
 __author__ = "Simon Oldfield"
 
@@ -80,6 +80,9 @@ class Tool(object):
 
         self.include_ls7_slc_off = None
         self.include_ls8_pre_wrs2 = None
+
+        self.mask_cloud_qa_apply = None
+        self.mask_cloud_qa_mask = None
 
     def setup_arguments(self):
 
@@ -134,6 +137,15 @@ class Tool(object):
                                  help="Exclude LS8 PRE-WRS2 datasets",
                                  action="store_false", dest="include_ls8_pre_wrs2", default=True)
 
+        # TODO do this properly
+
+        self.parser.add_argument("--mask-cloud-qa-apply", help="Apply Cloud QA mask", action="store_true", dest="mask_cloud_qa_apply",
+                                 default=False)
+
+        self.parser.add_argument("--mask-cloud-qa-mask", help="The Cloud QA mask to apply", action="store", dest="mask_cloud_qa_mask",
+                                 type=cloud_qa_mask_arg, nargs="+", choices=Ls8CloudMask, default=[Ls8CloudMask.MASK_CIRRUS_CLOUD, Ls8CloudMask.MASK_CLOUD, Ls8CloudMask.MASK_CLOUD_SHADOW, Ls8CloudMask.MASK_HIGH_AEROSOL],
+                                 metavar=" ".join([s.name for s in Ls8CloudMask]))
+
     def process_arguments(self, args):
 
         _log.setLevel(args.log_level)
@@ -163,6 +175,9 @@ class Tool(object):
         self.include_ls7_slc_off = args.include_ls7_slc_off
         self.include_ls8_pre_wrs2 = args.include_ls8_pre_wrs2
 
+        self.mask_cloud_qa_apply = args.mask_cloud_qa_apply
+        self.mask_cloud_qa_mask = args.mask_cloud_qa_mask
+
     def log_arguments(self):
 
         # process = {process_min} to {process_max}
@@ -178,13 +193,16 @@ class Tool(object):
         PQA mask = {pqa_mask}
         WOFS mask = {wofs_mask}
         season = {season}
+        Cloud QA mask = {cloud_qa_mask}
         """.format(acq_min=self.acq_min, acq_max=self.acq_max,
                    satellites=" ".join([satellite.name for satellite in self.satellites]),
                    pqa_mask=self.mask_pqa_apply and " ".join([mask.name for mask in self.mask_pqa_mask]) or "",
                    wofs_mask=self.mask_wofs_apply and " ".join([mask.name for mask in self.mask_wofs_mask]) or "",
                    ls7_slc_off=self.include_ls7_slc_off and "INCLUDED" or "EXCLUDED",
                    ls8_pre_wrs2=self.include_ls8_pre_wrs2 and "INCLUDED" or "EXCLUDED",
-                   season=self.season and self.season or ""))
+                   season=self.season and self.season or "",
+                   cloud_qa_mask=self.mask_cloud_qa_apply and " ".join([mask.name for mask in self.mask_cloud_qa_mask]) or ""
+                   ))
 
     @staticmethod
     def get_supported_dataset_types():

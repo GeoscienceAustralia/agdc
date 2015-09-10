@@ -169,6 +169,9 @@ class RetrieveDatasetStackTool(CellTool):
         if self.mask_wofs_apply and DatasetType.WATER not in dataset_types:
             dataset_types.append(DatasetType.WATER)
 
+        if self.mask_cloud_qa_apply and DatasetType.USGS_SR_ATTR not in dataset_types:
+            dataset_types.append(DatasetType.USGS_SR_ATTR)
+
         exclude = None
 
         if not self.include_ls8_pre_wrs2 or not self.include_ls8_pre_wrs2:
@@ -349,7 +352,8 @@ class RetrieveDatasetStackTool(CellTool):
             "ACQUISITION_DATE": "{acq_min} to {acq_max}".format(acq_min=format_date(self.acq_min), acq_max=format_date(self.acq_max)),
             "SATELLITES": " ".join([s.name for s in self.satellites]),
             "PIXEL_QUALITY_FILTER": self.mask_pqa_apply and " ".join([mask.name for mask in self.mask_pqa_mask]) or "",
-            "WATER_FILTER": self.mask_wofs_apply and " ".join([mask.name for mask in self.mask_wofs_mask]) or ""
+            "WATER_FILTER": self.mask_wofs_apply and " ".join([mask.name for mask in self.mask_wofs_mask]) or "",
+            "CLOUD_QA_FILTER": self.mask_cloud_qa_apply and " ".join([mask.name for mask in self.mask_cloud_qa_mask]) or ""
         }
 
 

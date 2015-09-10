@@ -35,7 +35,8 @@ import logging
 import os
 from datacube.api import dataset_type_arg, writeable_dir, output_format_arg, OutputFormat, BandListType
 from datacube.api.model import DatasetType
-from datacube.api.utils import LS7_SLC_OFF_EXCLUSION, LS8_PRE_WRS_2_EXCLUSION, build_date_criteria
+from datacube.api.utils import LS7_SLC_OFF_EXCLUSION, LS8_PRE_WRS_2_EXCLUSION, build_date_criteria, \
+    get_mask_ls8_cloud_qa
 from datacube.api.tool import CellTool
 from datacube.api.utils import get_mask_pqa, get_mask_wofs, get_dataset_data_masked
 from datacube.api.utils import get_band_name_union, get_band_name_intersection
@@ -75,7 +76,7 @@ class RetrieveDatasetTool(CellTool):
                                  dest="dataset_type",
                                  type=dataset_type_arg,
                                  # nargs="+",
-                                 choices=self.get_supported_dataset_types(), default=DatasetType.USGSSR, required=True,
+                                 choices=self.get_supported_dataset_types(), default=DatasetType.USGS_SR_BAND, required=True,
                                  metavar=" ".join([s.name for s in self.get_supported_dataset_types()]))
 
         self.parser.add_argument("--output-directory", help="Output directory", action="store", dest="output_directory",
@@ -171,6 +172,9 @@ class RetrieveDatasetTool(CellTool):
         if self.mask_wofs_apply and DatasetType.WATER not in dataset_types:
             dataset_types.append(DatasetType.WATER)
 
+        if self.mask_cloud_qa_apply and DatasetType.USGS_SR_ATTR not in dataset_types:
+            dataset_types.append(DatasetType.USGS_SR_ATTR)
+
         exclude = None
 
         if not self.include_ls8_pre_wrs2 or not self.include_ls8_pre_wrs2:
@@ -213,6 +217,8 @@ class RetrieveDatasetTool(CellTool):
             pqa = (self.mask_pqa_apply and DatasetType.PQ25 in tile.datasets) and tile.datasets[DatasetType.PQ25] or None
             wofs = (self.mask_wofs_apply and DatasetType.WATER in tile.datasets) and tile.datasets[DatasetType.WATER] or None
 
+            cloud_qa = (self.mask_cloud_qa_apply and DatasetType.USGS_SR_ATTR in tile.datasets) and tile.datasets[DatasetType.USGS_SR_ATTR] or None
+
             dataset = self.dataset_type in tile.datasets and tile.datasets[self.dataset_type] or None
 
             if not dataset:
@@ -228,21 +234,28 @@ class RetrieveDatasetTool(CellTool):
                                                          output_format=self.output_format,
                                                          mask_pqa_apply=self.mask_pqa_apply,
                                                          mask_wofs_apply=self.mask_wofs_apply,
+                                                         mask_cloud_qa_apply=self.mask_cloud_qa_apply,
                                                          mask_vector_apply=self.mask_vector_apply))
 
-            retrieve_data(tile.x, tile.y, tile.end_datetime, dataset, self.bands, pqa, self.mask_pqa_mask,
-                          wofs, self.mask_wofs_mask, filename, self.output_format, self.overwrite, mask=mask_vector)
+            retrieve_data(tile.x, tile.y, tile.end_datetime, dataset, self.bands,
+                          pqa, self.mask_pqa_mask,
+                          wofs, self.mask_wofs_mask,
+                          cloud_qa, self.mask_cloud_qa_mask,
+                          filename, self.output_format, self.overwrite, mask=mask_vector)
 
 
-def retrieve_data(x, y, acq_dt, dataset, band_names, pqa, pqa_masks, wofs, wofs_masks, path, output_format,
+def retrieve_data(x, y, acq_dt, dataset, band_names, pqa, pqa_masks, wofs, wofs_masks, cloud_qa, cloud_qa_masks,
+                  path, output_format,
                   overwrite=False, data_type=None, ndv=None, mask=None):
 
-    _log.info("Retrieving data from [%s] bands [%s] with pq [%s] and pq mask [%s] and wofs [%s] and wofs mask [%s] to [%s] file [%s]",
+    _log.info("Retrieving data from [%s] bands [%s] with pq [%s] and pq mask [%s] and wofs [%s] and wofs mask [%s] and cloud qa [%s] and cloud qa mask [%s] to [%s] file [%s]",
               dataset.path,
               band_names,
               pqa and pqa.path or "",
               pqa and pqa_masks or "",
               wofs and wofs.path or "", wofs and wofs_masks or "",
+              cloud_qa and cloud_qa.path or "",
+              cloud_qa and cloud_qa_masks or "",
               output_format.name, path)
 
     if os.path.exists(path) and not overwrite:
@@ -258,6 +271,9 @@ def retrieve_data(x, y, acq_dt, dataset, band_names, pqa, pqa_masks, wofs, wofs_
 
     if wofs:
         mask = get_mask_wofs(wofs, wofs_masks, mask=mask)
+
+    if cloud_qa:
+        mask = get_mask_ls8_cloud_qa(cloud_qa, cloud_qa_masks, mask=mask)
 
     bands = []
 

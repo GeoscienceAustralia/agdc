@@ -47,6 +47,47 @@ class Satellite(Enum):
     LS8 = "LS8"
 
 
+class Ls57UsgsSrBandBands(Enum):
+    __order__ = "BLUE GREEN RED NEAR_INFRARED SHORT_WAVE_INFRARED_1 SHORT_WAVE_INFRARED_2"
+
+    BLUE = 1
+    GREEN = 2
+    RED = 3
+    NEAR_INFRARED = 4
+    SHORT_WAVE_INFRARED_1 = 5
+    SHORT_WAVE_INFRARED_2 = 6
+
+
+class Ls57UsgsSrAttrBands(Enum):
+    __order__ = "USGS_SR_ADJACENT_CLOUD_QA USGS_SR_CLOUD_QA USGS_SR_CLOUD_SHADOW_QA USGS_SR_DDV_QA USGS_SR_FILL_QA USGS_SR_LAND_WATER_QA USGS_SR_SNOW_QA"
+
+    USGS_SR_ADJACENT_CLOUD_QA = 1
+    USGS_SR_CLOUD_QA = 2
+    USGS_SR_CLOUD_SHADOW_QA = 3
+    USGS_SR_DDV_QA = 4
+    USGS_SR_FILL_QA = 5
+    USGS_SR_LAND_WATER_QA = 6
+    USGS_SR_SNOW_QA = 7
+
+
+class Ls8UsgsSrBandBands(Enum):
+    __order__ = "COASTAL_AEROSOL BLUE GREEN RED NEAR_INFRARED SHORT_WAVE_INFRARED_1 SHORT_WAVE_INFRARED_2"
+
+    COASTAL_AEROSOL = 1
+    BLUE = 2
+    GREEN = 3
+    RED = 4
+    NEAR_INFRARED = 5
+    SHORT_WAVE_INFRARED_1 = 6
+    SHORT_WAVE_INFRARED_2 = 7
+
+
+class Ls8UsgsSrAttrBands(Enum):
+    __order__ = "CLOUD"
+
+    CLOUD = 1
+
+
 class Ls5TmBands(Enum):
     __order__ = "BLUE GREEN RED NEAR_INFRARED SHORT_WAVE_INFRARED_1 THERMAL_INFRAFRED SHORT_WAVE_INFRARED_2"
 
@@ -100,29 +141,6 @@ class Ls57Arg25Bands(Enum):
 
 
 class Ls8Arg25Bands(Enum):
-    __order__ = "COASTAL_AEROSOL BLUE GREEN RED NEAR_INFRARED SHORT_WAVE_INFRARED_1 SHORT_WAVE_INFRARED_2"
-
-    COASTAL_AEROSOL = 1
-    BLUE = 2
-    GREEN = 3
-    RED = 4
-    NEAR_INFRARED = 5
-    SHORT_WAVE_INFRARED_1 = 6
-    SHORT_WAVE_INFRARED_2 = 7
-
-
-class Ls57UsgsSrBands(Enum):
-    __order__ = "BLUE GREEN RED NEAR_INFRARED SHORT_WAVE_INFRARED_1 SHORT_WAVE_INFRARED_2"
-
-    BLUE = 1
-    GREEN = 2
-    RED = 3
-    NEAR_INFRARED = 4
-    SHORT_WAVE_INFRARED_1 = 5
-    SHORT_WAVE_INFRARED_2 = 6
-
-
-class Ls8UsgsSrBands(Enum):
     __order__ = "COASTAL_AEROSOL BLUE GREEN RED NEAR_INFRARED SHORT_WAVE_INFRARED_1 SHORT_WAVE_INFRARED_2"
 
     COASTAL_AEROSOL = 1
@@ -210,14 +228,17 @@ class DatasetType(Enum):
     SAVI = "SAVI"
     TCI = "TCI"
     NBR = "NBR"
-    USGSSR = "USGSSR"
+    USGS_SR_BAND = "USGS_SR_BAND"
+    USGS_SR_ATTR = "USGS_SR_ATTR"
+    USGS_SR_INT16_ATTR = "USGS_SR_INT16_ATTR"
+    USGS_CFMASK = "USGS_CFMASK"
 
 
 dataset_type_database = [DatasetType.ARG25, DatasetType.PQ25, DatasetType.FC25,
                          DatasetType.WATER,
                          DatasetType.DSM,
                          DatasetType.DEM, DatasetType.DEM_HYDROLOGICALLY_ENFORCED, DatasetType.DEM_SMOOTHED,
-                         DatasetType.USGSSR]
+                         DatasetType.USGS_SR_BAND, DatasetType.USGS_SR_ATTR, DatasetType.USGS_SR_INT16_ATTR, DatasetType.USGS_CFMASK]
 dataset_type_filesystem = []
 dataset_type_derived_nbar = [DatasetType.NDVI, DatasetType.EVI, DatasetType.NBR, DatasetType.TCI]  # TCI, SAVI, etc...
 
@@ -393,9 +414,13 @@ class Tile:
 
 
 BANDS = {
-    (DatasetType.USGSSR, Satellite.LS5): Ls57UsgsSrBands,
-    (DatasetType.USGSSR, Satellite.LS7): Ls57UsgsSrBands,
-    (DatasetType.USGSSR, Satellite.LS8): Ls8UsgsSrBands,
+    (DatasetType.USGS_SR_BAND, Satellite.LS5): Ls57UsgsSrBandBands,
+    (DatasetType.USGS_SR_BAND, Satellite.LS7): Ls57UsgsSrBandBands,
+    (DatasetType.USGS_SR_BAND, Satellite.LS8): Ls8UsgsSrBandBands,
+
+    (DatasetType.USGS_SR_ATTR, Satellite.LS5): Ls57UsgsSrAttrBands,
+    (DatasetType.USGS_SR_ATTR, Satellite.LS7): Ls57UsgsSrAttrBands,
+    (DatasetType.USGS_SR_ATTR, Satellite.LS8): Ls8UsgsSrAttrBands,
 
     (DatasetType.ARG25, Satellite.LS5): Ls57Arg25Bands,
     (DatasetType.ARG25, Satellite.LS7): Ls57Arg25Bands,

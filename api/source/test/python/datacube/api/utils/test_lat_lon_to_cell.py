@@ -28,67 +28,38 @@
 # ===============================================================================
 
 
-from datetime import date
-import filecmp
-from pathlib import Path
-from datacube.api import Satellite, DatasetType
-from datacube.api.query import list_cells_to_file, list_tiles_to_file
 import logging
+from datacube.api import TileType
+from datacube.api.utils import latlon_to_cell, latlon_to_xy
 
 __author__ = "Simon Oldfield"
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 
 _log = logging.getLogger()
-
-MIN_X = 20
-MAX_X = 28
-
-MIN_Y = 10
-MAX_Y = 18
-
-MIN_ACQ = date(2013, 1, 1)
-MAX_ACQ = date(2013, 12, 31)
-
-SATELLITE_LS578 = [Satellite.LS5, Satellite.LS7, Satellite.LS8]
-
-DATASET_TYPE_SR = [DatasetType.USGSSR]
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
 
 
-flatten = lambda *n: (e for a in n for e in (flatten(*a) if isinstance(a, (tuple, list)) else (a,)))
+def test_lat_lon_to_cell_ga():
+    assert latlon_to_cell(lon=142.25, lat=-24.25, tile_type=TileType.GA) == (142, -25)
 
 
-def get_test_data_path(f=None):
-    path = Path(__file__).parent.absolute() / "data"
-
-    if f:
-        for x in flatten(f):
-            path = path / x
-
-    return str(path)
+def test_lat_lon_to_x_y_ga():
+    assert latlon_to_xy(lon=142.25, lat=-24.25, transform=(142.0, 0.00025, 0.0, -24.0, 0.0, -0.00025), tile_type=TileType.GA) == (1000, 1000)
 
 
-def test_list_cells_ls578(config=None):
-    filename = "usgs_cells_ls578.csv"
+def test_lat_lon_to_cell_usgs():
+    # CENTER of 20/10
+    # -2250600.000, 3149800.000 -> -126.46197152702, 48.0708631399742
+    assert latlon_to_cell(lon=-126.46197152702, lat=48.0708631399742, tile_type=TileType.USGS) == (20, 10)
 
-    list_cells_to_file(x=range(MIN_X, MAX_X + 1), y=range(MIN_Y, MAX_Y + 1),
-                       acq_min=MIN_ACQ, acq_max=MAX_ACQ,
-                       satellites=SATELLITE_LS578,
-                       dataset_types=DATASET_TYPE_SR,
-                       filename=filename,
-                       config=config)
+    # CENTER of 20/12
+    # -2250600, 3119800 -> -126.336712108846, 47.8126707927157
+    assert latlon_to_cell(lon=-126.336712108846, lat=47.8126707927157, tile_type=TileType.USGS) == (20, 12)
 
-    assert filecmp.cmp(filename, get_test_data_path(filename))
+    # CENTER of 22/22
+    # -2220600, 2969800 -> -125.35370519859 46.6063235836554
+    assert latlon_to_cell(lon=-125.35370519859, lat=46.6063235836554, tile_type=TileType.USGS) == (22, 22)
 
 
-def test_list_tiles_ls578(config=None):
-    filename = "usgs_tiles_ls578.csv"
-
-    list_tiles_to_file(x=range(MIN_X, MAX_X + 1), y=range(MIN_Y, MAX_Y + 1),
-                       acq_min=MIN_ACQ, acq_max=MAX_ACQ,
-                       satellites=SATELLITE_LS578,
-                       dataset_types=DATASET_TYPE_SR,
-                       filename=filename,
-                       config=config)
-
-    assert filecmp.cmp(filename, get_test_data_path(filename))
+def test_lat_lon_to_x_y_usgs():
+    assert latlon_to_xy(lon=-126.5, lat=48.0, transform=(-2265600.0, 30.0, 0.0, 3164800.0, 0.0, -30.0), tile_type=TileType.USGS) == (327, 717)

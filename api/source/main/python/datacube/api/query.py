@@ -28,58 +28,29 @@
 # ===============================================================================
 
 
-__author__ = "Simon Oldfield"
-
-
 import logging
 import psycopg2
 import psycopg2.extras
 import sys
+from datacube.api import TileClass, TileType, ProcessingLevel
 from datacube.api.utils import extract_feature_geometry_wkb, DateCriteria, SatelliteDateCriteria
 from datacube.config import Config
 from datacube.api.model import Tile, Cell, DatasetType
 from enum import Enum
 
 
+__author__ = "Simon Oldfield"
+
+
 _log = logging.getLogger(__name__)
-
-
-class TileClass(Enum):
-    __order__ = "SINGLE MOSAIC"
-
-    SINGLE = 1
-    MOSAIC = 4
 
 
 # TILE_CLASSES = [TileClass.SINGLE, TileClass.MOSAIC]
 TILE_CLASSES = [TileClass.SINGLE]
 
 
-class TileType(Enum):
-    __order__ = "ONE_DEGREE"
-
-    ONE_DEGREE = 1
-    USGS = 6
-
-
 # TILE_TYPE = TileType.ONE_DEGREE
 TILE_TYPE = TileType.USGS
-
-
-class ProcessingLevel(Enum):
-    __order__ = "ORTHO NBAR PQA FC L1T MAP DSM DEM DEM_S DEM_H"
-
-    ORTHO = 1
-    NBAR = 2
-    PQA = 3
-    FC = 4
-    L1T = 5
-    MAP = 10
-    DSM = 100
-    DEM = 110
-    DEM_S = 120
-    DEM_H = 130
-    USGSSR = 7
 
 
 class SortType(Enum):
@@ -390,12 +361,23 @@ def build_list_cells_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_
     #     """
 
     sql = """
-        SELECT DISTINCT sr.x_index, sr.y_index
+        SELECT DISTINCT srband.x_index, srband.y_index
         FROM acquisition
         JOIN satellite ON satellite.satellite_id=acquisition.satellite_id
         """
 
-    if DatasetType.USGSSR in dataset_types:
+    sql += """
+        join
+            (
+            select
+                dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+            from tile
+            join dataset on dataset.dataset_id=tile.dataset_id
+            where dataset.level_id = %(level_srband)s
+            ) as srband on srband.acquisition_id=acquisition.acquisition_id
+            """
+
+    if DatasetType.USGS_SR_ATTR in dataset_types:
         sql += """
             join
                 (
@@ -403,8 +385,41 @@ def build_list_cells_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_
                     dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
                 from tile
                 join dataset on dataset.dataset_id=tile.dataset_id
-                where dataset.level_id = %(level_usgssr)s
-                ) as sr on sr.acquisition_id=acquisition.acquisition_id
+                where dataset.level_id = %(level_srattr)s
+                ) as srattr on
+                    srattr.acquisition_id=acquisition.acquisition_id
+                    and srattr.x_index=srband.x_index and srattr.y_index=srband.y_index
+                    and srattr.tile_type_id=srband.tile_type_id and srattr.tile_class_id=srband.tile_class_id
+                """
+
+    if DatasetType.USGS_SR_INT16_ATTR in dataset_types:
+        sql += """
+            join
+                (
+                select
+                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+                from tile
+                join dataset on dataset.dataset_id=tile.dataset_id
+                where dataset.level_id = %(level_srint16attr)s
+                ) as srint16attr on
+                    srint16attr.acquisition_id=acquisition.acquisition_id
+                    and srint16attr.x_index=srband.x_index and srint16attr.y_index=srband.y_index
+                    and srint16attr.tile_type_id=srband.tile_type_id and srint16attr.tile_class_id=srband.tile_class_id
+                """
+
+    if DatasetType.USGS_CFMASK in dataset_types:
+        sql += """
+            join
+                (
+                select
+                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+                from tile
+                join dataset on dataset.dataset_id=tile.dataset_id
+                where dataset.level_id = %(level_cfmask)s
+                ) as cfmask on
+                    cfmask.acquisition_id=acquisition.acquisition_id
+                    and cfmask.x_index=srband.x_index and cfmask.y_index=srband.y_index
+                    and cfmask.tile_type_id=srband.tile_type_id and cfmask.tile_class_id=srband.tile_class_id
                 """
 
     if DatasetType.ARG25 in dataset_types:
@@ -518,9 +533,9 @@ def build_list_cells_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_
 
     sql += """
         where
-            sr.tile_type_id = ANY(%(tile_type)s) and sr.tile_class_id = ANY(%(tile_class)s) -- mandatory
+            srband.tile_type_id = ANY(%(tile_type)s) and srband.tile_class_id = ANY(%(tile_class)s) -- mandatory
             and satellite.satellite_tag = ANY(%(satellite)s)
-            and sr.x_index = ANY(%(x)s) and sr.y_index = ANY(%(y)s)
+            and srband.x_index = ANY(%(x)s) and srband.y_index = ANY(%(y)s)
             and end_datetime::date between %(acq_min)s and %(acq_max)s
         """
 
@@ -609,7 +624,7 @@ def build_list_cells_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_
     # """.format(sort=sort.value)
 
     sql += """
-        order by sr.x_index {sort}, sr.y_index {sort}
+        order by srband.x_index {sort}, srband.y_index {sort}
     """.format(sort=sort.value)
 
     # TODO how to find the "one true dataset" - i.e. to not hard-code NBAR (or now USGSSR)!!!
@@ -626,7 +641,16 @@ def build_list_cells_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_
               "satellite": [satellite.value for satellite in satellites],
               "x": x, "y": y,
               "acq_min": acq_min, "acq_max": acq_max,
-              "level_usgssr": ProcessingLevel.USGSSR.value}
+              "level_srband": ProcessingLevel.USGS_SR_BAND.value}
+
+    if DatasetType.USGS_SR_ATTR in dataset_types:
+        params["level_srattr"] = ProcessingLevel.USGS_SR_ATTR.value
+
+    if DatasetType.USGS_SR_INT16_ATTR in dataset_types:
+        params["level_srint16attr"] = ProcessingLevel.USGS_SR_INT16_ATTR.value
+
+    if DatasetType.USGS_CFMASK in dataset_types:
+        params["level_cfmask"] = ProcessingLevel.USGS_CFMASK.value
 
     if DatasetType.ARG25 in dataset_types:
         params["level_nbar"] = ProcessingLevel.NBAR.value
@@ -1316,7 +1340,7 @@ def build_list_tiles_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_
         select
             acquisition.acquisition_id, satellite_tag as satellite, start_datetime, end_datetime,
             extract(year from end_datetime) as end_datetime_year, extract(month from end_datetime) as end_datetime_month,
-            sr.x_index, sr.y_index, point(sr.x_index, sr.y_index) as xy,
+            srband.x_index, srband.y_index, point(srband.x_index, srband.y_index) as xy,
         """
 
     sql += """
@@ -1326,12 +1350,27 @@ def build_list_tiles_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_
     # TODO how to find the "one true dataset" - i.e. to not hard-code NBAR (or now USGSSR)!!!
 
     sql += """
-            ['USGSSR', sr.tile_pathname]
+            ['USGS_SR_BAND', srband.tile_pathname]
     """
+
+    if DatasetType.USGS_SR_ATTR in dataset_types:
+        sql += """
+            ,['USGS_SR_ATTR', srattr.tile_pathname]
+        """
+
+    if DatasetType.USGS_SR_INT16_ATTR in dataset_types:
+        sql += """
+            ,['USGS_SR_INT16_ATTR', srint16attr.tile_pathname]
+        """
+
+    if DatasetType.USGS_CFMASK in dataset_types:
+        sql += """
+            ,['USGS_CFMASK', cfmask.tile_pathname]
+        """
 
     if DatasetType.ARG25 in dataset_types:
         sql += """
-                ['ARG25', nbar.tile_pathname]
+            ,['ARG25', nbar.tile_pathname]
         """
 
     if DatasetType.PQ25 in dataset_types:
@@ -1402,9 +1441,55 @@ def build_list_tiles_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_
                 dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
             from tile
             join dataset on dataset.dataset_id=tile.dataset_id
-            where dataset.level_id = %(level_usgssr)s
-            ) as sr on sr.acquisition_id=acquisition.acquisition_id
+            where dataset.level_id = %(level_srband)s
+            ) as srband on srband.acquisition_id=acquisition.acquisition_id
             """
+
+    if DatasetType.USGS_SR_ATTR in dataset_types:
+        sql += """
+            join
+                (
+                select
+                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+                from tile
+                join dataset on dataset.dataset_id=tile.dataset_id
+                where dataset.level_id = %(level_srattr)s
+                ) as srattr on
+                    srattr.acquisition_id=acquisition.acquisition_id
+                    and srattr.x_index=srband.x_index and srattr.y_index=srband.y_index
+                    and srattr.tile_type_id=srband.tile_type_id and srattr.tile_class_id=srband.tile_class_id
+                """
+
+    if DatasetType.USGS_SR_INT16_ATTR in dataset_types:
+        sql += """
+            join
+                (
+                select
+                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+                from tile
+                join dataset on dataset.dataset_id=tile.dataset_id
+                where dataset.level_id = %(level_srint16attr)s
+                ) as
+                    srint16attr on srint16attr.acquisition_id=acquisition.acquisition_id
+                    and srint16attr.x_index=srband.x_index and srint16attr.y_index=srband.y_index
+                    and srint16attr.tile_type_id=srband.tile_type_id and srint16attr.tile_class_id=srband.tile_class_id
+                """
+
+    if DatasetType.USGS_CFMASK in dataset_types:
+        sql += """
+            join
+                (
+                select
+                    dataset.acquisition_id, tile.dataset_id, tile.x_index, tile.y_index, tile.tile_pathname, tile.tile_type_id, tile.tile_class_id
+                from tile
+                join dataset on dataset.dataset_id=tile.dataset_id
+                where dataset.level_id = %(level_cfmask)s
+                ) as cfmask on
+                    cfmask.acquisition_id=acquisition.acquisition_id
+                    and cfmask.x_index=srband.x_index and cfmask.y_index=srband.y_index
+                    and cfmask.tile_type_id=srband.tile_type_id and cfmask.tile_class_id=srband.tile_class_id
+                """
+
     if DatasetType.ARG25 in dataset_types:
         sql += """
             join
@@ -1430,7 +1515,6 @@ def build_list_tiles_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_
                 pqa.acquisition_id=acquisition.acquisition_id
                 and pqa.x_index=nbar.x_index and pqa.y_index=nbar.y_index
                 and pqa.tile_type_id=nbar.tile_type_id and pqa.tile_class_id=nbar.tile_class_id
-
         """
 
     if DatasetType.FC25 in dataset_types:
@@ -1516,9 +1600,9 @@ def build_list_tiles_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_
 
     sql += """
         where
-            sr.tile_type_id = ANY(%(tile_type)s) and sr.tile_class_id = ANY(%(tile_class)s) -- mandatory
+            srband.tile_type_id = ANY(%(tile_type)s) and srband.tile_class_id = ANY(%(tile_class)s) -- mandatory
             and satellite.satellite_tag = ANY(%(satellite)s)
-            and sr.x_index = ANY(%(x)s) and sr.y_index = ANY(%(y)s)
+            and srband.x_index = ANY(%(x)s) and srband.y_index = ANY(%(y)s)
             and end_datetime::date between %(acq_min)s and %(acq_max)s
         """
 
@@ -1607,7 +1691,7 @@ def build_list_tiles_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_
     # """.format(sort=sort.value)
 
     sql += """
-        order by sr.x_index, sr.y_index, end_datetime {sort}, satellite asc
+        order by srband.x_index, srband.y_index, end_datetime {sort}, satellite asc
     """.format(sort=sort.value)
 
     # TODO how to find the "one true dataset" - i.e. to not hard-code NBAR (or now USGSSR)!!!
@@ -1624,7 +1708,16 @@ def build_list_tiles_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_
               "satellite": [satellite.value for satellite in satellites],
               "x": x, "y": y,
               "acq_min": acq_min, "acq_max": acq_max,
-              "level_usgssr": ProcessingLevel.USGSSR.value}
+              "level_srband": ProcessingLevel.USGS_SR_BAND.value}
+
+    if DatasetType.USGS_SR_ATTR in dataset_types:
+        params["level_srattr"] = ProcessingLevel.USGS_SR_ATTR.value
+
+    if DatasetType.USGS_SR_INT16_ATTR in dataset_types:
+        params["level_srint16attr"] = ProcessingLevel.USGS_SR_INT16_ATTR.value
+
+    if DatasetType.USGS_CFMASK in dataset_types:
+        params["level_cfmask"] = ProcessingLevel.USGS_CFMASK.value
 
     if DatasetType.ARG25 in dataset_types:
         params["level_nbar"] = ProcessingLevel.PQA.value

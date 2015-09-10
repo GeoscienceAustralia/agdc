@@ -33,10 +33,11 @@ import csv
 import logging
 import os
 import sys
-from datacube.api import dataset_type_arg, writeable_dir, BandListType
+from datacube.api import dataset_type_arg, writeable_dir, BandListType, TileType
 from datacube.api.model import DatasetType, Wofs25Bands, Cell
 from datacube.api.tool import Tool
-from datacube.api.utils import latlon_to_cell, latlon_to_xy, UINT16_MAX, BYTE_MAX, get_mask_pqa, get_band_name_union
+from datacube.api.utils import latlon_to_cell, latlon_to_xy, UINT16_MAX, BYTE_MAX, get_mask_pqa, get_band_name_union, \
+    get_dataset_ndv, get_mask_ls8_cloud_qa
 from datacube.api.utils import is_ndv
 from datacube.api.utils import LS7_SLC_OFF_EXCLUSION, LS8_PRE_WRS_2_EXCLUSION, build_date_criteria
 from datacube.api.utils import get_pixel_time_series_filename
@@ -193,6 +194,9 @@ class RetrievePixelTimeSeriesTool(Tool):
         if self.mask_wofs_apply and DatasetType.WATER not in dataset_types:
             dataset_types.append(DatasetType.WATER)
 
+        if self.mask_cloud_qa_apply and DatasetType.USGS_SR_ATTR not in dataset_types:
+            dataset_types.append(DatasetType.USGS_SR_ATTR)
+
         exclude = None
 
         if not self.include_ls8_pre_wrs2 or not self.include_ls8_pre_wrs2:
@@ -222,22 +226,9 @@ class RetrievePixelTimeSeriesTool(Tool):
 
     def go(self):
 
-        cell_x, cell_y = latlon_to_cell(self.latitude, self.longitude)
-        cell_x, cell_y = 20, 10
+        cell_x, cell_y = latlon_to_cell(self.latitude, self.longitude, tile_type=TileType.USGS)
 
         _log.info("cell is %d %d", cell_x, cell_y)
-
-        # TODO - PQ is UNIT16 and WOFS is BYTE (others are INT16) and so -999 NDV doesn't work
-        ndv = NDV
-
-        if self.dataset_type == DatasetType.PQ25:
-            ndv = UINT16_MAX
-
-        elif self.dataset_type == DatasetType.WATER:
-            ndv = BYTE_MAX
-
-        elif self.dataset_type in [DatasetType.NDVI, DatasetType.EVI, DatasetType.NBR, DatasetType.TCI]:
-            ndv = NAN
 
         with self.get_output_file(self.dataset_type, self.overwrite) as csv_file:
 
@@ -257,7 +248,11 @@ class RetrievePixelTimeSeriesTool(Tool):
                 pqa = (self.mask_pqa_apply and DatasetType.PQ25 in tile.datasets) and tile.datasets[DatasetType.PQ25] or None
                 wofs = (self.mask_wofs_apply and DatasetType.WATER in tile.datasets) and tile.datasets[DatasetType.WATER] or None
 
-                data = retrieve_pixel_value(dataset, pqa, self.mask_pqa_mask, wofs, self.mask_wofs_mask, self.latitude, self.longitude, ndv=ndv)
+                cloud_qa = (self.mask_cloud_qa_apply and DatasetType.USGS_SR_ATTR in tile.datasets) and tile.datasets[DatasetType.USGS_SR_ATTR] or None
+
+                ndv = get_dataset_ndv(dataset)
+
+                data = retrieve_pixel_value(dataset, pqa, self.mask_pqa_mask, wofs, self.mask_wofs_mask, cloud_qa, self.mask_cloud_qa_mask, self.latitude, self.longitude, ndv=ndv)
 
                 if has_data(dataset.bands, data, no_data_value=ndv) or self.output_no_data:
                     csv_writer.writerow([dataset.satellite.name, format_date_time(tile.end_datetime)] +
@@ -317,7 +312,7 @@ def decode_data(dataset_type, dataset, bands, data):
     return values
 
 
-def retrieve_pixel_value(dataset, pqa, pqa_masks, wofs, wofs_masks, latitude, longitude, ndv=NDV):
+def retrieve_pixel_value(dataset, pqa, pqa_masks, wofs, wofs_masks, cloud_qa, cloud_qa_masks, latitude, longitude, ndv=NDV):
 
     _log.debug(
         "Retrieving pixel value(s) at lat=[%f] lon=[%f] from [%s] with pqa [%s] and paq mask [%s] and wofs [%s] and wofs mask [%s]",
@@ -326,8 +321,7 @@ def retrieve_pixel_value(dataset, pqa, pqa_masks, wofs, wofs_masks, latitude, lo
 
     metadata = get_dataset_metadata(dataset)
 
-    x, y = latlon_to_xy(latitude, longitude, metadata.transform)
-    x, y = 500, 500
+    x, y = latlon_to_xy(latitude, longitude, metadata.transform, tile_type=TileType.USGS)
 
     _log.info("Retrieving value at x=[%d] y=[%d] from %s", x, y, dataset.path)
 
@@ -340,6 +334,9 @@ def retrieve_pixel_value(dataset, pqa, pqa_masks, wofs, wofs_masks, latitude, lo
 
     if wofs:
         mask = get_mask_wofs(wofs, wofs_masks, x=x, y=y, x_size=x_size, y_size=y_size, mask=mask)
+
+    if cloud_qa:
+        mask = get_mask_ls8_cloud_qa(cloud_qa, cloud_qa_masks, x=x, y=y, x_size=x_size, y_size=y_size)
 
     data = get_dataset_data_masked(dataset, x=x, y=y, x_size=x_size, y_size=y_size, mask=mask, ndv=ndv)
 

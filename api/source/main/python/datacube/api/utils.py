@@ -26,9 +26,6 @@
 # ===============================================================================
 
 
-__author__ = "Simon Oldfield"
-
-
 import math
 import logging
 import numpy
@@ -38,72 +35,50 @@ import gdalconst
 from collections import namedtuple
 from dateutil.relativedelta import relativedelta
 from enum import Enum
+from datacube.api import TileType, Season, Month, OutputFormat, PqaMask, WofsMask, CoordinateReferenceSystem
+from datacube.api import Ls8CloudMask
 from datacube.api.model import Pq25Bands, Ls57Arg25Bands, Satellite, DatasetType, Ls8Arg25Bands, Wofs25Bands, NdviBands
+from datacube.api.model import Ls8UsgsSrAttrBands
 from datacube.api.model import get_bands, EviBands, NbrBands, TciBands
 from scipy.ndimage import map_coordinates
 from eotools.coordinates import convert_coordinates
 from datetime import datetime, date
 
 
+__author__ = "Simon Oldfield"
+
 _log = logging.getLogger(__name__)
 
-# gdal.SetCacheMax(1024*1024*1024)
 
+# TODO proper handling of multiple AEROSOL values!
+# Probably change the mask to be 2 attributes - the bits to use to mask and the value expected to match
 
-# Define PQ mask
-#   This represents bits 0-13 set which means:
-#       -  0 = band 10 not saturated
-#       -  1 = band 20 not saturated
-#       -  2 = band 30 not saturated
-#       -  3 = band 40 not saturated
-#       -  4 = band 50 not saturated
-#       -  5 = band 61 not saturated
-#       -  6 = band 62 not saturated
-#       -  7 = band 70 not saturated
-#       -  8 = contiguity ok (i.e. all bands present)
-#       -  9 = land (not sea)
-#       - 10 = not cloud (ACCA test)
-#       - 11 = not cloud (FMASK test)
-#       - 12 = not cloud shadow (ACCA test)
-#       - 13 = not cloud shadow (FMASK test)
+def get_mask_ls8_cloud_qa(cloud_qa, cloud_qa_masks=[Ls8CloudMask.MASK_CIRRUS_CLOUD, Ls8CloudMask.MASK_CLOUD, Ls8CloudMask.MASK_CLOUD_SHADOW, Ls8CloudMask.MASK_HIGH_AEROSOL], x=0, y=0, x_size=None, y_size=None, mask=None):
 
-class PqaMask(Enum):
-    PQ_MASK_CLEAR = 16383               # bits 0 - 13 set
+    """
+    Return a Landsat 8 Cloud QA mask
 
-    PQ_MASK_SATURATION = 255            # bits 0 - 7 set
-    PQ_MASK_SATURATION_OPTICAL = 159    # bits 0-4 and 7 set
-    PQ_MASK_SATURATION_THERMAL = 96     # bits 5,6 set
+    :param cloud_qa: Landsat 8 Cloud QA dataset
+    :param cloud_qa_masks: which QA flags to use
+    :param mask: an optional existing mask to update
+    :return: the mask
+    """
 
-    PQ_MASK_CONTIGUITY = 256            # bit 8 set
+    # Read the Cloud QA dataset
+    data = get_dataset_data(cloud_qa, bands=[Ls8UsgsSrAttrBands.CLOUD], x=x, y=y, x_size=x_size, y_size=y_size)[Ls8UsgsSrAttrBands.CLOUD]
 
-    PQ_MASK_LAND = 512                  # bit 9 set
+    # Create an empty mask if none provided - just to avoid an if below :)
+    if mask is None:
+        mask = numpy.ma.make_mask_none(numpy.shape(data))
 
-    PQ_MASK_CLOUD = 15360               # bits 10-13
+    for m in cloud_qa_masks:
+        # Mask out values where the requested bits in the Cloud QA value are not set
+        mask |= data & m.value == m.value
 
-    PQ_MASK_CLOUD_ACCA = 1024           # bit 10 set
-    PQ_MASK_CLOUD_FMASK = 2048          # bit 11 set
+    # # We've also masked out pixels where the value in the cloud QA is 0 so we need to unmask those
+    # mask &= data != 0
 
-    PQ_MASK_CLOUD_SHADOW_ACCA = 4096    # bit 12 set
-    PQ_MASK_CLOUD_SHADOW_FMASK = 8192   # bit 13 set
-
-
-class WofsMask(Enum):
-    DRY = 0
-    NO_DATA = 1
-    SATURATION_CONTIGUITY = 2
-    SEA_WATER = 4
-    TERRAIN_SHADOW = 8
-    HIGH_SLOPE = 16
-    CLOUD_SHADOW = 32
-    CLOUD = 64
-    WET = 128
-
-
-class OutputFormat(Enum):
-    __order__ = "GEOTIFF ENVI"
-
-    GEOTIFF = "GTiff"
-    ENVI = "ENVI"
+    return mask
 
 
 # Standard no data value
@@ -652,7 +627,7 @@ def raster_create_geotiff(path, data, transform, projection, no_data_value, data
             band.SetDescription(band_ids[i])
         band.SetNoDataValue(no_data_value)
         band.WriteArray(data[i])
-        band.ComputeStatistics(True)
+        band.ComputeStatistics(0)
 
         band.FlushCache()
         del band
@@ -992,23 +967,9 @@ def calculate_medoid(X, dist=None):
     return X[:, numpy.argmin(d)]
 
 
-# def calculate_medoid_simon(X):
-#
-#     _log.debug("shape of X is %s", numpy.shape(X))
-#
-#     files, bands, rows, cols = numpy.shape(X)
-#     _log.debug("files=%d bands=%d rows=%d cols=%d", files, bands, rows, cols)
-#
-#     d = numpy.empty(rows, cols)
+# TODO quick and dirty cell mapping support!!!
 
-
-# def calculate_medoid_flood(X):
-#
-#     ndx = vectormedian(imagestack)
-#     medianimg = selectmedianimage(imagestack, ndx)
-
-
-def latlon_to_xy(lat, lon, transform):
+def latlon_to_xy(lat, lon, transform, tile_type=TileType.GA):
     """
     Convert lat/lon to x/y for raster
     NOTE: No projection done - assumes raster has native lat/lon projection
@@ -1024,13 +985,29 @@ def latlon_to_xy(lat, lon, transform):
     ulx, uly = transform[0], transform[3]
     psx, psy = transform[1], transform[5]
 
-    x = int(math.floor(ulx + psx * lon))
-    y = int(math.floor(uly + psy * lat))
+
+    if tile_type == TileType.GA:
+        xcoord = lon
+        ycoord = lat
+
+    elif tile_type == TileType.USGS:
+        import osr
+
+        crs_from = osr.SpatialReference()
+        crs_from.ImportFromEPSG(4326)
+
+        crs_to = osr.SpatialReference()
+        crs_to.ImportFromProj4(CoordinateReferenceSystem.CONUS_ALBERS.value)
+
+        xcoord, ycoord, _ = osr.CoordinateTransformation(crs_from, crs_to).TransformPoint(lon, lat)
+
+    x = int(math.floor(ulx + psx * xcoord))
+    y = int(math.floor(uly + psy * ycoord))
 
     return x, y
 
 
-def latlon_to_cell(lat, lon):
+def latlon_to_cell(lat, lon, tile_type=TileType.GA):
     """
     Return the cell that contains the given lat/lon pair
 
@@ -1042,13 +1019,30 @@ def latlon_to_cell(lat, lon):
     :param lon: longitude
     :return: cell as x, y pair
     """
-    x = int(lon)
-    y = int(lat) - 1
+
+    if tile_type == TileType.GA:
+        x = int(lon)
+        y = int(lat) - 1
+
+    elif tile_type == TileType.USGS:
+        import osr
+
+        crs_from = osr.SpatialReference()
+        crs_from.ImportFromEPSG(4326)
+
+        crs_to = osr.SpatialReference()
+        crs_to.ImportFromProj4(CoordinateReferenceSystem.CONUS_ALBERS.value)
+
+        xcoord, ycoord, _ = osr.CoordinateTransformation(crs_from, crs_to).TransformPoint(lon, lat)
+
+        x = int(abs(xcoord - -2265600) / 30000) * 2 + 20
+        y = int(abs( 3164800 - ycoord) / 30000) * 2 + 10
 
     return x, y
 
 
 # TODO this is a bit of dodginess until the WOFS tiles are ingested
+
 # DO NOT USE THIS IT WON'T STAY!!!!
 
 def extract_fields_from_filename(filename):
@@ -1137,15 +1131,22 @@ def date_to_integer(d):
     return d.year * 10000 + d.month * 100 + d.day
 
 
-def get_dataset_filename(dataset, output_format=OutputFormat.GEOTIFF,
-                         mask_pqa_apply=False, mask_wofs_apply=False, mask_vector_apply=False):
+def get_dataset_filename(dataset,
+                         output_format=OutputFormat.GEOTIFF,
+                         mask_pqa_apply=False,
+                         mask_wofs_apply=False,
+                         mask_cloud_qa_apply=False,
+                         mask_vector_apply=False):
 
     filename = dataset.path
 
     filename = os.path.basename(filename)
 
     dataset_type_from_string = {
-        DatasetType.USGSSR: "_USGS_SR_",
+        DatasetType.USGS_SR_BAND: "_sr_band",
+        DatasetType.USGS_SR_ATTR: "_sr_attr",
+        DatasetType.USGS_SR_INT16_ATTR: "_sr_int16_attr",
+        DatasetType.USGS_CFMASK: "_cfmask",
         DatasetType.ARG25: "_NBAR_",
         DatasetType.PQ25: "_PQA_",
         DatasetType.FC25: "_FC_",
@@ -1161,7 +1162,10 @@ def get_dataset_filename(dataset, output_format=OutputFormat.GEOTIFF,
     }[dataset.dataset_type]
 
     dataset_type_to_string = {
-        DatasetType.USGSSR: "_USGS_SR_",
+        DatasetType.USGS_SR_BAND: "_sr_band",
+        DatasetType.USGS_SR_ATTR: "_sr_attr",
+        DatasetType.USGS_SR_INT16_ATTR: "_sr_int16_attr",
+        DatasetType.USGS_CFMASK: "_cfmask",
         DatasetType.ARG25: "_NBAR_",
         DatasetType.PQ25: "_PQA_",
         DatasetType.FC25: "_FC_",
@@ -1176,9 +1180,10 @@ def get_dataset_filename(dataset, output_format=OutputFormat.GEOTIFF,
         DatasetType.DEM_SMOOTHED: "DEM_S_"
     }[dataset.dataset_type]
 
-    dataset_type_to_string += ((mask_pqa_apply or mask_wofs_apply or mask_vector_apply) and "WITH_" or "") + \
+    dataset_type_to_string += ((mask_pqa_apply or mask_wofs_apply or mask_cloud_qa_apply or mask_vector_apply) and "_WITH_" or "") + \
                               (mask_pqa_apply and "PQA_" or "") + \
                               (mask_wofs_apply and "WATER_" or "") + \
+                              (mask_cloud_qa_apply and "cloud_qa" or "") + \
                               (mask_vector_apply and "VECTOR_" or "")
 
     filename = filename.replace(dataset_type_from_string, dataset_type_to_string)
@@ -1192,97 +1197,6 @@ def get_dataset_filename(dataset, output_format=OutputFormat.GEOTIFF,
     return filename
 
 
-
-# def get_dataset_filename(self, dataset):
-#
-#     from datacube.api.workflow import format_date
-#     from datacube.api.utils import get_satellite_string
-#
-#     satellites = get_satellite_string(self.satellites)
-#
-#     acq_min = format_date(self.acq_min)
-#     acq_max = format_date(self.acq_max)
-#
-#     return os.path.join(self.output_directory,
-#         "{satellites}_{dataset}_{x:03d}_{y:04d}_{acq_min}_{acq_max}.tif".format(
-#         satellites=satellites,
-#         dataset=dataset,
-#         x=self.x, y=self.y,
-#         acq_min=acq_min,
-#         acq_max=acq_max))
-
-
-# def get_dataset_band_stack_filename(satellites, dataset_type, band, x, y, acq_min, acq_max, season_range=None,
-#                                     mask_pqa_apply=False, mask_wofs_apply=False, mask_vector_apply=False,
-#                                     output_format=OutputFormat.GEOTIFF
-#                                     ):
-#
-#     filename_template = ""
-#
-#     if season_range:
-#         filename_template = "{satellite}_{dataset}_{x:03d}_{y:04d}_{acq_min}_{acq_max}_{season_start}_{season_end}_{band}_STACK.tif"
-#     else:
-#         filename_template = "{satellite}_{dataset}_{x:03d}_{y:04d}_{acq_min}_{acq_max}_{band}_STACK.tif"
-#
-#
-#     from datacube.api.workflow import format_date
-#     from datacube.api.utils import get_satellite_string
-#
-#     satellites_str = get_satellite_string(satellites)
-#
-#     acq_min_str = format_date(acq_min)
-#     acq_max_str = format_date(acq_max)
-#
-#     "{satellite}_{dataset}_{x:03d}_{y:04d}_{acq_min}_{acq_max}_{season_start}_{season_end}_{band}_STACK.tif".format(x=self.x,
-#                                                                                                     y=self.y,
-#                                                                                                     acq_min=acq_min,
-#                                                                                                     acq_max=acq_max,
-#                                                                                                     season_start=season_start,
-#                                                                                                     season_end=season_end,
-#                                                                                                     band=self.band.name
-#                                                                                                     ))
-#     dataset_type_from_string = {
-#         DatasetType.ARG25: "_NBAR_",
-#         DatasetType.PQ25: "_PQA_",
-#         DatasetType.FC25: "_FC_",
-#         DatasetType.WATER: "_WATER_",
-#         DatasetType.NDVI: "_NBAR_",
-#         DatasetType.EVI: "_NBAR_",
-#         DatasetType.NBR: "_NBAR_",
-#         DatasetType.TCI: "_NBAR_",
-#         DatasetType.DSM: "DSM_"
-#     }[dataset.dataset_type]
-#
-#     dataset_type_to_string = {
-#         DatasetType.ARG25: "_NBAR_",
-#         DatasetType.PQ25: "_PQA_",
-#         DatasetType.FC25: "_FC_",
-#         DatasetType.WATER: "_WATER_",
-#         DatasetType.NDVI: "_NDVI_",
-#         DatasetType.EVI: "_EVI_",
-#         DatasetType.NBR: "_NBR_",
-#         DatasetType.TCI: "_TCI_",
-#         DatasetType.DSM: "DSM_"
-#     }[dataset.dataset_type]
-#
-#     dataset_type_to_string += ((mask_pqa_apply or mask_wofs_apply or mask_vector_apply) and "WITH_" or "") + \
-#                               (mask_pqa_apply and "PQA_" or "") + \
-#                               (mask_wofs_apply and "WATER_" or "") + \
-#                               (mask_vector_apply and "VECTOR_" or "")
-#
-#     dataset_type_to_string += "STACK_" + band.name + "_"
-#
-#     filename = filename.replace(dataset_type_from_string, dataset_type_to_string)
-#
-#     ext = {OutputFormat.GEOTIFF: ".tif", OutputFormat.ENVI: ".dat"}[output_format]
-#
-#     filename = filename.replace(".vrt", ext)
-#     filename = filename.replace(".tiff", ext)
-#     filename = filename.replace(".tif", ext)
-#
-#     return filename
-
-
 def get_dataset_band_stack_filename(satellites, dataset_type, band, x, y, acq_min, acq_max, season=None,
                                     mask_pqa_apply=False, mask_wofs_apply=False, mask_vector_apply=False,
                                     output_format=OutputFormat.GEOTIFF):
@@ -1292,7 +1206,7 @@ def get_dataset_band_stack_filename(satellites, dataset_type, band, x, y, acq_mi
     satellite_str = get_satellite_string(satellites)
 
     dataset_type_str = {
-        DatasetType.USGSSR: "USGS_SR",
+        DatasetType.USGS_SR_BAND: "USGS_SR",
         DatasetType.ARG25: "NBAR",
         DatasetType.PQ25: "PQA",
         DatasetType.FC25: "FC",
@@ -1390,7 +1304,10 @@ def get_dataset_datatype(dataset):
 
 def get_dataset_type_datatype(dataset_type):
     return {
-        DatasetType.USGSSR: gdalconst.GDT_Int16,
+        DatasetType.USGS_SR_BAND: gdalconst.GDT_Int16,
+        DatasetType.USGS_SR_ATTR: gdalconst.GDT_Byte,
+        DatasetType.USGS_SR_INT16_ATTR: gdalconst.GDT_Byte,
+        DatasetType.USGS_CFMASK: gdalconst.GDT_Byte,
         DatasetType.ARG25: gdalconst.GDT_Int16,
         DatasetType.PQ25: gdalconst.GDT_Int16,
         DatasetType.FC25: gdalconst.GDT_Int16,
@@ -1412,7 +1329,10 @@ def get_dataset_ndv(dataset):
 
 def get_dataset_type_ndv(dataset_type):
     return {
-        DatasetType.USGSSR: -9999,
+        DatasetType.USGS_SR_BAND: -9999,
+        DatasetType.USGS_SR_ATTR: 0,
+        DatasetType.USGS_SR_INT16_ATTR: 255,
+        DatasetType.USGS_CFMASK: 255,
         DatasetType.ARG25: NDV,
         DatasetType.PQ25: UINT16_MAX,
         DatasetType.FC25: NDV,
@@ -1770,120 +1690,6 @@ def arbitrary_profile(dataset, xy_points, band=None, cubic=False,
     y_idx = y_idx.astype('int')
 
     return (profile, (y_idx, x_idx), (x_start_end, y_start_end))
-
-
-def x_calculate_stack_statistic_count(stack, ndv=NDV, dtype=numpy.int16):
-
-    stack = maskify_stack(stack=stack, ndv=ndv)
-
-    stack_depth, stack_size_y, stack_size_x = numpy.shape(stack)
-
-    stat = empty_array((stack_size_y, stack_size_x), dtype=dtype, fill=stack_depth)
-    stat = numpy.ndarray.astype(stat, dtype=dtype, copy=False)
-
-    _log.debug("count is [%s]\n%s", numpy.shape(stat), stat)
-
-    return stat
-
-
-def x_calculate_stack_statistic_count_observed(stack, ndv=NDV, dtype=numpy.int16):
-
-    stack = maskify_stack(stack=stack, ndv=ndv)
-
-    stat = stack.count(axis=0)
-    stat = numpy.ndarray.astype(stat, dtype=dtype, copy=False)
-
-    _log.debug("count observed is [%s]\n%s", numpy.shape(stat), stat)
-
-    return stat
-
-
-def x_calculate_stack_statistic_min(stack, ndv=NDV, dtype=numpy.int16):
-
-    stack = maskify_stack(stack=stack, ndv=ndv)
-
-    stat = numpy.min(stack, axis=0).filled(ndv)
-    stat = numpy.ndarray.astype(stat, dtype=dtype, copy=False)
-
-    _log.debug("min is [%s]\n%s", numpy.shape(stat), stat)
-
-    return stat
-
-
-def x_calculate_stack_statistic_max(stack, ndv=NDV, dtype=numpy.int16):
-
-    stack = maskify_stack(stack=stack, ndv=ndv)
-
-    stat = numpy.max(stack, axis=0).filled(ndv)
-    stat = numpy.ndarray.astype(stat, dtype=dtype, copy=False)
-
-    _log.debug("max is [%s]\n%s", numpy.shape(stat), stat)
-
-    return stat
-
-
-def x_calculate_stack_statistic_mean(stack, ndv=NDV, dtype=numpy.int16):
-
-    stack = maskify_stack(stack=stack, ndv=ndv)
-
-    stat = numpy.mean(stack, axis=0).filled(ndv)
-    stat = numpy.ndarray.astype(stat, dtype=dtype, copy=False)
-
-    _log.debug("max is [%s]\n%s", numpy.shape(stat), stat)
-
-    return stat
-
-
-def x_calculate_stack_statistic_percentile(stack, percentile, interpolation=PercentileInterpolation.NEAREST, ndv=NDV, dtype=numpy.int16):
-
-    stack = maskify_stack(stack=stack, ndv=ndv)
-
-    # numpy (1.9.2) currently doesn't have masked version of percentile so convert to float and use nanpercentile
-
-    stack = numpy.ndarray.astype(stack, dtype=numpy.float16, copy=False).filled(numpy.nan)
-
-    stat = numpy.nanpercentile(stack, percentile, axis=0, interpolation=interpolation.value)
-    stat = numpy.ma.masked_invalid(stat, copy=False)
-    stat = numpy.ndarray.astype(stat, dtype=dtype, copy=False).filled(ndv)
-
-    _log.debug("max is [%s]\n%s", numpy.shape(stat), stat)
-
-    return stat
-
-
-class Month(Enum):
-    __order__ = "JANUARY FEBRUARY MARCH APRIL MAY JUNE JULY AUGUST SEPTEMBER OCTOBER NOVEMBER DECEMBER"
-
-    JANUARY = 1
-    FEBRUARY = 2
-    MARCH = 3
-    APRIL = 4
-    MAY = 5
-    JUNE = 6
-    JULY = 7
-    AUGUST = 8
-    SEPTEMBER = 9
-    OCTOBER = 10
-    NOVEMBER = 11
-    DECEMBER = 12
-
-
-class Season(Enum):
-    __order__ = "SPRING SUMMER AUTUMN WINTER"
-
-    SPRING = "SPRING"
-    SUMMER = "SUMMER"
-    AUTUMN = "AUTUMN"
-    WINTER = "WINTER"
-
-
-class Quarter(Enum):
-    __order__ = "Q1 Q2 Q3 Q4"
-
-    Q1 = "Q1"
-    Q2 = "Q2"
-    Q3 = "Q3"
-    Q4 = "Q4"
 
 
 SEASONS = {
