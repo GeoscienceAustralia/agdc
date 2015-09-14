@@ -360,6 +360,8 @@ def format_date_time(d):
         return datetime.strftime(d, "%Y-%m-%d %H:%M:%S")
 
     return None
+
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
 

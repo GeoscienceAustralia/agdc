@@ -48,6 +48,7 @@ class TileClass(Enum):
     __order__ = "SINGLE MOSAIC"
 
     SINGLE = 1
+    OVERLAP = 3
     MOSAIC = 4
 
 
@@ -1278,6 +1279,16 @@ def build_list_tiles_sql_and_params(x, y, satellites, acq_min, acq_max, dataset_
     if DatasetType.NDVI in dataset_types:
         sql += """
             ,['NDVI', nbar.tile_pathname]
+        """
+
+    if DatasetType.NDWI in dataset_types:
+        sql += """
+            ,['NDWI', nbar.tile_pathname]
+        """
+
+    if DatasetType.MNDWI in dataset_types:
+        sql += """
+            ,['MNDWI', nbar.tile_pathname]
         """
 
     if DatasetType.EVI in dataset_types:

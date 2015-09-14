@@ -138,6 +138,18 @@ class NdviBands(Enum):
     NDVI = 1
 
 
+class NdwiBands(Enum):
+    __order__ = "NDWI"
+
+    NDWI = 1
+
+
+class MndwiBands(Enum):
+    __order__ = "MNDWI"
+
+    MNDWI = 1
+
+
 class EviBands(Enum):
     __order__ = "EVI"
 
@@ -187,6 +199,8 @@ class DatasetType(Enum):
     SAVI = "SAVI"
     TCI = "TCI"
     NBR = "NBR"
+    NDWI = "NDWI"
+    MNDWI = "MNDWI"
 
 
 dataset_type_database = [DatasetType.ARG25, DatasetType.PQ25, DatasetType.FC25,
@@ -194,7 +208,7 @@ dataset_type_database = [DatasetType.ARG25, DatasetType.PQ25, DatasetType.FC25,
                          DatasetType.DSM,
                          DatasetType.DEM, DatasetType.DEM_HYDROLOGICALLY_ENFORCED, DatasetType.DEM_SMOOTHED]
 dataset_type_filesystem = []
-dataset_type_derived_nbar = [DatasetType.NDVI, DatasetType.EVI, DatasetType.NBR, DatasetType.TCI]  # TCI, SAVI, etc...
+dataset_type_derived_nbar = [DatasetType.NDVI, DatasetType.EVI, DatasetType.NBR, DatasetType.TCI, DatasetType.NDWI, DatasetType.MNDWI]
 
 
 class DatasetTile:
@@ -404,6 +418,14 @@ BANDS = {
     (DatasetType.DEM, None): DsmBands,
     (DatasetType.DEM_SMOOTHED, None): DsmBands,
     (DatasetType.DEM_HYDROLOGICALLY_ENFORCED, None): DsmBands,
+
+    (DatasetType.NDWI, Satellite.LS5): NdwiBands,
+    (DatasetType.NDWI, Satellite.LS7): NdwiBands,
+    (DatasetType.NDWI, Satellite.LS8): NdwiBands,
+
+    (DatasetType.MNDWI, Satellite.LS5): MndwiBands,
+    (DatasetType.MNDWI, Satellite.LS7): MndwiBands,
+    (DatasetType.MNDWI, Satellite.LS8): MndwiBands,
 }
 
 
@@ -439,8 +461,8 @@ def warp_file_paths(path):
 # TODO
 def parse_datetime(s):
     from datetime import datetime
-    # return datetime.strptime(s[:len("YYYY-MM-DD HH:MM:SS")], "%Y-%m-%d %H:%M:%S")
-    return datetime.strptime(s, "%Y-%m-%d %H:%M:%S.%f")
+    return datetime.strptime(s[:len("YYYY-MM-DD HH:MM:SS")], "%Y-%m-%d %H:%M:%S")
+    # return datetime.strptime(s, "%Y-%m-%d %H:%M:%S.%f")
 
 
 # TODO TEMPORARY UNTIL WOFS IS AVAILABLE AS INGESTED DATA
