@@ -121,6 +121,14 @@ TCI_DATASET_TYPE = DatasetType.TCI
 TCI_NDV = NAN
 TCI_DATA_TYPE = gdal.GDT_Float32
 
+NDWI_DATASET_TYPE = DatasetType.NDWI
+NDWI_NDV = NAN
+NDWI_DATA_TYPE = gdal.GDT_Float32
+
+MNDWI_DATASET_TYPE = DatasetType.MNDWI
+MNDWI_NDV = NAN
+MNDWI_DATA_TYPE = gdal.GDT_Float32
+
 VECTOR_FILE_STATES = get_test_data_path_common("Mainlands.shp")
 VECTOR_LAYER_STATES = 0
 VECTOR_FEATURE_STATES = 4
@@ -348,6 +356,84 @@ def test_retrieve_data_ls5_tci(config=None):
 
     data_type = get_dataset_datatype(dataset)
     assert(data_type == TCI_DATA_TYPE)
+
+    metadata = generate_dataset_metadata(x=CELL_X, y=CELL_Y, acq_dt=ACQ_LS5,
+                                         dataset=dataset, bands=None,
+                                         mask_pqa_apply=False, mask_pqa_mask=None,
+                                         mask_wofs_apply=False, mask_wofs_mask=None)
+
+    raster_create_geotiff(filename, [data[b] for b in dataset.bands], CELL_GEO_TRANSFORM, CELL_PROJECTION, ndv, data_type,
+                          dataset_metadata=metadata, band_ids=[b.name for b in dataset.bands])
+
+    assert filecmp.cmp(filename, get_test_data_path(filename))
+
+
+@pytest.mark.quick
+@pytest.mark.LS5
+@pytest.mark.NDWI
+def test_retrieve_data_ls5_ndwi(config=None):
+
+    filename = "LS5_TM_NDWI_{x:03d}_{y:04d}_{date}.{x_offset:04d}_{y_offset:04d}.{x_size:04d}x{y_size:04d}.tif".format(x=CELL_X, y=CELL_Y, date=DATE, x_offset=X_OFFSET, y_offset=Y_OFFSET, x_size=X_SIZE, y_size=Y_SIZE)
+
+    tiles = list_tiles_as_list(x=[CELL_X], y=[CELL_Y],
+                               acq_min=ACQ_LS5, acq_max=ACQ_LS5,
+                               satellites=[Satellite.LS5],
+                               dataset_types=[NDWI_DATASET_TYPE],
+                               config=config)
+
+    assert len(tiles) == 1
+
+    dataset = tiles[0].datasets[NDWI_DATASET_TYPE]
+
+    data = get_dataset_data(dataset=dataset, x=X_OFFSET, y=Y_OFFSET, x_size=X_SIZE, y_size=Y_SIZE)
+
+    assert(data)
+    _log.info("data is [%s]\n%s", numpy.shape(data), data)
+
+    ndv = get_dataset_ndv(dataset)
+    assert(is_ndv(ndv, NDWI_NDV))
+
+    data_type = get_dataset_datatype(dataset)
+    assert(data_type == NDWI_DATA_TYPE)
+
+    metadata = generate_dataset_metadata(x=CELL_X, y=CELL_Y, acq_dt=ACQ_LS5,
+                                         dataset=dataset, bands=None,
+                                         mask_pqa_apply=False, mask_pqa_mask=None,
+                                         mask_wofs_apply=False, mask_wofs_mask=None)
+
+    raster_create_geotiff(filename, [data[b] for b in dataset.bands], CELL_GEO_TRANSFORM, CELL_PROJECTION, ndv, data_type,
+                          dataset_metadata=metadata, band_ids=[b.name for b in dataset.bands])
+
+    assert filecmp.cmp(filename, get_test_data_path(filename))
+
+
+@pytest.mark.quick
+@pytest.mark.LS5
+@pytest.mark.MNDWI
+def test_retrieve_data_ls5_mndwi(config=None):
+
+    filename = "LS5_TM_MNDWI_{x:03d}_{y:04d}_{date}.{x_offset:04d}_{y_offset:04d}.{x_size:04d}x{y_size:04d}.tif".format(x=CELL_X, y=CELL_Y, date=DATE, x_offset=X_OFFSET, y_offset=Y_OFFSET, x_size=X_SIZE, y_size=Y_SIZE)
+
+    tiles = list_tiles_as_list(x=[CELL_X], y=[CELL_Y],
+                               acq_min=ACQ_LS5, acq_max=ACQ_LS5,
+                               satellites=[Satellite.LS5],
+                               dataset_types=[MNDWI_DATASET_TYPE],
+                               config=config)
+
+    assert len(tiles) == 1
+
+    dataset = tiles[0].datasets[MNDWI_DATASET_TYPE]
+
+    data = get_dataset_data(dataset=dataset, x=X_OFFSET, y=Y_OFFSET, x_size=X_SIZE, y_size=Y_SIZE)
+
+    assert(data)
+    _log.info("data is [%s]\n%s", numpy.shape(data), data)
+
+    ndv = get_dataset_ndv(dataset)
+    assert(is_ndv(ndv, MNDWI_NDV))
+
+    data_type = get_dataset_datatype(dataset)
+    assert(data_type == MNDWI_DATA_TYPE)
 
     metadata = generate_dataset_metadata(x=CELL_X, y=CELL_Y, acq_dt=ACQ_LS5,
                                          dataset=dataset, bands=None,
