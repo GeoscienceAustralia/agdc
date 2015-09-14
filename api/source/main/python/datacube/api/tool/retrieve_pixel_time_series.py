@@ -28,9 +28,6 @@
 # ===============================================================================
 
 
-__author__ = "Simon Oldfield"
-
-
 import csv
 import logging
 import os
@@ -38,15 +35,16 @@ import sys
 from datacube.api import dataset_type_arg, writeable_dir, BandListType
 from datacube.api.model import DatasetType, Wofs25Bands
 from datacube.api.tool import Tool
-from datacube.api.utils import latlon_to_cell, latlon_to_xy, UINT16_MAX, BYTE_MAX, get_mask_pqa, get_band_name_union, \
-    is_ndv, get_dataset_type_ndv
+from datacube.api.utils import latlon_to_cell, latlon_to_xy, BYTE_MAX, get_mask_pqa, get_band_name_union
+from datacube.api.utils import is_ndv, get_dataset_type_ndv
 from datacube.api.utils import LS7_SLC_OFF_EXCLUSION, LS8_PRE_WRS_2_EXCLUSION, build_date_criteria
 from datacube.api.utils import get_pixel_time_series_filename
-from datacube.api.utils import NAN
 from datacube.api.utils import get_band_name_intersection
 from datacube.api.utils import get_mask_wofs, get_dataset_data_masked
 from datacube.api.utils import get_dataset_metadata, NDV
 
+
+__author__ = "Simon Oldfield"
 
 _log = logging.getLogger()
 
