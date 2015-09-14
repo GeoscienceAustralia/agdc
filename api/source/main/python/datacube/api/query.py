@@ -48,12 +48,11 @@ class TileClass(Enum):
     __order__ = "SINGLE MOSAIC"
 
     SINGLE = 1
-    FRED = 3
+    OVERLAP = 3
     MOSAIC = 4
 
 
-# TILE_CLASSES = [TileClass.SINGLE, TileClass.MOSAIC]
-TILE_CLASSES = [TileClass.SINGLE, TileClass.FRED]
+TILE_CLASSES = [TileClass.SINGLE, TileClass.MOSAIC]
 
 
 class TileType(Enum):
