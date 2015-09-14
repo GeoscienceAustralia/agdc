@@ -1523,8 +1523,6 @@ def extract_feature_geometry_wkb(vector_file, vector_layer=0, vector_feature=0, 
     import osr
     from gdalconst import GA_ReadOnly
 
-    print "extracting feature geometry ", vector_file, vector_layer, vector_feature
-
     vector = ogr.Open(vector_file, GA_ReadOnly)
     assert vector
 
