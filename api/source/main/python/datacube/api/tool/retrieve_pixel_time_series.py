@@ -39,7 +39,7 @@ from datacube.api import dataset_type_arg, writeable_dir, BandListType
 from datacube.api.model import DatasetType, Wofs25Bands
 from datacube.api.tool import Tool
 from datacube.api.utils import latlon_to_cell, latlon_to_xy, UINT16_MAX, BYTE_MAX, get_mask_pqa, get_band_name_union, \
-    is_ndv
+    is_ndv, get_dataset_type_ndv
 from datacube.api.utils import LS7_SLC_OFF_EXCLUSION, LS8_PRE_WRS_2_EXCLUSION, build_date_criteria
 from datacube.api.utils import get_pixel_time_series_filename
 from datacube.api.utils import NAN
@@ -216,17 +216,7 @@ class RetrievePixelTimeSeriesTool(Tool):
 
         _log.info("cell is %d %d", cell_x, cell_y)
 
-        # TODO - PQ is UNIT16 and WOFS is BYTE (others are INT16) and so -999 NDV doesn't work
-        ndv = NDV
-
-        if self.dataset_type == DatasetType.PQ25:
-            ndv = UINT16_MAX
-
-        elif self.dataset_type == DatasetType.WATER:
-            ndv = BYTE_MAX
-
-        elif self.dataset_type in [DatasetType.NDVI, DatasetType.EVI, DatasetType.NBR, DatasetType.TCI]:
-            ndv = NAN
+        ndv = get_dataset_type_ndv(self.dataset_type)
 
         with self.get_output_file(self.dataset_type, self.overwrite) as csv_file:
 
