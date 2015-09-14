@@ -354,7 +354,7 @@ DEFAULT_MASK_PQA = [PqaMask.PQ_MASK_CLEAR]
 def get_dataset_data_masked(dataset, bands=None, x=0, y=0, x_size=None, y_size=None, ndv=NDV, mask=None):
 
     """
-    Return one or more bands from the dataset with pixel quality applied
+    Return one or more bands from the dataset with the given mask applied
 
     :type dataset: datacube.api.model.Dataset
     :type bands: list[Band]
@@ -1205,6 +1205,8 @@ def get_dataset_filename(dataset, output_format=OutputFormat.GEOTIFF,
         DatasetType.DEM: "DEM_",
         DatasetType.DEM_HYDROLOGICALLY_ENFORCED: "DEM-H_",
         DatasetType.DEM_SMOOTHED: "DEM-S_",
+        DatasetType.NDWI: "_NBAR_",
+        DatasetType.MNDWI: "_NBAR_"
     }[dataset.dataset_type]
 
     dataset_type_to_string = {
@@ -1219,7 +1221,9 @@ def get_dataset_filename(dataset, output_format=OutputFormat.GEOTIFF,
         DatasetType.DSM: "DSM_",
         DatasetType.DEM: "DEM_",
         DatasetType.DEM_HYDROLOGICALLY_ENFORCED: "DEM_H_",
-        DatasetType.DEM_SMOOTHED: "DEM_S_"
+        DatasetType.DEM_SMOOTHED: "DEM_S_",
+        DatasetType.NDWI: "_NDWI_",
+        DatasetType.MNDWI: "_MNDWI_",
     }[dataset.dataset_type]
 
     dataset_type_to_string += ((mask_pqa_apply or mask_wofs_apply or mask_vector_apply) and "WITH_" or "") + \
@@ -1236,8 +1240,6 @@ def get_dataset_filename(dataset, output_format=OutputFormat.GEOTIFF,
     filename = filename.replace(".tif", ext)
 
     return filename
-
-
 
 # def get_dataset_filename(self, dataset):
 #
@@ -1350,6 +1352,8 @@ def get_dataset_band_stack_filename(satellites, dataset_type, band, x, y, acq_mi
         DatasetType.DEM: "DEM",
         DatasetType.DEM_HYDROLOGICALLY_ENFORCED: "DEM_H",
         DatasetType.DEM_SMOOTHED: "DEM_S",
+        DatasetType.NDWI: "NDWI",
+        DatasetType.MNDWI: "MNDWI"
     }[dataset_type]
 
     dataset_type_str += ((mask_pqa_apply or mask_wofs_apply or mask_vector_apply) and "_WITH" or "") + \
