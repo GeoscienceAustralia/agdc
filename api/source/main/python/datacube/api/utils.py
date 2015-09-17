@@ -538,17 +538,7 @@ def get_dataset_data_stack(tiles, dataset_type, band_name, x=0, y=0, x_size=None
 
         # stack = list()
 
-        data_type = {
-            DatasetType.ARG25: numpy.int16,
-            DatasetType.PQ25: numpy.uint16,
-            DatasetType.FC25: numpy.int16,
-            DatasetType.WATER: numpy.byte,
-            DatasetType.NDVI: numpy.float32,
-            DatasetType.EVI: numpy.float32,
-            DatasetType.NBR: numpy.float32,
-            DatasetType.TCI: numpy.float32,
-            DatasetType.DSM: numpy.int16
-        }[dataset_type]
+        data_type = get_dataset_type_data_type(dataset_type)
 
         stack = numpy.empty((len(tiles), y_size and y_size or 4000, x_size and x_size or 4000), dtype=data_type)
 
@@ -1423,6 +1413,19 @@ def get_dataset_type_ndv(dataset_type):
     }[dataset_type]
 
 
+def get_dataset_type_data_type(dataset_type):
+    return {
+        DatasetType.ARG25: numpy.int16,
+        DatasetType.PQ25: numpy.uint16,
+        DatasetType.FC25: numpy.int16,
+        DatasetType.WATER: numpy.byte,
+        DatasetType.NDVI: numpy.float32,
+        DatasetType.EVI: numpy.float32,
+        DatasetType.NBR: numpy.float32,
+        DatasetType.TCI: numpy.float32,
+        DatasetType.DSM: numpy.int16
+    }[dataset_type]
+
 def get_band_name_union(dataset_type, satellites):
 
     bands = [b.name for b in get_bands(dataset_type, satellites[0])]
@@ -1492,7 +1495,8 @@ def extract_feature_geometry_wkb(vector_file, vector_layer=0, vector_feature=0, 
 
 
 def maskify_stack(stack, ndv=NDV):
-
+    if numpy.isnan(ndv):
+        return numpy.ma.masked_invalid(stack, copy=False)
     return numpy.ma.masked_equal(stack, ndv, copy=False)
 
 
@@ -1547,13 +1551,43 @@ def calculate_stack_statistic_max(stack, ndv=NDV, dtype=numpy.int16):
 
 
 def calculate_stack_statistic_mean(stack, ndv=NDV, dtype=numpy.int16):
+    if numpy.isnan(ndv):
+        "print doing nanmean", stack
+        stat = numpy.nanmean(stack, axis=0)
+        print "mean is", stat
+    else:
+        stack = maskify_stack(stack=stack, ndv=ndv)
+        stat = numpy.mean(stack, axis=0).filled(ndv)
 
-    stack = maskify_stack(stack=stack, ndv=ndv)
-
-    stat = numpy.mean(stack, axis=0).filled(ndv)
     stat = numpy.ndarray.astype(stat, dtype=dtype, copy=False)
 
     _log.debug("mean is [%s]\n%s", numpy.shape(stat), stat)
+
+    return stat
+
+
+def calculate_stack_statistic_variance(stack, ndv=NDV, dtype=numpy.int16):
+    if numpy.isnan(ndv):
+        stat = numpy.nanvar(stack, axis=0)
+    else:
+        stack = maskify_stack(stack=stack, ndv=ndv)
+        stat = numpy.var(stack, axis=0).filled(ndv)
+
+    stat = numpy.ndarray.astype(stat, dtype=dtype, copy=False)
+    _log.debug("var is [%s]\n%s", numpy.shape(stat), stat)
+
+    return stat
+
+
+def calculate_stack_statistic_standard_deviation(stack, ndv=NDV, dtype=numpy.int16):
+    if numpy.isnan(ndv):
+        stat = numpy.nanstd(stack, axis=0)
+    else:
+        stack = maskify_stack(stack=stack, ndv=ndv)
+        stat = numpy.std(stack, axis=0).filled(ndv)
+
+    stat = numpy.ndarray.astype(stat, dtype=dtype, copy=False)
+    _log.debug("std is [%s]\n%s", numpy.shape(stat), stat)
 
     return stat
 
