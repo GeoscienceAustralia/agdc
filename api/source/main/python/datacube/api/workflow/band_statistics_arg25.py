@@ -859,7 +859,6 @@ class Arg25BandStatisticsBandChunkTask(Task):
             log_mem("Before COUNT")
 
             # COUNT
-            print "COUNT"
             stack_stat = calculate_stack_statistic_count(stack=stack, ndv=ndv)
             numpy.save(self.get_statistic_filename(Statistic.COUNT), stack_stat)
             del stack_stat
@@ -868,7 +867,6 @@ class Arg25BandStatisticsBandChunkTask(Task):
             log_mem("Before MIN")
 
             # MIN
-            print "MIN"
             stack_stat = calculate_stack_statistic_min(stack=stack, ndv=ndv, dtype=data_type)
             numpy.save(self.get_statistic_filename(Statistic.MIN), stack_stat)
             del stack_stat
@@ -877,7 +875,6 @@ class Arg25BandStatisticsBandChunkTask(Task):
             log_mem("Before MAX")
 
             # MAX
-            print "MAX"
             stack_stat = calculate_stack_statistic_max(stack=stack, ndv=ndv, dtype=data_type)
             numpy.save(self.get_statistic_filename(Statistic.MAX), stack_stat)
             del stack_stat
@@ -886,7 +883,6 @@ class Arg25BandStatisticsBandChunkTask(Task):
             log_mem("Before MEAN")
 
             # MEAN
-            print "MEAN"
             stack_stat = calculate_stack_statistic_mean(stack=stack, ndv=ndv, dtype=data_type)
             numpy.save(self.get_statistic_filename(Statistic.MEAN), stack_stat)
             del stack_stat
@@ -895,7 +891,6 @@ class Arg25BandStatisticsBandChunkTask(Task):
             log_mem("Before VARIANCE")
 
             # VARIANCE
-            print "VARIANCE"
             stack_stat = calculate_stack_statistic_variance(stack=stack, ndv=ndv, dtype=data_type)
             numpy.save(self.get_statistic_filename(Statistic.VARIANCE), stack_stat)
             del stack_stat
@@ -904,7 +899,6 @@ class Arg25BandStatisticsBandChunkTask(Task):
             log_mem("Before STANDARD_DEVIATION")
 
             # STANDARD_DEVIATION
-            print "STANDARD_DEVIATION"
             stack_stat = calculate_stack_statistic_standard_deviation(stack=stack, ndv=ndv, dtype=data_type)
             numpy.save(self.get_statistic_filename(Statistic.STANDARD_DEVIATION), stack_stat)
             del stack_stat
@@ -914,7 +908,6 @@ class Arg25BandStatisticsBandChunkTask(Task):
             if percentile in self.statistics:
                 log_mem("Before {p}".format(p=percentile.name))
 
-                print "Before {p}".format(p=percentile.name)
                 stack_stat = calculate_stack_statistic_percentile(stack=stack, percentile=PERCENTILE[percentile],
                                                                   ndv=ndv, interpolation=self.interpolation)
                 numpy.save(self.get_statistic_filename(percentile), stack_stat)
@@ -924,7 +917,6 @@ class Arg25BandStatisticsBandChunkTask(Task):
             log_mem("Before OBSERVED COUNT")
 
             # COUNT OBSERVED - note the copy=False is modifying the array so this is done last
-            print "COUNT OBSERVED"
             stack_stat = calculate_stack_statistic_count_observed(stack=stack, ndv=ndv)
             numpy.save(self.get_statistic_filename(Statistic.COUNT_OBSERVED), stack_stat)
             del stack_stat

@@ -89,6 +89,8 @@ def test_get_ndv():
     assert is_ndv(get_dataset_type_ndv(DatasetType.DEM), NAN)
     assert is_ndv(get_dataset_type_ndv(DatasetType.DEM_HYDROLOGICALLY_ENFORCED), NAN)
     assert is_ndv(get_dataset_type_ndv(DatasetType.DEM_SMOOTHED), NAN)
+    assert is_ndv(get_dataset_type_ndv(DatasetType.NDWI), NAN)
+    assert is_ndv(get_dataset_type_ndv(DatasetType.MNDWI), NAN)
 
 
 @pytest.mark.quick
@@ -106,3 +108,5 @@ def test_get_dataset_data_type():
     assert is_ndv(get_dataset_type_datatype(DatasetType.DEM), GDT_Float32)
     assert is_ndv(get_dataset_type_datatype(DatasetType.DEM_HYDROLOGICALLY_ENFORCED), GDT_Float32)
     assert is_ndv(get_dataset_type_datatype(DatasetType.DEM_SMOOTHED), GDT_Float32)
+    assert is_ndv(get_dataset_type_datatype(DatasetType.NDWI), GDT_Float32)
+    assert is_ndv(get_dataset_type_datatype(DatasetType.MNDWI), GDT_Float32)

@@ -38,7 +38,8 @@ import gdalconst
 from collections import namedtuple
 from dateutil.relativedelta import relativedelta
 from enum import Enum
-from datacube.api.model import Pq25Bands, Ls57Arg25Bands, Satellite, DatasetType, Ls8Arg25Bands, Wofs25Bands, NdviBands
+from datacube.api.model import Pq25Bands, Ls57Arg25Bands, Satellite, DatasetType, Ls8Arg25Bands, Wofs25Bands, NdviBands, \
+    NdwiBands, MndwiBands
 from datacube.api.model import get_bands, EviBands, NbrBands, TciBands
 from scipy.ndimage import map_coordinates
 from eotools.coordinates import convert_coordinates
@@ -211,18 +212,6 @@ def get_dataset_metadata(dataset):
 
 def get_dataset_data(dataset, bands=None, x=0, y=0, x_size=None, y_size=None):
 
-    # dataset_types_physical = [
-    #     DatasetType.ARG25, DatasetType.PQ25, DatasetType.FC25,
-    #     DatasetType.WATER,
-    #     DatasetType.DSM, DatasetType.DEM, DatasetType.DEM_HYDROLOGICALLY_ENFORCED, DatasetType.DEM_SMOOTHED]
-    #
-    # dataset_types_virtual_nbar = [
-    #     DatasetType.NDVI,
-    #     DatasetType.EVI,
-    #     DatasetType.NBR,
-    #     DatasetType.TCI
-    # ]
-
     # NDVI calculated using RED and NIR from ARG25
 
     if dataset.dataset_type == DatasetType.NDVI:
@@ -236,6 +225,34 @@ def get_dataset_data(dataset, bands=None, x=0, y=0, x_size=None, y_size=None):
         data = calculate_ndvi(data[band_red], data[band_nir])
 
         return {NdviBands.NDVI: data}
+
+    # NDWI calculated using GREEN and NIR from ARG25
+
+    elif dataset.dataset_type == DatasetType.NDWI:
+
+        bands = get_bands(DatasetType.ARG25, dataset.satellite)
+
+        band_green = bands[Ls57Arg25Bands.GREEN.name]
+        band_nir = bands[Ls57Arg25Bands.NEAR_INFRARED.name]
+
+        data = read_dataset_data(dataset, bands=[band_green, band_nir], x=x, y=y, x_size=x_size, y_size=y_size)
+        data = calculate_ndwi(data[band_green], data[band_nir])
+
+        return {NdwiBands.NDWI: data}
+
+    # MNDWI calculated using GREEN and SWIR 1 from ARG25
+
+    if dataset.dataset_type == DatasetType.MNDWI:
+
+        bands = get_bands(DatasetType.ARG25, dataset.satellite)
+
+        band_green = bands[Ls57Arg25Bands.GREEN.name]
+        band_swir = bands[Ls57Arg25Bands.SHORT_WAVE_INFRARED_1.name]
+
+        data = read_dataset_data(dataset, bands=[band_green, band_swir], x=x, y=y, x_size=x_size, y_size=y_size)
+        data = calculate_ndvi(data[band_green], data[band_swir])
+
+        return {MndwiBands.MNDWI: data}
 
     # EVI calculated using RED, BLUE and NIR from ARG25
 
@@ -337,7 +354,7 @@ DEFAULT_MASK_PQA = [PqaMask.PQ_MASK_CLEAR]
 def get_dataset_data_masked(dataset, bands=None, x=0, y=0, x_size=None, y_size=None, ndv=NDV, mask=None):
 
     """
-    Return one or more bands from the dataset with pixel quality applied
+    Return one or more bands from the dataset with the given mask applied
 
     :type dataset: datacube.api.model.Dataset
     :type bands: list[Band]
@@ -536,8 +553,6 @@ def get_mask_vector_for_cell(x, y, vector_file, vector_layer, vector_feature, wi
 def get_dataset_data_stack(tiles, dataset_type, band_name, x=0, y=0, x_size=None, y_size=None, ndv=None,
                            mask_pqa_apply=False, mask_pqa_mask=None):
 
-        # stack = list()
-
         data_type = get_dataset_type_data_type(dataset_type)
 
         stack = numpy.empty((len(tiles), y_size and y_size or 4000, x_size and x_size or 4000), dtype=data_type)
@@ -549,6 +564,8 @@ def get_dataset_data_stack(tiles, dataset_type, band_name, x=0, y=0, x_size=None
 
             band = dataset.bands[band_name]
             assert band
+
+            _log.info("Stacking band [%s] of [%s]", band.name, dataset.path)
 
             if not ndv:
                 ndv = get_dataset_ndv(dataset)
@@ -570,7 +587,6 @@ def get_dataset_data_stack(tiles, dataset_type, band_name, x=0, y=0, x_size=None
 
             log_mem("After get data")
 
-            # stack.append(data[band])
             stack[index] = data[band]
             del data, pqa
 
@@ -736,6 +752,38 @@ def calculate_ndvi(red, nir, input_ndv=NDV, output_ndv=NDV):
     ndvi = ndvi.filled(output_ndv)
 
     return ndvi
+
+
+def calculate_ndwi(green, nir, input_ndv=NDV, output_ndv=NDV):
+    """
+    Calculate the Normalised Difference Water Index (NDWI) from a Landsat dataset
+
+    NDWI is defined as (GREEN - NIR) / (GREEN + NIR)
+    """
+
+    green = numpy.ma.masked_equal(green, input_ndv)
+    nir = numpy.ma.masked_equal(nir, input_ndv)
+
+    ndwi = numpy.true_divide(green - nir, green + nir)
+    ndwi = ndwi.filled(output_ndv)
+
+    return ndwi
+
+
+def calculate_mndwi(green, mir, input_ndv=NDV, output_ndv=NDV):
+    """
+    Calculate the Modified Normalised Difference Water Index (MNDWI) from a Landsat dataset
+
+    MNDWI is defined as (GREEN - MIR) / (GREEN + MIR)
+    """
+
+    green = numpy.ma.masked_equal(green, input_ndv)
+    mir = numpy.ma.masked_equal(mir, input_ndv)
+
+    mdnwi = numpy.true_divide(green - mir, green + mir)
+    mdnwi = mdnwi.filled(output_ndv)
+
+    return mdnwi
 
 
 def calculate_evi(red, blue, nir, l=1, c1=6, c2=7.5, input_ndv=NDV, output_ndv=NDV):
@@ -1114,12 +1162,12 @@ def log_mem(s=None):
 
     import psutil
 
-    _log.debug("Current memory usage is [%s]", psutil.Process().memory_info())
-    _log.debug("Current memory usage is [%d] MB", psutil.Process().memory_info().rss / 1024 / 1024)
+    _log.info("Current memory usage is [%s]", psutil.Process().memory_info())
+    _log.info("Current memory usage is [%d] MB", psutil.Process().memory_info().rss / 1024 / 1024)
 
     import resource
 
-    _log.debug("Current MAX RSS  usage is [%d] MB", resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
+    _log.info("Current MAX RSS  usage is [%d] MB", resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024)
 
 
 def date_to_integer(d):
@@ -1147,6 +1195,8 @@ def get_dataset_filename(dataset, output_format=OutputFormat.GEOTIFF,
         DatasetType.DEM: "DEM_",
         DatasetType.DEM_HYDROLOGICALLY_ENFORCED: "DEM-H_",
         DatasetType.DEM_SMOOTHED: "DEM-S_",
+        DatasetType.NDWI: "_NBAR_",
+        DatasetType.MNDWI: "_NBAR_"
     }[dataset.dataset_type]
 
     dataset_type_to_string = {
@@ -1161,7 +1211,9 @@ def get_dataset_filename(dataset, output_format=OutputFormat.GEOTIFF,
         DatasetType.DSM: "DSM_",
         DatasetType.DEM: "DEM_",
         DatasetType.DEM_HYDROLOGICALLY_ENFORCED: "DEM_H_",
-        DatasetType.DEM_SMOOTHED: "DEM_S_"
+        DatasetType.DEM_SMOOTHED: "DEM_S_",
+        DatasetType.NDWI: "_NDWI_",
+        DatasetType.MNDWI: "_MNDWI_",
     }[dataset.dataset_type]
 
     dataset_type_to_string += ((mask_pqa_apply or mask_wofs_apply or mask_vector_apply) and "WITH_" or "") + \
@@ -1178,8 +1230,6 @@ def get_dataset_filename(dataset, output_format=OutputFormat.GEOTIFF,
     filename = filename.replace(".tif", ext)
 
     return filename
-
-
 
 # def get_dataset_filename(self, dataset):
 #
@@ -1292,6 +1342,8 @@ def get_dataset_band_stack_filename(satellites, dataset_type, band, x, y, acq_mi
         DatasetType.DEM: "DEM",
         DatasetType.DEM_HYDROLOGICALLY_ENFORCED: "DEM_H",
         DatasetType.DEM_SMOOTHED: "DEM_S",
+        DatasetType.NDWI: "NDWI",
+        DatasetType.MNDWI: "MNDWI"
     }[dataset_type]
 
     dataset_type_str += ((mask_pqa_apply or mask_wofs_apply or mask_vector_apply) and "_WITH" or "") + \
@@ -1382,6 +1434,8 @@ def get_dataset_type_datatype(dataset_type):
         DatasetType.FC25: gdalconst.GDT_Int16,
         DatasetType.WATER: gdalconst.GDT_Byte,
         DatasetType.NDVI: gdalconst.GDT_Float32,
+        DatasetType.NDWI: gdalconst.GDT_Float32,
+        DatasetType.MNDWI: gdalconst.GDT_Float32,
         DatasetType.EVI: gdalconst.GDT_Float32,
         DatasetType.NBR: gdalconst.GDT_Float32,
         DatasetType.TCI: gdalconst.GDT_Float32,
@@ -1403,6 +1457,8 @@ def get_dataset_type_ndv(dataset_type):
         DatasetType.FC25: NDV,
         DatasetType.WATER: BYTE_MAX,
         DatasetType.NDVI: NAN,
+        DatasetType.NDWI: NAN,
+        DatasetType.MNDWI: NAN,
         DatasetType.EVI: NAN,
         DatasetType.NBR: NAN,
         DatasetType.TCI: NAN,
@@ -1420,6 +1476,8 @@ def get_dataset_type_data_type(dataset_type):
         DatasetType.FC25: numpy.int16,
         DatasetType.WATER: numpy.byte,
         DatasetType.NDVI: numpy.float32,
+        DatasetType.NDWI: numpy.float32,
+        DatasetType.MNDWI: numpy.float32,
         DatasetType.EVI: numpy.float32,
         DatasetType.NBR: numpy.float32,
         DatasetType.TCI: numpy.float32,
@@ -1469,8 +1527,6 @@ def extract_feature_geometry_wkb(vector_file, vector_layer=0, vector_feature=0, 
     import ogr
     import osr
     from gdalconst import GA_ReadOnly
-
-    print "extracting feature geometry ", vector_file, vector_layer, vector_feature
 
     vector = ogr.Open(vector_file, GA_ReadOnly)
     assert vector
@@ -1552,9 +1608,7 @@ def calculate_stack_statistic_max(stack, ndv=NDV, dtype=numpy.int16):
 
 def calculate_stack_statistic_mean(stack, ndv=NDV, dtype=numpy.int16):
     if numpy.isnan(ndv):
-        "print doing nanmean", stack
         stat = numpy.nanmean(stack, axis=0)
-        print "mean is", stat
     else:
         stack = maskify_stack(stack=stack, ndv=ndv)
         stat = numpy.mean(stack, axis=0).filled(ndv)
@@ -1898,7 +1952,7 @@ class Month(Enum):
 
 
 class Season(Enum):
-    __order__ = "SPRING SUMMER AUTUMN WINTER CALENDAR_YEAR FINANCIAL_YEAR"
+    __order__ = "SPRING SUMMER AUTUMN WINTER CALENDAR_YEAR FINANCIAL_YEAR APR_TO_SEP"
 
     SPRING = "SPRING"
     SUMMER = "SUMMER"
@@ -1906,6 +1960,7 @@ class Season(Enum):
     WINTER = "WINTER"
     CALENDAR_YEAR = "CALENDAR_YEAR"
     FINANCIAL_YEAR = "FINANCIAL_YEAR"
+    APR_TO_SEP = "APR_TO_SEP"
 
 
 class Quarter(Enum):
@@ -1921,7 +1976,8 @@ SEASONS = {
     Season.SUMMER: ((Month.DECEMBER, 1), (Month.FEBRUARY, 31)),
     Season.AUTUMN: ((Month.MARCH, 1), (Month.MAY, 31)),
     Season.WINTER: ((Month.JUNE, 1), (Month.AUGUST, 31)),
-    Season.SPRING: ((Month.SEPTEMBER, 1), (Month.NOVEMBER, 31))
+    Season.SPRING: ((Month.SEPTEMBER, 1), (Month.NOVEMBER, 31)),
+    Season.APR_TO_SEP: ((Month.APRIL, 1), (Month.SEPTEMBER, 31))
 }
 
 

@@ -28,9 +28,6 @@
 # ===============================================================================
 
 
-__author__ = "Simon Oldfield"
-
-
 import csv
 import logging
 import os
@@ -38,15 +35,16 @@ import sys
 from datacube.api import dataset_type_arg, writeable_dir, BandListType
 from datacube.api.model import DatasetType, Wofs25Bands
 from datacube.api.tool import Tool
-from datacube.api.utils import latlon_to_cell, latlon_to_xy, UINT16_MAX, BYTE_MAX, get_mask_pqa, get_band_name_union, \
-    is_ndv
+from datacube.api.utils import latlon_to_cell, latlon_to_xy, BYTE_MAX, get_mask_pqa, get_band_name_union
+from datacube.api.utils import is_ndv, get_dataset_type_ndv
 from datacube.api.utils import LS7_SLC_OFF_EXCLUSION, LS8_PRE_WRS_2_EXCLUSION, build_date_criteria
 from datacube.api.utils import get_pixel_time_series_filename
-from datacube.api.utils import NAN
 from datacube.api.utils import get_band_name_intersection
 from datacube.api.utils import get_mask_wofs, get_dataset_data_masked
 from datacube.api.utils import get_dataset_metadata, NDV
 
+
+__author__ = "Simon Oldfield"
 
 _log = logging.getLogger()
 
@@ -216,17 +214,7 @@ class RetrievePixelTimeSeriesTool(Tool):
 
         _log.info("cell is %d %d", cell_x, cell_y)
 
-        # TODO - PQ is UNIT16 and WOFS is BYTE (others are INT16) and so -999 NDV doesn't work
-        ndv = NDV
-
-        if self.dataset_type == DatasetType.PQ25:
-            ndv = UINT16_MAX
-
-        elif self.dataset_type == DatasetType.WATER:
-            ndv = BYTE_MAX
-
-        elif self.dataset_type in [DatasetType.NDVI, DatasetType.EVI, DatasetType.NBR, DatasetType.TCI]:
-            ndv = NAN
+        ndv = get_dataset_type_ndv(self.dataset_type)
 
         with self.get_output_file(self.dataset_type, self.overwrite) as csv_file:
 
