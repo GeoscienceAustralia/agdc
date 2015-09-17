@@ -44,11 +44,12 @@ from datacube.api import parse_date_min, parse_date_max, Month, PqaMask, Statist
 from datacube.api import satellite_arg, pqa_mask_arg, dataset_type_arg, statistic_arg, season_arg
 from datacube.api.query import list_cells_as_list, list_tiles_as_list
 from datacube.api.model import Satellite, DatasetType, Ls57Arg25Bands, NdviBands
-from datacube.api.utils import get_dataset_type_ndv, get_dataset_data_stack, log_mem, build_season_date_criteria
+from datacube.api.utils import get_dataset_type_ndv, get_dataset_type_data_type, get_dataset_data_stack, log_mem, build_season_date_criteria
 from datacube.api.utils import PercentileInterpolation
 from datacube.api.utils import calculate_stack_statistic_count, calculate_stack_statistic_count_observed
 from datacube.api.utils import calculate_stack_statistic_min, calculate_stack_statistic_max
 from datacube.api.utils import calculate_stack_statistic_mean, calculate_stack_statistic_percentile
+from datacube.api.utils import calculate_stack_statistic_variance, calculate_stack_statistic_standard_deviation
 from datacube.api.workflow import Task
 
 
@@ -61,7 +62,7 @@ SEASONS = {
     Season.WINTER: ((Month.MAY, 17), (Month.OCTOBER, 25)),
     Season.SPRING: ((Month.AUGUST, 17), (Month.JANUARY, 25)),
     Season.FINANCIAL_YEAR: ((Month.JULY, 1), (Month.JUNE, 30)),
-    Season.CALENDAR_YEAR: ((Month.JANUARY, 1),(Month.DECEMBER, 31))
+    Season.CALENDAR_YEAR: ((Month.JANUARY, 1), (Month.DECEMBER, 31))
 }
 
 EpochParameter = namedtuple('Epoch', ['increment', 'duration'])
@@ -465,10 +466,13 @@ class Arg25EpochStatisticsTask(Task):
     output_directory = luigi.Parameter()
 
     def output(self):
-        acq_min = self.acq_min.strftime("%Y%m%d")
-        acq_max = self.acq_max.strftime("%Y%m%d")
+        from datetime import date
 
         season = SEASONS[self.season]
+
+        acq_min = date(self.acq_min.year, season[0][0].value, season[0][1]).strftime("%Y%m%d")
+        acq_max = self.acq_max.strftime("%Y%m%d")
+
         season_start = "{month}{day:02d}".format(month=season[0][0].name[:3], day=season[0][1])
         season_end = "{month}{day:02d}".format(month=season[1][0].name[:3], day=season[1][1])
 
@@ -553,7 +557,11 @@ class Arg25EpochStatisticsTask(Task):
 
         # TODO
 
-        raster = driver.Create(self.output().path, 4000, 4000, len(self.epochs) * len(self.statistics), gdal.GDT_Int16,
+        gdal_type = gdal.GDT_Int16
+        if self.dataset_type == DatasetType.NDVI and self.statistic not in [Statistic.COUNT, Statistic.COUNT_OBSERVED]:
+            gdal_type = gdal.GDT_Float32
+
+        raster = driver.Create(self.output().path, 4000, 4000, len(self.epochs), gdal_type,
                                options=["INTERLEAVE=BAND", "COMPRESS=LZW", "TILED=YES"])
         assert raster
 
@@ -834,7 +842,7 @@ class Arg25BandStatisticsBandChunkTask(Task):
         _log.info("Calculating statistics for chunk")
 
         ndv = get_dataset_type_ndv(self.dataset_type)
-
+        data_type = get_dataset_type_data_type(self.dataset_type)
         tiles = self.get_tiles()
 
         stack = get_dataset_data_stack(tiles, self.dataset_type, self.band.name, ndv=ndv,
@@ -861,7 +869,7 @@ class Arg25BandStatisticsBandChunkTask(Task):
 
             # MIN
             print "MIN"
-            stack_stat = calculate_stack_statistic_min(stack=stack, ndv=ndv)
+            stack_stat = calculate_stack_statistic_min(stack=stack, ndv=ndv, dtype=data_type)
             numpy.save(self.get_statistic_filename(Statistic.MIN), stack_stat)
             del stack_stat
 
@@ -870,7 +878,7 @@ class Arg25BandStatisticsBandChunkTask(Task):
 
             # MAX
             print "MAX"
-            stack_stat = calculate_stack_statistic_max(stack=stack, ndv=ndv)
+            stack_stat = calculate_stack_statistic_max(stack=stack, ndv=ndv, dtype=data_type)
             numpy.save(self.get_statistic_filename(Statistic.MAX), stack_stat)
             del stack_stat
 
@@ -879,8 +887,26 @@ class Arg25BandStatisticsBandChunkTask(Task):
 
             # MEAN
             print "MEAN"
-            stack_stat = calculate_stack_statistic_mean(stack=stack, ndv=ndv)
+            stack_stat = calculate_stack_statistic_mean(stack=stack, ndv=ndv, dtype=data_type)
             numpy.save(self.get_statistic_filename(Statistic.MEAN), stack_stat)
+            del stack_stat
+
+        if Statistic.VARIANCE in self.statistics:
+            log_mem("Before VARIANCE")
+
+            # VARIANCE
+            print "VARIANCE"
+            stack_stat = calculate_stack_statistic_variance(stack=stack, ndv=ndv, dtype=data_type)
+            numpy.save(self.get_statistic_filename(Statistic.VARIANCE), stack_stat)
+            del stack_stat
+
+        if Statistic.STANDARD_DEVIATION in self.statistics:
+            log_mem("Before STANDARD_DEVIATION")
+
+            # STANDARD_DEVIATION
+            print "STANDARD_DEVIATION"
+            stack_stat = calculate_stack_statistic_standard_deviation(stack=stack, ndv=ndv, dtype=data_type)
+            numpy.save(self.get_statistic_filename(Statistic.STANDARD_DEVIATION), stack_stat)
             del stack_stat
 
         for percentile in PERCENTILE:
@@ -913,7 +939,7 @@ def get_statistic_filename(x, y, acq_min, acq_max, season, band, statistic, x_of
 
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+    logging.basicConfig(level=logging.NOTSET, format='%(asctime)s %(levelname)s %(message)s')
     args = Arguments()
     args.log_arguments()
 
