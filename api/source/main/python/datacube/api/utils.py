@@ -1684,7 +1684,10 @@ def calculate_stack_statistic_percentile(stack, percentile, interpolation=Percen
         else:
             return numpy.percentile(a=d, q=percentile, interpolation=interpolation.value)
 
-    stat = numpy.apply_along_axis(do_percentile, axis=0, arr=stack)
+    if numpy.isnan(ndv):
+        stat = numpy.nanpercentile(a=stack, q=percentile, axis=0, interpolation=interpolation.value)
+    else:
+        stat = numpy.apply_along_axis(do_percentile, axis=0, arr=stack)
 
     _log.debug("%s is [%s]\n%s", percentile, numpy.shape(stat), stat)
 
@@ -1977,6 +1980,8 @@ SEASONS = {
     Season.AUTUMN: ((Month.MARCH, 1), (Month.MAY, 31)),
     Season.WINTER: ((Month.JUNE, 1), (Month.AUGUST, 31)),
     Season.SPRING: ((Month.SEPTEMBER, 1), (Month.NOVEMBER, 31)),
+    Season.FINANCIAL_YEAR: ((Month.JULY, 1), (Month.JUNE, 30)),
+    Season.CALENDAR_YEAR: ((Month.JANUARY, 1), (Month.DECEMBER, 31)),
     Season.APR_TO_SEP: ((Month.APRIL, 1), (Month.SEPTEMBER, 31))
 }
 

@@ -595,7 +595,11 @@ class Arg25EpochStatisticsTask(Task):
                 _log.info("Processing chunk [%4d|%4d] for [%s] from [%s]", x_offset, y_offset, self.statistic.name, filename)
 
                 # read the chunk
-                data = numpy.load(filename)
+                try:
+                    data = numpy.load(filename)
+                except IOError:
+                    _log.info("Failed to load chunk")
+                    continue
 
                 _log.info("data is [%s]\n[%s]", numpy.shape(data), data)
                 _log.info("Writing it to (%d,%d)", x_offset, y_offset)
