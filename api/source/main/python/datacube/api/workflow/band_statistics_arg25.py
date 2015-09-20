@@ -573,6 +573,7 @@ class Arg25EpochStatisticsTask(Task):
         raster.SetMetadata(self.generate_raster_metadata())
 
         from itertools import product
+        from datetime import date
 
         for index, (acq_min, acq_max) in enumerate(self.epochs, start=1):
             _log.info("Doing band [%s] statistic [%s] which is band number [%s]", self.band.name, self.statistic.name, index)
@@ -584,9 +585,13 @@ class Arg25EpochStatisticsTask(Task):
             band = raster.GetRasterBand(index)
             assert band
 
+            season = SEASONS[self.season]
+            acq_min_str = date(acq_min_extended.year, season[0][0].value, season[0][1]).strftime("%Y%m%d")
+            acq_max_str = acq_max_extended.strftime("%Y%m%d")
+
             # TODO
             band.SetNoDataValue(ndv)
-            band.SetDescription("{band} - {stat}".format(band=self.band.name, stat=self.statistic.name))
+            band.SetDescription("{band} {stat} {start}-{end}".format(band=self.band.name, stat=self.statistic.name, start=acq_min_str, end=acq_max_str))
 
             for x_offset, y_offset in product(range(0, 4000, self.x_chunk_size),
                                               range(0, 4000, self.y_chunk_size)):
