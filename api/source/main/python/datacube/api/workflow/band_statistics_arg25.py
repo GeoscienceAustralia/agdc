@@ -46,7 +46,7 @@ from datacube.api.query import list_cells_as_list, list_tiles_as_list
 from datacube.api.model import Satellite, DatasetType, Ls57Arg25Bands, NdviBands
 from datacube.api.utils import get_dataset_type_ndv, get_dataset_type_data_type, get_dataset_data_stack, log_mem, build_season_date_criteria
 from datacube.api.utils import PercentileInterpolation
-from datacube.api.utils import SEASONS
+from datacube.api.utils import Season, SEASONS
 from datacube.api.utils import calculate_stack_statistic_count, calculate_stack_statistic_count_observed
 from datacube.api.utils import calculate_stack_statistic_min, calculate_stack_statistic_max
 from datacube.api.utils import calculate_stack_statistic_mean, calculate_stack_statistic_percentile
