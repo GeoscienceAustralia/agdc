@@ -45,7 +45,7 @@ setup(name="agdc-api",
       author="Geoscience Australia",
       maintainer="Geoscience Australia",
       description="AGDC API",
-      license="BSD 3",
+      license="Apache License 2.0",
       install_requires=[
           "gdal",
           "numpy >= 1.9",

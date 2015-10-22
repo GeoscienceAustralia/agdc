@@ -30,6 +30,6 @@ setup(name="agdc-api-examples",
       author="Geoscience Australia",
       maintainer="Geoscience Australia",
       description="AGDC API Examples",
-      license="BSD 3"#,
+      license="Apache License 2.0"#,
       # requires = ["agdc-api"]
 )
