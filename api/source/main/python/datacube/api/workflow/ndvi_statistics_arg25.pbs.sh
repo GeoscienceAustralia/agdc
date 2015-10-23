@@ -17,7 +17,7 @@ module unload numpy
 module unload scipy
 module unload openmpi
 
-module load agdc-api/0.1.0-b20150722-DEWNR
+module load agdc-api/0.1.0-b20151023
 
 # GDAL settings
 export GDAL_CACHEMAX=1073741824

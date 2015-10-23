@@ -41,6 +41,8 @@ setup(name="agdc-api",
           "source/main/python/datacube/api/workflow/band_statistics_arg25.py",
           "source/main/python/datacube/api/workflow/band_statistics_arg25.pbs.sh",
           "source/main/python/datacube/api/workflow/band_statistics_arg25.pbs.submit.sh",
+          "source/main/python/datacube/api/workflow/ndvi_statistics_arg25.pbs.sh",
+          "source/main/python/datacube/api/workflow/ndvi_statistics_arg25.pbs.submit.sh"
       ],
       author="Geoscience Australia",
       maintainer="Geoscience Australia",
