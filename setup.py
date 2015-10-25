@@ -61,5 +61,5 @@ setup(name='agdc',
       maintainer_email = 'alex.ip@ga.gov.au',
       description = 'Australian Geoscience Data Cube (AGDC)',
       long_description = 'Australian Geoscience Data Cube (AGDC). Original Python code developed during the Unlocking the Landsat Archive. (ULA) Project, 2013',
-      license = 'BSD 3'
+      license = 'Apache License 2.0'
  )
