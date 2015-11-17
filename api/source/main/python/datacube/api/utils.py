@@ -1925,7 +1925,7 @@ class Season(Enum):
     AUTUMN = "AUTUMN"
     WINTER = "WINTER"
     APR_TO_SEP = "APR_TO_SEP"
-
+    APR_TO_OCT = "APR_TO_OCT"
 
 class Quarter(Enum):
     __order__ = "Q1 Q2 Q3 Q4"
@@ -1941,7 +1941,8 @@ SEASONS = {
     Season.AUTUMN: ((Month.MARCH, 1), (Month.MAY, 31)),
     Season.WINTER: ((Month.JUNE, 1), (Month.AUGUST, 31)),
     Season.SPRING: ((Month.SEPTEMBER, 1), (Month.NOVEMBER, 31)),
-    Season.APR_TO_SEP: ((Month.APRIL, 1), (Month.SEPTEMBER, 31))
+    Season.APR_TO_SEP: ((Month.APRIL, 1), (Month.SEPTEMBER, 31)),
+    Season.APR_TO_OCT: ((Month.APRIL, 1), (Month.OCTOBER, 31))
 }
 
 
