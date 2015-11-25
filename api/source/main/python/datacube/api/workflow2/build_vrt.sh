@@ -4,7 +4,7 @@ module load openev2/2.1.0
 module load gdal/1.9.2 
 
 cnt=0
-
+# cd /g/data/u46/bb/output/clean_pixel2
 for i in 10 50 90
 do
 	cnt=$(($cnt+1))
@@ -31,3 +31,18 @@ do
 		fi
 	done
 done
+
+# output results
+[fxz547@raijin4 clean_pixel2]$ ls -l mm*compo.tif
+-rw-r-----+ 1 bxb547 u46 49282240524 Nov  8 08:42 mm_10_blue_compo.tif
+-rw-r-----+ 1 bxb547 u46 49282240524 Nov  8 08:43 mm_10_green_compo.tif
+-rw-r-----+ 1 bxb547 u46 49282240524 Nov  8 08:44 mm_10_near_compo.tif
+-rw-r-----+ 1 bxb547 u46 49282240524 Nov  8 08:43 mm_10_red_compo.tif
+-rw-r-----+ 1 bxb547 u46 49282240524 Nov  8 08:49 mm_50_blue_compo.tif
+-rw-r-----+ 1 bxb547 u46 49282240524 Nov  8 08:50 mm_50_green_compo.tif
+-rw-r-----+ 1 bxb547 u46 49282240524 Nov  8 08:52 mm_50_near_compo.tif
+-rw-r-----+ 1 bxb547 u46 49282240524 Nov  8 08:51 mm_50_red_compo.tif
+-rw-r-----+ 1 bxb547 u46 49282240524 Nov  8 08:52 mm_90_blue_compo.tif
+-rw-r-----+ 1 bxb547 u46 49282240524 Nov  8 08:53 mm_90_green_compo.tif
+-rw-r-----+ 1 bxb547 u46 49282240524 Nov  8 08:55 mm_90_near_compo.tif
+-rw-r-----+ 1 bxb547 u46 49282240524 Nov  8 08:55 mm_90_red_compo.tif
