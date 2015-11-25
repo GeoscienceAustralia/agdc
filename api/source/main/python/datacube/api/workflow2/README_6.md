@@ -1,0 +1,13 @@
+Requirement : 
+To generate six bands (Red, Blue, Green, NEAR_INFRARED, SHORT_WAVE_INFRARED_1, SHORT_WAVE_INFRARED_2)of Landsat 8 data from 2013 to 2015. The season covers from APR to OCT. The statistics used to calculate interpolated data are Percentile 10, 50 and 90 for each bands. 
+Solution  :
+I took code from AGDC version 1 from GitHub repository . The source is from  sjo/dev-pm-pic branch.I modified clean_pixel_statistics.py and named  clean_pixel_statistics_6.py program to allow three more bands and more statistical calculations other than default 50 percentile. I also changed datacube/api/utils.py to include APR_TO_OCT season. The previous PBS script of running on 201 nodes was used to run but I made a little change to run for each percentile upto three bands in one job.  So, six jobs are used to complete the whole process. If I try to run the job in one go, I found this common error "Exit Status: -14 (MotherSuperior->SisterMoms communication failure)" and seems to be all the nodes are not able to handle with the scheduler. So it is desirable to run in 30-40 minutes chunk for each job. There are 1001 datasets found after running query from the production database. The task created 1001 tif files for each band. In total 18,018 tif files are generated. At the end, I ran gdalbuildvrt and gdal_translate to have a composite mosaic tif file for each band against each percentile. There are 18 tif files, six for each statistics with 50 GB approx. Norman is the key stakeholder in this project. He has received all the files completed on Tuesday ( 11/10/2015).  
+Operating Instruction :
+clean_pixel_statistics_6.pbs.sh can be used to run PBS job. Once the job is finished, pbs job build_vrt.pbs.sh needs to be submitted which will execute build_vrt.sh script to get final product of 18 tif files.
+
+Comments :
+Pushed codes to the sjo/dev-pm-pic branch in agdc repository.
+1)	Modified codes in datacube/api/__init__.py and utils.py
+2)	Added clean_pixel_statistics_6.py and clean_pixel_statistics_6.pbs.sh to datacube/api/workflow2
+
+
