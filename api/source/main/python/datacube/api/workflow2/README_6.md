@@ -8,6 +8,7 @@ I took code from AGDC version 1 from GitHub repository . The source is from  sjo
 
 # Operating Instruction
 
+First prepare_csv.py needs to run to get required datasets to feed into clean_pixel_statistics_6.pbs.sh. Once it is completed then the following steps can be run.
 clean_pixel_statistics_6.pbs.sh can be used to run PBS job. Once the job is finished, pbs job build_vrt.pbs.sh needs to be submitted which will execute build_vrt.sh script to get final product of 18 tif files.
 
 # Comments
