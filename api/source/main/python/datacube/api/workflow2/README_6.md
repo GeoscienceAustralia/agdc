@@ -8,8 +8,18 @@ I took code from AGDC version 1 from GitHub repository . The source is from  sjo
 
 # Operating Instruction
 
-First prepare_csv.py needs to run to get required datasets to feed into clean_pixel_statistics_6.pbs.sh. Once it is completed then the following steps can be run.
-clean_pixel_statistics_6.pbs.sh can be used to run PBS job. Once the job is finished, pbs job build_vrt.pbs.sh needs to be submitted which will execute build_vrt.sh script to get final product of 18 tif files.
+First prepare_csv.py needs to run to get required datasets to feed into clean_pixel_statistics_6.pbs.sh.
+Step 1
+   $ mkdir -p input
+   $ source /projects/u46/venvs/agdc/bin/activate
+   $ python prepare_csv.py --x-min 110 --x-max 155 --y-min -45 --y-max -10 --acq-min 2013 --acq-max 2015 --satellite LS8 --season APR_TO_OCT --output-directory $PWD/input
+
+Once it is completed then the following steps can be run.
+Step 2
+$ clean_pixel_statistics_6.pbs.sh   (Please make sure it has execute permission otherwise do chmod +x                                                                          clean_pixel_statistics_6.pbs.sh)
+Once this job is finished, pbs job build_vrt.pbs.sh needs to be submitted which will execute build_vrt.sh script to get final product of 18 tif files.
+Step 3
+$ build_vrt.pbs.sh
 
 # Comments
 
