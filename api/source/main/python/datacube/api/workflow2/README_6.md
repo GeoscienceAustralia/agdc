@@ -13,13 +13,16 @@ First prepare_csv.py needs to run to get required datasets to feed into clean_pi
 #Step 1
 
    $ mkdir -p input
+   
    $ source /projects/u46/venvs/agdc/bin/activate
+   
    $ python prepare_csv.py --x-min 110 --x-max 155 --y-min -45 --y-max -10 --acq-min 2013 --acq-max 2015 --satellite LS8 --season APR_TO_OCT --output-directory $PWD/input
 
 Once it is completed then the following steps can be run. This step is to split lat/long into individual cell files and running statistics task.
 
 #Step 2
 $ run_split_cells.sh
+
 $ clean_pixel_statistics_6.pbs.sh   (Please make sure it has execute permission otherwise do chmod +x                                                                          clean_pixel_statistics_6.pbs.sh)
 Once this job is finished, pbs job build_vrt.pbs.sh needs to be submitted which will execute build_vrt.sh script to get final product of 18 tif files.
 
