@@ -2,6 +2,11 @@
 #This will split datasets lon/lat into individual cells. The whole continent has land 1001 tiles
 # and we are splitting into 20 cells with 50 lat/long data
 # Then ultimately 20 pbs jobs will run in 20 nodes for these cells
+
+WORKDIR=/short/v10/fxz547/CleanPixel
+
+cd $WORKDIR
+
 mkdir -p input_cells
 rm input_cells/*
 ls input/datasets*|awk -F"_" '{print $2","$3}' > input_cells/cells.txt
