@@ -5,7 +5,7 @@
 #PBS -N apr_to_oct
 #PBS -P u46
 #PBS -q normal
-#PBS -l walltime=03:00:00,ncpus=320,mem=643GB
+#PBS -l walltime=20:00:00,ncpus=320,mem=643GB
 #PBS -l wd
 
 #DIR=/g/data/u46/bb/output/clean_pixel
