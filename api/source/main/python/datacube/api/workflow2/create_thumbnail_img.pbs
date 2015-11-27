@@ -1,0 +1,20 @@
+#! /bin/bash
+
+
+#PBS -N BrowseImage 
+#PBS -P u46
+#PBS -q express
+#PBS -l walltime=00:55:00,ncpus=1,mem=4GB
+
+#IMGDIR=/short/v10/fxz547/CleanPixel
+IMGDIR=/g/data/u46/6-bands
+
+# modules and environment vars required
+
+module load python/2.7.6  gdal/1.9.2
+
+cd  $IMGDIR
+
+python /home/547/fxz547/github/agdc/api/source/main/python/datacube/api/workflow2/create_thumbnail_img.py mm_10_RED.compo.tif mm_10_GREEN.compo.tif mm_10_BLUE.compo.tif /short/v10/fxz547/LS8_10pct.jpg -999 10240
+
+
