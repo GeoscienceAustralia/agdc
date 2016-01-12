@@ -24,7 +24,7 @@ from setuptools import setup
 
 
 setup(name="agdc-api",
-      version="0.1.0-b20150807",
+      version="0.1.0-b20160111",
       package_dir={"": "source/main/python", "test": "source/test/python"},
       packages=["datacube", "datacube.api", "datacube.api.tool", "datacube.api.workflow"],
       scripts=[
