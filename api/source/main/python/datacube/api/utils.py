@@ -1047,15 +1047,16 @@ def latlon_to_xy(lat, lon, transform):
     """
     # Get the reverse direction GeoTransform
     _, transform = gdal.InvGeoTransform(transform)
-
+    
+    '''
     ulx, uly = transform[0], transform[3]
     psx, psy = transform[1], transform[5]
-
     x = int(math.floor(ulx + psx * lon))
     y = int(math.floor(uly + psy * lat))
-
-    return x, y
-
+    '''
+    # This is to fix to make nearest rounding before casting to integer and apply gdal utility
+    x, y= gdal.ApplyGeoTransform(transform, lon, lat)
+    return int(round(x)), int(round(y))
 
 def latlon_to_cell(lat, lon):
     """

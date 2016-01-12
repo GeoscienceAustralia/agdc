@@ -291,7 +291,7 @@ def retrieve_pixel_value(dataset, pqa, pqa_masks, wofs, wofs_masks, latitude, lo
         wofs and wofs.path or "", wofs and wofs_masks or "")
 
     metadata = get_dataset_metadata(dataset)
-
+    # This is to bug fix for rounding error. For ex the x cordinate of 1023.999999 coming as 1023 instead of 1024
     x, y = latlon_to_xy(latitude, longitude, metadata.transform)
 
     _log.info("Retrieving value at x=[%d] y=[%d] from %s", x, y, dataset.path)
